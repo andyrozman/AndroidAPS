@@ -139,6 +139,13 @@ public enum PumpType {
     TandemTSlimG4("Tandem t:slim G4", "t:slim G4", TandemTSlim), //
     TandemTSlimX2("Tandem t:slim X2", "t:slim X2", TandemTSlim), //
 
+    // Ypsomed
+    YpsoPump("YpsoPump", ManufacturerType.Ypsomed, "Ypsopump", 0.01d, null, //
+            new DoseSettings(0.01d, 15, 8 * 60, 0.4d),
+            PumpTempBasalType.Percent,
+            new DoseSettings(1, 15, 8 * 60, 0d, 250d), PumpCapability.BasalRate_Duration15and30minAllowed, //
+            0.1d, 0.001d, null, PumpCapability.VirtualPumpCapabilities),
+
     // MDI
     MDI("MDI", ManufacturerType.AndroidAPS, "MDI");
 
