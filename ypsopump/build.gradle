@@ -41,7 +41,6 @@ android {
 
 dependencies {
     implementation project(':core')
-    implementation project(':rileylink')
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
@@ -53,4 +52,8 @@ dependencies {
     testImplementation "junit:junit:$junit_version"
     androidTestImplementation "androidx.test.ext:junit:$androidx_junit"
     androidTestImplementation "androidx.test:rules:$androidx_rules"
+
+//    // Lombok
+//    compileOnly 'org.projectlombok:lombok:1.18.10'
+//    annotationProcessor 'org.projectlombok:lombok:1.18.10'
 }

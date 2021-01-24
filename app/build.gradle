@@ -242,6 +242,7 @@ dependencies {
     implementation project(':rileylink')
     implementation project(':medtronic')
     implementation project(':omnipod')
+    implementation project(':ypsopump')
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 

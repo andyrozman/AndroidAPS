@@ -1,9 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Medtronic (MDT) - Base -->
-    <string name="medtronic_name" translatable="false">Medtronic</string>
-    <string name="medtronic_name_short" translatable="false">MDT</string>
-    <string name="description_pump_medtronic">Pump integration for Medtronic, requires RileyLink device and specific Pump Model</string>
+    <!-- YpsoPump - Base -->
+    <string name="ypsopump_name" translatable="false">YpsoPump</string>
+    <string name="ypsopump_name_short" translatable="false">YPSO</string>
+    <string name="description_pump_ypsopump">Pump integration for YpsoPump (with version 1.6 (and higher) you can use Closed Loop, all other modules are Open Loop only.</string>
+
+
+    <!-- Overview -->
+    <string name="pump_refresh">Refresh</string>
+    <string name="pump_errors">Errors</string>
+    <string name="pump_status_label">Pump Status</string>
+    <string name="pump_firmware_label">Pump Firmware</string>
+    <string name="pump_last_bolus" translatable="false">%1$.1f %2$s (%3$s)</string>
+    <string name="pump_firmware_open_loop_only">%s (Open-Loop only)</string>
+
+    <!-- Commands -->
+    <string name="ypsopump_cmd_desc_get_settings">Get Settings</string>
+    <string name="ypsopump_cmd_desc_get_firmware">Get Pump Firmware</string>
+    <string name="ypsopump_cmd_desc_get_basal_profile">Get Basal Profile</string>
+    <string name="ypsopump_cmd_desc_set_basal_profile">Set Basal Profile</string>
+    <string name="ypsopump_cmd_desc_get_tbr">Get Temporary Basal</string>
+    <string name="ypsopump_cmd_desc_set_tbr">Set Temporary Basal</string>
+    <string name="ypsopump_cmd_desc_set_bolus">Set Bolus</string>
+
+
+    <string name="ypsopump_cmd_desc_get_history">Get History - Page %1$d (%2$d/16)</string>
+    <string name="ypsopump_cmd_desc_get_history_request">Get History - Page %1$d</string>
+    <string name="ypsopump_cmd_desc_get_time">Get Pump Time</string>
+
+
+
+    <plurals name="duration_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
+    </plurals>
+
+
+    <!-- OLD Ones past this line -->
+
 
     <!-- MDT Configuration -->
     <string name="key_medtronic_serial" translatable="false">pref_medtronic_serial</string>
@@ -24,6 +62,8 @@
     <string name="key_medtronic_pump_battery_lithium" translatable="false">medtronic_pump_battery_lithium</string>
     <string name="key_medtronic_pump_battery_nizn" translatable="false">medtronic_pump_battery_nizn</string>
     <string name="key_medtronic_pump_battery_nimh" translatable="false">medtronic_pump_battery_nimh</string>
+
+
 
     <string name="medtronic_serial_number">Pump Serial Number</string>
     <string name="medtronic_pump_type">Pump Type</string>
@@ -50,7 +90,6 @@
 
 
     <!-- MDT Errors -->
-    <string name="medtronic_errors">Errors</string>
     <string name="medtronic_error_serial_not_set">Serial # not set.</string>
     <string name="medtronic_error_serial_invalid">Serial # invalid.</string>
     <string name="medtronic_error_pump_type_not_set">Pump Type not set.</string>
@@ -110,10 +149,13 @@
     <string name="medtronic_notification_check_time_date">Pump clock update needed</string> <!-- combo_notification_check_time_date -->
     <string name="common_on">On</string>
     <string name="common_off">Off</string>
-    <string name="mdt_last_bolus" translatable="false">%1$.1f %2$s (%3$s)</string>
     <string name="pump_time_updated">Pump time updated</string>
     <string name="key_set_neutral_temps" translatable="false">set_neutral_temps</string>
     <string name="set_neutral_temps_title">Set neutral temp basals</string>
     <string name="set_neutral_temps_summary">If enabled, it will cancel a temporary basal before the end of each hour. This method can help stop some pumps beeping/vibrating on the hour.</string>
+
+
+
+
 
 </resources>

@@ -5,12 +5,14 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Date;
+import java.util.List;
 
 import dagger.android.HasAndroidInjector;
 import info.nightscout.androidaps.core.R;
@@ -33,10 +35,13 @@ import info.nightscout.androidaps.logging.AAPSLogger;
 import info.nightscout.androidaps.logging.LTag;
 import info.nightscout.androidaps.plugins.bus.RxBusWrapper;
 import info.nightscout.androidaps.plugins.common.ManufacturerType;
+import info.nightscout.androidaps.plugins.general.actions.defs.CustomAction;
+import info.nightscout.androidaps.plugins.general.actions.defs.CustomActionType;
 import info.nightscout.androidaps.plugins.general.overview.events.EventOverviewBolusProgress;
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus;
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState;
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType;
+import info.nightscout.androidaps.queue.commands.CustomCommand;
 import info.nightscout.androidaps.utils.DateUtil;
 import info.nightscout.androidaps.utils.DecimalFormatter;
 import info.nightscout.androidaps.utils.FabricPrivacy;
@@ -112,16 +117,19 @@ public abstract class PumpPluginAbstract extends PumpPluginBase implements PumpI
 
         initPumpStatusData();
 
-        Intent intent = new Intent(context, getServiceClass());
-        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        if (hasService()) {
+            Intent intent = new Intent(context, getServiceClass());
+            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+            disposable.add(rxBus
+                    .toObservable(EventAppExit.class)
+                    .observeOn(Schedulers.io())
+                    .subscribe(event -> context.unbindService(serviceConnection), fabricPrivacy::logException)
+            );
+        }
 
         serviceRunning = true;
 
-        disposable.add(rxBus
-                .toObservable(EventAppExit.class)
-                .observeOn(Schedulers.io())
-                .subscribe(event -> context.unbindService(serviceConnection), fabricPrivacy::logException)
-        );
         onStartCustomActions();
     }
 
@@ -130,7 +138,9 @@ public abstract class PumpPluginAbstract extends PumpPluginBase implements PumpI
     protected void onStop() {
         aapsLogger.debug(LTag.PUMP, this.deviceID() + " onStop()");
 
-        context.unbindService(serviceConnection);
+        if (hasService()) {
+            context.unbindService(serviceConnection);
+        }
 
         serviceRunning = false;
 
@@ -465,6 +475,10 @@ public abstract class PumpPluginAbstract extends PumpPluginBase implements PumpI
         return false;
     }
 
+    public boolean hasService() {
+        return true;
+    }
+
 
     protected abstract PumpEnactResult deliverBolus(DetailedBolusInfo detailedBolusInfo);
 
@@ -472,6 +486,20 @@ public abstract class PumpPluginAbstract extends PumpPluginBase implements PumpI
 
     private PumpEnactResult getOperationNotSupportedWithCustomText(int resourceId) {
         return new PumpEnactResult(getInjector()).success(false).enacted(false).comment(getResourceHelper().gs(resourceId));
+    }
+
+    @Override
+    public List<CustomAction> getCustomActions() {
+        return null;
+    }
+
+    @Override
+    public void executeCustomAction(CustomActionType customActionType) {
+    }
+
+    @Nullable @Override
+    public PumpEnactResult executeCustomCommand(CustomCommand customCommand) {
+        return null;
     }
 
 }

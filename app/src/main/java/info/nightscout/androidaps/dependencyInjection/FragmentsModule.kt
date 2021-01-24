@@ -38,6 +38,7 @@ import info.nightscout.androidaps.plugins.pump.medtronic.MedtronicFragment
 import info.nightscout.androidaps.plugins.pump.medtronic.dialog.RileyLinkStatusDeviceMedtronic
 import info.nightscout.androidaps.plugins.pump.omnipod.ui.OmnipodOverviewFragment
 import info.nightscout.androidaps.plugins.pump.virtual.VirtualPumpFragment
+import info.nightscout.androidaps.plugins.pump.ypsopump.YpsoPumpFragment
 import info.nightscout.androidaps.plugins.source.BGSourceFragment
 import info.nightscout.androidaps.plugins.treatments.TreatmentsFragment
 import info.nightscout.androidaps.plugins.treatments.fragments.*
@@ -69,6 +70,7 @@ abstract class FragmentsModule {
     @ContributesAndroidInjector abstract fun contributesMaintenanceFragment(): MaintenanceFragment
     @ContributesAndroidInjector abstract fun contributesMedtronicFragment(): MedtronicFragment
     @ContributesAndroidInjector abstract fun contributesOmnipodFragment(): OmnipodOverviewFragment
+    @ContributesAndroidInjector abstract fun contributesYpsoPumpFragment(): YpsoPumpFragment
     @ContributesAndroidInjector abstract fun contributesNSProfileFragment(): NSProfileFragment
     @ContributesAndroidInjector abstract fun contributesNSClientFragment(): NSClientFragment
     @ContributesAndroidInjector

@@ -44,6 +44,7 @@ import info.nightscout.androidaps.plugins.pump.mdi.MDIPlugin
 import info.nightscout.androidaps.plugins.pump.medtronic.MedtronicPumpPlugin
 import info.nightscout.androidaps.plugins.pump.omnipod.OmnipodPumpPlugin
 import info.nightscout.androidaps.plugins.pump.virtual.VirtualPumpPlugin
+import info.nightscout.androidaps.plugins.pump.ypsopump.YpsopumpPumpPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityAAPSPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityOref1Plugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityWeightedAveragePlugin
@@ -163,15 +164,21 @@ abstract class PluginsModule {
     abstract fun bindOmnipodPumpPlugin(plugin: OmnipodPumpPlugin): PluginBase
 
     @Binds
-    @NotNSClient
+    @PumpDriver
     @IntoMap
     @IntKey(160)
+    abstract fun bindYpsopumpPumpPlugin(plugin: YpsopumpPumpPlugin): PluginBase
+
+    @Binds
+    @NotNSClient
+    @IntoMap
+    @IntKey(186)
     abstract fun bindMDIPlugin(plugin: MDIPlugin): PluginBase
 
     @Binds
     @AllConfigs
     @IntoMap
-    @IntKey(170)
+    @IntKey(188)
     abstract fun bindVirtualPumpPlugin(plugin: VirtualPumpPlugin): PluginBase
 
     @Binds
