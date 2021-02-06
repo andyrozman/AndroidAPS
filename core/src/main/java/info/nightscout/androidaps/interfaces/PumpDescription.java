@@ -149,4 +149,37 @@ public class PumpDescription {
         hasCustomUnreachableAlertCheck = pumpType.getHasCustomUnreachableAlertCheck();
     }
 
+    @Override public String toString() {
+        final StringBuilder sb = new StringBuilder("PumpDescription{");
+        sb.append("pumpType=").append(pumpType);
+        sb.append(", isBolusCapable=").append(isBolusCapable);
+        sb.append(", bolusStep=").append(bolusStep);
+        sb.append(", isExtendedBolusCapable=").append(isExtendedBolusCapable);
+        sb.append(", extendedBolusStep=").append(extendedBolusStep);
+        sb.append(", extendedBolusDurationStep=").append(extendedBolusDurationStep);
+        sb.append(", extendedBolusMaxDuration=").append(extendedBolusMaxDuration);
+        sb.append(", isTempBasalCapable=").append(isTempBasalCapable);
+        sb.append(", tempBasalStyle=").append(tempBasalStyle);
+        sb.append(", maxTempPercent=").append(maxTempPercent);
+        sb.append(", tempPercentStep=").append(tempPercentStep);
+        sb.append(", maxTempAbsolute=").append(maxTempAbsolute);
+        sb.append(", tempAbsoluteStep=").append(tempAbsoluteStep);
+        sb.append(", tempDurationStep=").append(tempDurationStep);
+        sb.append(", tempDurationStep15mAllowed=").append(tempDurationStep15mAllowed);
+        sb.append(", tempDurationStep30mAllowed=").append(tempDurationStep30mAllowed);
+        sb.append(", tempMaxDuration=").append(tempMaxDuration);
+        sb.append(", isSetBasalProfileCapable=").append(isSetBasalProfileCapable);
+        sb.append(", basalStep=").append(basalStep);
+        sb.append(", basalMinimumRate=").append(basalMinimumRate);
+        sb.append(", basalMaximumRate=").append(basalMaximumRate);
+        sb.append(", isRefillingCapable=").append(isRefillingCapable);
+        sb.append(", isBatteryReplaceable=").append(isBatteryReplaceable);
+        sb.append(", storesCarbInfo=").append(storesCarbInfo);
+        sb.append(", is30minBasalRatesCapable=").append(is30minBasalRatesCapable);
+        sb.append(", supportsTDDs=").append(supportsTDDs);
+        sb.append(", needsManualTDDLoad=").append(needsManualTDDLoad);
+        sb.append(", hasCustomUnreachableAlertCheck=").append(hasCustomUnreachableAlertCheck);
+        sb.append('}');
+        return sb.toString();
+    }
 }

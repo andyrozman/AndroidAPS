@@ -1,4 +1,4 @@
-package info.nightscout.androidaps.plugins.pump.common.dialog;
+package info.nightscout.androidaps.plugins.pump.ypsopump.config;
 
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -35,24 +35,24 @@ import info.nightscout.androidaps.activities.NoSplashAppCompatActivity;
 import info.nightscout.androidaps.interfaces.ActivePluginProvider;
 import info.nightscout.androidaps.logging.AAPSLogger;
 import info.nightscout.androidaps.logging.LTag;
-import info.nightscout.androidaps.plugins.pump.common.R;
+import info.nightscout.androidaps.plugins.bus.RxBusWrapper;
 import info.nightscout.androidaps.plugins.pump.common.ble.BlePreCheck;
-import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.RileyLinkConst;
-import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.RileyLinkUtil;
-import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.ble.data.GattAttributes;
-import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.defs.RileyLinkPumpDevice;
+import info.nightscout.androidaps.plugins.pump.ypsopump.R;
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpGattConfig;
+import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpConfigurationChanged;
+import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst;
 import info.nightscout.androidaps.utils.resources.ResourceHelper;
 import info.nightscout.androidaps.utils.sharedPreferences.SP;
 
 // IMPORTANT: This activity needs to be called from RileyLinkSelectPreference (see pref_medtronic.xml as example)
-public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
+public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
 
     @Inject AAPSLogger aapsLogger;
     @Inject SP sp;
     @Inject ResourceHelper resourceHelper;
     @Inject BlePreCheck blePrecheck;
-    @Inject RileyLinkUtil rileyLinkUtil;
     @Inject ActivePluginProvider activePlugin;
+    @Inject RxBusWrapper rxBus;
 
     private static final String TAG = "RileyLinkBLEConfigActivity";
     private static final long SCAN_PERIOD_MILLIS = 15_000;
@@ -73,25 +73,24 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
     private final Runnable stopScanAfterTimeoutRunnable = () -> {
         if (scanning) {
             stopLeDeviceScan();
-            rileyLinkUtil.sendBroadcastMessage(RileyLinkConst.Intents.RileyLinkNewAddressSet, this); // Reconnect current RL
         }
     };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.riley_link_ble_config_activity);
+        setContentView(R.layout.ypsopump_ble_config_activity);
 
         // Initializes Bluetooth adapter.
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         deviceListAdapter = new LeDeviceListAdapter();
         handler = new Handler();
-        currentlySelectedRileyLinkName = findViewById(R.id.riley_link_ble_config_currently_selected_riley_link_name);
-        currentlySelectedRileyLinkAddress = findViewById(R.id.riley_link_ble_config_currently_selected_riley_link_address);
-        buttonRemoveRileyLink = findViewById(R.id.riley_link_ble_config_button_remove_riley_link);
-        buttonStartScan = findViewById(R.id.riley_link_ble_config_scan_start);
-        buttonStopScan = findViewById(R.id.riley_link_ble_config_button_scan_stop);
-        ListView deviceList = findViewById(R.id.riley_link_ble_config_scan_device_list);
+        currentlySelectedRileyLinkName = findViewById(R.id.ypsopump_ble_config_currently_selected_pump_name);
+        currentlySelectedRileyLinkAddress = findViewById(R.id.ypsopump_ble_config_currently_selected_pump_address);
+        buttonRemoveRileyLink = findViewById(R.id.ypsopump_ble_config_button_remove);
+        buttonStartScan = findViewById(R.id.ypsopump_ble_config_scan_start);
+        buttonStopScan = findViewById(R.id.ypsopump_ble_config_button_scan_stop);
+        ListView deviceList = findViewById(R.id.ypsopump_ble_config_scan_device_list);
         deviceList.setAdapter(deviceListAdapter);
         deviceList.setOnItemClickListener((parent, view, position, id) -> {
             // stop scanning if still active
@@ -99,57 +98,57 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
                 stopLeDeviceScan();
             }
 
-            String bleAddress = ((TextView) view.findViewById(R.id.riley_link_ble_config_scan_item_device_address)).getText().toString();
-            String deviceName = ((TextView) view.findViewById(R.id.riley_link_ble_config_scan_item_device_name)).getText().toString();
+            String bleAddress = ((TextView) view.findViewById(R.id.ypsopump_ble_config_scan_item_device_address)).getText().toString();
+            String deviceName = ((TextView) view.findViewById(R.id.ypsopump_ble_config_scan_item_device_name)).getText().toString();
 
-            sp.putString(RileyLinkConst.Prefs.RileyLinkAddress, bleAddress);
-            sp.putString(RileyLinkConst.Prefs.RileyLinkName, deviceName);
+            sp.putString(YpsoPumpConst.Prefs.PumpAddress, bleAddress);
+            sp.putString(YpsoPumpConst.Prefs.PumpName, deviceName);
 
-            RileyLinkPumpDevice rileyLinkPump = (RileyLinkPumpDevice) activePlugin.getActivePump();
-            rileyLinkPump.getRileyLinkService().verifyConfiguration(true); // force reloading of address to assure that the RL gets reconnected (even if the address didn't change)
-            rileyLinkPump.triggerPumpConfigurationChangedEvent();
+            // we need to trigger event for reconfiguration
+//            RileyLinkPumpDevice rileyLinkPump = (RileyLinkPumpDevice) activePlugin.getActivePump();
+//            rileyLinkPump.getRileyLinkService().verifyConfiguration(true); // force reloading of address to assure that the RL gets reconnected (even if the address didn't change)
+//            rileyLinkPump.triggerPumpConfigurationChangedEvent();
+
+            // TODO this should work
+            rxBus.send(new EventPumpConfigurationChanged());
 
             finish();
         });
 
         buttonStartScan.setOnClickListener(view -> {
-            // disable currently selected RL, so that we can discover it
-            rileyLinkUtil.sendBroadcastMessage(RileyLinkConst.Intents.RileyLinkDisconnect, this);
             startLeDeviceScan();
         });
 
         buttonStopScan.setOnClickListener(view -> {
             if (scanning) {
                 stopLeDeviceScan();
-                rileyLinkUtil.sendBroadcastMessage(RileyLinkConst.Intents.RileyLinkNewAddressSet, this); // Reconnect current RL
             }
         });
 
         buttonRemoveRileyLink.setOnClickListener(view -> new AlertDialog.Builder(this)
                 .setIcon(android.R.drawable.ic_dialog_alert)
-                .setTitle(getString(R.string.riley_link_ble_config_remove_riley_link_confirmation_title))
-                .setMessage(getString(R.string.riley_link_ble_config_remove_riley_link_confirmation))
-                .setPositiveButton(getString(R.string.riley_link_common_yes), (dialog, which) -> {
-                    rileyLinkUtil.sendBroadcastMessage(RileyLinkConst.Intents.RileyLinkDisconnect, RileyLinkBLEConfigActivity.this);
-                    sp.remove(RileyLinkConst.Prefs.RileyLinkAddress);
-                    sp.remove(RileyLinkConst.Prefs.RileyLinkName);
+                .setTitle(getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation_title))
+                .setMessage(getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation))
+                .setPositiveButton(getString(R.string.yes), (dialog, which) -> {
+                    sp.remove(YpsoPumpConst.Prefs.PumpAddress);
+                    sp.remove(YpsoPumpConst.Prefs.PumpName);
                     updateCurrentlySelectedRileyLink();
                 })
-                .setNegativeButton(getString(R.string.riley_link_common_no), null)
+                .setNegativeButton(getString(R.string.no), null)
                 .show());
     }
 
     private void updateCurrentlySelectedRileyLink() {
-        String address = sp.getString(RileyLinkConst.Prefs.RileyLinkAddress, "");
+        String address = sp.getString(YpsoPumpConst.Prefs.PumpAddress, "");
         if (StringUtils.isEmpty(address)) {
-            currentlySelectedRileyLinkName.setText(R.string.riley_link_ble_config_no_riley_link_selected);
+            currentlySelectedRileyLinkName.setText(R.string.ypsopump_ble_config_no_ypsopump_selected);
             currentlySelectedRileyLinkAddress.setVisibility(View.GONE);
             buttonRemoveRileyLink.setVisibility(View.GONE);
         } else {
             currentlySelectedRileyLinkAddress.setVisibility(View.VISIBLE);
             buttonRemoveRileyLink.setVisibility(View.VISIBLE);
 
-            currentlySelectedRileyLinkName.setText(sp.getString(RileyLinkConst.Prefs.RileyLinkName, "RileyLink (?)"));
+            currentlySelectedRileyLinkName.setText(sp.getString(YpsoPumpConst.Prefs.PumpName, "YpsoPump (?)"));
             currentlySelectedRileyLinkAddress.setText(address);
         }
     }
@@ -165,7 +164,6 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
         super.onDestroy();
         if (scanning) {
             stopLeDeviceScan();
-            rileyLinkUtil.sendBroadcastMessage(RileyLinkConst.Intents.RileyLinkNewAddressSet, this); // Reconnect current RL
         }
     }
 
@@ -176,7 +174,7 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
             bleScanner = bluetoothAdapter.getBluetoothLeScanner();
             settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
             filters = Collections.singletonList(new ScanFilter.Builder().setServiceUuid(
-                    ParcelUuid.fromString(GattAttributes.SERVICE_RADIO)).build());
+                    ParcelUuid.fromString(YpsoPumpGattConfig.PUMP_BASE_SERVICE_VERSION_UUID)).build());
         }
     }
 
@@ -212,18 +210,19 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
             List<ParcelUuid> serviceUuids = result.getScanRecord().getServiceUuids();
 
             if (serviceUuids == null || serviceUuids.size() == 0) {
-                Log.v(TAG, "Device " + device.getAddress() + " has no serviceUuids (Not RileyLink).");
+                Log.v(TAG, "Device " + device.getAddress() + " has no serviceUuids (Not YpsoPump).");
             } else if (serviceUuids.size() > 1) {
-                Log.v(TAG, "Device " + device.getAddress() + " has too many serviceUuids (Not RileyLink).");
+                Log.v(TAG, "Device " + device.getAddress() + " has too many serviceUuids (Not YpsoPump).");
             } else {
                 String uuid = serviceUuids.get(0).getUuid().toString().toLowerCase();
+                // TODO this might not work correctly
 
-                if (uuid.equals(GattAttributes.SERVICE_RADIO)) {
-                    Log.i(TAG, "Found RileyLink with address: " + device.getAddress());
+                if (uuid.equals(YpsoPumpGattConfig.PUMP_BASE_SERVICE_VERSION_UUID)) {
+                    Log.i(TAG, "Found YpsoPump with address: " + device.getAddress());
                     deviceListAdapter.addDevice(result);
                     return true;
                 } else {
-                    Log.v(TAG, "Device " + device.getAddress() + " has incorrect uuid (Not RileyLink).");
+                    Log.v(TAG, "Device " + device.getAddress() + " has incorrect uuid (Not YpsoPump).");
                 }
             }
 
@@ -233,7 +232,7 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
         @Override
         public void onScanFailed(int errorCode) {
             Log.e("Scan Failed", "Error Code: " + errorCode);
-            Toast.makeText(RileyLinkBLEConfigActivity.this, resourceHelper.gs(R.string.ble_config_scan_error, errorCode),
+            Toast.makeText(YpsoPumpBLEConfigActivity.this, resourceHelper.gs(R.string.ble_config_scan_error, errorCode),
                     Toast.LENGTH_LONG).show();
         }
 
@@ -256,7 +255,7 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
         scanning = true;
         bleScanner.startScan(filters, settings, bleScanCallback);
         aapsLogger.debug(LTag.PUMPBTCOMM, "startLeDeviceScan: Scanning Start");
-        Toast.makeText(RileyLinkBLEConfigActivity.this, R.string.ble_config_scan_scanning, Toast.LENGTH_SHORT).show();
+        Toast.makeText(YpsoPumpBLEConfigActivity.this, R.string.ble_config_scan_scanning, Toast.LENGTH_SHORT).show();
     }
 
     private void stopLeDeviceScan() {
@@ -283,7 +282,7 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
             super();
             mLeDevices = new ArrayList<>();
             rileyLinkDevices = new HashMap<>();
-            mInflator = RileyLinkBLEConfigActivity.this.getLayoutInflater();
+            mInflator = YpsoPumpBLEConfigActivity.this.getLayoutInflater();
         }
 
         public void addDevice(ScanResult result) {
@@ -320,10 +319,10 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
             ViewHolder viewHolder;
             // General ListView optimization code.
             if (view == null) {
-                view = mInflator.inflate(R.layout.riley_link_ble_config_scan_item, null);
+                view = mInflator.inflate(R.layout.ypsopump_ble_config_scan_item, null);
                 viewHolder = new ViewHolder();
-                viewHolder.deviceAddress = view.findViewById(R.id.riley_link_ble_config_scan_item_device_address);
-                viewHolder.deviceName = view.findViewById(R.id.riley_link_ble_config_scan_item_device_name);
+                viewHolder.deviceAddress = view.findViewById(R.id.ypsopump_ble_config_scan_item_device_address);
+                viewHolder.deviceName = view.findViewById(R.id.ypsopump_ble_config_scan_item_device_name);
                 view.setTag(viewHolder);
             } else {
                 viewHolder = (ViewHolder) view.getTag();
@@ -338,7 +337,7 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
 
             deviceName += " [" + rileyLinkDevices.get(device) + "]";
 
-            String currentlySelectedAddress = sp.getString(RileyLinkConst.Prefs.RileyLinkAddress, "");
+            String currentlySelectedAddress = sp.getString(YpsoPumpConst.Prefs.PumpAddress, "");
 
             if (currentlySelectedAddress.equals(device.getAddress())) {
                 deviceName += " (" + getResources().getString(R.string.ble_config_scan_selected) + ")";

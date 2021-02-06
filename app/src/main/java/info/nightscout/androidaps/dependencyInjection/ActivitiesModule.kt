@@ -15,30 +15,45 @@ import info.nightscout.androidaps.plugins.pump.insight.activities.InsightAlertAc
 import info.nightscout.androidaps.plugins.pump.insight.activities.InsightPairingActivity
 import info.nightscout.androidaps.plugins.pump.insight.activities.InsightPairingInformationActivity
 import info.nightscout.androidaps.plugins.pump.medtronic.dialog.MedtronicHistoryActivity
+import info.nightscout.androidaps.plugins.pump.ypsopump.config.YpsoPumpBLEConfigActivity
 import info.nightscout.androidaps.setupwizard.SetupWizardActivity
 
 @Module
 @Suppress("unused")
 abstract class ActivitiesModule {
 
-    @ContributesAndroidInjector abstract fun contributesHistoryBrowseActivity(): HistoryBrowseActivity
+    @ContributesAndroidInjector
+    abstract fun contributesHistoryBrowseActivity(): HistoryBrowseActivity
     @ContributesAndroidInjector abstract fun contributesInsightAlertActivity(): InsightAlertActivity
-    @ContributesAndroidInjector abstract fun contributesInsightPairingActivity(): InsightPairingActivity
-    @ContributesAndroidInjector abstract fun contributesInsightPairingInformationActivity(): InsightPairingInformationActivity
+    @ContributesAndroidInjector
+    abstract fun contributesInsightPairingActivity(): InsightPairingActivity
+    @ContributesAndroidInjector
+    abstract fun contributesInsightPairingInformationActivity(): InsightPairingInformationActivity
     @ContributesAndroidInjector abstract fun contributesLogSettingActivity(): LogSettingActivity
     @ContributesAndroidInjector abstract fun contributeMainActivity(): MainActivity
-    @ContributesAndroidInjector abstract fun contributesMedtronicHistoryActivity(): MedtronicHistoryActivity
+    @ContributesAndroidInjector
+    abstract fun contributesMedtronicHistoryActivity(): MedtronicHistoryActivity
     @ContributesAndroidInjector abstract fun contributesPreferencesActivity(): PreferencesActivity
-    @ContributesAndroidInjector abstract fun contributesQuickWizardListActivity(): QuickWizardListActivity
-    @ContributesAndroidInjector abstract fun contributesRequestDexcomPermissionActivity(): RequestDexcomPermissionActivity
-    @ContributesAndroidInjector abstract fun contributesRileyLinkStatusActivity(): RileyLinkStatusActivity
-    @ContributesAndroidInjector abstract fun contributesRileyLinkBLEConfigActivity(): RileyLinkBLEConfigActivity
+    @ContributesAndroidInjector
+    abstract fun contributesQuickWizardListActivity(): QuickWizardListActivity
+    @ContributesAndroidInjector
+    abstract fun contributesRequestDexcomPermissionActivity(): RequestDexcomPermissionActivity
+    @ContributesAndroidInjector
+    abstract fun contributesRileyLinkStatusActivity(): RileyLinkStatusActivity
+    @ContributesAndroidInjector
+    abstract fun contributesRileyLinkBLEConfigActivity(): RileyLinkBLEConfigActivity
     @ContributesAndroidInjector abstract fun contributesSetupWizardActivity(): SetupWizardActivity
-    @ContributesAndroidInjector abstract fun contributesSingleFragmentActivity(): SingleFragmentActivity
-    @ContributesAndroidInjector abstract fun contributesSmsCommunicatorOtpActivity(): SmsCommunicatorOtpActivity
+    @ContributesAndroidInjector
+    abstract fun contributesSingleFragmentActivity(): SingleFragmentActivity
+    @ContributesAndroidInjector
+    abstract fun contributesSmsCommunicatorOtpActivity(): SmsCommunicatorOtpActivity
     @ContributesAndroidInjector abstract fun contributesStatsActivity(): StatsActivity
     @ContributesAndroidInjector abstract fun contributesSurveyActivity(): SurveyActivity
-    @ContributesAndroidInjector abstract fun contributesDefaultProfileActivity(): ProfileHelperActivity
-    @ContributesAndroidInjector abstract fun contributesOpenHumansLoginActivity(): OpenHumansLoginActivity
+    @ContributesAndroidInjector
+    abstract fun contributesDefaultProfileActivity(): ProfileHelperActivity
+    @ContributesAndroidInjector
+    abstract fun contributesOpenHumansLoginActivity(): OpenHumansLoginActivity
+    @ContributesAndroidInjector
+    abstract fun contributesYpsoPumpBLEConfigActivity(): YpsoPumpBLEConfigActivity
 
 }

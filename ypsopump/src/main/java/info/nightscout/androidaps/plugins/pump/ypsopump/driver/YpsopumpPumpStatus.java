@@ -23,7 +23,7 @@ import info.nightscout.androidaps.utils.sharedPreferences.SP;
  */
 
 @Singleton
-public class YpsopumpPumpStatus extends info.nightscout.androidaps.plugins.pump.common.data.PumpStatus  {
+public class YpsopumpPumpStatus extends info.nightscout.androidaps.plugins.pump.common.data.PumpStatus {
 
     private final ResourceHelper resourceHelper;
     private final SP sp;
@@ -42,15 +42,12 @@ public class YpsopumpPumpStatus extends info.nightscout.androidaps.plugins.pump.
     // statuses
     private PumpDeviceState pumpDeviceState = PumpDeviceState.NeverContacted;
     public Date tempBasalStart;
-    public Double tempBasalAmount = 0.0d;
-
-    // fixme
-    public Integer tempBasalLength = 0;
+    public int tempBasalPercent = 100;
+    public Integer tempBasalDuration = 0;
+    public long tempBasalEnd = 0L;
 
 //    public BasalProfileStatus basalProfileStatus = BasalProfileStatus.NotInitialized;
 //    public BatteryType batteryType = BatteryType.None;
-
-
 
 
     @Inject

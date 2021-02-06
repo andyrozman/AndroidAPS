@@ -20,14 +20,37 @@
     <string name="ypsopump_cmd_desc_get_basal_profile">Get Basal Profile</string>
     <string name="ypsopump_cmd_desc_set_basal_profile">Set Basal Profile</string>
     <string name="ypsopump_cmd_desc_get_tbr">Get Temporary Basal</string>
+    <string name="ypsopump_cmd_desc_cancel_tbr">Cancel Temporary Basal</string>
     <string name="ypsopump_cmd_desc_set_tbr">Set Temporary Basal</string>
     <string name="ypsopump_cmd_desc_set_bolus">Set Bolus</string>
 
+    <!-- Command Errors -->
+    <string name="ypsopump_cmd_bolus_could_not_be_delivered_no_insulin">Bolus could not be delivered, because available insulin amount (%1$.2f) is less than bolus required (%2$.2f).</string>
+    <string name="ypsopump_cmd_bolus_could_not_be_delivered">Bolus could not be delivered.</string>
+    <string name="ypsopump_cmd_tbr_could_not_be_delivered">TBR could not be set.</string>
+    <string name="ypsopump_cmd_basal_profile_could_not_be_set">Basal profile could not be set.</string>
+    <string name="ypsopump_cmd_cant_read_tbr">Could not read current TBR.</string>
+    <string name="ypsopump_cmd_cant_cancel_tbr_stop_op">Could not cancel current TBR. Stopping operation.</string>
+    <string name="ypsopump_cmd_cant_cancel_tbr">Could not cancel current TBR.</string>
 
+
+    <!-- YpsoPump Config -->
+    <string name="key_ypsopump_address" translatable="false">pref_ypsopump_address</string>
+    <string name="key_ypsopump_serial" translatable="false">pref_ypsopump_serial</string>
+    <string name="key_ypsopump_name" translatable="false">pref_ypsopump_name</string>
+
+    <!-- YpsoPump BLE Config -->
+    <string name="ypsopump_ble_config_scan_title">YpsoPump Scan</string>
+    <string name="ypsopump_ble_config_scan_currently_selected_riley_link">Currently Selected YpsoPump</string>
+    <string name="ypsopump_ble_config_remove_riley_link_confirmation">Are you sure that you want to remove your YpsoPump?</string>
+    <string name="ypsopump_ble_config_remove_riley_link_confirmation_title">Remove YpsoPump</string>
+    <string name="ypsopump_ble_config_no_ypsopump_selected">No YpsoPump selected</string>
+
+    <!-- ddd -->
     <string name="ypsopump_cmd_desc_get_history">Get History - Page %1$d (%2$d/16)</string>
     <string name="ypsopump_cmd_desc_get_history_request">Get History - Page %1$d</string>
     <string name="ypsopump_cmd_desc_get_time">Get Pump Time</string>
-
+    <!-- ddd end -->
 
 
     <plurals name="duration_days">
@@ -44,58 +67,16 @@
 
 
     <!-- MDT Configuration -->
-    <string name="key_medtronic_serial" translatable="false">pref_medtronic_serial</string>
-    <string name="key_medtronic_pump_type" translatable="false">pref_medtronic_pump_type</string>
-    <string name="key_medtronic_frequency" translatable="false">pref_medtronic_frequency</string>
-    <string name="key_medtronic_max_bolus" translatable="false">pref_medtronic_max_bolus</string>
-    <string name="key_medtronic_max_basal" translatable="false">pref_medtronic_max_basal</string>
-    <string name="key_medtronic_bolus_delay" translatable="false">pref_medtronic_bolus_delay</string>
-    <string name="key_medtronic_encoding" translatable="false">pref_medtronic_encoding</string>
-    <string name="key_medtronic_battery_type" translatable="false">pref_medtronic_battery_type</string>
-    <string name="key_medtronic_bolus_debug" translatable="false">pref_medtronic_bolus_debug</string>
-    <string name="key_medtronic_pump_frequency_us_ca" translatable="false">medtronic_pump_frequency_us_ca</string>
-    <string name="key_medtronic_pump_frequency_worldwide" translatable="false">medtronic_pump_frequency_worldwide</string>
-    <string name="key_medtronic_pump_encoding_4b6b_local" translatable="false">medtronic_pump_encoding_4b6b_local</string>
-    <string name="key_medtronic_pump_encoding_4b6b_rileylink" translatable="false">medtronic_pump_encoding_4b6b_rileylink</string>
-    <string name="key_medtronic_pump_battery_no" translatable="false">medtronic_pump_battery_no</string>
-    <string name="key_medtronic_pump_battery_alkaline" translatable="false">medtronic_pump_battery_alkaline</string>
-    <string name="key_medtronic_pump_battery_lithium" translatable="false">medtronic_pump_battery_lithium</string>
-    <string name="key_medtronic_pump_battery_nizn" translatable="false">medtronic_pump_battery_nizn</string>
-    <string name="key_medtronic_pump_battery_nimh" translatable="false">medtronic_pump_battery_nimh</string>
-
 
 
     <string name="medtronic_serial_number">Pump Serial Number</string>
     <string name="medtronic_pump_type">Pump Type</string>
-    <string name="medtronic_pump_frequency">Pump Frequency</string>
-    <string name="medtronic_pump_bolus_delay">Delay before Bolus is started (s)</string>
-    <string name="medtronic_pump_max_bolus">Max Bolus on Pump (U)</string>
-    <string name="medtronic_pump_max_basal">Max Basal on Pump (U/h)</string>
-    <string name="medtronic_pump_encoding">Medtronic Encoding</string>
-    <string name="medtronic_pump_frequency_us_ca">US &amp; Canada (916 MHz)</string>
-    <string name="medtronic_pump_frequency_worldwide">Worldwide (868 Mhz)</string>
-    <string name="medtronic_pump_encoding_4b6b_local">Software 4b6b Encoding</string>
-    <string name="medtronic_pump_encoding_4b6b_rileylink">Hardware 4b6b Encoding</string>
-    <string name="medtronic_custom_action_wake_and_tune">Wake and Tune Up</string>
     <string name="medtronic_custom_action_clear_bolus_block">Clear Bolus Block</string>
-    <string name="medtronic_custom_action_reset_rileylink">Reset RileyLink Config</string>
-    <string name="medtronic_pump_battery_select">Battery Type (Power View)</string>
-    <string name="medtronic_pump_battery_no">Not selected (Simple view)</string>
-    <string name="medtronic_pump_battery_alkaline">Alkaline (Extended view)</string>
-    <string name="medtronic_pump_battery_lithium">Lithium (Extended view)</string>
-    <string name="medtronic_pump_battery_nizn">NiZn (Extended view)</string>
-    <string name="medtronic_pump_battery_nimh">NiMH (Extended view)</string>
-    <string name="medtronic_bolus_debugging">Bolus/Treatments Debugging</string>
-
 
 
     <!-- MDT Errors -->
     <string name="medtronic_error_serial_not_set">Serial # not set.</string>
     <string name="medtronic_error_serial_invalid">Serial # invalid.</string>
-    <string name="medtronic_error_pump_type_not_set">Pump Type not set.</string>
-    <string name="medtronic_error_pump_type_invalid">Pump Type unsupported.</string>
-    <string name="medtronic_error_pump_frequency_not_set">Pump Frequency not set.</string>
-    <string name="medtronic_error_pump_frequency_invalid">Pump Frequency unsupported.</string>
     <string name="medtronic_error_rileylink_address_invalid">RileyLink Address invalid.</string>
     <string name="medtronic_error_pump_type_set_differs_from_detected">Pump type detected is not the same as configured type.</string>
 
@@ -117,18 +98,9 @@
     <string name="medtronic_pump_history">Medtronic Pump History</string>
 
 
-
-
     <!-- <string name="medtronic_cmd_profile_not_set">Remote Basal profile setting is not supported. Please modify Basal profile on your pump manually.</string> -->
     <string name="medtronic_cmd_cancel_bolus_not_supported">You cancelled Bolus, after it was already set on Pump. Since Medtronic Pump doesn\'t support cancel, you will need to manually cancel it. Put the Pump into Suspend mode and then do Resume (if you still want to cancel). Application will pick up changes, on next update (in less than 5 minutes).</string>
-    <string name="medtronic_cmd_cant_read_tbr">Could not read current TBR.</string>
-    <string name="medtronic_cmd_cant_cancel_tbr_stop_op">Could not cancel current TBR. Stopping operation.</string>
     <string name="medtronic_cmd_set_profile_pattern_overflow">Profile set failed, because following patterns, have too big basal rate: %1$s</string>
-    <string name="medtronic_cmd_bolus_could_not_be_delivered">Bolus could not be delivered.</string>
-    <string name="medtronic_cmd_bolus_could_not_be_delivered_no_insulin">Bolus could not be delivered, because available insulin amount (%1$.2f) is less than bolus required (%2$.2f).</string>
-    <string name="medtronic_cmd_tbr_could_not_be_delivered">TBR could not be set.</string>
-    <string name="medtronic_cmd_cant_cancel_tbr">Could not cancel current TBR.</string>
-    <string name="medtronic_cmd_basal_profile_could_not_be_set">Basal profile could not be set.</string>
     <string name="medtronic_cmd_basal_profile_not_set_is_same">Basal profile is the same, so it will not be set again.</string>
 
     <string name="medtronic_cmd_desc_get_history">Get History - Page %1$d (%2$d/16)</string>
@@ -153,9 +125,6 @@
     <string name="key_set_neutral_temps" translatable="false">set_neutral_temps</string>
     <string name="set_neutral_temps_title">Set neutral temp basals</string>
     <string name="set_neutral_temps_summary">If enabled, it will cancel a temporary basal before the end of each hour. This method can help stop some pumps beeping/vibrating on the hour.</string>
-
-
-
 
 
 </resources>

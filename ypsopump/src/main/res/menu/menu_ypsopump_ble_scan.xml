@@ -4,7 +4,7 @@
     tools:context=".MainActivity">
 
     <item
-        android:id="@+id/rileylink_miScan"
+        android:id="@+id/ypsopump_miScan"
         app:showAsAction="ifRoom"
         android:title="@string/ble_config_button_scan_start"></item>
 </menu>

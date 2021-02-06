@@ -9,7 +9,7 @@
         style="@style/TextAppearance.AppCompat.Title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/riley_link_ble_config_scan_currently_selected_riley_link" />
+        android:text="@string/ypsopump_ble_config_scan_currently_selected_riley_link" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,14 +23,14 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/riley_link_ble_config_currently_selected_riley_link_name"
+                android:id="@+id/ypsopump_ble_config_currently_selected_pump_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="10dp"
                 android:textSize="16sp" />
 
             <TextView
-                android:id="@+id/riley_link_ble_config_currently_selected_riley_link_address"
+                android:id="@+id/ypsopump_ble_config_currently_selected_pump_address"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="10dp"
@@ -38,7 +38,7 @@
         </LinearLayout>
 
         <Button
-            android:id="@+id/riley_link_ble_config_button_remove_riley_link"
+            android:id="@+id/ypsopump_ble_config_button_remove"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/ble_config_remove"
@@ -56,16 +56,16 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/riley_link_ble_config_scan_title" />
+            android:text="@string/ypsopump_ble_config_scan_title" />
 
         <Button
-            android:id="@+id/riley_link_ble_config_scan_start"
+            android:id="@+id/ypsopump_ble_config_scan_start"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/ble_config_button_scan_start" />
 
         <Button
-            android:id="@+id/riley_link_ble_config_button_scan_stop"
+            android:id="@+id/ypsopump_ble_config_button_scan_stop"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/ble_config_scan_stop"
@@ -74,7 +74,7 @@
 
     <!-- RileyLink scan results -->
     <ListView
-        android:id="@+id/riley_link_ble_config_scan_device_list"
+        android:id="@+id/ypsopump_ble_config_scan_device_list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 

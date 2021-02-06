@@ -130,7 +130,7 @@ public class RileyLinkStatusGeneralFragment extends DaggerFragment implements Re
 
         long lastConnectionTimeMillis = rileyLinkPumpDevice.getLastConnectionTimeMillis();
         if (lastConnectionTimeMillis == 0) {
-            this.lastDeviceContact.setText(resourceHelper.gs(R.string.riley_link_ble_config_connected_never));
+            this.lastDeviceContact.setText(resourceHelper.gs(R.string.ble_config_connected_never));
         } else {
             this.lastDeviceContact.setText(StringUtil.toDateTimeString(dateUtil, new LocalDateTime(lastConnectionTimeMillis)));
         }

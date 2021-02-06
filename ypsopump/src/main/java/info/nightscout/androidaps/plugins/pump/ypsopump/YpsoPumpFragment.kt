@@ -21,6 +21,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventOtherPumpValuesChanged
 import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpConfigurationDisplayChanged
+import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpValuesChanged
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import info.nightscout.androidaps.queue.events.EventQueueChanged
 import info.nightscout.androidaps.utils.DateUtil
@@ -149,6 +150,10 @@ class YpsoPumpFragment : DaggerFragment() {
             .toObservable(EventOtherPumpValuesChanged::class.java)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ updateGUI(UpdateGui.OtherValues) }, { fabricPrivacy.logException(it) })
+        disposable += rxBus
+            .toObservable(EventPumpValuesChanged::class.java)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ updateGUI(UpdateGui.Full) }, { fabricPrivacy.logException(it) })
 
         updateGUI(UpdateGui.Full)
     }
@@ -405,7 +410,7 @@ class YpsoPumpFragment : DaggerFragment() {
 
             // base basal rate
             pump_basabasalrate.text = ("(" + pumpStatus.activeProfileName + ")  "
-                + resourceHelper.gs(R.string.pump_basebasalrate, pumpStatus.basalProfileForHour))
+                + resourceHelper.gs(R.string.pump_basebasalrate, pumpStatus.baseBasalRate))
 
             // TBR
             pump_tempbasal.text = activePlugin.activeTreatments.getTempBasalFromHistory(System.currentTimeMillis())?.toStringFull()
@@ -431,13 +436,12 @@ class YpsoPumpFragment : DaggerFragment() {
             // Battery, Reservoir
 
             // battery
-            pump_battery.text = "{fa-battery-" + pumpStatus.batteryRemaining / 25 + "}  " + pumpStatus.batteryRemaining + "%" + String.format("  (%.2f V)", pumpStatus.batteryVoltage)
+            pump_battery.text = "{fa-battery-" + pumpStatus.batteryRemaining / 25 + "}  " + pumpStatus.batteryRemaining + "%"
             warnColors.setColorInverse(pump_battery, pumpStatus.batteryRemaining.toDouble(), 25.0, 10.0)
 
             // reservoir
             pump_reservoir.text = resourceHelper.gs(R.string.reservoirvalue, pumpStatus.reservoirRemainingUnits, pumpStatus.reservoirFullUnits)
             warnColors.setColorInverse(pump_reservoir, pumpStatus.reservoirRemainingUnits, 50.0, 20.0)
-
         }
 
     }

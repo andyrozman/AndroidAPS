@@ -484,11 +484,11 @@
                     android:background="@color/listdelimiter" />
 
                 <TextView
-                    android:layout_width="182dp"
-                    android:layout_height="138dp"
+                    android:layout_width="239dp"
+                    android:layout_height="157dp"
                     android:layout_gravity="center"
-                    android:drawableTop="@drawable/ic_veo"
-                    android:paddingTop="10dp" />
+                    android:drawableTop="@drawable/ic_ypsopump"
+                    android:paddingTop="40dp" />
 
             </LinearLayout>
 
