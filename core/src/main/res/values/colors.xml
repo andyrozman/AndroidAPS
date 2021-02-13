@@ -81,5 +81,11 @@
     <color name="metadataTextWarning">#FF8C00</color>
     <color name="metadataTextError">#FF5555</color>
 
-
+    <!-- Overview scheme -->
+    <color name="loopenabled">#47c8ff</color>
+    <color name="loopdisabled">#FFDD7792</color>
+    <color name="looppumpsuspended">#ff0400</color>
+    <color name="tempTargetDisabledBackground">#303F9F</color>
+    <color name="gray">#BBBBBB</color>
+    <color name="black">#000000</color>
 </resources>

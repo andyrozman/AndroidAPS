@@ -7,6 +7,7 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.SystemClock;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -20,15 +21,13 @@ import org.monkey.d.ruffy.ruffy.driver.display.MenuType;
 import org.monkey.d.ruffy.ruffy.driver.display.menu.BolusType;
 import org.monkey.d.ruffy.ruffy.driver.display.menu.MenuTime;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
 import info.nightscout.androidaps.logging.StacktraceLoggerWrapper;
-import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.ReadQuickInfoCommand;
-import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.history.PumpHistoryRequest;
+import info.nightscout.androidaps.plugins.pump.combo.data.ComboDataUtil;
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.BolusCommand;
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.CancelTbrCommand;
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.Command;
@@ -37,8 +36,10 @@ import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.Conf
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.ReadBasalProfileCommand;
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.ReadHistoryCommand;
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.ReadPumpStateCommand;
+import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.ReadQuickInfoCommand;
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.SetBasalProfileCommand;
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.commands.SetTbrCommand;
+import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.history.PumpHistoryRequest;
 
 /**
  * Provides scripting 'runtime' and operations. consider moving operations into a separate
@@ -197,10 +198,16 @@ public class RuffyScripter implements RuffyCommands {
         try {
             log.debug("Disconnecting");
             ruffyService.doRTDisconnect();
+            try {
+                ComboDataUtil.getInstance().clearErrors();
+            } catch (Exception ex) {
+                log.error("Combo data util problem." + ex.getMessage(), ex);
+            }
         } catch (RemoteException e) {
             // ignore
         } catch (Exception e) {
             log.warn("Disconnect not happy", e);
+            addError(e);
         }
     }
 
@@ -263,9 +270,11 @@ public class RuffyScripter implements RuffyCommands {
                         log.debug("Executing " + cmd + " took " + (cmdEndTime - cmdStartTime) + "ms");
                     } catch (CommandException e) {
                         log.info("CommandException running command", e);
+                        addError(e);
                         cmd.getResult().success = false;
                     } catch (Exception e) {
                         log.error("Unexpected exception running cmd", e);
+                        addError(e);
                         cmd.getResult().success = false;
                     }
                 }, cmd.getClass().getSimpleName());
@@ -330,10 +339,12 @@ public class RuffyScripter implements RuffyCommands {
             } catch (CommandException e) {
                 log.error("CommandException while executing command", e);
                 PumpState pumpState = recoverFromCommandFailure();
+                addError(e);
                 return activeCmd.getResult().success(false).state(pumpState);
             } catch (Exception e) {
                 log.error("Unexpected exception communication with ruffy", e);
                 PumpState pumpState = recoverFromCommandFailure();
+                addError(e);
                 return activeCmd.getResult().success(false).state(pumpState);
             } finally {
                 Menu menu = this.currentMenu;
@@ -352,6 +363,16 @@ public class RuffyScripter implements RuffyCommands {
             }
         }
     }
+
+
+    private void addError(Exception e) {
+        try {
+            ComboDataUtil.getInstance().addError(e);
+        } catch (Exception ex) {
+            log.error("Combo data util problem." + ex.getMessage(), ex);
+        }
+    }
+
 
     private boolean runPreCommandChecks(Command cmd) {
         if (cmd instanceof ReadPumpStateCommand) {
@@ -859,8 +880,8 @@ public class RuffyScripter implements RuffyCommands {
                 // when a command returns
                 WarningOrErrorCode displayedWarning = readWarningOrErrorCode();
                 while (Objects.equals(displayedWarning.warningCode, warningCode)) {
-                   waitForScreenUpdate();
-                   displayedWarning = readWarningOrErrorCode();
+                    waitForScreenUpdate();
+                    displayedWarning = readWarningOrErrorCode();
                 }
                 return true;
             }

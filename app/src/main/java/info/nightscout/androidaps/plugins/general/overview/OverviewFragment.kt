@@ -281,14 +281,14 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         if (childFragmentManager.isStateSaved) return
         activity?.let { activity ->
             when (v.id) {
-                R.id.overview_treatmentbutton -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if(isAdded) TreatmentDialog().show(childFragmentManager, "Overview") })
-                R.id.overview_wizardbutton -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if(isAdded) WizardDialog().show(childFragmentManager, "Overview") })
-                R.id.overview_insulinbutton -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if(isAdded) InsulinDialog().show(childFragmentManager, "Overview") })
-                R.id.overview_quickwizardbutton -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if(isAdded) onClickQuickWizard() })
-                R.id.overview_carbsbutton -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if(isAdded) CarbsDialog().show(childFragmentManager, "Overview") })
-                R.id.overview_temptarget -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if(isAdded) TempTargetDialog().show(childFragmentManager, "Overview") })
+                R.id.overview_treatmentbutton   -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if (isAdded) TreatmentDialog().show(childFragmentManager, "Overview") })
+                R.id.overview_wizardbutton      -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if (isAdded) WizardDialog().show(childFragmentManager, "Overview") })
+                R.id.overview_insulinbutton     -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if (isAdded) InsulinDialog().show(childFragmentManager, "Overview") })
+                R.id.overview_quickwizardbutton -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if (isAdded) onClickQuickWizard() })
+                R.id.overview_carbsbutton       -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if (isAdded) CarbsDialog().show(childFragmentManager, "Overview") })
+                R.id.overview_temptarget        -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { if (isAdded) TempTargetDialog().show(childFragmentManager, "Overview") })
 
-                R.id.overview_activeprofile -> {
+                R.id.overview_activeprofile     -> {
                     ProfileViewerDialog().also { pvd ->
                         pvd.arguments = Bundle().also {
                             it.putLong("time", DateUtil.now())
@@ -297,7 +297,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                     }.show(childFragmentManager, "ProfileViewDialog")
                 }
 
-                R.id.overview_cgmbutton -> {
+                R.id.overview_cgmbutton         -> {
                     if (xdripPlugin.isEnabled(PluginType.BGSOURCE))
                         openCgmApp("com.eveningoutpost.dexdrip")
                     else if (dexcomPlugin.isEnabled(PluginType.BGSOURCE)) {
@@ -323,7 +323,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                     }
                 }
 
-                R.id.overview_accepttempbutton -> {
+                R.id.overview_accepttempbutton  -> {
                     profileFunction.getProfile() ?: return
                     if (loopPlugin.isEnabled(PluginType.LOOP)) {
                         val lastRun = loopPlugin.lastRun
@@ -343,9 +343,9 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                     }
                 }
 
-                R.id.overview_apsmode -> {
+                R.id.overview_apsmode           -> {
                     protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable {
-                        if(isAdded)  LoopDialog().also { dialog ->
+                        if (isAdded) LoopDialog().also { dialog ->
                             dialog.arguments = Bundle().also { it.putInt("showOkCancel", 1) }
                         }.show(childFragmentManager, "Overview")
                     })
@@ -375,7 +375,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 return true
             }
 
-            R.id.overview_apsmode -> {
+            R.id.overview_apsmode           -> {
                 activity?.let { activity ->
                     protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable {
                         LoopDialog().also { dialog ->
@@ -385,8 +385,8 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 }
             }
 
-            R.id.overview_temptarget -> v.performClick()
-            R.id.overview_activeprofile -> activity?.let { activity -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { ProfileSwitchDialog().show(childFragmentManager, "Overview") }) }
+            R.id.overview_temptarget        -> v.performClick()
+            R.id.overview_activeprofile     -> activity?.let { activity -> protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable { ProfileSwitchDialog().show(childFragmentManager, "Overview") }) }
 
         }
         return false
@@ -663,8 +663,8 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         // temp target
         val tempTarget = treatmentsPlugin.tempTargetFromHistory
         if (tempTarget != null) {
-            overview_temptarget?.setTextColor(resourceHelper.gc(R.color.ribbonTextWarning))
-            overview_temptarget?.setBackgroundColor(resourceHelper.gc(R.color.ribbonWarning))
+            overview_temptarget?.setTextColor(getTextColor(OverviewColorScheme.TempTargetSet))
+            overview_temptarget?.setBackgroundColor(getBackgroundColor(OverviewColorScheme.TempTargetSet))
             overview_temptarget?.text = Profile.toTargetRangeString(tempTarget.low, tempTarget.high, Constants.MGDL, units) + " " + DateUtil.untilString(tempTarget.end(), resourceHelper)
         } else {
             // If the target is not the same as set in the profile then oref has overridden it
@@ -674,11 +674,11 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 aapsLogger.debug("Adjusted target. Profile: ${profile.targetMgdl} APS: $targetUsed")
                 overview_temptarget?.text = Profile.toTargetRangeString(targetUsed, targetUsed, Constants.MGDL, units)
                 overview_temptarget?.setTextColor(resourceHelper.gc(R.color.ribbonTextWarning))
-                overview_temptarget?.setBackgroundColor(resourceHelper.gc(R.color.tempTargetBackground))
+                overview_temptarget?.setBackgroundColor(getBackgroundColor(OverviewColorScheme.TempTargetSet))
             } else {
                 overview_temptarget?.setTextColor(resourceHelper.gc(R.color.ribbonTextDefault))
-                overview_temptarget?.setBackgroundColor(resourceHelper.gc(R.color.ribbonDefault))
                 overview_temptarget?.text = Profile.toTargetRangeString(profile.targetLowMgdl, profile.targetHighMgdl, Constants.MGDL, units)
+                overview_temptarget?.setBackgroundColor(getBackgroundColor(OverviewColorScheme.TempTargetNotSet))
             }
         }
 
@@ -719,11 +719,11 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         // Active profile
         overview_activeprofile?.text = profileFunction.getProfileNameWithDuration()
         if (profile.percentage != 100 || profile.timeshift != 0) {
-            overview_activeprofile?.setBackgroundColor(resourceHelper.gc(R.color.ribbonWarning))
-            overview_activeprofile?.setTextColor(resourceHelper.gc(R.color.ribbonTextWarning))
+            overview_activeprofile?.setBackgroundColor(getBackgroundColor(OverviewColorScheme.ProfileChanged))
+            overview_activeprofile?.setTextColor(getTextColor(OverviewColorScheme.ProfileChanged))
         } else {
-            overview_activeprofile?.setBackgroundColor(resourceHelper.gc(R.color.ribbonDefault))
-            overview_activeprofile?.setTextColor(resourceHelper.gc(R.color.ribbonTextDefault))
+            overview_activeprofile?.setBackgroundColor(getBackgroundColor(OverviewColorScheme.ProfileNormal))
+            overview_activeprofile?.setTextColor(getTextColor(OverviewColorScheme.ProfileNormal))
         }
 
         processButtonsVisibility()
@@ -919,4 +919,15 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             }
         }
     }
+
+    var useNewRibbonColors = false
+
+    fun getBackgroundColor(scheme: OverviewColorScheme): Int {
+        return resourceHelper.gc(scheme.getBackground(useNewRibbonColors))
+    }
+
+    fun getTextColor(scheme: OverviewColorScheme): Int {
+        return resourceHelper.gc(scheme.getTextColor(useNewRibbonColors))
+    }
+
 }

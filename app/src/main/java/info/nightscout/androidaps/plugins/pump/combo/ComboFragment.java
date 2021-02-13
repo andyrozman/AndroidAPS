@@ -1,7 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.combo;
 
 
-import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -19,6 +18,7 @@ import javax.inject.Inject;
 import dagger.android.support.DaggerFragment;
 import info.nightscout.androidaps.R;
 import info.nightscout.androidaps.plugins.bus.RxBusWrapper;
+import info.nightscout.androidaps.plugins.pump.combo.data.ComboDataUtil;
 import info.nightscout.androidaps.plugins.pump.combo.events.EventComboPumpUpdateGUI;
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.PumpState;
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.history.Bolus;
@@ -53,6 +53,7 @@ public class ComboFragment extends DaggerFragment implements View.OnClickListene
     private Button refreshButton;
     private TextView bolusCount;
     private TextView tbrCount;
+    private TextView errorCount;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -69,6 +70,7 @@ public class ComboFragment extends DaggerFragment implements View.OnClickListene
         tempBasalText = view.findViewById(R.id.combo_temp_basal);
         bolusCount = view.findViewById(R.id.combo_bolus_count);
         tbrCount = view.findViewById(R.id.combo_tbr_count);
+        errorCount = view.findViewById(R.id.combo_connection_error);
 
         refreshButton = view.findViewById(R.id.combo_refresh_button);
         refreshButton.setOnClickListener(this);
@@ -248,6 +250,9 @@ public class ComboFragment extends DaggerFragment implements View.OnClickListene
             // stats
             bolusCount.setText(String.valueOf(sp.getLong(ComboPlugin.COMBO_BOLUSES_DELIVERED, 0L)));
             tbrCount.setText(String.valueOf(sp.getLong(ComboPlugin.COMBO_TBRS_SET, 0L)));
+
+            // error count
+            errorCount.setText(ComboDataUtil.getInstance().getErrorString());
         }
     }
 }
