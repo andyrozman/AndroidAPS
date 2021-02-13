@@ -88,7 +88,7 @@ class NSClientSourcePlugin @Inject constructor(
 
     private fun detectSource(source: String, timeStamp: Long) {
         if (timeStamp > lastBGTimeStamp) {
-            isAdvancedFilteringEnabled = source.contains("G5 Native") || source.contains("G6 Native") || source.contains("AndroidAPS-DexcomG5") || source.contains("AndroidAPS-DexcomG6")
+            isAdvancedFilteringEnabled = source.contains("G5") || source.contains("G6") || source.contains("AndroidAPS-DexcomG5") || source.contains("AndroidAPS-DexcomG6")
             lastBGTimeStamp = timeStamp
         }
     }
