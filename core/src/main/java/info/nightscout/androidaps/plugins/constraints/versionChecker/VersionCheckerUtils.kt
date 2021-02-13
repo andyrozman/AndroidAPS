@@ -61,32 +61,32 @@ class VersionCheckerUtils @Inject constructor(
     @Suppress("SameParameterValue")
     fun compareWithCurrentVersion(newVersion: String?, currentVersion: String) {
 
-        val newVersionElements = newVersion.toNumberList()
-        val currentVersionElements = currentVersion.toNumberList()
-
-        if (newVersionElements == null || newVersionElements.isEmpty()) {
-            onVersionNotDetectable()
-            return
-        }
-
-        if (currentVersionElements == null || currentVersionElements.isEmpty()) {
-            // current version scrambled?!
-            onNewVersionDetected(currentVersion, newVersion)
-            return
-        }
-
-        newVersionElements.take(3).forEachIndexed { i, newElem ->
-            val currElem: Int = currentVersionElements.getOrNull(i)
-                ?: return onNewVersionDetected(currentVersion, newVersion)
-
-            (newElem - currElem).let {
-                when {
-                    it > 0  -> return onNewVersionDetected(currentVersion, newVersion)
-                    it < 0  -> return onOlderVersionDetected()
-                    it == 0 -> Unit
-                }
-            }
-        }
+        // val newVersionElements = newVersion.toNumberList()
+        // val currentVersionElements = currentVersion.toNumberList()
+        //
+        // if (newVersionElements == null || newVersionElements.isEmpty()) {
+        //     onVersionNotDetectable()
+        //     return
+        // }
+        //
+        // if (currentVersionElements == null || currentVersionElements.isEmpty()) {
+        //     // current version scrambled?!
+        //     onNewVersionDetected(currentVersion, newVersion)
+        //     return
+        // }
+        //
+        // newVersionElements.take(3).forEachIndexed { i, newElem ->
+        //     val currElem: Int = currentVersionElements.getOrNull(i)
+        //         ?: return onNewVersionDetected(currentVersion, newVersion)
+        //
+        //     (newElem - currElem).let {
+        //         when {
+        //             it > 0  -> return onNewVersionDetected(currentVersion, newVersion)
+        //             it < 0  -> return onOlderVersionDetected()
+        //             it == 0 -> Unit
+        //         }
+        //     }
+        // }
         onSameVersionDetected()
     }
 
@@ -149,7 +149,7 @@ fun findVersion(file: String?): String? {
 fun String.versionStrip() = this.mapNotNull {
     when (it) {
         in '0'..'9' -> it
-        '.' -> it
+        '.'         -> it
         else        -> null
     }
 }.joinToString(separator = "")
