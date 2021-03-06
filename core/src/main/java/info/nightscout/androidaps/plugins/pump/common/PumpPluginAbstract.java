@@ -5,14 +5,12 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Date;
-import java.util.List;
 
 import dagger.android.HasAndroidInjector;
 import info.nightscout.androidaps.core.R;
@@ -35,17 +33,15 @@ import info.nightscout.androidaps.logging.AAPSLogger;
 import info.nightscout.androidaps.logging.LTag;
 import info.nightscout.androidaps.plugins.bus.RxBusWrapper;
 import info.nightscout.androidaps.plugins.common.ManufacturerType;
-import info.nightscout.androidaps.plugins.general.actions.defs.CustomAction;
-import info.nightscout.androidaps.plugins.general.actions.defs.CustomActionType;
 import info.nightscout.androidaps.plugins.general.overview.events.EventOverviewBolusProgress;
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus;
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState;
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType;
-import info.nightscout.androidaps.queue.commands.CustomCommand;
 import info.nightscout.androidaps.utils.DateUtil;
 import info.nightscout.androidaps.utils.DecimalFormatter;
 import info.nightscout.androidaps.utils.FabricPrivacy;
 import info.nightscout.androidaps.utils.resources.ResourceHelper;
+import info.nightscout.androidaps.utils.rx.AapsSchedulers;
 import info.nightscout.androidaps.utils.sharedPreferences.SP;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
@@ -75,6 +71,7 @@ public abstract class PumpPluginAbstract extends PumpPluginBase implements PumpI
     protected PumpDriverState pumpState = PumpDriverState.NotInitialized;
     protected boolean displayConnectionMessages = false;
     protected PumpType pumpType;
+    protected AapsSchedulers aapsSchedulers;
 
 
     protected PumpPluginAbstract(
@@ -89,7 +86,8 @@ public abstract class PumpPluginAbstract extends PumpPluginBase implements PumpI
             SP sp,
             Context context,
             FabricPrivacy fabricPrivacy,
-            DateUtil dateUtil
+            DateUtil dateUtil,
+            AapsSchedulers aapsSchedulers
     ) {
 
         super(pluginDescription, injector, aapsLogger, resourceHelper, commandQueue);
@@ -105,6 +103,7 @@ public abstract class PumpPluginAbstract extends PumpPluginBase implements PumpI
         pumpDescription.setPumpDescription(pumpType);
         this.pumpType = pumpType;
         this.dateUtil = dateUtil;
+        this.aapsSchedulers = aapsSchedulers;
     }
 
 

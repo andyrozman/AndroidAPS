@@ -8,13 +8,12 @@ public enum YpsoPumpCommandType {
 
     SetBolus(R.string.ypsopump_cmd_desc_set_bolus),
     GetFirmwareVersion(R.string.ypsopump_cmd_desc_get_firmware),
-    SetTemporaryBasalRate(R.string.ypsopump_cmd_desc_set_tbr),
-    GetTemporaryBasalRate(R.string.ypsopump_cmd_desc_get_tbr),
+    SetTemporaryBasal(R.string.ypsopump_cmd_desc_set_tbr),
+    GetTemporaryBasal(R.string.ypsopump_cmd_desc_get_tbr),
+    CancelTemporaryBasal(R.string.ypsopump_cmd_desc_cancel_tbr),
     GetSettings(R.string.ypsopump_cmd_desc_get_settings),
     GetBasalProfile(R.string.ypsopump_cmd_desc_get_basal_profile),
-    SetBasalProfile(R.string.ypsopump_cmd_desc_set_basal_profile)
-    ;
-
+    SetBasalProfile(R.string.ypsopump_cmd_desc_set_basal_profile);
 
 
     private Integer resourceId;

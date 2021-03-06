@@ -233,7 +233,7 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
         @Override
         public void onScanFailed(int errorCode) {
             Log.e("Scan Failed", "Error Code: " + errorCode);
-            Toast.makeText(RileyLinkBLEConfigActivity.this, resourceHelper.gs(R.string.riley_link_ble_config_scan_error, errorCode),
+            Toast.makeText(RileyLinkBLEConfigActivity.this, resourceHelper.gs(R.string.ble_config_scan_error, errorCode),
                     Toast.LENGTH_LONG).show();
         }
 
@@ -256,7 +256,7 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
         scanning = true;
         bleScanner.startScan(filters, settings, bleScanCallback);
         aapsLogger.debug(LTag.PUMPBTCOMM, "startLeDeviceScan: Scanning Start");
-        Toast.makeText(RileyLinkBLEConfigActivity.this, R.string.riley_link_ble_config_scan_scanning, Toast.LENGTH_SHORT).show();
+        Toast.makeText(RileyLinkBLEConfigActivity.this, R.string.ble_config_scan_scanning, Toast.LENGTH_SHORT).show();
     }
 
     private void stopLeDeviceScan() {
@@ -266,7 +266,7 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
             bleScanner.stopScan(bleScanCallback);
 
             aapsLogger.debug(LTag.PUMPBTCOMM, "stopLeDeviceScan: Scanning Stop");
-            Toast.makeText(this, R.string.riley_link_ble_config_scan_finished, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.ble_config_scan_finished, Toast.LENGTH_SHORT).show();
             handler.removeCallbacks(stopScanAfterTimeoutRunnable);
         }
 
@@ -341,7 +341,7 @@ public class RileyLinkBLEConfigActivity extends NoSplashAppCompatActivity {
             String currentlySelectedAddress = sp.getString(RileyLinkConst.Prefs.RileyLinkAddress, "");
 
             if (currentlySelectedAddress.equals(device.getAddress())) {
-                deviceName += " (" + getResources().getString(R.string.riley_link_ble_config_scan_selected) + ")";
+                deviceName += " (" + getResources().getString(R.string.ble_config_scan_selected) + ")";
             }
 
             viewHolder.deviceName.setText(deviceName);

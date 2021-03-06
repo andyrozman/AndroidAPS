@@ -12,15 +12,10 @@ public class YpsoPumpConst {
     static final String Prefix = "AAPS.YpsoPump.";
 
     public static class Prefs {
-        public static final int PumpSerial = R.string.key_medtronic_serial;
-        public static final int PumpType = R.string.key_medtronic_pump_type;
-        public static final int PumpFrequency = R.string.key_medtronic_frequency;
-        public static final int MaxBolus = R.string.key_medtronic_max_bolus;
-        public static final int MaxBasal = R.string.key_medtronic_max_basal;
-        public static final int BolusDelay = R.string.key_medtronic_bolus_delay;
-        public static final int Encoding = R.string.key_medtronic_encoding;
-        public static final int BatteryType = R.string.key_medtronic_battery_type;
-        public static final int BolusDebugEnabled = R.string.key_medtronic_bolus_debug;
+        public static final int PumpSerial = R.string.key_ypsopump_serial;
+        public static final int PumpAddress = R.string.key_ypsopump_address;
+        public static final int PumpName = R.string.key_ypsopump_name;
+
     }
 
     public class Statistics {

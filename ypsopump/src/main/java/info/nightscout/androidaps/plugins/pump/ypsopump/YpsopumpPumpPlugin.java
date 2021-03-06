@@ -9,6 +9,9 @@ import androidx.preference.Preference;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -22,6 +25,8 @@ import dagger.android.HasAndroidInjector;
 import info.nightscout.androidaps.data.DetailedBolusInfo;
 import info.nightscout.androidaps.data.Profile;
 import info.nightscout.androidaps.data.PumpEnactResult;
+import info.nightscout.androidaps.db.Source;
+import info.nightscout.androidaps.db.TemporaryBasal;
 import info.nightscout.androidaps.events.EventRefreshOverview;
 import info.nightscout.androidaps.interfaces.ActivePluginProvider;
 import info.nightscout.androidaps.interfaces.CommandQueueProvider;
@@ -33,15 +38,17 @@ import info.nightscout.androidaps.logging.LTag;
 import info.nightscout.androidaps.plugins.bus.RxBusWrapper;
 import info.nightscout.androidaps.plugins.pump.common.PumpPluginAbstract;
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus;
+import info.nightscout.androidaps.plugins.pump.common.data.TempBasalPair;
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState;
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType;
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState;
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpConnectionManager;
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.parameters.TemporaryBasalParameters;
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.CommandResponse;
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.TemporaryBasalResponse;
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoDriverStatus;
-import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType;
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpStatusRefreshType;
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus;
+import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpConfigurationChanged;
 import info.nightscout.androidaps.plugins.pump.ypsopump.service.YpsoPumpService;
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst;
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil;
@@ -64,9 +71,6 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
     private final YpsoPumpUtil ypsopumpUtil;
     private final YpsopumpPumpStatus pumpStatus;
     private final YpsoPumpConnectionManager pumpConnectionManager;
-    ///private final MedtronicHistoryData medtronicHistoryData;
-
-    private YpsoPumpService ypsoPumpService;
 
     // variables for handling statuses and history
     private boolean firstRun = true;
@@ -122,35 +126,6 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
     @Override
     protected void onStart() {
         aapsLogger.debug(LTag.PUMP, this.deviceID() + " started.");
-
-//        // FIXME service might not be needed
-//        serviceConnection = new ServiceConnection() {
-//
-//            public void onServiceDisconnected(ComponentName name) {
-//                aapsLogger.debug(LTag.PUMP, "RileyLinkMedtronicService is disconnected");
-//                ypsoPumpService = null;
-//            }
-//
-//            public void onServiceConnected(ComponentName name, IBinder service) {
-//                aapsLogger.debug(LTag.PUMP, "RileyLinkMedtronicService is connected");
-//                YpsoPumpService.LocalBinder mLocalBinder = (YpsoPumpService.LocalBinder) service;
-//                ypsoPumpService = mLocalBinder.getServiceInstance();
-//                //ypsoPumpService.verifyConfiguration();
-//
-//                new Thread(() -> {
-//
-//                    for (int i = 0; i < 20; i++) {
-//                        SystemClock.sleep(5000);
-//
-//                        aapsLogger.debug(LTag.PUMP, "Starting YpsoPump service");
-////                        if (ypsoPumpService.setNotInPreInit()) {
-////                            break;
-////                        }
-//                    }
-//                }).start();
-//            }
-//        };
-
         super.onStart();
     }
 
@@ -158,10 +133,10 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
     public void updatePreferenceSummary(@NotNull Preference pref) {
         super.updatePreferenceSummary(pref);
 
-//        if (pref.getKey().equals(getResourceHelper().gs(R.string.key_rileylink_mac_address))) {
-//            String value = sp.getStringOrNull(R.string.key_rileylink_mac_address, null);
-//            pref.setSummary(value == null ? getResourceHelper().gs(R.string.not_set_short) : value);
-//        }
+        if (pref.getKey().equals(getResourceHelper().gs(R.string.key_ypsopump_address))) {
+            String value = sp.getStringOrNull(R.string.key_ypsopump_address, null);
+            pref.setSummary(value == null ? getResourceHelper().gs(R.string.not_set_short) : value);
+        }
     }
 
     private String getLogPrefix() {
@@ -175,12 +150,12 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
         pumpStatus.lastDataTime = pumpStatus.lastConnection;
         pumpStatus.previousConnection = pumpStatus.lastConnection;
 
-        //if (rileyLinkMedtronicService != null) rileyLinkMedtronicService.verifyConfiguration();
-
         aapsLogger.debug(LTag.PUMP, "initPumpStatusData: " + this.pumpStatus);
 
         // this is only thing that can change, by being configured
-        pumpDescription.maxTempAbsolute = (pumpStatus.maxBasal != null) ? pumpStatus.maxBasal : 35.0d;
+        //pumpDescription.maxTempAbsolute = (pumpStatus.maxBasal != null) ? pumpStatus.maxBasal : 35.0d;
+
+        aapsLogger.debug(LTag.PUMP, "pumpDescription: " + this.pumpDescription);
 
         // set first YpsoPump Pump Start
         if (!sp.contains(YpsoPumpConst.Statistics.FirstPumpStart)) {
@@ -199,14 +174,14 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 
                 if (this.isInitialized) {
 
-//                    Map<YpsoPumpStatusRefreshType, Long> statusRefresh = workWithStatusRefresh(
-//                            StatusRefreshAction.GetData, null, null);
-//
-//                    if (doWeHaveAnyStatusNeededRefereshing(statusRefresh)) {
-//                        if (!getCommandQueue().statusInQueue()) {
-//                            getCommandQueue().readStatus("Scheduled Status Refresh", null);
-//                        }
-//                    }
+                    Map<YpsoPumpStatusRefreshType, Long> statusRefresh = workWithStatusRefresh(
+                            StatusRefreshAction.GetData, null, null);
+
+                    if (doWeHaveAnyStatusNeededRefereshing(statusRefresh)) {
+                        if (!getCommandQueue().statusInQueue()) {
+                            getCommandQueue().readStatus("Scheduled Status Refresh", null);
+                        }
+                    }
 
                     clearBusyQueue();
                 }
@@ -314,7 +289,7 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
     // Pump Plugin
 
     private boolean isServiceSet() {
-        return ypsoPumpService != null;
+        return true;
     }
 
 
@@ -412,94 +387,83 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 
     private void refreshAnyStatusThatNeedsToBeRefreshed() {
 
-//        Map<YpsoPumpStatusRefreshType, Long> statusRefresh = workWithStatusRefresh(StatusRefreshAction.GetData, null,
-//                null);
-//
-//        if (!doWeHaveAnyStatusNeededRefereshing(statusRefresh)) {
-//            return;
-//        }
-//
-//        boolean resetTime = false;
-//
-//        if (isPumpNotReachable()) {
-//            aapsLogger.error("Pump unreachable.");
-//            medtronicUtil.sendNotification(MedtronicNotificationType.PumpUnreachable, getResourceHelper(), rxBus);
-//
-//            return;
-//        }
-//
-//        medtronicUtil.dismissNotification(MedtronicNotificationType.PumpUnreachable, rxBus);
-//
-//
-//        if (hasTimeDateOrTimeZoneChanged) {
-//
-//            checkTimeAndOptionallySetTime();
-//
-//            // read time if changed, set new time
-//            hasTimeDateOrTimeZoneChanged = false;
-//        }
-//
-//
-//        // execute
-//        Set<YpsoPumpStatusRefreshType> refreshTypesNeededToReschedule = new HashSet<>();
-//
-//        for (Map.Entry<YpsoPumpStatusRefreshType, Long> refreshType : statusRefresh.entrySet()) {
-//
-//            if (refreshType.getValue() > 0 && System.currentTimeMillis() > refreshType.getValue()) {
-//
-//                switch (refreshType.getKey()) {
-//                    case PumpHistory: {
-//                        readPumpHistory();
-//                    }
-//                    break;
-//
-//                    case PumpTime: {
-//                        checkTimeAndOptionallySetTime();
-//                        refreshTypesNeededToReschedule.add(refreshType.getKey());
-//                        resetTime = true;
-//                    }
-//                    break;
-//
-//                    case BatteryStatus:
-//                    case RemainingInsulin: {
-//                        ypsoPumpService.getMedtronicUIComm().executeCommand(refreshType.getKey().getCommandType(medtronicUtil.getMedtronicPumpModel()));
-//                        refreshTypesNeededToReschedule.add(refreshType.getKey());
-//                        resetTime = true;
-//                    }
-//                    break;
-//
-//                    case Configuration: {
-//                        ypsoPumpService.getMedtronicUIComm().executeCommand(refreshType.getKey().getCommandType(medtronicUtil.getMedtronicPumpModel()));
-//                        resetTime = true;
-//                    }
-//                    break;
-//                }
-//            }
-//
-//            // reschedule
-//            for (YpsoPumpStatusRefreshType refreshType2 : refreshTypesNeededToReschedule) {
-//                scheduleNextRefresh(refreshType2);
-//            }
-//
-//        }
-//
-//        if (resetTime)
-//            medtronicPumpStatus.setLastCommunicationToNow();
+        Map<YpsoPumpStatusRefreshType, Long> statusRefresh = workWithStatusRefresh(StatusRefreshAction.GetData, null,
+                null);
+
+        if (!doWeHaveAnyStatusNeededRefereshing(statusRefresh)) {
+            return;
+        }
+
+        boolean resetTime = false;
+
+        if (hasTimeDateOrTimeZoneChanged) {
+            checkTimeAndOptionallySetTime();
+
+            // read time if changed, set new time
+            hasTimeDateOrTimeZoneChanged = false;
+        }
+
+
+        // execute
+        Set<YpsoPumpStatusRefreshType> refreshTypesNeededToReschedule = new HashSet<>();
+
+        for (Map.Entry<YpsoPumpStatusRefreshType, Long> refreshType : statusRefresh.entrySet()) {
+
+            if (refreshType.getValue() > 0 && System.currentTimeMillis() > refreshType.getValue()) {
+
+                switch (refreshType.getKey()) {
+                    case PumpHistory: {
+                        readPumpHistory();
+                    }
+                    break;
+
+                    case PumpTime: {
+                        checkTimeAndOptionallySetTime();
+                        refreshTypesNeededToReschedule.add(refreshType.getKey());
+                        resetTime = true;
+                    }
+                    break;
+
+                    case BatteryStatus:
+                    case RemainingInsulin: {
+                        pumpConnectionManager.getRemainingInsulin();
+                        refreshTypesNeededToReschedule.add(refreshType.getKey());
+                        resetTime = true;
+                    }
+                    break;
+
+                    case Configuration: {
+                        pumpConnectionManager.getConfiguration();
+                        resetTime = true;
+                    }
+                    break;
+                }
+            }
+
+            // reschedule
+            for (YpsoPumpStatusRefreshType refreshType2 : refreshTypesNeededToReschedule) {
+                scheduleNextRefresh(refreshType2);
+            }
+
+        }
+
+        if (resetTime)
+            pumpStatus.setLastCommunicationToNow();
 
     }
 
 
-//    private boolean doWeHaveAnyStatusNeededRefereshing(Map<YpsoPumpStatusRefreshType, Long> statusRefresh) {
-//
-//        for (Map.Entry<YpsoPumpStatusRefreshType, Long> refreshType : statusRefresh.entrySet()) {
-//
-//            if (refreshType.getValue() > 0 && System.currentTimeMillis() > refreshType.getValue()) {
-//                return true;
-//            }
-//        }
-//
-//        return hasTimeDateOrTimeZoneChanged;
-//    }
+    private boolean doWeHaveAnyStatusNeededRefereshing(Map<YpsoPumpStatusRefreshType, Long> statusRefresh) {
+
+        for (Map.Entry<YpsoPumpStatusRefreshType, Long> refreshType : statusRefresh.entrySet()) {
+
+            if (refreshType.getValue() > 0 && System.currentTimeMillis() > refreshType.getValue()) {
+                return true;
+            }
+        }
+
+        return hasTimeDateOrTimeZoneChanged;
+    }
 
 
     private void setRefreshButtonEnabled(boolean enabled) {
@@ -509,75 +473,40 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
     // TODO not implement
     private boolean initializePump(boolean realInit) {
 
-        if (ypsoPumpService == null)
+        if (isInitialized)
             return false;
 
         aapsLogger.info(LTag.PUMP, getLogPrefix() + "initializePump - start");
 
+        setRefreshButtonEnabled(false);
 
-//        ypsoPumpService.getDeviceCommunicationManager().setDoWakeUpBeforeCommand(false);
-//
-//        setRefreshButtonEnabled(false);
-//
-//        if (isRefresh) {
-//            if (isPumpNotReachable()) {
-//                aapsLogger.error(getLogPrefix() + "initializePump::Pump unreachable.");
-//                medtronicUtil.sendNotification(MedtronicNotificationType.PumpUnreachable, getResourceHelper(), rxBus);
-//
-//                setRefreshButtonEnabled(true);
-//
-//                return true;
-//            }
-//
-//            medtronicUtil.dismissNotification(MedtronicNotificationType.PumpUnreachable, rxBus);
-//        }
-//
-//        // model (once)
-//        if (medtronicUtil.getMedtronicPumpModel() == null) {
-//            ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.PumpModel);
-//        } else {
-//            if (medtronicPumpStatus.medtronicDeviceType != medtronicUtil.getMedtronicPumpModel()) {
-//                aapsLogger.warn(LTag.PUMP, getLogPrefix() + "Configured pump is not the same as one detected.");
-//                medtronicUtil.sendNotification(MedtronicNotificationType.PumpTypeNotSame, getResourceHelper(), rxBus);
-//            }
-//        }
-//
-//        this.pumpState = PumpDriverState.Connected;
-//
-//        // time (1h)
-//        checkTimeAndOptionallySetTime();
-//
-//        readPumpHistory();
-//
-//        // remaining insulin (>50 = 4h; 50-20 = 1h; 15m)
-//        ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.GetRemainingInsulin);
-//        scheduleNextRefresh(YpsoPumpStatusRefreshType.RemainingInsulin, 10);
-//
-//        // remaining power (1h)
-//        ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.GetBatteryStatus);
-//        scheduleNextRefresh(YpsoPumpStatusRefreshType.BatteryStatus, 20);
-//
-//        // configuration (once and then if history shows config changes)
-//        ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.getSettings(medtronicUtil.getMedtronicPumpModel()));
-//
-//        // read profile (once, later its controlled by isThisProfileSet method)
-//        getBasalProfiles();
-//
-//        int errorCount = ypsoPumpService.getMedtronicUIComm().getInvalidResponsesCount();
-//
-//        if (errorCount >= 5) {
-//            aapsLogger.error("Number of error counts was 5 or more. Starting tunning.");
-//            setRefreshButtonEnabled(true);
-//            serviceTaskExecutor.startTask(new WakeAndTuneTask(getInjector()));
-//            return true;
-//        }
-//
-//        medtronicPumpStatus.setLastCommunicationToNow();
-//        setRefreshButtonEnabled(true);
-//
-//        if (!isRefresh) {
-//            pumpState = PumpDriverState.Initialized;
-//        }
+        this.pumpState = PumpDriverState.Connected;
+
+        // time (1h)
+        checkTimeAndOptionallySetTime();
+
+        readPumpHistory();
+
+        // remaining insulin (>50 = 4h; 50-20 = 1h; 15m)
+        pumpConnectionManager.getRemainingInsulin();
+        scheduleNextRefresh(YpsoPumpStatusRefreshType.RemainingInsulin, 10);
+
+        // remaining power (1h)
+        pumpConnectionManager.getBatteryStatus();
+        scheduleNextRefresh(YpsoPumpStatusRefreshType.BatteryStatus, 20);
+
+        // configuration (once and then if history shows config changes)
+        pumpConnectionManager.getConfiguration();
+
+        // read profile (once, later its controlled by isThisProfileSet method)
+        getBasalProfiles();
+
+        pumpStatus.setLastCommunicationToNow();
+        setRefreshButtonEnabled(true);
+
+        if (!isRefresh) {
+            pumpState = PumpDriverState.Initialized;
+        }
 
 
         isInitialized = true;
@@ -598,11 +527,15 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 //        }
     }
 
+    Profile profile;
 
     // TODO not implemented
     @Override
     public boolean isThisProfileSet(Profile profile) {
         aapsLogger.debug(LTag.PUMP, "isThisProfileSet: ");
+
+        this.profile = profile;
+
 //        aapsLogger.debug(LTag.PUMP, "isThisProfileSet: basalInitalized=" + medtronicPumpStatus.basalProfileStatus);
 //
 //        if (!isInitialized)
@@ -675,7 +608,26 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 
     @Override
     public double getBaseBasalRate() {
-        return pumpStatus.getBasalProfileForHour();
+        // TODO fix this
+        if (profile == null) {
+            aapsLogger.debug("Profile is not set: ");
+            pumpStatus.baseBasalRate = 0.0d;
+
+            return 0.0d;
+        } else {
+            GregorianCalendar gc = new GregorianCalendar();
+
+            long time = (gc.get(Calendar.HOUR_OF_DAY) * 60 * 60) + (gc.get(Calendar.MINUTE) * 60);
+
+            double basal = profile.getBasal(time);
+            aapsLogger.debug("Basal for this hour is: " + basal);
+            pumpStatus.baseBasalRate = basal;
+
+            return basal;
+        }
+
+
+        //return pumpStatus.getBasalProfileForHour();
     }
 
 
@@ -691,7 +643,7 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
     }
 
     protected void triggerUIChange() {
-        //rxBus.send(new EventMedtronicPumpValuesChanged());
+        rxBus.send(new EventPumpConfigurationChanged());
     }
 
     private BolusDeliveryType bolusDeliveryType = BolusDeliveryType.Idle;
@@ -706,7 +658,7 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 
     private void checkTimeAndOptionallySetTime() {
 
-        aapsLogger.info(LTag.PUMP, "MedtronicPumpPlugin::checkTimeAndOptionallySetTime - Start");
+        aapsLogger.info(LTag.PUMP, getLogPrefix() + "checkTimeAndOptionallySetTime - Start");
 
         //setRefreshButtonEnabled(false);
 
@@ -763,30 +715,54 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
     @NonNull
     protected PumpEnactResult deliverBolus(final DetailedBolusInfo detailedBolusInfo) {
 
-        aapsLogger.info(LTag.PUMP, "MedtronicPumpPlugin::deliverBolus - " + BolusDeliveryType.DeliveryPrepared);
+        aapsLogger.info(LTag.PUMP, getLogPrefix() + "deliverBolus - " + BolusDeliveryType.DeliveryPrepared);
 
-        setRefreshButtonEnabled(false);
+        if (detailedBolusInfo.insulin > pumpStatus.reservoirRemainingUnits) {
+            return new PumpEnactResult(getInjector()) //
+                    .success(false) //
+                    .enacted(false) //
+                    .comment(getResourceHelper().gs(R.string.ypsopump_cmd_bolus_could_not_be_delivered_no_insulin,
+                            pumpStatus.reservoirRemainingUnits,
+                            detailedBolusInfo.insulin));
+        }
 
-        // TODO fixme
-        CommandResponse commandResponse = pumpConnectionManager.executeCommand(TemporaryBasalParameters.builder()
-                .commandType(YpsoPumpCommandType.SetTemporaryBasalRate)
-                .cancel(true)
-                .build());
+        try {
 
-        setRefreshButtonEnabled(true);
+            setRefreshButtonEnabled(false);
+
+            CommandResponse commandResponse = pumpConnectionManager.deliverBolus(detailedBolusInfo);
+
+            if (commandResponse.isSuccess()) {
+
+                long now = System.currentTimeMillis();
+
+                detailedBolusInfo.date = now;
+                detailedBolusInfo.deliverAt = now; // not sure about that one
+
+                activePlugin.getActiveTreatments().addToHistoryTreatment(detailedBolusInfo, true);
+
+                // we subtract insulin, exact amount will be visible with next remainingInsulin update.
+                pumpStatus.reservoirRemainingUnits -= detailedBolusInfo.insulin;
+
+                incrementStatistics(detailedBolusInfo.isSMB ? YpsoPumpConst.Statistics.SMBBoluses
+                        : YpsoPumpConst.Statistics.StandardBoluses);
+
+                return new PumpEnactResult(getInjector()).success(true) //
+                        .enacted(true) //
+                        .bolusDelivered(detailedBolusInfo.insulin) //
+                        .carbsDelivered(detailedBolusInfo.carbs);
+            } else {
+                return new PumpEnactResult(getInjector()) //
+                        .success(false) //
+                        .enacted(false) //
+                        .comment(getResourceHelper().gs(R.string.ypsopump_cmd_bolus_could_not_be_delivered));
+            }
+
+        } finally {
+            finishAction("Bolus");
+        }
 
 
-//        setRefreshButtonEnabled(false);
-//
-//        if (detailedBolusInfo.insulin > ypsopumpPumpStatus.reservoirRemainingUnits) {
-//            return new PumpEnactResult(getInjector()) //
-//                    .success(false) //
-//                    .enacted(false) //
-//                    .comment(getResourceHelper().gs(R.string.medtronic_cmd_bolus_could_not_be_delivered_no_insulin,
-//                            ypsopumpPumpStatus.reservoirRemainingUnits,
-//                            detailedBolusInfo.insulin));
-//        }
-//
 //        bolusDeliveryType = BolusDeliveryType.DeliveryPrepared;
 //
 //        if (isPumpNotReachable()) {
@@ -859,7 +835,7 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 //                activePlugin.getActiveTreatments().addToHistoryTreatment(detailedBolusInfo, true);
 //
 //                // we subtract insulin, exact amount will be visible with next remainingInsulin update.
-//                ypsopumpPumpStatus.reservoirRemainingUnits -= detailedBolusInfo.insulin;
+//                pumpStatus.reservoirRemainingUnits -= detailedBolusInfo.insulin;
 //
 //                incrementStatistics(detailedBolusInfo.isSMB ? YpsoPumpConst.Statistics.SMBBoluses
 //                        : YpsoPumpConst.Statistics.StandardBoluses);
@@ -870,7 +846,7 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 //                long time = now + (bolusTime * 1000);
 //
 //                this.busyTimestamps.add(time);
-//                setEnableCustomAction(MedtronicCustomActionType.ClearBolusBlock, true);
+//                //setEnableCustomAction(MedtronicCustomActionType.ClearBolusBlock, true);
 //
 //                return new PumpEnactResult(getInjector()).success(true) //
 //                        .enacted(true) //
@@ -888,30 +864,10 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 //            finishAction("Bolus");
 //            this.bolusDeliveryType = BolusDeliveryType.Idle;
 //        }
-        return new PumpEnactResult(getInjector()).success(true) //
-                .enacted(true) //
-                .bolusDelivered(detailedBolusInfo.insulin) //
-                .carbsDelivered(detailedBolusInfo.carbs);
-    }
-
-
-    private PumpEnactResult setNotReachable(boolean isBolus, boolean success) {
-        setRefreshButtonEnabled(true);
-
-        if (isBolus) {
-            bolusDeliveryType = BolusDeliveryType.Idle;
-        }
-
-        if (success) {
-            return new PumpEnactResult(getInjector()) //
-                    .success(true) //
-                    .enacted(false);
-        } else {
-            return new PumpEnactResult(getInjector()) //
-                    .success(false) //
-                    .enacted(false) //
-                    .comment(getResourceHelper().gs(R.string.medtronic_pump_status_pump_unreachable));
-        }
+//        return new PumpEnactResult(getInjector()).success(true) //
+//                .enacted(true) //
+//                .bolusDelivered(detailedBolusInfo.insulin) //
+//                .carbsDelivered(detailedBolusInfo.carbs);
     }
 
 
@@ -937,132 +893,145 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 
     // if enforceNew===true current temp basal is canceled and new TBR set (duration is prolonged),
     // if false and the same rate is requested enacted=false and success=true is returned and TBR is not changed
-//    @NonNull @Override
-//    public PumpEnactResult setTempBasalAbsolute(Double absoluteRate, Integer durationInMinutes, Profile profile,
-//                                                boolean enforceNew) {
-//
-//        setRefreshButtonEnabled(false);
-//
-//        if (isPumpNotReachable()) {
-//
-//            setRefreshButtonEnabled(true);
-//
-//            return new PumpEnactResult(getInjector()) //
-//                    .success(false) //
-//                    .enacted(false) //
-//                    .comment(getResourceHelper().gs(R.string.medtronic_pump_status_pump_unreachable));
-//        }
-//
-//        ypsopumpUtil.dismissNotification(MedtronicNotificationType.PumpUnreachable, rxBus);
-//
-//        aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalAbsolute: rate: " + absoluteRate + ", duration=" + durationInMinutes);
-//
-//        // read current TBR
-//        TempBasalPair tbrCurrent = readTBR();
-//
-//        if (tbrCurrent == null) {
-//            aapsLogger.warn(LTag.PUMP, getLogPrefix() + "setTempBasalAbsolute - Could not read current TBR, canceling operation.");
-//            finishAction("TBR");
-//            return new PumpEnactResult(getInjector()).success(false).enacted(false)
-//                    .comment(getResourceHelper().gs(R.string.medtronic_cmd_cant_read_tbr));
-//        } else {
-//            aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalAbsolute: Current Basal: duration: " + tbrCurrent.getDurationMinutes() + " min, rate=" + tbrCurrent.getInsulinRate());
-//        }
-//
-//        if (!enforceNew) {
-//
-//            if (MedtronicUtil.isSame(tbrCurrent.getInsulinRate(), absoluteRate)) {
-//
-//                boolean sameRate = true;
-//                if (MedtronicUtil.isSame(0.0d, absoluteRate) && durationInMinutes > 0) {
-//                    // if rate is 0.0 and duration>0 then the rate is not the same
-//                    sameRate = false;
-//                }
-//
-//                if (sameRate) {
-//                    aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalAbsolute - No enforceNew and same rate. Exiting.");
-//                    finishAction("TBR");
-//                    return new PumpEnactResult(getInjector()).success(true).enacted(false);
-//                }
-//            }
-//            // if not the same rate, we cancel and start new
-//        }
-//
-//        // if TBR is running we will cancel it.
-//        if (tbrCurrent.getInsulinRate() != 0.0f && tbrCurrent.getDurationMinutes() > 0) {
-//            aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalAbsolute - TBR running - so canceling it.");
-//
-//            // CANCEL
-//
-//            MedtronicUITask responseTask2 = ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.CancelTBR);
-//
-//            Boolean response = (Boolean) responseTask2.returnData;
-//
-//            if (response) {
-//                aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalAbsolute - Current TBR cancelled.");
-//            } else {
-//                aapsLogger.error(getLogPrefix() + "setTempBasalAbsolute - Cancel TBR failed.");
-//
-//                finishAction("TBR");
-//
-//                return new PumpEnactResult(getInjector()).success(false).enacted(false)
-//                        .comment(getResourceHelper().gs(R.string.medtronic_cmd_cant_cancel_tbr_stop_op));
-//            }
-//        }
-//
-//        // now start new TBR
-//        MedtronicUITask responseTask = ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.SetTemporaryBasal,
-//                absoluteRate, durationInMinutes);
-//
-//        Boolean response = (Boolean) responseTask.returnData;
-//
-//        aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalAbsolute - setTBR. Response: " + response);
-//
-//        if (response) {
-//            // FIXME put this into UIPostProcessor
-//            ypsopumpPumpStatus.tempBasalStart = new Date();
-//            ypsopumpPumpStatus.tempBasalAmount = absoluteRate;
-//            ypsopumpPumpStatus.tempBasalLength = durationInMinutes;
-//
-//            TemporaryBasal tempStart = new TemporaryBasal(getInjector()) //
-//                    .date(System.currentTimeMillis()) //
-//                    .duration(durationInMinutes) //
-//                    .absolute(absoluteRate) //
-//                    .source(Source.USER);
-//
-//            activePlugin.getActiveTreatments().addToHistoryTempBasal(tempStart);
-//
-//            incrementStatistics(YpsoPumpConst.Statistics.TBRsSet);
-//
-//            finishAction("TBR");
-//
-//            return new PumpEnactResult(getInjector()).success(true).enacted(true) //
-//                    .absolute(absoluteRate).duration(durationInMinutes);
-//
-//        } else {
-//            finishAction("TBR");
-//
-//            return new PumpEnactResult(getInjector()).success(false).enacted(false) //
-//                    .comment(getResourceHelper().gs(R.string.medtronic_cmd_tbr_could_not_be_delivered));
-//        }
-//
-//    }
-
-
-    @NonNull @Override
+    @NonNull
+    @Override
     public PumpEnactResult setTempBasalPercent(Integer percent, Integer durationInMinutes, Profile profile,
                                                boolean enforceNew) {
+        setRefreshButtonEnabled(false);
 
-        aapsLogger.warn(LTag.PUMP, getLogPrefix() + "setTempBasalPercent");
+        try {
 
-        // TODO fixme
-        CommandResponse commandResponse = pumpConnectionManager.executeCommand(TemporaryBasalParameters.builder()
-                .commandType(YpsoPumpCommandType.SetTemporaryBasalRate)
-                .cancel(true)
-                .build());
+            aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalPercent: rate: " + percent + "%, duration=" + durationInMinutes);
 
-        return new PumpEnactResult(getInjector()).success(true).enacted(true) //
-                .percent(percent).duration(durationInMinutes);
+            // read current TBR
+            TempBasalPair tbrCurrent = readTBR();
+
+            if (tbrCurrent == null) {
+                aapsLogger.warn(LTag.PUMP, getLogPrefix() + "setTempBasalPercent - Could not read current TBR, canceling operation.");
+                return new PumpEnactResult(getInjector()).success(false).enacted(false)
+                        .comment(getResourceHelper().gs(R.string.ypsopump_cmd_cant_read_tbr));
+            } else {
+                aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalPercent: Current Basal: duration: " + tbrCurrent.getDurationMinutes() + " min, rate=" + tbrCurrent.getInsulinRate());
+            }
+
+            if (!enforceNew) {
+
+                if (YpsoPumpUtil.isSame(tbrCurrent.getInsulinRate(), percent)) {
+
+                    boolean sameRate = true;
+                    if (YpsoPumpUtil.isSame(0.0d, percent) && durationInMinutes > 0) {
+                        // if rate is 0.0 and duration>0 then the rate is not the same
+                        sameRate = false;
+                    }
+
+                    if (sameRate) {
+                        aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalPercent - No enforceNew and same rate. Exiting.");
+                        return new PumpEnactResult(getInjector()).success(true).enacted(false);
+                    }
+                }
+                // if not the same rate, we cancel and start new
+            }
+
+            // if TBR is running we will cancel it.
+            if (tbrCurrent.getInsulinRate() != 0.0f && tbrCurrent.getDurationMinutes() > 0) {
+                aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalPercent - TBR running - so canceling it.");
+
+                // CANCEL
+
+                CommandResponse commandResponse = pumpConnectionManager.cancelTemporaryBasal();
+
+                if (commandResponse.isSuccess()) {
+                    aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalPercent - Current TBR cancelled.");
+                } else {
+                    aapsLogger.error(getLogPrefix() + "setTempBasalPercent - Cancel TBR failed.");
+
+                    return new PumpEnactResult(getInjector()).success(false).enacted(false)
+                            .comment(getResourceHelper().gs(R.string.ypsopump_cmd_cant_cancel_tbr_stop_op));
+                }
+            }
+
+            // now start new TBR
+            CommandResponse commandResponse = pumpConnectionManager.setTemporaryBasal(percent, durationInMinutes);
+
+            aapsLogger.info(LTag.PUMP, getLogPrefix() + "setTempBasalPercent - setTBR. Response: " + commandResponse);
+
+            if (commandResponse.isSuccess()) {
+
+                pumpStatus.tempBasalStart = new Date();
+                pumpStatus.tempBasalPercent = percent;
+                pumpStatus.tempBasalDuration = durationInMinutes;
+                pumpStatus.tempBasalEnd = System.currentTimeMillis() + (durationInMinutes * 60 * 1000);
+
+                TemporaryBasal tempStart = new TemporaryBasal(getInjector()) //
+                        .date(System.currentTimeMillis()) //
+                        .duration(durationInMinutes) //
+                        .percent(percent) //
+                        .source(Source.USER);
+
+                activePlugin.getActiveTreatments().addToHistoryTempBasal(tempStart);
+
+                incrementStatistics(YpsoPumpConst.Statistics.TBRsSet);
+
+                return new PumpEnactResult(getInjector()).success(true).enacted(true) //
+                        .percent(percent).duration(durationInMinutes);
+
+            } else {
+                return new PumpEnactResult(getInjector()).success(false).enacted(false) //
+                        .comment(getResourceHelper().gs(R.string.ypsopump_cmd_tbr_could_not_be_delivered));
+            }
+        } finally {
+            finishAction("TBR");
+        }
+
+    }
+
+    @NonNull @Override
+    public PumpEnactResult setTempBasalAbsolute(Double absoluteRate, Integer durationInMinutes, Profile profile,
+                                                boolean enforceNew) {
+        getAapsLogger().debug(LTag.PUMP, "setTempBasalAbsolute called with a rate of " + absoluteRate + " for " + durationInMinutes + " min.");
+        int unroundedPercentage = Double.valueOf(absoluteRate / getBaseBasalRate() * 100).intValue();
+
+        return setTempBasalPercent(unroundedPercentage, durationInMinutes, profile, enforceNew);
+    }
+
+
+    @NonNull //@Override
+    public PumpEnactResult setTempBasalPercent_xxx(Integer percent, Integer durationInMinutes, Profile profile,
+                                                   boolean enforceNew) {
+
+        aapsLogger.warn(LTag.PUMP, getLogPrefix() + "setTempBasalPercent: [percent=" + percent + ", duration=" + durationInMinutes + ", enforceNew=" + enforceNew + "]");
+
+        try {
+
+            // TODO fixme look at old absolute to see what is happening, but it depends on what pump supports
+            CommandResponse commandResponse = pumpConnectionManager.setTemporaryBasal(percent, durationInMinutes);
+
+            if (commandResponse.isSuccess()) {
+                pumpStatus.tempBasalStart = new Date();
+                pumpStatus.tempBasalPercent = percent;
+                pumpStatus.tempBasalDuration = durationInMinutes;
+
+                TemporaryBasal tempStart = new TemporaryBasal(getInjector()) //
+                        .date(System.currentTimeMillis()) //
+                        .duration(durationInMinutes) //
+                        .percent(percent) //
+                        .source(Source.USER);
+
+                activePlugin.getActiveTreatments().addToHistoryTempBasal(tempStart);
+
+                incrementStatistics(YpsoPumpConst.Statistics.TBRsSet);
+
+                return new PumpEnactResult(getInjector()).success(true).enacted(true) //
+                        .percent(percent).duration(durationInMinutes);
+
+            } else {
+
+                return new PumpEnactResult(getInjector()).success(false).enacted(false) //
+                        .comment(getResourceHelper().gs(R.string.ypsopump_cmd_tbr_could_not_be_delivered));
+            }
+        } finally {
+            finishAction("TBR");
+        }
 
 
 //        if (percent == 0) {
@@ -1089,9 +1058,14 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 
     private void readPumpHistory() {
 
-        if (isLoggingEnabled())
-            aapsLogger.warn(LTag.PUMP, getLogPrefix() + "readPumpHistory WIP.");
+        aapsLogger.warn(LTag.PUMP, getLogPrefix() + "readPumpHistory N/A.");
 
+        pumpConnectionManager.getPumpHistory();
+
+
+//        if (isLoggingEnabled())
+//            aapsLogger.warn(LTag.PUMP, getLogPrefix() + "readPumpHistory WIP.");
+//
 //        readPumpHistoryLogic();
 //
 //        scheduleNextRefresh(YpsoPumpStatusRefreshType.PumpHistory);
@@ -1124,7 +1098,7 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 //        medtronicHistoryData.processNewHistoryData();
 //
 //        this.medtronicHistoryData.finalizeNewHistoryRecords();
-//        // this.medtronicHistoryData.setLastHistoryRecordTime(this.lastPumpHistoryEntry.atechDateTime);
+        // this.medtronicHistoryData.setLastHistoryRecordTime(this.lastPumpHistoryEntry.atechDateTime);
 
     }
 
@@ -1254,9 +1228,9 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 //    }
 
 
-//    private void scheduleNextRefresh(YpsoPumpStatusRefreshType refreshType) {
-//        scheduleNextRefresh(refreshType, 0);
-//    }
+    private void scheduleNextRefresh(YpsoPumpStatusRefreshType refreshType) {
+        scheduleNextRefresh(refreshType, 0);
+    }
 
 
     private void scheduleNextRefresh(YpsoPumpStatusRefreshType refreshType, int additionalTimeInMinutes) {
@@ -1326,92 +1300,73 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
     }
 
 
-//    private TempBasalPair readTBR() {
-//        MedtronicUITask responseTask = ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.ReadTemporaryBasal);
-//
-//        if (responseTask.hasData()) {
-//            TempBasalPair tbr = (TempBasalPair) responseTask.returnData;
-//
-//            // we sometimes get rate returned even if TBR is no longer running
-//            if (tbr.getDurationMinutes() == 0) {
-//                tbr.setInsulinRate(0.0d);
-//            }
-//
-//            return tbr;
-//        } else {
-//            return null;
-//        }
-//    }
+    private TempBasalPair readTBR() {
+
+        TemporaryBasalResponse temporaryBasalResponse = pumpConnectionManager.getTemporaryBasal();
+
+        if (temporaryBasalResponse.isSuccess()) {
+            TempBasalPair tbr = (TempBasalPair) temporaryBasalResponse.getTempBasalPair();
+
+            // we sometimes get rate returned even if TBR is no longer running
+            if (tbr.getDurationMinutes() == 0) {
+                tbr.setInsulinRate(0.0d);
+            }
+
+            return tbr;
+        } else {
+            return null;
+        }
+    }
 
 
     @NonNull @Override
     public PumpEnactResult cancelTempBasal(boolean enforceNew) {
 
-        aapsLogger.info(LTag.PUMP, getLogPrefix() + "cancelTempBasal - started");
+        try {
 
-        // TODO fixme
-        CommandResponse commandResponse = pumpConnectionManager.executeCommand(TemporaryBasalParameters.builder()
-                .commandType(YpsoPumpCommandType.SetTemporaryBasalRate)
-                .cancel(true)
-                .build());
+            aapsLogger.info(LTag.PUMP, getLogPrefix() + "cancelTempBasal - started");
 
+            setRefreshButtonEnabled(false);
 
-//        if (isPumpNotReachable()) {
-//
-//            setRefreshButtonEnabled(true);
-//
-//            return new PumpEnactResult(getInjector()) //
-//                    .success(false) //
-//                    .enacted(false) //
-//                    .comment(getResourceHelper().gs(R.string.medtronic_pump_status_pump_unreachable));
-//        }
-//
-//        ypsopumpUtil.dismissNotification(MedtronicNotificationType.PumpUnreachable, rxBus);
-//        setRefreshButtonEnabled(false);
-//
-//        TempBasalPair tbrCurrent = readTBR();
-//
-//        if (tbrCurrent != null) {
-//            if (tbrCurrent.getInsulinRate() == 0.0f && tbrCurrent.getDurationMinutes() == 0) {
-//                aapsLogger.info(LTag.PUMP, getLogPrefix() + "cancelTempBasal - TBR already canceled.");
-//                finishAction("TBR");
-//                return new PumpEnactResult(getInjector()).success(true).enacted(false);
-//            }
-//        } else {
-//            aapsLogger.warn(LTag.PUMP, getLogPrefix() + "cancelTempBasal - Could not read currect TBR, canceling operation.");
-//            finishAction("TBR");
-//            return new PumpEnactResult(getInjector()).success(false).enacted(false)
-//                    .comment(getResourceHelper().gs(R.string.medtronic_cmd_cant_read_tbr));
-//        }
-//
-//        MedtronicUITask responseTask2 = ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.CancelTBR);
-//
-//        Boolean response = (Boolean) responseTask2.returnData;
-//
-//        finishAction("TBR");
-//
-//        if (response) {
-//            aapsLogger.info(LTag.PUMP, getLogPrefix() + "cancelTempBasal - Cancel TBR successful.");
-//
-//            TemporaryBasal tempBasal = new TemporaryBasal(getInjector()) //
-//                    .date(System.currentTimeMillis()) //
-//                    .duration(0) //
-//                    .source(Source.USER);
-//
-//            activePlugin.getActiveTreatments().addToHistoryTempBasal(tempBasal);
-//
-//            return new PumpEnactResult(getInjector()).success(true).enacted(true) //
-//                    .isTempCancel(true);
-//        } else {
-//            aapsLogger.info(LTag.PUMP, getLogPrefix() + "cancelTempBasal - Cancel TBR failed.");
-//
-//            return new PumpEnactResult(getInjector()).success(response).enacted(response) //
-//                    .comment(getResourceHelper().gs(R.string.medtronic_cmd_cant_cancel_tbr));
-//        }
+            TempBasalPair tbrCurrent = readTBR();
 
-        return new PumpEnactResult(getInjector()).success(true).enacted(true) //
-                .isTempCancel(true);
+            if (tbrCurrent != null) {
+                if (tbrCurrent.getInsulinRate() == 0.0f && tbrCurrent.getDurationMinutes() == 0) {
+                    aapsLogger.info(LTag.PUMP, getLogPrefix() + "cancelTempBasal - TBR already canceled.");
+                    finishAction("TBR");
+                    return new PumpEnactResult(getInjector()).success(true).enacted(false);
+                }
+            } else {
+                aapsLogger.warn(LTag.PUMP, getLogPrefix() + "cancelTempBasal - Could not read currect TBR, canceling operation.");
+                finishAction("TBR");
+                return new PumpEnactResult(getInjector()).success(false).enacted(false)
+                        .comment(getResourceHelper().gs(R.string.ypsopump_cmd_cant_read_tbr));
+            }
 
+            CommandResponse commandResponse = pumpConnectionManager.cancelTemporaryBasal();
+
+            if (commandResponse.isSuccess()) {
+                aapsLogger.info(LTag.PUMP, getLogPrefix() + "cancelTempBasal - Cancel TBR successful.");
+
+                TemporaryBasal tempBasal = new TemporaryBasal(getInjector()) //
+                        .date(System.currentTimeMillis()) //
+                        .duration(0) //
+                        .source(Source.USER);
+
+                activePlugin.getActiveTreatments().addToHistoryTempBasal(tempBasal);
+
+                return new PumpEnactResult(getInjector()).success(true).enacted(true) //
+                        .isTempCancel(true);
+            } else {
+                aapsLogger.info(LTag.PUMP, getLogPrefix() + "cancelTempBasal - Cancel TBR failed.");
+
+                return new PumpEnactResult(getInjector()).success(false).enacted(false) //
+                        .comment(getResourceHelper().gs(R.string.ypsopump_cmd_cant_cancel_tbr));
+            }
+
+        } finally {
+            finishAction("TBR");
+        }
     }
 
     @NonNull @Override
@@ -1430,45 +1385,30 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 //        return new Constraint<Boolean>(true);
 //    }
 
+
+//    @NonNull @Override
+//    public PumpEnactResult setNewBasalProfile(Profile profile) {
+//        aapsLogger.info(LTag.PUMP, getLogPrefix() + "setNewBasalProfile");
+//        setRefreshButtonEnabled(false);
+//
+//        // basalsByHour
+//        CommandResponse commandResponse = pumpConnectionManager.setBasalProfile(profile);
+//
+//        if (commandResponse.isSuccess()) {
+//            return new PumpEnactResult(getInjector()).success(true).enacted(true);
+//        } else {
+//            return new PumpEnactResult(getInjector()).success(false).enacted(false) //
+//                    .comment(getResourceHelper().gs(R.string.ypsopump_cmd_basal_profile_could_not_be_set));
+//        }
+
+
     @NonNull @Override
     public PumpEnactResult setNewBasalProfile(Profile profile) {
         aapsLogger.info(LTag.PUMP, getLogPrefix() + "setNewBasalProfile");
 
-        // TODO remove
-        setRefreshButtonEnabled(false);
+        try {
+            setRefreshButtonEnabled(false);
 
-        // basalsByHour
-
-        return new PumpEnactResult(getInjector()) //
-                .success(true) //
-                .enacted(false) //
-                .comment(getResourceHelper().gs(R.string.medtronic_cmd_basal_profile_not_set_is_same));
-        // TODO remove
-
-//        // this shouldn't be needed, but let's do check if profile setting we are setting is same as current one
-//        if (isProfileSame(profile)) {
-//            return new PumpEnactResult(getInjector()) //
-//                    .success(true) //
-//                    .enacted(false) //
-//                    .comment(getResourceHelper().gs(R.string.medtronic_cmd_basal_profile_not_set_is_same));
-//        }
-//
-//        setRefreshButtonEnabled(false);
-//
-//        if (isPumpNotReachable()) {
-//
-//            setRefreshButtonEnabled(true);
-//
-//            return new PumpEnactResult(getInjector()) //
-//                    .success(false) //
-//                    .enacted(false) //
-//                    .comment(getResourceHelper().gs(R.string.medtronic_pump_status_pump_unreachable));
-//        }
-//
-//        ypsopumpUtil.dismissNotification(MedtronicNotificationType.PumpUnreachable, rxBus);
-//
-//        BasalProfile basalProfile = convertProfileToMedtronicProfile(profile);
-//
 //        String profileInvalid = isProfileValid(basalProfile);
 //
 //        if (profileInvalid != null) {
@@ -1477,20 +1417,20 @@ public class YpsopumpPumpPlugin extends PumpPluginAbstract implements PumpInterf
 //                    .enacted(false) //
 //                    .comment(getResourceHelper().gs(R.string.medtronic_cmd_set_profile_pattern_overflow, profileInvalid));
 //        }
-//
-//        MedtronicUITask responseTask = ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.SetBasalProfileSTD,
-//                basalProfile);
-//
-//        Boolean response = (Boolean) responseTask.returnData;
-//
-//        aapsLogger.info(LTag.PUMP, getLogPrefix() + "Basal Profile was set: " + response);
-//
-//        if (response) {
-//            return new PumpEnactResult(getInjector()).success(true).enacted(true);
-//        } else {
-//            return new PumpEnactResult(getInjector()).success(response).enacted(response) //
-//                    .comment(getResourceHelper().gs(R.string.medtronic_cmd_basal_profile_could_not_be_set));
-//        }
+
+            CommandResponse commandResponse = pumpConnectionManager.setBasalProfile(profile);
+
+            aapsLogger.info(LTag.PUMP, getLogPrefix() + "Basal Profile was set: " + commandResponse);
+
+            if (commandResponse.isSuccess()) {
+                return new PumpEnactResult(getInjector()).success(true).enacted(true);
+            } else {
+                return new PumpEnactResult(getInjector()).success(false).enacted(false) //
+                        .comment(getResourceHelper().gs(R.string.ypsopump_cmd_basal_profile_could_not_be_set));
+            }
+        } finally {
+            finishAction("Set Basal Profile");
+        }
     }
 
 

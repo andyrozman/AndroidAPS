@@ -10,6 +10,7 @@ import dagger.android.support.DaggerFragment
 import info.nightscout.androidaps.R
 import info.nightscout.androidaps.databinding.NsprofileFragmentBinding
 import info.nightscout.androidaps.interfaces.ProfileFunction
+import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.bus.RxBusWrapper
 import info.nightscout.androidaps.plugins.profile.ns.events.EventNSProfileUpdateGUI
 import info.nightscout.androidaps.plugins.treatments.TreatmentsPlugin
@@ -17,9 +18,9 @@ import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.DecimalFormatter
 import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
-import info.nightscout.androidaps.utils.extensions.plusAssign
+import io.reactivex.rxkotlin.plusAssign
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import io.reactivex.android.schedulers.AndroidSchedulers
+import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
 
@@ -31,6 +32,8 @@ class NSProfileFragment : DaggerFragment() {
     @Inject lateinit var fabricPrivacy: FabricPrivacy
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var nsProfilePlugin: NSProfilePlugin
+    @Inject lateinit var aapsSchedulers: AapsSchedulers
+    @Inject lateinit var uel: UserEntryLogger
 
     private var disposable: CompositeDisposable = CompositeDisposable()
 
@@ -58,6 +61,7 @@ class NSProfileFragment : DaggerFragment() {
                     activity?.let { activity ->
                         OKDialog.showConfirmation(activity, resourceHelper.gs(R.string.nsprofile),
                             resourceHelper.gs(R.string.activate_profile) + ": " + name + " ?", Runnable {
+                            uel.log("PROFILE SWITCH", name, i1 = 100)
                             treatmentsPlugin.doProfileSwitch(store, name, 0, 100, 0, DateUtil.now())
                         })
                     }
@@ -117,8 +121,8 @@ class NSProfileFragment : DaggerFragment() {
         super.onResume()
         disposable += rxBus
             .toObservable(EventNSProfileUpdateGUI::class.java)
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ updateGUI() }, { fabricPrivacy.logException(it) })
+            .observeOn(aapsSchedulers.main)
+            .subscribe({ updateGUI() }, fabricPrivacy::logException)
         updateGUI()
     }
 

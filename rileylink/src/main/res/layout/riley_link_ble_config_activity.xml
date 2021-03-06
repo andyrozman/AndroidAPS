@@ -41,7 +41,7 @@
             android:id="@+id/riley_link_ble_config_button_remove_riley_link"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/riley_link_ble_config_remove_riley_link"
+            android:text="@string/ble_config_remove"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -62,13 +62,13 @@
             android:id="@+id/riley_link_ble_config_scan_start"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/riley_link_ble_config_button_scan_start" />
+            android:text="@string/ble_config_button_scan_start" />
 
         <Button
             android:id="@+id/riley_link_ble_config_button_scan_stop"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/riley_link_ble_config_scan_stop"
+            android:text="@string/ble_config_scan_stop"
             android:visibility="gone" />
     </LinearLayout>
 

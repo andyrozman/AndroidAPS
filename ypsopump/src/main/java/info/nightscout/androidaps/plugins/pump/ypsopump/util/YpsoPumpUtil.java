@@ -30,6 +30,10 @@ public class YpsoPumpUtil {
         this.ypsopumpPumpStatus = ypsopumpPumpStatus;
     }
 
+    public YpsopumpPumpStatus getYpsopumpPumpStatus() {
+        return this.ypsopumpPumpStatus;
+    }
+
 
     public YpsoDriverStatus getDriverStatus() {
         return (YpsoDriverStatus) workWithStatusAndCommand(StatusChange.GetStatus, null, null);
@@ -37,6 +41,10 @@ public class YpsoPumpUtil {
 
     public YpsoPumpCommandType getCurrentCommand() {
         return (YpsoPumpCommandType) workWithStatusAndCommand(StatusChange.GetCommand, null, null);
+    }
+
+    public void resetDriverStatusToConnected() {
+        workWithStatusAndCommand(StatusChange.SetStatus, YpsoDriverStatus.Connected, null);
     }
 
     public void setDriverStatus(YpsoDriverStatus status) {
@@ -56,17 +64,17 @@ public class YpsoPumpUtil {
         switch (type) {
 
             case GetStatus:
-                aapsLogger.debug(LTag.PUMP, "GetStatus: DriverStatus: " + driverStatus);
+                //aapsLogger.debug(LTag.PUMP, "GetStatus: DriverStatus: " + driverStatus);
                 return driverStatus;
 
             case GetCommand:
                 return this.pumpCommandType;
 
             case SetStatus: {
-                aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus: " + driverStatus + ", Incoming: " + driverStatusIn);
+                //aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus: " + driverStatus + ", Incoming: " + driverStatusIn);
                 driverStatus = driverStatusIn;
                 this.pumpCommandType = null;
-                aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus: " + driverStatus);
+                //aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus: " + driverStatus);
                 rxBus.send(new EventPumpStatusChanged());
             }
             break;
@@ -100,6 +108,18 @@ public class YpsoPumpUtil {
         }
     }
 
+
+    public static boolean isSame(Double d1, Double d2) {
+        double diff = d1 - d2;
+
+        return (Math.abs(diff) <= 0.000001);
+    }
+
+    public static boolean isSame(Double d1, Integer d2) {
+        double diff = d1 - d2;
+
+        return (Math.abs(diff) <= 0.000001);
+    }
 
     private enum StatusChange {
         GetStatus,
