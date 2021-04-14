@@ -149,4 +149,8 @@ public class PumpDescription {
         hasCustomUnreachableAlertCheck = pumpType.getHasCustomUnreachableAlertCheck();
     }
 
+    public PumpType getPumpType() {
+        return this.pumpType;
+    }
+
 }
