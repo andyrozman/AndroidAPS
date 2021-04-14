@@ -2,6 +2,8 @@ package info.nightscout.androidaps.plugins.pump.common.hw.rileylink.service.task
 
 import android.content.Context;
 
+import java.util.Locale;
+
 import javax.inject.Inject;
 
 import dagger.android.HasAndroidInjector;
@@ -83,7 +85,7 @@ public class InitializePumpManagerTask extends ServiceTask {
 
                 rileyLinkServiceData.setRileyLinkServiceState(RileyLinkServiceState.RileyLinkReady);
 
-                aapsLogger.info(LTag.PUMPBTCOMM, "Setting radio frequency to {} MHz", lastGoodFrequency);
+                aapsLogger.info(LTag.PUMPBTCOMM, String.format(Locale.ENGLISH, "Setting radio frequency to %.3f MHz", lastGoodFrequency));
 
                 rileyLinkCommunicationManager.setRadioFrequencyForPump(lastGoodFrequency);
 
@@ -112,7 +114,7 @@ public class InitializePumpManagerTask extends ServiceTask {
             rileyLinkServiceData.setRileyLinkServiceState(RileyLinkServiceState.RileyLinkReady);
             rileyLinkServiceData.rileyLinkTargetFrequency = RileyLinkTargetFrequency.Omnipod; // TODO shouldn't be needed
 
-            aapsLogger.info(LTag.PUMPBTCOMM, "Setting radio frequency to {} MHz", lastGoodFrequency);
+            aapsLogger.info(LTag.PUMPBTCOMM, String.format(Locale.ENGLISH, "Setting radio frequency to %.3f MHz", lastGoodFrequency));
 
             rileyLinkCommunicationManager.setRadioFrequencyForPump(lastGoodFrequency);
 

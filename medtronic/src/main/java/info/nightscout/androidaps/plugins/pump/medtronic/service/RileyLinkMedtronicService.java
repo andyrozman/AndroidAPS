@@ -261,7 +261,7 @@ public class RileyLinkMedtronicService extends RileyLinkService {
             } else {
                 if (!rileyLinkAddress.matches(regexMac)) {
                     medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_rileylink_address_invalid);
-                    aapsLogger.debug(LTag.PUMP, "RileyLink address invalid: {}", rileyLinkAddress);
+                    aapsLogger.debug(LTag.PUMP, "RileyLink address invalid: %s", rileyLinkAddress);
                 } else {
                     if (!rileyLinkAddress.equals(this.rileyLinkAddress)) {
                         this.rileyLinkAddress = rileyLinkAddress;
@@ -366,7 +366,7 @@ public class RileyLinkMedtronicService extends RileyLinkService {
         try {
             val = Double.parseDouble(value);
         } catch (Exception ex) {
-            aapsLogger.error("Error parsing setting: {}, value found {}", key, value);
+            aapsLogger.error("Error parsing setting: %s, value found %s", key, value);
             val = defaultValueDouble;
         }
 
