@@ -4,9 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by geoff on 4/28/15.
- */
+
 public class ByteUtil {
 
     private final static char[] HEX_DIGITS = {
@@ -315,21 +313,40 @@ public class ByteUtil {
         return toInt(b1, b2, null, null, BitConversion.BIG_ENDIAN);
     }
 
+
+    public static int toInt(int b1, int b2, int b3) {
+        return toInt(b1, b2, b3, null, BitConversion.BIG_ENDIAN);
+    }
+
+
+    public static int toInt(int b1, int b2, BitConversion flag) {
+        return toInt(b1, b2, null, null, flag);
+    }
+
+
+    public static int toInt(Byte b1) {
+        return toInt(b1, null, null, null, BitConversion.BIG_ENDIAN);
+    }
+
     public static int toInt(Byte b1, Byte b2) {
         return toInt(b1, b2, null, null, BitConversion.BIG_ENDIAN);
     }
 
-
-    public static int toInt(int b1, int b2, int b3) {
-        return toInt(b1, b2, b3, null, BitConversion.BIG_ENDIAN);
+    public static int toInt(Byte b1, Byte b2, BitConversion flag) {
+        return toInt(b1, b2, null, null, flag);
     }
 
     public static int toInt(Byte b1, Byte b2, Byte b3) {
         return toInt(b1, b2, b3, null, BitConversion.BIG_ENDIAN);
     }
 
-    public static int toInt(int b1, int b2, BitConversion flag) {
-        return toInt(b1, b2, null, null, flag);
+    public static int toInt(Byte b1, Byte b2, Byte b3, BitConversion flag) {
+        return toInt(b1, b2, b3, null, flag);
+    }
+
+
+    public static int toInt(Byte b1, Byte b2, Byte b3, Byte b4) {
+        return toInt(b1, b2, b3, b4, BitConversion.BIG_ENDIAN);
     }
 
 
@@ -388,15 +405,28 @@ public class ByteUtil {
     }
 
 
-    public static String getString(short[] abyte0) {
-        StringBuilder sb = new StringBuilder();
+//    public static String getString(short[] abyte0) {
+//        StringBuilder sb = new StringBuilder();
+//
+//        for (short i : abyte0) {
+//            sb.append(i);
+//            sb.append(" ");
+//        }
+//
+//        return sb.toString();
+//    }
 
-        for (short i : abyte0) {
-            sb.append(i);
-            sb.append(" ");
+    public static String getString(byte[] array) {
+        int lastZero = array.length - 1;
+        for (int i = array.length - 1; i >= 0; i--) {
+            if (array[i] == 0) {
+                lastZero = i;
+            }
         }
 
-        return sb.toString();
+        byte[] array2 = substring(array, 0, lastZero);
+
+        return new String(array2);
     }
 
 

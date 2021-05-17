@@ -120,7 +120,7 @@ class MedtronicPumpStatus @Inject constructor(private val resourceHelper: Resour
         get() {
             if (tempBasalStart == null) return null
             if (tempBasalEnd == null) {
-                val startTime = tempBasalStart!!.time
+                val startTime = tempBasalStart!!
                 tempBasalEnd = startTime + tempBasalLength!! * 60 * 1000
             }
             if (System.currentTimeMillis() > tempBasalEnd!!) {

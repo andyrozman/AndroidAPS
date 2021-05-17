@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:validate="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        android:title="@string/ypsopump_name"
+        app:initialExpandedChildrenCount="0">
+
+        <EditTextPreference
+            android:defaultValue="000000"
+            android:key="@string/key_ypsopump_serial"
+            android:selectAllOnFocus="true"
+            android:singleLine="false"
+            android:title="@string/medtronic_serial_number"
+            validate:customRegexp="@string/sixdigitnumber"
+            validate:testErrorString="@string/error_mustbe6digitnumber"
+            validate:testType="regexp" />
+
+        <Preference
+            android:enabled="true"
+            android:key="@string/key_ypsopump_address"
+            android:summary=""
+            android:title="YpsoPump Configuration">
+            <intent android:action="info.nightscout.androidaps.plugins.pump.ypsopump.config.YpsoPumpBLEConfigActivity" />
+        </Preference>
+
+    </PreferenceCategory>
+
+</androidx.preference.PreferenceScreen>

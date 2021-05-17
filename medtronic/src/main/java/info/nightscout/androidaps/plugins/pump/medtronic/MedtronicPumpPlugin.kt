@@ -581,7 +581,7 @@ class MedtronicPumpPlugin @Inject constructor(
         scheduleNextRefresh(MedtronicStatusRefreshType.PumpTime, 0)
     }
 
-    override fun deliverBolus(detailedBolusInfo: DetailedBolusInfo?): PumpEnactResult {
+    override fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, "MedtronicPumpPlugin::deliverBolus - " + BolusDeliveryType.DeliveryPrepared)
         setRefreshButtonEnabled(false)
         if (detailedBolusInfo!!.insulin > medtronicPumpStatus.reservoirRemainingUnits) {
@@ -753,7 +753,7 @@ class MedtronicPumpPlugin @Inject constructor(
         val response = responseTask.result as Boolean?
         aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalAbsolute - setTBR. Response: " + response)
         return if (response!!) {
-            medtronicPumpStatus.tempBasalStart = Date()
+            medtronicPumpStatus.tempBasalStart = System.currentTimeMillis()
             medtronicPumpStatus.tempBasalAmount = absoluteRate
             medtronicPumpStatus.tempBasalLength = durationInMinutes
             // val tempStart = TemporaryBasal(injector) //

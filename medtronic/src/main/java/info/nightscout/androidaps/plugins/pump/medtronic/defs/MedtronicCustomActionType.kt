@@ -9,9 +9,7 @@ enum class MedtronicCustomActionType : CustomActionType {
 
     WakeUpAndTune,  //
     ClearBolusBlock,  //
-    ResetRileyLinkConfiguration;
-
-    //
+    ResetRileyLinkConfiguration; //
 
     override fun getKey(): String {
         return name

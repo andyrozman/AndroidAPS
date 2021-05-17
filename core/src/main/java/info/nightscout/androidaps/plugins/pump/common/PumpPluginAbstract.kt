@@ -375,7 +375,7 @@ abstract class PumpPluginAbstract protected constructor(
         return false
     }
 
-    protected abstract fun deliverBolus(detailedBolusInfo: DetailedBolusInfo?): PumpEnactResult
+    protected abstract fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult
 
     protected abstract fun triggerUIChange()
 

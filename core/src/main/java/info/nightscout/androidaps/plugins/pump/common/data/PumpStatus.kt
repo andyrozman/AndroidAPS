@@ -36,7 +36,7 @@ abstract class PumpStatus(var pumpType: PumpType) {
     var units : String? = null // Constants.MGDL or Constants.MMOL
     var pumpStatusType = PumpStatusType.Running
     var basalsByHour: DoubleArray? = null
-    var tempBasalStart: Date? = null
+    var tempBasalStart: Long? = null
     var tempBasalAmount: Double? = 0.0
     var tempBasalLength: Int? = 0
     var tempBasalEnd: Long? = null

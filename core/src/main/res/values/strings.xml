@@ -334,6 +334,13 @@
     <string name="pump_status_invalid_config">Invalid configuration</string>
     <string name="pump_status_active">Active</string>
     <string name="pump_status_sleeping">Sleeping</string>
+    <string name="pump_status_not_initialized">Not initialized</string>
+    <string name="pump_status_initialized">Initialized</string>
+    <string name="pump_status_ready">Ready</string>
+    <string name="pump_status_busy">Busy</string>
+    <string name="pump_status_suspended">Suspended</string>
+    <string name="pump_status_executing_command">Executing Command</string>
+
 
     <!-- PumpCommon - History Group -->
     <string name="history_group_basal">Basals</string>
@@ -392,6 +399,16 @@
     <string name="signature_verifier">Signature verifier</string>
     <string name="running_invalid_version">We have detected that you are running an invalid version. Loop disabled!</string>
     <string name="versionavailable">Version %1$s available</string>
+
+    <!-- BLE Config -->
+    <string name="ble_config_button_scan_start">Scan</string>
+    <string name="ble_config_scan_stop">Stop</string>
+    <string name="ble_config_scan_selected">Selected</string>
+    <string name="ble_config_scan_scanning">Scanning</string>
+    <string name="ble_config_scan_finished">Scanning finished</string>
+    <string name="ble_config_scan_error">Scanning error: %1$d</string>
+    <string name="ble_config_connected_never">Never</string>
+    <string name="ble_config_remove">Remove</string>
 
     <!-- Permissions -->
     <string name="alert_dialog_storage_permission_text">Please reboot your phone or restart AndroidAPS from the System Settings \notherwise Android APS will not have logging (important to track and verify that the algorithms are working correctly)!</string>

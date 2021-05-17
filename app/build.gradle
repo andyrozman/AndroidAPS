@@ -111,7 +111,7 @@ android {
     defaultConfig {
         multiDexEnabled true
         versionCode 1500
-        version "2.8.2.1-meallink-mdt"
+        version "2.8.2.1-dev-ypso_andy"
         buildConfigField "String", "VERSION", '"' + version + '"'
         buildConfigField "String", "BUILDVERSION", '"' + generateGitBuild() + '-' + generateDate() + '"'
         buildConfigField "String", "REMOTE", '"' + generateGitRemote() + '"'
@@ -191,20 +191,22 @@ dependencies {
     implementation project(':omnipod-common')
     implementation project(':omnipod-eros')
     implementation project(':omnipod-dash')
+    implementation project(':ypsopump')
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 
     /* Dagger2 - We are going to use dagger.android which includes
      * support for Activity and fragment injection so we need to include
      * the following dependencies */
-    implementation 'com.dropbox.core:dropbox-core-sdk:2.1.1'
-
     annotationProcessor "com.google.dagger:dagger-compiler:$dagger_version"
     annotationProcessor "com.google.dagger:dagger-android-processor:$dagger_version"
     kapt "com.google.dagger:dagger-android-processor:$dagger_version"
 
     /* Dagger2 - default dependency */
     kapt "com.google.dagger:dagger-compiler:$dagger_version"
+
+    implementation 'com.dropbox.core:dropbox-core-sdk:2.1.1'
+
 }
 
 apply from: "${project.rootDir}/gradle/test_dependencies.gradle"
