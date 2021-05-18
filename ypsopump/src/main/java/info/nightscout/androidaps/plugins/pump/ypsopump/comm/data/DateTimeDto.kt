@@ -1,5 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.comm.data
 
+import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
+
 data class DateTimeDto(var year: Int? = 0,
                        var month: Int? = 0,
                        var day: Int? = 0,
@@ -19,6 +21,10 @@ data class DateTimeDto(var year: Int? = 0,
             "0" + num
         else
             "" + num
+    }
+
+    fun toATechDate(): Long {
+        return DateTimeUtil.toATechDate(this.year!!, this.month!!, this.day!!, this.hour!!, this.minute!!, this.second!!)
     }
 
 

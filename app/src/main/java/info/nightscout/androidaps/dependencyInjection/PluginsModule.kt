@@ -43,6 +43,7 @@ import info.nightscout.androidaps.plugins.pump.mdi.MDIPlugin
 import info.nightscout.androidaps.plugins.pump.medtronic.MedtronicPumpPlugin
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.OmnipodErosPumpPlugin
 import info.nightscout.androidaps.plugins.pump.virtual.VirtualPumpPlugin
+import info.nightscout.androidaps.plugins.pump.ypsopump.YpsopumpPumpPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityAAPSPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityOref1Plugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityWeightedAveragePlugin
@@ -116,13 +117,13 @@ abstract class PluginsModule {
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(90)
+    @IntKey(100)
     abstract fun bindDanaRPlugin(plugin: DanaRPlugin): PluginBase
 
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(100)
+    @IntKey(105)
     abstract fun bindDanaRKoreanPlugin(plugin: DanaRKoreanPlugin): PluginBase
 
     @Binds
@@ -134,32 +135,38 @@ abstract class PluginsModule {
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(120)
+    @IntKey(115)
     abstract fun bindDanaRSPlugin(plugin: DanaRSPlugin): PluginBase
 
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(130)
+    @IntKey(120)
     abstract fun bindLocalInsightPlugin(plugin: LocalInsightPlugin): PluginBase
 
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(140)
+    @IntKey(125)
     abstract fun bindComboPlugin(plugin: ComboPlugin): PluginBase
 
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(150)
+    @IntKey(130)
     abstract fun bindMedtronicPumpPlugin(plugin: MedtronicPumpPlugin): PluginBase
 
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(155)
+    @IntKey(135)
     abstract fun bindOmnipodPumpPlugin(plugin: OmnipodErosPumpPlugin): PluginBase
+
+    @Binds
+    @PumpDriver
+    @IntoMap
+    @IntKey(140)
+    abstract fun bindYpsopumpPlugin(plugin: YpsopumpPumpPlugin): PluginBase
 
     @Binds
     @NotNSClient

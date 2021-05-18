@@ -109,7 +109,7 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
 //            rileyLinkPump.getRileyLinkService().verifyConfiguration(true); // force reloading of address to assure that the RL gets reconnected (even if the address didn't change)
 //            rileyLinkPump.triggerPumpConfigurationChangedEvent();
 
-            // TODO this should work
+            // TODO when device is selected, we need to Bond it, and if there is any other pump Bonded, it needs to be unbonded
             rxBus.send(new EventPumpConfigurationChanged());
 
             finish();

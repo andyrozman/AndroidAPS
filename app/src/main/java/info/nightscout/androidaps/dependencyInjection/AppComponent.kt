@@ -54,7 +54,8 @@ import javax.inject.Singleton
         InsightModule::class,
         InsightDatabaseModule::class,
         WorkersModule::class,
-        OHUploaderModule::class
+        OHUploaderModule::class,
+        YpsoPumpModule::class
     ]
 )
 interface AppComponent : AndroidInjector<MainApp> {

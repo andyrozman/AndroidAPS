@@ -73,7 +73,9 @@ class YpsoPumpConnectionManager @Inject constructor(private val pumpStatus: Ypso
     }
 
     private fun resetFirmwareVersion() {}
+
     fun determineFirmwareVersion() {}
+
     fun executeCommand(parameters: CommandParameters): CommandResponse {
 
 //        ypsopumpUtil.setDriverStatus(YpsoDriverStatus.Connecting);

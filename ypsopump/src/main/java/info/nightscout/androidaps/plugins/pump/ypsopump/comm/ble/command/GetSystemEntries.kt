@@ -3,6 +3,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.EventDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.HistoryEntryType
 
 class GetSystemEntries(hasAndroidInjector: HasAndroidInjector?) : GetDataListAbstract<EventDto>(hasAndroidInjector!!) {
 
@@ -19,7 +20,7 @@ class GetSystemEntries(hasAndroidInjector: HasAndroidInjector?) : GetDataListAbs
     }
 
     override fun decodeEntry(data: ByteArray): EventDto? {
-        return ypsoPumpDataConverter.decodeEvent(data)
+        return ypsoPumpDataConverter.decodeEvent(data, HistoryEntryType.SystemEntry)
     }
 
     override fun getEntryType(): String {

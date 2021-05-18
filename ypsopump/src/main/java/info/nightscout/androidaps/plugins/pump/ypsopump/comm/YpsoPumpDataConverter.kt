@@ -34,12 +34,12 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             YpsoGattCharacteristic.SYSTEM_DATE             -> decodeDate(data)
             YpsoGattCharacteristic.SYSTEM_TIME             -> decodeTime(data)
             YpsoGattCharacteristic.ALARM_ENTRY_COUNT,
-            YpsoGattCharacteristic.ALARM_ENTRY_VALUE,
             YpsoGattCharacteristic.EVENT_ENTRY_COUNT,
+            YpsoGattCharacteristic.SYSTEM_ENTRY_COUNT,
+            YpsoGattCharacteristic.ALARM_ENTRY_VALUE,
             YpsoGattCharacteristic.EVENT_ENTRY_VALUE,
             YpsoGattCharacteristic.SETTINGS_VALUE,
             YpsoGattCharacteristic.SUPERVISOR_SOFTWARE_VERSION,
-            YpsoGattCharacteristic.SYSTEM_ENTRY_COUNT,
             YpsoGattCharacteristic.SYSTEM_ENTRY_VALUE      -> decodeUnsupportedEntry(data)
 
             else                                           -> {
@@ -76,7 +76,6 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
     }
 
     private fun decodeUnsupportedEntry(data: ByteArray): Any? {
-        TODO("Not yet implemented")
         aapsLogger.error(LTag.PUMPBTCOMM, "Unsupported Entry: ")
         return null;
     }
@@ -134,7 +133,7 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
 //        return num
 //    }
 
-    fun decodeEvent(data: ByteArray): EventDto? {
+    fun decodeEvent(data: ByteArray, historyEntryType: HistoryEntryType): EventDto? {
         var eventDto: EventDto? = null
         // firmware should always be there, but if its not we default to 1.5
         if (pumpStatus.ypsopumpFirmware == null || pumpStatus.ypsopumpFirmware == YpsoPumpFirmware.VERSION_1_5) {
@@ -145,15 +144,17 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             var entryTypeInt = byteToInt(data, 4, 1);
             var entryType = YpsoPumpEventType.getByCode(entryTypeInt)
 
-            eventDto = EventDto(
+            eventDto = EventDto(null,
                 DateTimeDto(date.year, date.monthOfYear, date.dayOfMonth, date.hourOfDay, date.minuteOfHour, date.secondOfMinute),
+                historyEntryType,
                 entryType,
                 entryTypeInt,
                 byteToInt(data, 5, 2),
                 byteToInt(data, 7, 2),
                 byteToInt(data, 9, 2),
-                byteToInt(data, 11, 4),
-                byteToInt(data, 15, 2))
+                byteToInt(data, 11, 4)
+                //byteToInt(data, 15, 2)
+            )
         } else {
             val year = 2000 + (data[0] and 0xFF.toByte())
             val month = (data[1] and 0xFF.toByte()).toInt()
@@ -165,35 +166,37 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             val entryTypeInt = byteToInt(data, 10, 1);
             val entryType = YpsoPumpEventType.getByCode(entryTypeInt)
 
-            eventDto = EventDto(
+            eventDto = EventDto(null,
                 DateTimeDto(year, month, day, hour, minute, second),
+                historyEntryType,
                 entryType,
                 entryTypeInt,
                 byteToInt(data, 11, 2),
                 byteToInt(data, 13, 2),
                 byteToInt(data, 15, 2),
                 byteToInt(data, 6, 2),
-                byteToInt(data, 8, 2))
+                //byteToInt(data, 8, 2)
+            )
         }
 
         when (eventDto.entryType) {
             BASAL_PROFILE_A_PATTERN_CHANGED,
             BASAL_PROFILE_B_PATTERN_CHANGED -> eventDto.subObject = BasalProfileEntry(
-                eventDto.entryValue1,
-                eventDto.entryValue2 / 100.0)
-            DAILY_TOTAL_INSULIN             -> eventDto.subObject = TotalDailyInsulin((((eventDto.entryValue2 shl 16) + eventDto.entryValue1) * 1.0) / 100.0)
-            DATE_CHANGED                    -> eventDto.subObject = DateTimeDto(2000 + eventDto.entryValue3,
-                eventDto.entryValue2,
-                eventDto.entryValue1,
-                eventDto.dateTimeLocal.hour,
-                eventDto.dateTimeLocal.minute,
-                eventDto.dateTimeLocal.second)
-            TIME_CHANGED                    -> eventDto.subObject = DateTimeDto(eventDto.dateTimeLocal.year,
-                eventDto.dateTimeLocal.month,
-                eventDto.dateTimeLocal.day,
-                eventDto.entryValue1,
-                eventDto.entryValue2,
-                eventDto.entryValue3)
+                eventDto.value1,
+                eventDto.value2 / 100.0)
+            DAILY_TOTAL_INSULIN             -> eventDto.subObject = TotalDailyInsulin((((eventDto.value2 shl 16) + eventDto.value1) * 1.0) / 100.0)
+            DATE_CHANGED                    -> eventDto.subObject = DateTimeChanged(2000 + eventDto.value3,
+                eventDto.value2,
+                eventDto.value1,
+                eventDto.dateTime.hour,
+                eventDto.dateTime.minute,
+                eventDto.dateTime.second)
+            TIME_CHANGED                    -> eventDto.subObject = DateTimeChanged(eventDto.dateTime.year,
+                eventDto.dateTime.month,
+                eventDto.dateTime.day,
+                eventDto.value1,
+                eventDto.value2,
+                eventDto.value3)
 
             BOLUS_NORMAL,
             BOLUS_NORMAL_RUNNING,
@@ -201,7 +204,7 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             BOLUS_BLIND,
             BOLUS_BLIND_RUNNING,
             BOLUS_BLIND_ABORT               -> {
-                eventDto.subObject = Bolus(eventDto.entryValue1 / 100.0,
+                eventDto.subObject = Bolus(eventDto.value1 / 100.0,
                     false,
                     eventDto.entryType == BOLUS_NORMAL_ABORT || eventDto.entryType == BOLUS_BLIND_ABORT,
                     eventDto.entryType == BOLUS_NORMAL_RUNNING || eventDto.entryType == BOLUS_BLIND_RUNNING)
@@ -210,8 +213,8 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             BOLUS_EXTENDED,
             BOLUS_EXTENDED_RUNNING,
             BOLUS_EXTENDED_ABORT            -> {
-                eventDto.subObject = Bolus(eventDto.entryValue1 / 100.0,
-                    eventDto.entryValue2,
+                eventDto.subObject = Bolus(eventDto.value1 / 100.0,
+                    eventDto.value2,
                     false,
                     eventDto.entryType == BOLUS_NORMAL_ABORT || eventDto.entryType == BOLUS_BLIND_ABORT,
                     eventDto.entryType == BOLUS_EXTENDED_RUNNING)
@@ -220,9 +223,9 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             BOLUS_COMBINED_RUNNING,
             BOLUS_COMBINED,
             BOLUS_COMBINED_ABORT            -> {
-                eventDto.subObject = Bolus(eventDto.entryValue2 / 100.0,
-                    (eventDto.entryValue1 - eventDto.entryValue2) / 100.0,
-                    eventDto.entryValue3,
+                eventDto.subObject = Bolus(eventDto.value2 / 100.0,
+                    (eventDto.value1 - eventDto.value2) / 100.0,
+                    eventDto.value3,
                     false,
                     eventDto.entryType == BOLUS_NORMAL_ABORT || eventDto.entryType == BOLUS_BLIND_ABORT,
                     eventDto.entryType == BOLUS_COMBINED_RUNNING)
@@ -231,37 +234,37 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             TEMPORARY_BASAL,
             TEMPORARY_BASAL_RUNNING,
             TEMPORARY_BASAL_ABORT           -> {
-                eventDto.subObject = BasalProfileTemp(
-                    eventDto.entryValue1,
-                    eventDto.entryValue2,
+                eventDto.subObject = TemporaryBasal(
+                    eventDto.value1,
+                    eventDto.value2,
                     eventDto.entryType == TEMPORARY_BASAL_RUNNING)
             }
 
             ALARM_BATTERY_REMOVED           -> eventDto.subObject = Alarm(AlarmType.BatteryRemoved)
-            ALARM_BATTERY_EMPTY             -> eventDto.subObject = Alarm(AlarmType.BatteryEmpty, eventDto.entryValue1)
-            ALARM_REUSABLE_ERROR            -> eventDto.subObject = Alarm(AlarmType.ReusableError, eventDto.entryValue1, eventDto.entryValue2, eventDto.entryValue3)
+            ALARM_BATTERY_EMPTY             -> eventDto.subObject = Alarm(AlarmType.BatteryEmpty, eventDto.value1)
+            ALARM_REUSABLE_ERROR            -> eventDto.subObject = Alarm(AlarmType.ReusableError, eventDto.value1, eventDto.value2, eventDto.value3)
             ALARM_NO_CARTRIDGE              -> eventDto.subObject = Alarm(AlarmType.NoCartridge)
             ALARM_CARTRIDGE_EMPTY           -> eventDto.subObject = Alarm(AlarmType.CartridgeEmpty)
-            ALARM_OCCLUSION                 -> eventDto.subObject = Alarm(AlarmType.Occlusion, eventDto.entryValue1)
+            ALARM_OCCLUSION                 -> eventDto.subObject = Alarm(AlarmType.Occlusion, eventDto.value1)
             ALARM_AUTO_STOP                 -> eventDto.subObject = Alarm(AlarmType.AutoStop)
-            ALARM_LIPO_DISCHARGED           -> eventDto.subObject = Alarm(AlarmType.LipoDischarged, eventDto.entryValue1)
-            ALARM_BATTERY_REJECTED          -> eventDto.subObject = Alarm(AlarmType.BatteryRejected, eventDto.entryValue1)
+            ALARM_LIPO_DISCHARGED           -> eventDto.subObject = Alarm(AlarmType.LipoDischarged, eventDto.value1)
+            ALARM_BATTERY_REJECTED          -> eventDto.subObject = Alarm(AlarmType.BatteryRejected, eventDto.value1)
 
             BOLUS_STEP_CHANGED              -> {
-                val step = eventDto.entryValue1 / 100.0
+                val step = eventDto.value1 / 100.0
                 eventDto.subObject = ConfigurationChanged(ConfigurationType.BolusStepChanged, "" + step)
             }
 
             BASAL_RATE_CAP_CHANGED,
             BOLUS_AMOUNT_CAP_CHANGED        -> {
-                val cap = String.format(Locale.ROOT, "NEW=%.2f;OLD=%.2f", eventDto.entryValue1 / 100.0, eventDto.entryValue2 / 100.0)
+                val cap = String.format(Locale.ROOT, "NEW=%.2f;OLD=%.2f", eventDto.value1 / 100.0, eventDto.value2 / 100.0)
                 eventDto.subObject = ConfigurationChanged(if (eventDto.entryType == BOLUS_AMOUNT_CAP_CHANGED) ConfigurationType.BolusAmountCapChanged else ConfigurationType.BasalAmountCapChanged,
                     "" + cap)
             }
 
             PUMP_MODE_CHANGED,
             DELIVERY_STATUS_CHANGED         -> {
-                val isRunning = (eventDto.entryValue1 == 10)
+                val isRunning = (eventDto.value1 == 10)
 
                 eventDto.subObject = if (isRunning) PumpStatusChanged(PumpStatusType.PumpRunning)
                 else PumpStatusChanged(PumpStatusType.PumpSuspended)
@@ -269,11 +272,11 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
 
             BATTERY_REMOVED                 -> eventDto.subObject = PumpStatusChanged(PumpStatusType.BatteryRemoved)
             BASAL_PROFILE_CHANGED           -> eventDto.subObject = ConfigurationChanged(ConfigurationType.BasalProfileChanged,
-                if (eventDto.entryValue1 == 3) "A" else "B")
+                if (eventDto.value1 == 3) "A" else "B")
 
             PRIMING,
             CANNULA_PRIMING                 -> {
-                val priming = String.format(Locale.ROOT, "AMOUNT=%.2f;MOTION_STATUS=%d", eventDto.entryValue1 / 100.0, eventDto.entryValue2)
+                val priming = String.format(Locale.ROOT, "AMOUNT=%.2f;MOTION_STATUS=%d", eventDto.value1 / 100.0, eventDto.value2)
                 eventDto.subObject = PumpStatusChanged(PumpStatusType.Priming, priming)
 //                val piEventTypeId2 = if (ypsoPumpVersion == eYpsoPumpVersion.YpsoPump_15 &&
 //                        ypsoPumpEventType == eYpsoPumpEventType.PRIMING_FINISHED) 23 else if (ypsoPumpVersion != eYpsoPumpVersion.YpsoPump_15 ||
@@ -281,7 +284,7 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             }
 
             REWIND                          -> {
-                val rewind = String.format(Locale.ROOT, "VALUE_1=%d;VALUE_2=%d;VALUE_3=%d", eventDto.entryValue1, eventDto.entryValue2, eventDto.entryValue2)
+                val rewind = String.format(Locale.ROOT, "VALUE_1=%d;VALUE_2=%d;VALUE_3=%d", eventDto.value1, eventDto.value2, eventDto.value2)
                 eventDto.subObject = PumpStatusChanged(PumpStatusType.Rewind, rewind)
             }
 
@@ -289,9 +292,9 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
                 aapsLogger.warn(LTag.PUMPBTCOMM, "Event Type ${eventDto.entryType} is not supported.")
             }
 
-//            BOLUS_DELAYED_BACKUP -> TODO()
-//            BOLUS_COMBINED_BACKUP -> TODO()
-//            BASAL_PROFILE_TEMP_BACKUP -> TODO()
+//            BOLUS_DELAYED_BACKUP ->
+//            BOLUS_COMBINED_BACKUP ->
+//            BASAL_PROFILE_TEMP_BACKUP ->
         }
 
         return eventDto

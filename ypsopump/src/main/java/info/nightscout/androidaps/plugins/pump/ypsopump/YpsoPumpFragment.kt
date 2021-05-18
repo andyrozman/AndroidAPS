@@ -356,7 +356,7 @@ class YpsoPumpFragment : DaggerFragment() {
                 }
 
                 PumpDriverState.ExecutingCommand           -> {
-                    var commandType: YpsoPumpCommandType = pumpUtil.currentCommand;
+                    var commandType: YpsoPumpCommandType = pumpUtil.currentCommand
                     pump_status.text = "{fa-bluetooth-b}   " + resourceHelper.gs(commandType.resourceId)
                 }
 
