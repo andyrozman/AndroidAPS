@@ -87,20 +87,24 @@ abstract class PumpPluginAbstract protected constructor(
     override fun onStart() {
         super.onStart()
         initPumpStatusData()
-        val intent = Intent(context, serviceClass)
-        context.bindService(intent, serviceConnection!!, Context.BIND_AUTO_CREATE)
+        if (hasService()) {
+            val intent = Intent(context, serviceClass)
+            context.bindService(intent, serviceConnection!!, Context.BIND_AUTO_CREATE)
+            disposable.add(rxBus
+                .toObservable(EventAppExit::class.java)
+                .observeOn(aapsSchedulers.io)
+                .subscribe({ event: EventAppExit? -> context.unbindService(serviceConnection!!) }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) }
+            )
+        }
         serviceRunning = true
-        disposable.add(rxBus
-            .toObservable(EventAppExit::class.java)
-            .observeOn(aapsSchedulers.io)
-            .subscribe({ event: EventAppExit? -> context.unbindService(serviceConnection!!) }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) }
-        )
         onStartCustomActions()
     }
 
     override fun onStop() {
         aapsLogger.debug(LTag.PUMP, deviceID() + " onStop()")
-        context.unbindService(serviceConnection!!)
+        if (hasService()) {
+            context.unbindService(serviceConnection!!)
+        }
         serviceRunning = false
         disposable.clear()
         super.onStop()
@@ -117,6 +121,7 @@ abstract class PumpPluginAbstract protected constructor(
      * @return Class
      */
     abstract val serviceClass: Class<*>?
+
     abstract val pumpStatusData: PumpStatus
 
     override fun isInitialized(): Boolean {
@@ -383,6 +388,7 @@ abstract class PumpPluginAbstract protected constructor(
         return PumpEnactResult(injector).success(false).enacted(false).comment(resourceId)
     }
 
+    abstract fun hasService(): Boolean
 
     init {
         pumpDescription.fillFor(pumpType)

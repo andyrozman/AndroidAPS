@@ -8,6 +8,7 @@ enum class PumpDriverState(var resourceId: Int) {
     Connecting(R.string.connecting), //
     Connected(R.string.connected), //
     Initialized(R.string.pump_status_initialized), //
+    EncryptCommunication(R.string.pump_status_encrypt), //
     Ready(R.string.pump_status_ready),
     Busy(R.string.pump_status_busy), //
     Suspended(R.string.pump_status_suspended), //

@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import dagger.android.support.DaggerFragment
 import info.nightscout.androidaps.events.EventExtendedBolusChange
-import info.nightscout.androidaps.events.EventPumpStatusChanged
 import info.nightscout.androidaps.events.EventTempBasalChange
 import info.nightscout.androidaps.interfaces.ActivePlugin
 import info.nightscout.androidaps.interfaces.CommandQueueProvider
@@ -21,6 +20,7 @@ import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentVa
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
+import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpStatusChanged
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import info.nightscout.androidaps.queue.events.EventQueueChanged
 import info.nightscout.androidaps.utils.DateUtil
@@ -117,7 +117,7 @@ class YpsoPumpFragment : DaggerFragment() {
         disposable += rxBus
             .toObservable(EventPumpStatusChanged::class.java)
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ updateGUI(PumpUpdateFragmentType.PumpStatus) }, { fabricPrivacy.logException(it) })
+            .subscribe({ updatePumpStatus(it.driverStatus) }, { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventExtendedBolusChange::class.java)
             .observeOn(AndroidSchedulers.mainThread())
@@ -340,30 +340,10 @@ class YpsoPumpFragment : DaggerFragment() {
             //if (pumpUtil.driverStatus
             // TODO error handling
 
-            var pumpStatus: PumpDriverState? = pumpUtil.driverStatus
+            var pumpDriverState: PumpDriverState? = pumpUtil.driverStatus
 
-            when (pumpStatus) {
-                null,
-                PumpDriverState.Sleeping                   -> pump_status.text = "{fa-bed}   "
-                PumpDriverState.Connecting,
-                PumpDriverState.Disconnecting              -> pump_status.text = "{fa-bluetooth-b spin}   " + resourceHelper.gs(pumpStatus.resourceId)
-                PumpDriverState.Connected,
-                PumpDriverState.Disconnected               -> pump_status.text = "{fa-bluetooth-b}   " + resourceHelper.gs(pumpStatus.resourceId)
+            updatePumpStatus(pumpDriverState)
 
-                PumpDriverState.ErrorCommunicatingWithPump -> {
-                    pump_status.text = "{fa-bed}   " + "Error ???"
-                    aapsLogger.warn(LTag.PUMP, "Errors are not supported.")
-                }
-
-                PumpDriverState.ExecutingCommand           -> {
-                    var commandType: YpsoPumpCommandType = pumpUtil.currentCommand
-                    pump_status.text = "{fa-bluetooth-b}   " + resourceHelper.gs(commandType.resourceId)
-                }
-
-                else                                       -> {
-                    pump_status.text = "   " + resourceHelper.gs(pumpStatus.resourceId)
-                }
-            }
         }
 
         if (updateType == PumpUpdateFragmentType.Queue || updateType == PumpUpdateFragmentType.Full) {
@@ -436,6 +416,31 @@ class YpsoPumpFragment : DaggerFragment() {
             warnColors.setColorInverse(pump_reservoir, pumpStatus.reservoirRemainingUnits, 50.0, 20.0)
         }
 
+    }
+
+    private fun updatePumpStatus(pumpDriverState: PumpDriverState?) {
+        when (pumpDriverState) {
+            null,
+            PumpDriverState.Sleeping                   -> pump_status.text = "{fa-bed}   "
+            PumpDriverState.Connecting,
+            PumpDriverState.Disconnecting              -> pump_status.text = "{fa-bluetooth-b spin}   " + resourceHelper.gs(pumpDriverState.resourceId)
+            PumpDriverState.Connected,
+            PumpDriverState.Disconnected               -> pump_status.text = "{fa-bluetooth-b}   " + resourceHelper.gs(pumpDriverState.resourceId)
+
+            PumpDriverState.ErrorCommunicatingWithPump -> {
+                pump_status.text = "{fa-bed}   " + "Error ???"
+                aapsLogger.warn(LTag.PUMP, "Errors are not supported.")
+            }
+
+            PumpDriverState.ExecutingCommand           -> {
+                var commandType: YpsoPumpCommandType = pumpUtil.currentCommand
+                pump_status.text = "{fa-bluetooth-b}   " + resourceHelper.gs(commandType.resourceId)
+            }
+
+            else                                       -> {
+                pump_status.text = " " + resourceHelper.gs(pumpDriverState.resourceId)
+            }
+        }
     }
 
     enum class UpdateGui {

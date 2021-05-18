@@ -31,7 +31,8 @@ class YpsoPumpBLE @Inject constructor(
     var aapsLogger: AAPSLogger,
     var sp: SP,
     var context: Context,
-    var pumpStatus: YpsopumpPumpStatus) {
+    var pumpStatus: YpsopumpPumpStatus,
+    var ypsoPumpUtil: YpsoPumpUtil) {
 
     var gson = Gson()
     var bluetoothAdapter: BluetoothAdapter? = null
@@ -341,7 +342,7 @@ class YpsoPumpBLE @Inject constructor(
 
     private fun encryptCommunication(): Boolean {
         pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_ENCRYPTION
-        val pwd = YpsoPumpUtil.computeUserLevelPassword(deviceMac)
+        val pwd = ypsoPumpUtil.computeUserLevelPassword(deviceMac)
         val bleCommOperationResult = writeCharacteristicBlocking(
             YpsoGattCharacteristic.AUTHORIZATION_PASSWORD,
             pwd)

@@ -18,7 +18,7 @@ abstract class GetSettingsAbstract<T>(hasAndroidInjector: HasAndroidInjector) : 
     fun readSettingsValue(settingsId: YpsoSettingId, index: Int, pumpBle: YpsoPumpBLE?): ByteArray? {
         val bleCommOperationResult = executeBLEWriteCommandWithRetry(
             YpsoGattCharacteristic.SETTINGS_ID,
-            YpsoPumpUtil.getSettingIdAsArray(settingsId.id + index), pumpBle!!)
+            ypsoPumpUtil.getSettingIdAsArray(settingsId.id + index), pumpBle!!)
         if (!bleCommOperationResult!!.isSuccessful) {
             this.bleCommOperationResult = bleCommOperationResult
             return null

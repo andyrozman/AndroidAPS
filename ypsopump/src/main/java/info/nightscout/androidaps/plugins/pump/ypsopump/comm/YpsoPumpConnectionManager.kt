@@ -45,14 +45,35 @@ class YpsoPumpConnectionManager @Inject constructor(private val pumpStatus: Ypso
     var inConnectMode = false
 
     fun connectToPump(): Boolean {
-        inConnectMode = if (!inConnectMode) {
-            if (ypsopumpUtil.driverStatus === PumpDriverState.Connected) {
-                return true
-            }
-            true
-        } else {
-            return false
+
+        if (ypsopumpUtil.driverStatus === PumpDriverState.Ready) {
+            return true
         }
+
+        if (inConnectMode)
+            return false;
+
+        inConnectMode = true
+
+        // if (inConnectMode)
+        //     return false;
+        //
+        // inConnectMode = true
+        //
+        //
+        // inConnectMode = if (!inConnectMode) {
+        //     if (ypsopumpUtil.driverStatus === PumpDriverState.Connected) {
+        //         return true
+        //     }
+        //     true
+        // } else {
+        //     return false
+        // }
+
+        // if (ypsopumpUtil.driverStatus === PumpDriverState.Connected) {
+        //     return true
+        // }
+
 
         // TODO if initialized use types connection, else use base one
 
@@ -63,6 +84,10 @@ class YpsoPumpConnectionManager @Inject constructor(private val pumpStatus: Ypso
         ypsopumpUtil.driverStatus = PumpDriverState.Connecting
         ypsopumpUtil.sleepSeconds(15)
         ypsopumpUtil.driverStatus = PumpDriverState.Connected
+        ypsopumpUtil.sleepSeconds(5)
+        ypsopumpUtil.driverStatus = PumpDriverState.EncryptCommunication
+        ypsopumpUtil.sleepSeconds(5)
+        ypsopumpUtil.driverStatus = PumpDriverState.Ready
 
 //            }
 //        };

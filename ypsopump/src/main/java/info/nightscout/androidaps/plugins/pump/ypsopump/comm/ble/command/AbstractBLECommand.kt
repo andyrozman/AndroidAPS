@@ -15,17 +15,10 @@ import javax.inject.Inject
 
 abstract class AbstractBLECommand<T>(hasAndroidInjector: HasAndroidInjector) : BLECommandInterface<T> {
 
-    @Inject
-    lateinit var aapsLogger: AAPSLogger
-
-    @Inject
-    lateinit var ypsoPumpUtil: YpsoPumpUtil
-
-    @Inject
-    lateinit var ypsoPumpDataConverter: YpsoPumpDataConverter
-
-    @Inject
-    lateinit var ypsopumpPumpStatus: YpsopumpPumpStatus
+    @Inject lateinit var aapsLogger: AAPSLogger
+    @Inject lateinit var ypsoPumpUtil: YpsoPumpUtil
+    @Inject lateinit var ypsoPumpDataConverter: YpsoPumpDataConverter
+    @Inject lateinit var ypsopumpPumpStatus: YpsopumpPumpStatus
 
     override var commandResponse: T? = null
         get() {

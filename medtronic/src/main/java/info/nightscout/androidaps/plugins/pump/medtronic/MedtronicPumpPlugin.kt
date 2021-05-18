@@ -529,6 +529,10 @@ class MedtronicPumpPlugin @Inject constructor(
         rxBus.send(EventMedtronicPumpValuesChanged())
     }
 
+    override fun hasService(): Boolean {
+        return true
+    }
+
     override fun generateTempId(objectA: Any): Long {
         val timestamp: Long = objectA as Long
         return DateTimeUtil.toATechDate(timestamp)

@@ -21,7 +21,7 @@ abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector) : 
 
         var lastCount = getResultAsInt(data)
 
-        var lastCountGLB: Int = YpsoPumpUtil.getValueFromeGLB_SAFE_VAR(data)
+        var lastCountGLB: Int = ypsoPumpUtil.getValueFromeGLB_SAFE_VAR(data)
 
         aapsLogger.debug(LTag.PUMPBTCOMM, "Count: " + lastCount + ", lastCountGLB: " + lastCountGLB)
 
@@ -78,7 +78,7 @@ abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector) : 
         val bleCommOperationResult = executeBLEWriteCommandWithRetry(
             characteristic,
             //YpsoPumpUtil.getSettingIdAsArray(valueToWrite),
-            YpsoPumpUtil.getBytesFromIntArray2(valueToWrite), // TODO fix
+            ypsoPumpUtil.getBytesFromIntArray2(valueToWrite), // TODO fix
             pumpBle)
         if (!bleCommOperationResult!!.isSuccessful) {
             this.bleCommOperationResult = bleCommOperationResult

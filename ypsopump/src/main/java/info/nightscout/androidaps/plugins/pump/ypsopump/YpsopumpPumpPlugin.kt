@@ -55,8 +55,8 @@ class YpsopumpPumpPlugin @Inject constructor(
     sp: SP,
     commandQueue: CommandQueueProvider,
     fabricPrivacy: FabricPrivacy,
-    private val ypsopumpUtil: YpsoPumpUtil,
-    ypsopumpPumpStatus: YpsopumpPumpStatus,
+    val ypsopumpUtil: YpsoPumpUtil,
+    private val ypsopumpPumpStatus: YpsopumpPumpStatus,
     dateUtil: DateUtil,
     connectionManager: YpsoPumpConnectionManager,
     aapsSchedulers: AapsSchedulers,
@@ -74,7 +74,6 @@ class YpsopumpPumpPlugin @Inject constructor(
     injector, resourceHelper, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage
 ), Pump {
 
-    //private val sp: SP
     private val pumpStatus: YpsopumpPumpStatus
     private val pumpConnectionManager: YpsoPumpConnectionManager
 
@@ -84,12 +83,14 @@ class YpsopumpPumpPlugin @Inject constructor(
     private val statusRefreshMap: MutableMap<YpsoPumpStatusRefreshType?, Long?> = HashMap()
     private var isInitialized = false
     private var hasTimeDateOrTimeZoneChanged = false
+
     override fun onStart() {
         aapsLogger.debug(LTag.PUMP, deviceID() + " started.")
         super.onStart()
     }
 
     override fun onStartCustomActions() {}
+
     override fun updatePreferenceSummary(pref: Preference) {
         super.updatePreferenceSummary(pref)
         if (pref.key == resourceHelper.gs(R.string.key_ypsopump_address)) {
@@ -195,13 +196,14 @@ class YpsopumpPumpPlugin @Inject constructor(
     override fun isConnected(): Boolean {
         val driverStatus = ypsopumpUtil.driverStatus
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnected - " + driverStatus.name)
-        return driverStatus === PumpDriverState.Connected || driverStatus === PumpDriverState.ExecutingCommand
+        return driverStatus == PumpDriverState.Ready || driverStatus == PumpDriverState.ExecutingCommand
     }
 
     override fun isConnecting(): Boolean {
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + ypsopumpUtil.driverStatus.name)
+        val driverStatus = ypsopumpUtil.driverStatus
+        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
         //return pumpState == PumpDriverState.Connecting;
-        return ypsopumpUtil.driverStatus === PumpDriverState.Connecting
+        return driverStatus == PumpDriverState.Connecting || driverStatus == PumpDriverState.Connected || driverStatus == PumpDriverState.EncryptCommunication
     }
 
     override fun connect(reason: String) {
@@ -483,6 +485,10 @@ class YpsopumpPumpPlugin @Inject constructor(
         rxBus.send(EventPumpConfigurationChanged())
     }
 
+    override fun hasService(): Boolean {
+        return false
+    }
+
     private var bolusDeliveryType = BolusDeliveryType.Idle
 
     private enum class BolusDeliveryType {
@@ -728,9 +734,9 @@ class YpsopumpPumpPlugin @Inject constructor(
                 aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent: Current Basal: duration: " + tbrCurrent.durationMinutes + " min, rate=" + tbrCurrent.insulinRate)
             }
             if (!enforceNew) {
-                if (YpsoPumpUtil.isSame(tbrCurrent.insulinRate, percent)) {
+                if (ypsopumpUtil.isSame(tbrCurrent.insulinRate, percent)) {
                     var sameRate = true
-                    if (YpsoPumpUtil.isSame(0.0, percent) && durationInMinutes > 0) {
+                    if (ypsopumpUtil.isSame(0.0, percent) && durationInMinutes > 0) {
                         // if rate is 0.0 and duration>0 then the rate is not the same
                         sameRate = false
                     }

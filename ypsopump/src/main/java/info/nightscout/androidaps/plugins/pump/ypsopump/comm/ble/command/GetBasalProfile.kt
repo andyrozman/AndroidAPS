@@ -24,6 +24,6 @@ class GetBasalProfile(hasAndroidInjector: HasAndroidInjector?) : GetSettingsAbst
     }
 
     fun getSettingIdAsArray(settingId: Int): ByteArray {
-        return YpsoPumpUtil.getSettingIdAsArray(settingId)
+        return ypsoPumpUtil.getSettingIdAsArray(settingId)
     }
 }

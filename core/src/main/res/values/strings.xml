@@ -336,6 +336,7 @@
     <string name="pump_status_sleeping">Sleeping</string>
     <string name="pump_status_not_initialized">Not initialized</string>
     <string name="pump_status_initialized">Initialized</string>
+    <string name="pump_status_encrypt">Encrypting communication</string>
     <string name="pump_status_ready">Ready</string>
     <string name="pump_status_busy">Busy</string>
     <string name="pump_status_suspended">Suspended</string>
