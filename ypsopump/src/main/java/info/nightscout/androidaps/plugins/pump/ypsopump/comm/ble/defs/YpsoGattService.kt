@@ -2,7 +2,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs
 
 import java.util.*
 
-enum class YpsoGattService(private val uuid: String?, val description: String) {
+enum class YpsoGattService(val uuid: String?, val description: String) {
     SERVICE_GENERIC_ACCESS("00001800-0000-1000-8000-00805f9b34fb", "Service - Generic Access"),
     SERVICE_GENERIC_ATTRIBUTE("00001800-0000-1000-8000-00805f9b34fb", "Service - Generic Attribute"),
     SERVICE_YPSO_1("fb349b5f-8000-0080-0010-0000adde0000", "Service - Ypso Unknown Service 1"),

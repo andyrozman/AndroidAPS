@@ -22,63 +22,37 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
 
     private val YPSOPUMP_10_MASTER_VERSIONS = Regex("^[a-zA-Z]?01\\.0[01]\\.[0-9][0-9]$")
 
-    fun convertReadResult(uuid: String, data: ByteArray): Any? {
+    // fun convertReadResult(uuid: String, data: ByteArray): Any? {
+    //
+    //     aapsLogger.debug(LTag.PUMPBTCOMM, "Data Received: [uid=" + uuid + ", data=" + ByteUtil.getHex(data) + "]")
+    //
+    //     val characteristic: YpsoGattCharacteristic = YpsoGattCharacteristic.lookup(uuid)
+    //
+    //
+    //     return when (characteristic) {
+    //         YpsoGattCharacteristic.MASTER_SOFTWARE_VERSION -> decodeMasterSoftwareVersion(data)
+    //         YpsoGattCharacteristic.SYSTEM_DATE             -> decodeDate(data)
+    //         YpsoGattCharacteristic.SYSTEM_TIME             -> decodeTime(data)
+    //         YpsoGattCharacteristic.ALARM_ENTRY_COUNT,
+    //         YpsoGattCharacteristic.EVENT_ENTRY_COUNT,
+    //         YpsoGattCharacteristic.SYSTEM_ENTRY_COUNT,
+    //         YpsoGattCharacteristic.ALARM_ENTRY_VALUE,
+    //         YpsoGattCharacteristic.EVENT_ENTRY_VALUE,
+    //         YpsoGattCharacteristic.SETTINGS_VALUE,
+    //         YpsoGattCharacteristic.SUPERVISOR_SOFTWARE_VERSION,
+    //         YpsoGattCharacteristic.SYSTEM_ENTRY_VALUE      -> decodeUnsupportedEntry(characteristic, data)
+    //
+    //         else                                           -> {
+    //             aapsLogger.debug(LTag.PUMPBTCOMM, "Unknown uuid value: " + uuid)
+    //             null
+    //         }
+    //     }
+    // }
 
-        aapsLogger.debug(LTag.PUMPBTCOMM, "Data Received: [uid=" + uuid + ", data=" + ByteUtil.getHex(data) + "]")
-
-        val characteristic: YpsoGattCharacteristic = YpsoGattCharacteristic.lookup(uuid)!!
-
-
-        return when (characteristic) {
-            YpsoGattCharacteristic.MASTER_SOFTWARE_VERSION -> decodeMasterSoftwareVersion(data)
-            YpsoGattCharacteristic.SYSTEM_DATE             -> decodeDate(data)
-            YpsoGattCharacteristic.SYSTEM_TIME             -> decodeTime(data)
-            YpsoGattCharacteristic.ALARM_ENTRY_COUNT,
-            YpsoGattCharacteristic.EVENT_ENTRY_COUNT,
-            YpsoGattCharacteristic.SYSTEM_ENTRY_COUNT,
-            YpsoGattCharacteristic.ALARM_ENTRY_VALUE,
-            YpsoGattCharacteristic.EVENT_ENTRY_VALUE,
-            YpsoGattCharacteristic.SETTINGS_VALUE,
-            YpsoGattCharacteristic.SUPERVISOR_SOFTWARE_VERSION,
-            YpsoGattCharacteristic.SYSTEM_ENTRY_VALUE      -> decodeUnsupportedEntry(data)
-
-            else                                           -> {
-                aapsLogger.debug(LTag.PUMPBTCOMM, "Unknown uuid value: " + uuid)
-                null
-            }
-        }
-
-//        if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.MASTER_SOFTWARE_VERSION_UUID) {
-//            mBleCallBack.OnReadMasterSoftwareVersion(characteristic.getValue(), status as Int)
-//        } else if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.SYSTEM_TIME_UUID) {
-//            mBleCallBack.OnReadSystemTime(characteristic.getValue(), status as Int)
-//        } else if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.SYSTEM_DATE_UUID) {
-//            mBleCallBack.OnReadSystemDate(characteristic.getValue(), status as Int)
-//        } else if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.ALARM_ENTRY_COUNT_UUID) {
-//            mBleCallBack.OnReadAlarmEntryCount(characteristic.getValue(), status as Int)
-//        } else if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.ALARM_ENTRY_VALUE_UUID) {
-//            mBleCallBack.OnReadAlarmEntryValue(characteristic.getValue(), status as Int)
-//        } else if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.EVENT_ENTRY_COUNT_UUID) {
-//            mBleCallBack.OnReadEventEntryCount(characteristic.getValue(), status as Int)
-//        } else if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.EVENT_ENTRY_VALUE_UUID) {
-//            mBleCallBack.OnReadEventEntryValue(characteristic.getValue(), status as Int)
-//        } else if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.SETTINGS_VALUE_UUID) {
-//            mBleCallBack.OnReadSettingValue(characteristic.getValue(), status as Int)
-//        } else if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.SUPERVISOR_SOFTWARE_VERSION_UUID) {
-//            mBleCallBack.OnReadSupervisorSoftwareVersion(characteristic.getValue(), status as Int)
-//        } else if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.SYSTEM_ENTRY_COUNT_UUID) {
-//            mBleCallBack.OnReadSystemEntryCount(characteristic.getValue(), status as Int)
-//        } else if (characteristic.getUuid().toString().toUpperCase() == YpsoGattUids.SYSTEM_ENTRY_VALUE_UUID) {
-//            mBleCallBack.OnReadSystemEntryValue(characteristic.getValue(), status as Int)
-//        }
-
-        //return null
-    }
-
-    private fun decodeUnsupportedEntry(data: ByteArray): Any? {
-        aapsLogger.error(LTag.PUMPBTCOMM, "Unsupported Entry: ")
-        return null;
-    }
+    // private fun decodeUnsupportedEntry(characteristic: YpsoGattCharacteristic, data: ByteArray): Any? {
+    //     aapsLogger.error(LTag.PUMPBTCOMM, "Unsupported Entry: ")
+    //     return null;
+    // }
 
     fun decodeMasterSoftwareVersion(data: ByteArray): YpsoPumpFirmware {
         val versionString = ByteUtil.getString(data)
@@ -111,9 +85,9 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
 
     fun decodeTime(data: ByteArray): DateTimeDto {
         val dt = DateTimeDto()
-        dt.hour = byteToInt(data, 0, 1) //getCharValueAsNumber(data, 1)
-        dt.minute = ByteUtil.toInt(data[1]) //getCharValueAsNumber(data, 1, 1)
-        dt.second = ByteUtil.toInt(data[2]) //getCharValueAsNumber(data, 2, 1)
+        dt.hour = byteToInt(data, 0, 1)
+        dt.minute = ByteUtil.toInt(data[1])
+        dt.second = ByteUtil.toInt(data[2])
 
         aapsLogger.debug(LTag.PUMPBTCOMM, "Decoded Time: " + dt.toString())
 
@@ -190,13 +164,15 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
                 eventDto.value1,
                 eventDto.dateTime.hour,
                 eventDto.dateTime.minute,
-                eventDto.dateTime.second)
+                eventDto.dateTime.second,
+                false)
             TIME_CHANGED                    -> eventDto.subObject = DateTimeChanged(eventDto.dateTime.year,
                 eventDto.dateTime.month,
                 eventDto.dateTime.day,
                 eventDto.value1,
                 eventDto.value2,
-                eventDto.value3)
+                eventDto.value3,
+                true)
 
             BOLUS_NORMAL,
             BOLUS_NORMAL_RUNNING,
@@ -313,6 +289,19 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             aapsLogger.error(LTag.PUMPBTCOMM, "byteToInt, length $length not supported.")
             return 0
         }
+    }
+
+    fun convertBasalProfileToString(patterns: HashMap<Int, BasalProfileEntry>, delimiter: String) : String {
+        var stringBuilder: StringBuilder = java.lang.StringBuilder()
+
+        var template = "%02d=%.2f" + delimiter
+
+        for (index in 0..23) {
+            val pattern = patterns.get(index);
+            stringBuilder.append(String.format(template, pattern!!.hour, pattern.rate))
+        }
+
+        return stringBuilder.substring(0, stringBuilder.length-(delimiter.length));
     }
 
 }

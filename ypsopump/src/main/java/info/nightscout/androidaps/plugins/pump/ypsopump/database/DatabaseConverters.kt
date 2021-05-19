@@ -89,6 +89,7 @@ class DatabaseConverters {
 
     @TypeConverter
     fun fromBasalProfile(map: HashMap<Int, BasalProfileEntry>) : String {
+        // TODO use YpsoPumpDataConverter
         var stringBuilder: StringBuilder = java.lang.StringBuilder()
 
         for (pattern in map.entries) {

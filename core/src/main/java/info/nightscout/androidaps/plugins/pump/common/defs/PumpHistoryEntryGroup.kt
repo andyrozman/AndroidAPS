@@ -14,6 +14,7 @@ import java.util.*
 enum class PumpHistoryEntryGroup(val resourceId: Int) {
 
     All(R.string.history_group_all),
+    Base(R.string.history_group_base),
     Bolus(R.string.history_group_bolus),
     Basal(R.string.history_group_basal),
     Prime(R.string.history_group_prime),
@@ -22,6 +23,7 @@ enum class PumpHistoryEntryGroup(val resourceId: Int) {
     Glucose(R.string.history_group_glucose),
     Notification(R.string.history_group_notification),
     Statistic(R.string.history_group_statistic),
+    Other(R.string.history_group_other),
     Unknown(R.string.history_group_unknown);
 
     var translated: String? = null

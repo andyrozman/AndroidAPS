@@ -7,7 +7,7 @@
 
 
     <TextView
-        android:id="@+id/medtronic_history_time"
+        android:id="@+id/ypsopump_history_time"
         android:layout_width="88dp"
         android:layout_height="match_parent"
         android:gravity="center_vertical"
@@ -15,7 +15,7 @@
         android:textSize="12dp" />
 
     <TextView
-        android:id="@+id/medtronic_history_source"
+        android:id="@+id/ypsopump_history_source"
         android:layout_width="132dp"
         android:layout_height="match_parent"
         android:gravity="center_vertical"
@@ -23,7 +23,7 @@
         android:textSize="12dp" />
 
     <TextView
-        android:id="@+id/medtronic_history_description"
+        android:id="@+id/ypsopump_history_description"
         android:layout_width="fill_parent"
         android:layout_height="match_parent"
         android:text="Description"

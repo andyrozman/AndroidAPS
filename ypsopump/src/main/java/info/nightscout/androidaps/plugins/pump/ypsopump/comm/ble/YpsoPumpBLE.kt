@@ -83,7 +83,7 @@ class YpsoPumpBLE @Inject constructor(
             override fun onCharacteristicWrite(gatt: BluetoothGatt,
                                                characteristic: BluetoothGattCharacteristic, status: Int) {
                 super.onCharacteristicWrite(gatt, characteristic, status)
-                val uuidString = YpsoGattCharacteristic.lookup(characteristic.uuid)
+                //val uuidString = YpsoGattCharacteristic.lookup(characteristic.uuid)
                 if (gattDebugEnabled) {
 
                     aapsLogger.debug(LTag.PUMPBTCOMM, ThreadUtil.sig() + "onCharacteristicWrite ("
@@ -185,7 +185,7 @@ class YpsoPumpBLE @Inject constructor(
                     val services = gatt.services
                     var ypsoPumpFound = false
                     for (service in services) {
-                        val uuidService = service.uuid
+                        //val uuidService = service.uuid
                         if (gattDebugEnabled) {
                             debugService(service, 0)
                         }

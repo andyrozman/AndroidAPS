@@ -41,7 +41,7 @@ abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector) : 
 
             if (writeToDevice(i, getIndexUuid(), pumpBle)) {
 
-                val data = readFromDevice(getValueUuid(), pumpBle)
+                data = readFromDevice(getValueUuid(), pumpBle)
 
                 if (data != null) {
                     var decodedObject: T? = decodeEntry(data)

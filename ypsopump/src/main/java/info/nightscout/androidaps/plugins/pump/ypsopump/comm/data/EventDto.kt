@@ -1,8 +1,12 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.comm.data
 
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
+import info.nightscout.androidaps.utils.resources.ResourceHelper
 
-sealed class EventObject
+sealed class EventObject {
+    abstract fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String
+}
 
 data class EventDto(var id: Long?,
                     var dateTime: DateTimeDto,
@@ -14,6 +18,17 @@ data class EventDto(var id: Long?,
                     var value3: Int,
                     var eventSequenceNumber: Int,
                     var subObject: EventObject? = null) {
+
+    var dateTimeString: String = ""
+        get() = "${dateTime.day}.${dateTime.month}.${dateTime.year} ${dateTime.hour}:${dateTime.minute}:${dateTime.second}"
+
+    fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
+        if (subObject!=null) {
+            return subObject!!.getDisplayableValue(resourceHelper, ypsoPumpDataConverter)
+        } else {
+            return "???"
+        }
+    }
 
     override fun toString(): String {
 
@@ -45,12 +60,27 @@ enum class HistoryEntryType {
     SystemEntry
 }
 
-data class BasalProfile(var profile: HashMap<Int, BasalProfileEntry>) : EventObject()
+data class BasalProfile(var profile: HashMap<Int, BasalProfileEntry>) : EventObject() {
 
+    // TODO i18n
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
+        return ypsoPumpDataConverter.convertBasalProfileToString(profile, ", ")
+    }
+
+}
 
 data class BasalProfileEntry(var hour: Int,
-                             var rate: Double) : EventObject()
+                             var rate: Double) : EventObject() {
 
+    // TODO i18n
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
+        if (hour<10)
+            return "0" + hour + "=" + String.format("%.2f", rate)
+        else
+            return "" + hour + "=" + String.format("%d=%.2f", hour, rate)
+    }
+
+}
 
 data class TotalDailyInsulin(var bolus: Double,
                              var basal: Double,
@@ -59,6 +89,15 @@ data class TotalDailyInsulin(var bolus: Double,
     constructor(total: Double) : this(0.0, 0.0, total, true)
 
     constructor(bolus: Double, basal: Double) : this(bolus, basal, basal + bolus, false)
+
+    // TODO i18n
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
+        if (isTotalOnly) {
+            return "Basal & Bolus: " + total
+        } else {
+            return "Basal: $basal, Bolus: $bolus, Total: $total"
+        }
+    }
 
 }
 
@@ -95,11 +134,27 @@ data class Bolus(var bolusType: BolusType,
                 isCancelled: Boolean,
                 isRunning: Boolean) : this(BolusType.Combined, immediateAmount, extendedAmount, durationMin, isCalculated, isCancelled, isRunning)
 
+    // TODO i18n
+    // TODO show values
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
+        return when(bolusType) {
+            BolusType.Normal   -> "Bolus: Normal, Amount: $immediateAmount"
+            BolusType.Extended -> "Bolus: Extended, Amount: $extendedAmount, Duration: $durationMin min"
+            BolusType.Combined -> "Bolus: Combined, Immediate Amount: $immediateAmount, Extended Amount: $extendedAmount, Duration: $durationMin min"
+        }
+    }
+
 }
 
 data class TemporaryBasal(var percent: Int,
                           var minutes: Int,
-                          var isRunning: Boolean): EventObject()
+                          var isRunning: Boolean): EventObject() {
+    // TODO i18n
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
+        return "Rate: " + percent + "%, " + minutes + " min"
+    }
+
+}
 
 enum class AlarmType(var parameterCount: Int = 0) {
     BatteryRemoved,
@@ -117,8 +172,15 @@ enum class AlarmType(var parameterCount: Int = 0) {
 data class Alarm(var alarmType: AlarmType,
                  var value1: Int? = null,
                  var value2: Int? = null,
-                 var value3: Int? = null): EventObject()
+                 var value3: Int? = null): EventObject() {
 
+    // TODO i18n
+    // TODO show values
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
+        return "Alarm: " + alarmType.name
+    }
+
+}
 
 enum class ConfigurationType {
     BolusStepChanged,
@@ -129,8 +191,13 @@ enum class ConfigurationType {
 
 
 data class ConfigurationChanged(var configurationType: ConfigurationType,
-                                var value: String) : EventObject()
-
+                                var value: String) : EventObject() {
+    // TODO i18n
+    // TODO show values
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
+        return configurationType.name + ": " + value
+    }
+}
 
 enum class PumpStatusType {
     PumpRunning,
@@ -142,12 +209,28 @@ enum class PumpStatusType {
 
 
 data class PumpStatusChanged(var pumpStatusType: PumpStatusType,
-                             var additonalData: String? = null): EventObject()
+                             var additonalData: String? = null): EventObject() {
 
+    // TODO i18n
+    // TODO show values
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
+        return pumpStatusType.name + " " + (if (additonalData!=null) additonalData else "")
+    }
+
+}
 
 data class DateTimeChanged(var year: Int? = 0,
                        var month: Int? = 0,
                        var day: Int? = 0,
                        var hour: Int? = 0,
                        var minute: Int? = 0,
-                       var second: Int? = 0): EventObject()
+                       var second: Int? = 0,
+                       var timeChanged: Boolean
+): EventObject() {
+
+    // TODO i18n
+    // TODO show values
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
+        return "New Date/Time: $day.$month.$year $hour:$minute:$second"
+    }
+}

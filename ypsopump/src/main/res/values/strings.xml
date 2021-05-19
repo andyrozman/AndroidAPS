@@ -41,10 +41,15 @@
 
     <!-- YpsoPump BLE Config -->
     <string name="ypsopump_ble_config_scan_title">YpsoPump Scan</string>
-    <string name="ypsopump_ble_config_scan_currently_selected_riley_link">Currently Selected YpsoPump</string>
+    <string name="ypsopump_ble_config_scan_currently_selected_riley_link">Selected YpsoPump</string>
     <string name="ypsopump_ble_config_remove_riley_link_confirmation">Are you sure that you want to remove your YpsoPump?</string>
     <string name="ypsopump_ble_config_remove_riley_link_confirmation_title">Remove YpsoPump</string>
     <string name="ypsopump_ble_config_no_ypsopump_selected">No YpsoPump selected</string>
+
+    <!-- YpsoPump History -->
+    <string name="ypsopump_pump_history">YpsoPump Pump History</string>
+    <string name="ypsopump_pump_history_type">Type:</string>
+
 
     <!-- ddd -->
     <string name="ypsopump_cmd_desc_get_history">Get History - Page %1$d (%2$d/16)</string>
@@ -88,14 +93,13 @@
     <string name="medtronic_error_operation_not_possible_no_configuration">Operation is not possible.\n\n You need to configure Medtronic Pump first, before you can use this operation.</string>
     <string name="medtronic_error_pump_24h_time_change_requested">Over 24h Time change was requested.</string>
 
-    <!-- MDT History -->
+
     <!--    <string name="medtronic_history_group_basal">Basals</string>-->
     <!--    <string name="medtronic_history_group_configuration">Configurations</string>-->
     <!--    <string name="medtronic_history_group_notification">Notifications</string>-->
     <!--    <string name="medtronic_history_group_statistic">Statistics</string>-->
     <!--    <string name="medtronic_history_group_unknown">Unknowns</string>-->
     <!--    <string name="medtronic_history_group_all">All</string>-->
-    <string name="medtronic_pump_history">Medtronic Pump History</string>
 
 
     <!-- <string name="medtronic_cmd_profile_not_set">Remote Basal profile setting is not supported. Please modify Basal profile on your pump manually.</string> -->

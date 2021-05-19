@@ -6,7 +6,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.YpsoPumpFragment
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpConnectionManager
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.*
-import info.nightscout.androidaps.plugins.pump.ypsopump.config.YpsoPumpBLEConfigActivity
+import info.nightscout.androidaps.plugins.pump.ypsopump.dialog.YpsoPumpBLEConfigActivity
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 

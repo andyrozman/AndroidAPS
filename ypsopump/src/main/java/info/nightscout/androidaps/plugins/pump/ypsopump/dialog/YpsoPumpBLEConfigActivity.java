@@ -1,4 +1,4 @@
-package info.nightscout.androidaps.plugins.pump.ypsopump.config;
+package info.nightscout.androidaps.plugins.pump.ypsopump.dialog;
 
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -10,7 +10,6 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,10 +20,11 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.StringRes;
+
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,8 +38,6 @@ import info.nightscout.androidaps.logging.LTag;
 import info.nightscout.androidaps.plugins.bus.RxBusWrapper;
 import info.nightscout.androidaps.plugins.pump.common.ble.BlePreCheck;
 import info.nightscout.androidaps.plugins.pump.ypsopump.R;
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic;
-import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpConfigurationChanged;
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst;
 import info.nightscout.androidaps.utils.resources.ResourceHelper;
 import info.nightscout.androidaps.utils.sharedPreferences.SP;
@@ -54,14 +52,14 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
     @Inject ActivePlugin activePlugin;
     @Inject RxBusWrapper rxBus;
 
-    private static final String TAG = "RileyLinkBLEConfigActivity";
+    private static final String TAG = "YpsoPumpBLEConfigActivity";
     private static final long SCAN_PERIOD_MILLIS = 15_000;
 
     private ScanSettings settings;
     private List<ScanFilter> filters;
-    private TextView currentlySelectedRileyLinkName;
-    private TextView currentlySelectedRileyLinkAddress;
-    private Button buttonRemoveRileyLink;
+    private TextView currentlySelectedBTDeviceName;
+    private TextView currentlySelectedBTDeviceAddress;
+    private Button buttonRemoveBTDevice;
     private Button buttonStartScan;
     private Button buttonStopScan;
     private BluetoothAdapter bluetoothAdapter;
@@ -69,6 +67,8 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
     private LeDeviceListAdapter deviceListAdapter;
     private Handler handler;
     public boolean scanning;
+
+    private Map<String,BluetoothDevice> devicesMap = new HashMap<>();
 
     private final Runnable stopScanAfterTimeoutRunnable = () -> {
         if (scanning) {
@@ -85,9 +85,9 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         deviceListAdapter = new LeDeviceListAdapter();
         handler = new Handler();
-        currentlySelectedRileyLinkName = findViewById(R.id.ypsopump_ble_config_currently_selected_pump_name);
-        currentlySelectedRileyLinkAddress = findViewById(R.id.ypsopump_ble_config_currently_selected_pump_address);
-        buttonRemoveRileyLink = findViewById(R.id.ypsopump_ble_config_button_remove);
+        currentlySelectedBTDeviceName = findViewById(R.id.ypsopump_ble_config_currently_selected_pump_name);
+        currentlySelectedBTDeviceAddress = findViewById(R.id.ypsopump_ble_config_currently_selected_pump_address);
+        buttonRemoveBTDevice = findViewById(R.id.ypsopump_ble_config_button_remove);
         buttonStartScan = findViewById(R.id.ypsopump_ble_config_scan_start);
         buttonStopScan = findViewById(R.id.ypsopump_ble_config_button_scan_stop);
         ListView deviceList = findViewById(R.id.ypsopump_ble_config_scan_device_list);
@@ -101,16 +101,41 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
             String bleAddress = ((TextView) view.findViewById(R.id.ypsopump_ble_config_scan_item_device_address)).getText().toString();
             String deviceName = ((TextView) view.findViewById(R.id.ypsopump_ble_config_scan_item_device_name)).getText().toString();
 
-            sp.putString(YpsoPumpConst.Prefs.PumpAddress, bleAddress);
-            sp.putString(YpsoPumpConst.Prefs.PumpName, deviceName);
+//            sp.putString(YpsoPumpConst.Prefs.PumpAddress, bleAddress);
+//            sp.putString(YpsoPumpConst.Prefs.PumpName, deviceName);
 
-            // we need to trigger event for reconfiguration
-//            RileyLinkPumpDevice rileyLinkPump = (RileyLinkPumpDevice) activePlugin.getActivePump();
-//            rileyLinkPump.getRileyLinkService().verifyConfiguration(true); // force reloading of address to assure that the RL gets reconnected (even if the address didn't change)
-//            rileyLinkPump.triggerPumpConfigurationChangedEvent();
+            Log.d(TAG, "Device selected: " + bleAddress);
 
-            // TODO when device is selected, we need to Bond it, and if there is any other pump Bonded, it needs to be unbonded
-            rxBus.send(new EventPumpConfigurationChanged());
+            if (devicesMap.containsKey(bleAddress)) {
+                Log.d(TAG, "Device FOUND in deviceMap: " + bleAddress);
+                BluetoothDevice bluetoothDevice = devicesMap.get(bleAddress);
+
+                int bondState = bluetoothDevice.getBondState();
+
+                Log.d(TAG, "Device bonding status: " + bluetoothDevice.getBondState() + " desc: " + getBondingStatusDescription(bluetoothDevice.getBondState()));
+
+                // if we are not bonded, bonding is started
+                if (bondState!=12) {
+                    // TODO create bond
+                    bluetoothDevice.createBond();
+                }
+
+                // set pump address
+                if (setSystemParameterForBT(YpsoPumpConst.Prefs.PumpAddress, bleAddress)) {
+                    // TODO send notification to pumpSync
+                }
+
+                setSystemParameterForBT(YpsoPumpConst.Prefs.PumpName, deviceName);
+
+                String name = bluetoothDevice.getName();
+
+                if (name.contains("_")) {
+                    setSystemParameterForBT(YpsoPumpConst.Prefs.PumpSerial, name.substring(name.indexOf("_")+1));
+                }
+
+            } else {
+                Log.d(TAG, "Device NOT found in deviceMap: " + bleAddress);
+            }
 
             finish();
         });
@@ -125,31 +150,72 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
             }
         });
 
-        buttonRemoveRileyLink.setOnClickListener(view -> new AlertDialog.Builder(this)
+        buttonRemoveBTDevice.setOnClickListener(view -> new AlertDialog.Builder(this)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setTitle(getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation_title))
                 .setMessage(getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation))
                 .setPositiveButton(getString(R.string.yes), (dialog, which) -> {
+                    String device = this.currentlySelectedBTDeviceAddress.getText().toString();
+                    Log.d(TAG, "Removing device as selected: " + device);
+                    if (devicesMap.containsKey(device)) {
+                        BluetoothDevice bluetoothDevice = devicesMap.get(device);
+
+                        Log.d(TAG, "Device can be detected near, so trying to remove bond if possible.");
+
+
+                        if (bluetoothDevice.getBondState()==12) {
+                            // TODO remove bond
+                            //bluetoothDevice.removeBond();
+                        }
+                    }
+
                     sp.remove(YpsoPumpConst.Prefs.PumpAddress);
                     sp.remove(YpsoPumpConst.Prefs.PumpName);
-                    updateCurrentlySelectedRileyLink();
+                    updateCurrentlySelectedBTDevice();
                 })
                 .setNegativeButton(getString(R.string.no), null)
                 .show());
     }
 
-    private void updateCurrentlySelectedRileyLink() {
+    private boolean setSystemParameterForBT(@StringRes int parameter, String newValue) {
+        if (sp.contains(parameter)) {
+            String current = sp.getStringOrNull(parameter, null);
+            if (current==null) {
+                sp.putString(parameter, newValue);
+            } else if (!current.equals(newValue)) {
+                sp.putString(parameter, newValue);
+                return true;
+            }
+        } else {
+            sp.putString(parameter, newValue);
+        }
+        return false;
+    }
+
+    private String getBondingStatusDescription(int state) {
+        if (state==10) {
+            return "BOND_NONE";
+        } else if (state==11) {
+            return "BOND_BONDING";
+        } else if (state==12) {
+            return "BOND_BONDED";
+        } else {
+            return "UNKNOWN BOND STATUS (" + state + ")";
+        }
+    }
+
+    private void updateCurrentlySelectedBTDevice() {
         String address = sp.getString(YpsoPumpConst.Prefs.PumpAddress, "");
         if (StringUtils.isEmpty(address)) {
-            currentlySelectedRileyLinkName.setText(R.string.ypsopump_ble_config_no_ypsopump_selected);
-            currentlySelectedRileyLinkAddress.setVisibility(View.GONE);
-            buttonRemoveRileyLink.setVisibility(View.GONE);
+            currentlySelectedBTDeviceName.setText(R.string.ypsopump_ble_config_no_ypsopump_selected);
+            currentlySelectedBTDeviceAddress.setVisibility(View.GONE);
+            buttonRemoveBTDevice.setVisibility(View.GONE);
         } else {
-            currentlySelectedRileyLinkAddress.setVisibility(View.VISIBLE);
-            buttonRemoveRileyLink.setVisibility(View.VISIBLE);
+            currentlySelectedBTDeviceAddress.setVisibility(View.VISIBLE);
+            buttonRemoveBTDevice.setVisibility(View.VISIBLE);
 
-            currentlySelectedRileyLinkName.setText(sp.getString(YpsoPumpConst.Prefs.PumpName, "YpsoPump (?)"));
-            currentlySelectedRileyLinkAddress.setText(address);
+            currentlySelectedBTDeviceName.setText(sp.getString(YpsoPumpConst.Prefs.PumpName, "YpsoPump (?)"));
+            currentlySelectedBTDeviceAddress.setText(address);
         }
     }
 
@@ -157,7 +223,7 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
         super.onResume();
         prepareForScanning();
 
-        updateCurrentlySelectedRileyLink();
+        updateCurrentlySelectedBTDevice();
     }
 
     @Override protected void onDestroy() {
@@ -173,8 +239,8 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
         if (checkOK) {
             bleScanner = bluetoothAdapter.getBluetoothLeScanner();
             settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
-            filters = Collections.singletonList(new ScanFilter.Builder().setServiceUuid(
-                    ParcelUuid.fromString(YpsoGattCharacteristic.PUMP_BASE_SERVICE_VERSION.getUuid())).build());
+//            filters = Collections.singletonList(new ScanFilter.Builder().setServiceUuid(
+//                    ParcelUuid.fromString(YpsoGattService.SERVICE_YPSO_1.getUuid())).build());
         }
     }
 
@@ -195,6 +261,7 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
                 boolean added = false;
 
                 for (ScanResult result : results) {
+                    Log.d(TAG, "SCAN: " + result.getAdvertisingSid() + " name=" + result.getDevice().getAddress());
                     if (addDevice(result))
                         added = true;
                 }
@@ -207,26 +274,41 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
         private boolean addDevice(ScanResult result) {
             BluetoothDevice device = result.getDevice();
 
-            List<ParcelUuid> serviceUuids = result.getScanRecord().getServiceUuids();
-
-            if (serviceUuids == null || serviceUuids.size() == 0) {
-                Log.v(TAG, "Device " + device.getAddress() + " has no serviceUuids (Not YpsoPump).");
-            } else if (serviceUuids.size() > 1) {
-                Log.v(TAG, "Device " + device.getAddress() + " has too many serviceUuids (Not YpsoPump).");
-            } else {
-                String uuid = serviceUuids.get(0).getUuid().toString().toLowerCase();
-                // TODO this might not work correctly
-
-                if (uuid.equals(YpsoGattCharacteristic.PUMP_BASE_SERVICE_VERSION.getUuid())) {
-                    Log.i(TAG, "Found YpsoPump with address: " + device.getAddress());
-                    deviceListAdapter.addDevice(result);
-                    return true;
-                } else {
-                    Log.v(TAG, "Device " + device.getAddress() + " has incorrect uuid (Not YpsoPump).");
-                }
+            // we can either check with beggining MAC address or by name, which would be something like YpsoPump_10000001
+            if (!device.getAddress().startsWith("EC:2A:F0")) {
+                return false;
             }
 
-            return false;
+            Log.i(TAG, "Found YpsoPump with address: " + device.getAddress());
+
+//            List<ParcelUuid> serviceUuids = result.getScanRecord().getServiceUuids();
+//
+//            if (serviceUuids == null || serviceUuids.size() == 0) {
+//                Log.v(TAG, "Device " + device.getAddress() + " has no serviceUuids (Not YpsoPump).");
+//            } else if (serviceUuids.size() > 1) {
+//                Log.v(TAG, "Device " + device.getAddress() + " has too many serviceUuids (Not YpsoPump).");
+//            } else {
+//                String uuid = serviceUuids.get(0).getUuid().toString().toLowerCase();
+//                // TODO this might not work correctly
+//
+//                if (uuid.equals(YpsoGattCharacteristic.PUMP_BASE_SERVICE_VERSION.getUuid())) {
+//                    Log.i(TAG, "Found YpsoPump with address: " + device.getAddress());
+//                    deviceListAdapter.addDevice(result);
+//                    return true;
+//                } else {
+//                    Log.v(TAG, "Device " + device.getAddress() + " has incorrect uuid (Not YpsoPump).");
+//                }
+//            }
+
+
+
+            deviceListAdapter.addDevice(result);
+
+            if (!devicesMap.containsKey(device.getAddress())) {
+                devicesMap.put(device.getAddress(), device);
+            }
+
+            return true;
         }
 
         @Override
