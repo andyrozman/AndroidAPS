@@ -1,14 +1,12 @@
 package info.nightscout.androidaps.plugins.pump.medtronic.driver
 
 import info.nightscout.androidaps.plugins.bus.RxBusWrapper
-import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDeviceState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
 import info.nightscout.androidaps.plugins.pump.common.events.EventRileyLinkDeviceStatusChange
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.RileyLinkUtil
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.data.RLHistoryItem
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.defs.RileyLinkTargetDevice
-import info.nightscout.androidaps.plugins.pump.common.sync.PumpDbEntry
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.BasalProfileStatus
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.BatteryType
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicDeviceType
@@ -27,14 +25,14 @@ class MedtronicPumpStatus @Inject constructor(private val resourceHelper: Resour
                                               private val sp: SP,
                                               private val rxBus: RxBusWrapper,
                                               private val rileyLinkUtil: RileyLinkUtil
-) : PumpStatus(PumpType.MEDTRONIC_522_722) {
+) : info.nightscout.androidaps.plugins.pump.common.data.PumpStatus(PumpType.MEDTRONIC_522_722) {
 
     var errorDescription: String? = null
-    var serialNumber: String? = null
+    lateinit var serialNumber: String //? = null
     var pumpFrequency: String? = null
     var maxBolus: Double? = null
     var maxBasal: Double? = null
-    var runningTBR: PumpDbEntry? = null
+    var runningTBR: info.nightscout.androidaps.plugins.pump.common.sync.PumpDbEntry? = null
 
     // statuses
     var pumpDeviceState = PumpDeviceState.NeverContacted
@@ -44,7 +42,7 @@ class MedtronicPumpStatus @Inject constructor(private val resourceHelper: Resour
             rxBus.send(EventRileyLinkDeviceStatusChange(pumpDeviceState))
         }
 
-    var medtronicDeviceType: MedtronicDeviceType? = null
+    var medtronicDeviceType: MedtronicDeviceType = MedtronicDeviceType.Medtronic_522
     var medtronicPumpMap: MutableMap<String, PumpType> = mutableMapOf()
     var medtronicDeviceTypeMap: MutableMap<String, MedtronicDeviceType> = mutableMapOf()
     var basalProfileStatus = BasalProfileStatus.NotInitialized
@@ -58,6 +56,10 @@ class MedtronicPumpStatus @Inject constructor(private val resourceHelper: Resour
         if (medtronicDeviceTypeMap.isEmpty()) createMedtronicDeviceTypeMap()
         lastConnection = sp.getLong(MedtronicConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         lastDataTime = lastConnection
+        var serial = sp.getStringOrNull(MedtronicConst.Prefs.PumpSerial, null)
+        if (serial != null) {
+            serialNumber = serial
+        }
     }
 
     private fun createMedtronicDeviceTypeMap() {
@@ -87,7 +89,6 @@ class MedtronicPumpStatus @Inject constructor(private val resourceHelper: Resour
         medtronicPumpMap["754"] = PumpType.MEDTRONIC_554_754_VEO
     }
 
-
     val basalProfileForHour: Double
         get() {
             if (basalsByHour != null) {
@@ -114,7 +115,6 @@ class MedtronicPumpStatus @Inject constructor(private val resourceHelper: Resour
 
     override val errorInfo: String
         get() = if (errorDescription == null) "-" else errorDescription!!
-
 
     val tbrRemainingTime: Int?
         get() {

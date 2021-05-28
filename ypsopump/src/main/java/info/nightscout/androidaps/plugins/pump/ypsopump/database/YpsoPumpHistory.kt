@@ -125,7 +125,7 @@ class YpsoPumpHistory @Inject constructor(
         }
 
         if (returnEntity != null) {
-            sendDataToPumpSync(returnEntity!!)
+            //sendDataToPumpSync(returnEntity!!)
         }
 
     }

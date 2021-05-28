@@ -130,16 +130,16 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
     fun processNewHistoryList(entityList: List<EventDto>, sendToPumpSync: Boolean = false) {
         var first = true
         for (historyRecordEntity in entityList) {
-            ypsoPumpHistory.insertOrUpdate(entity = historyRecordEntity)
-            insertOrUpdate(historyRecordEntity)
+            // ypsoPumpHistory.insertOrUpdate(entity = historyRecordEntity)
+            // insertOrUpdate(historyRecordEntity)
         }
     }
 
     fun processList(entityList: List<HistoryRecordEntity>) {
         var first = true
         for (historyRecordEntity in entityList) {
-            ypsoPumpHistory.insertOrUpdate(entity = historyRecordEntity)
-            insertOrUpdate(historyRecordEntity)
+            // ypsoPumpHistory.insertOrUpdate(entity = historyRecordEntity)
+            // insertOrUpdate(historyRecordEntity)
         }
     }
 

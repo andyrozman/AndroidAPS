@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.configBuilder
 
+import androidx.collection.LongSparseArray
 import info.nightscout.androidaps.Constants
 import info.nightscout.androidaps.core.R
 import info.nightscout.androidaps.data.ProfileSealed
@@ -35,6 +36,8 @@ class ProfileFunctionImplementation @Inject constructor(
     private val dateUtil: DateUtil
 ) : ProfileFunction {
 
+    val cache = LongSparseArray<Profile>()
+
     private val disposable = CompositeDisposable()
 
     override fun getProfileName(): String =
@@ -65,10 +68,20 @@ class ProfileFunctionImplementation @Inject constructor(
         getProfile(dateUtil.now())
 
     override fun getProfile(time: Long): Profile? {
- //       aapsLogger.debug("XXXXXXXXXXXXXXX getProfile called for $time")
+        val rounded = time - time % 1000
+        val cached = cache[rounded]
+        if (cached != null) {
+//            aapsLogger.debug("XXXXXXXXXXXXXXX HIT getProfile for $time $rounded")
+            return cached
+        }
+//        aapsLogger.debug("XXXXXXXXXXXXXXX getProfile called for $time")
         val ps = repository.getEffectiveProfileSwitchActiveAt(time).blockingGet()
-        return if (ps is ValueWrapper.Existing) ProfileSealed.EPS(ps.value)
-        else null
+        if (ps is ValueWrapper.Existing) {
+            val sealed = ProfileSealed.EPS(ps.value)
+            cache.put(rounded, sealed)
+            return sealed
+        }
+        return null
     }
 
     override fun getRequestedProfile(): ProfileSwitch? = repository.getActiveProfileSwitch(dateUtil.now())
@@ -91,7 +104,8 @@ class ProfileFunctionImplementation @Inject constructor(
             timeshift = T.hours(timeShiftInHours.toLong()).msecs(),
             percentage = percentage,
             duration = T.mins(durationInMinutes.toLong()).msecs(),
-            insulinConfiguration = activePlugin.activeInsulin.insulinConfiguration)
+            insulinConfiguration = activePlugin.activeInsulin.insulinConfiguration.also { it.insulinEndTime = (pureProfile.dia * 3600 * 1000).toLong() }
+        )
         disposable += repository.runTransactionForResult(InsertOrUpdateProfileSwitch(ps))
             .subscribe({ result ->
                 result.inserted.forEach { aapsLogger.debug(LTag.DATABASE, "Inserted ProfileSwitch $it") }

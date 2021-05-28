@@ -181,6 +181,7 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
 
         @Suppress("SpellCheckingInspection")
+        @kotlin.ExperimentalStdlibApi
         override fun doWork(): Result {
             val bundle = dataWorker.pickupBundle(inputData.getLong(DataWorker.STORE_KEY, -1))
                 ?: return Result.failure(workDataOf("Error" to "missing input data"))
@@ -223,6 +224,7 @@ class SmsCommunicatorPlugin @Inject constructor(
         return false
     }
 
+    @kotlin.ExperimentalStdlibApi
     fun processSms(receivedSms: Sms) {
         if (!isEnabled(PluginType.GENERAL)) {
             aapsLogger.debug(LTag.SMS, "Ignoring SMS. Plugin disabled.")
@@ -246,8 +248,8 @@ class SmsCommunicatorPlugin @Inject constructor(
                 T.mins(sp.getLong(R.string.key_smscommunicator_remotebolusmindistance, T.msecs(Constants.remoteBolusMinDistance).mins())).msecs()
             else Constants.remoteBolusMinDistance
 
-        if (divided.isNotEmpty() && isCommand(divided[0].toUpperCase(Locale.getDefault()), receivedSms.phoneNumber)) {
-            when (divided[0].toUpperCase(Locale.getDefault())) {
+        if (divided.isNotEmpty() && isCommand(divided[0].uppercase(Locale.getDefault()), receivedSms.phoneNumber)) {
+            when (divided[0].uppercase(Locale.getDefault())) {
                 "BG"       ->
                     if (divided.size == 1) processBG(receivedSms)
                     else sendSMS(Sms(receivedSms.phoneNumber, resourceHelper.gs(R.string.wrongformat)))
@@ -334,8 +336,9 @@ class SmsCommunicatorPlugin @Inject constructor(
         receivedSms.processed = true
     }
 
+    @kotlin.ExperimentalStdlibApi
     private fun processLOOP(divided: Array<String>, receivedSms: Sms) {
-        when (divided[1].toUpperCase(Locale.getDefault())) {
+        when (divided[1].uppercase(Locale.getDefault())) {
             "DISABLE", "STOP" -> {
                 if (loopPlugin.isEnabled(PluginType.LOOP)) {
                     val passCode = generatePassCode()
@@ -453,8 +456,9 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
     }
 
+    @kotlin.ExperimentalStdlibApi
     private fun processNSCLIENT(divided: Array<String>, receivedSms: Sms) {
-        if (divided[1].toUpperCase(Locale.getDefault()) == "RESTART") {
+        if (divided[1].uppercase(Locale.getDefault()) == "RESTART") {
             rxBus.send(EventNSClientRestart())
             sendSMS(Sms(receivedSms.phoneNumber, "NSCLIENT RESTART SENT"))
             receivedSms.processed = true
@@ -462,6 +466,7 @@ class SmsCommunicatorPlugin @Inject constructor(
             sendSMS(Sms(receivedSms.phoneNumber, resourceHelper.gs(R.string.wrongformat)))
     }
 
+    @kotlin.ExperimentalStdlibApi
     private fun processHELP(divided: Array<String>, receivedSms: Sms) {
         when {
             divided.size == 1                                                               -> {
@@ -469,8 +474,8 @@ class SmsCommunicatorPlugin @Inject constructor(
                 receivedSms.processed = true
             }
 
-            isCommand(divided[1].toUpperCase(Locale.getDefault()), receivedSms.phoneNumber) -> {
-                commands[divided[1].toUpperCase(Locale.getDefault())]?.let {
+            isCommand(divided[1].uppercase(Locale.getDefault()), receivedSms.phoneNumber) -> {
+                commands[divided[1].uppercase(Locale.getDefault())]?.let {
                     sendSMS(Sms(receivedSms.phoneNumber, it))
                     receivedSms.processed = true
                 }
@@ -544,6 +549,7 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
     }
 
+    @kotlin.ExperimentalStdlibApi
     private fun processPROFILE(divided: Array<String>, receivedSms: Sms) { // load profiles
         val anInterface = activePlugin.activeProfileSource
         val store = anInterface.profile
@@ -554,9 +560,9 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
         val profileName = profileFunction.getProfileName()
         val list = store.getProfileList()
-        if (divided[1].toUpperCase(Locale.getDefault()) == "STATUS") {
+        if (divided[1].uppercase(Locale.getDefault()) == "STATUS") {
             sendSMS(Sms(receivedSms.phoneNumber, profileName))
-        } else if (divided[1].toUpperCase(Locale.getDefault()) == "LIST") {
+        } else if (divided[1].uppercase(Locale.getDefault()) == "LIST") {
             if (list.isEmpty()) sendSMS(Sms(receivedSms.phoneNumber, resourceHelper.gs(R.string.invalidprofile)))
             else {
                 var reply = ""
@@ -597,8 +603,9 @@ class SmsCommunicatorPlugin @Inject constructor(
         receivedSms.processed = true
     }
 
+    @kotlin.ExperimentalStdlibApi
     private fun processBASAL(divided: Array<String>, receivedSms: Sms) {
-        if (divided[1].toUpperCase(Locale.getDefault()) == "CANCEL" || divided[1].toUpperCase(Locale.getDefault()) == "STOP") {
+        if (divided[1].uppercase(Locale.getDefault()) == "CANCEL" || divided[1].uppercase(Locale.getDefault()) == "STOP") {
             val passCode = generatePassCode()
             val reply = String.format(resourceHelper.gs(R.string.smscommunicator_basalstopreplywithcode), passCode)
             receivedSms.processed = true
@@ -713,8 +720,9 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
     }
 
+    @kotlin.ExperimentalStdlibApi
     private fun processEXTENDED(divided: Array<String>, receivedSms: Sms) {
-        if (divided[1].toUpperCase(Locale.getDefault()) == "CANCEL" || divided[1].toUpperCase(Locale.getDefault()) == "STOP") {
+        if (divided[1].uppercase(Locale.getDefault()) == "CANCEL" || divided[1].uppercase(Locale.getDefault()) == "STOP") {
             val passCode = generatePassCode()
             val reply = String.format(resourceHelper.gs(R.string.smscommunicator_extendedstopreplywithcode), passCode)
             receivedSms.processed = true
@@ -879,11 +887,12 @@ class SmsCommunicatorPlugin @Inject constructor(
         return retVal
     }
 
+    @kotlin.ExperimentalStdlibApi
     private fun processCARBS(divided: Array<String>, receivedSms: Sms) {
         var grams = SafeParse.stringToInt(divided[1])
         var time = dateUtil.now()
         if (divided.size > 2) {
-            time = toTodayTime(divided[2].toUpperCase(Locale.getDefault()))
+            time = toTodayTime(divided[2].uppercase(Locale.getDefault()))
             if (time == 0L) {
                 sendSMS(Sms(receivedSms.phoneNumber, resourceHelper.gs(R.string.wrongformat)))
                 return
@@ -922,6 +931,7 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
     }
 
+    @kotlin.ExperimentalStdlibApi
     private fun processTARGET(divided: Array<String>, receivedSms: Sms) {
         val isMeal = divided[1].equals("MEAL", ignoreCase = true)
         val isActivity = divided[1].equals("ACTIVITY", ignoreCase = true)
@@ -929,7 +939,7 @@ class SmsCommunicatorPlugin @Inject constructor(
         val isStop = divided[1].equals("STOP", ignoreCase = true) || divided[1].equals("CANCEL", ignoreCase = true)
         if (isMeal || isActivity || isHypo) {
             val passCode = generatePassCode()
-            val reply = String.format(resourceHelper.gs(R.string.smscommunicator_temptargetwithcode), divided[1].toUpperCase(Locale.getDefault()), passCode)
+            val reply = String.format(resourceHelper.gs(R.string.smscommunicator_temptargetwithcode), divided[1].uppercase(Locale.getDefault()), passCode)
             receivedSms.processed = true
             messageToConfirm = AuthRequest(injector, receivedSms, reply, passCode, object : SmsAction() {
                 override fun run() {

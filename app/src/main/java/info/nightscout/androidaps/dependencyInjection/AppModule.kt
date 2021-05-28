@@ -20,7 +20,6 @@ import info.nightscout.androidaps.plugins.general.nsclient.DataSyncSelectorImple
 import info.nightscout.androidaps.plugins.general.smsCommunicator.SmsCommunicatorPlugin
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.IobCobCalculatorPlugin
 import info.nightscout.androidaps.plugins.pump.PumpSyncImplementation
-import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
 import info.nightscout.androidaps.plugins.treatments.TreatmentsPlugin
 import info.nightscout.androidaps.queue.CommandQueue
 import info.nightscout.androidaps.utils.DateUtil
@@ -71,33 +70,40 @@ open class AppModule {
         return ProfileFunctionImplementation(aapsLogger, sp, resourceHelper, activePlugin, repository, dateUtil)
     }
 
-    @Provides
-    @Singleton
-    fun providesPumpSyncStorage(
-        pumpSync: PumpSync,
-        sp: SP,
-        aapsLogger: AAPSLogger
-    ): PumpSyncStorage {
-        return PumpSyncStorage(pumpSync, sp, aapsLogger)
-    }
-
     @Module
     interface AppBindings {
+
         @Binds fun bindContext(mainApp: MainApp): Context
         @Binds fun bindInjector(mainApp: MainApp): HasAndroidInjector
         @Binds fun bindActivePluginProvider(pluginStore: PluginStore): ActivePlugin
         @Binds fun bindCommandQueueProvider(commandQueue: CommandQueue): CommandQueueProvider
         @Binds fun bindConfigInterface(config: ConfigImpl): Config
-        @Binds fun bindConfigBuilderInterface(configBuilderPlugin: ConfigBuilderPlugin): ConfigBuilder
+
+        @Binds
+        fun bindConfigBuilderInterface(configBuilderPlugin: ConfigBuilderPlugin): ConfigBuilder
         @Binds fun bindTreatmentsInterface(treatmentsPlugin: TreatmentsPlugin): TreatmentsInterface
-        @Binds fun bindDatabaseHelperInterface(databaseHelperProvider: DatabaseHelperProvider): DatabaseHelperInterface
-        @Binds fun bindNotificationHolderInterface(notificationHolder: NotificationHolderImpl): NotificationHolder
-        @Binds fun bindImportExportPrefsInterface(importExportPrefs: ImportExportPrefsImpl): ImportExportPrefs
-        @Binds fun bindIconsProviderInterface(iconsProvider: IconsProviderImplementation): IconsProvider
+
+        @Binds
+        fun bindDatabaseHelperInterface(databaseHelperProvider: DatabaseHelperProvider): DatabaseHelperInterface
+
+        @Binds
+        fun bindNotificationHolderInterface(notificationHolder: NotificationHolderImpl): NotificationHolder
+
+        @Binds
+        fun bindImportExportPrefsInterface(importExportPrefs: ImportExportPrefsImpl): ImportExportPrefs
+
+        @Binds
+        fun bindIconsProviderInterface(iconsProvider: IconsProviderImplementation): IconsProvider
         @Binds fun bindLoopInterface(loopPlugin: LoopPlugin): LoopInterface
-        @Binds fun bindIobCobCalculatorInterface(iobCobCalculatorPlugin: IobCobCalculatorPlugin): IobCobCalculator
-        @Binds fun bindSmsCommunicatorInterface(smsCommunicatorPlugin: SmsCommunicatorPlugin): SmsCommunicator
-        @Binds fun bindDataSyncSelector(dataSyncSelectorImplementation: DataSyncSelectorImplementation): DataSyncSelector
+
+        @Binds
+        fun bindIobCobCalculatorInterface(iobCobCalculatorPlugin: IobCobCalculatorPlugin): IobCobCalculator
+
+        @Binds
+        fun bindSmsCommunicatorInterface(smsCommunicatorPlugin: SmsCommunicatorPlugin): SmsCommunicator
+
+        @Binds
+        fun bindDataSyncSelector(dataSyncSelectorImplementation: DataSyncSelectorImplementation): DataSyncSelector
         @Binds fun bindPumpSync(pumpSyncImplementation: PumpSyncImplementation): PumpSync
 
     }

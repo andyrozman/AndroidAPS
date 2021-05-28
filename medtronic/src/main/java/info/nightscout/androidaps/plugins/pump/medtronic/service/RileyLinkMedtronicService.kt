@@ -17,6 +17,7 @@ import info.nightscout.androidaps.plugins.pump.medtronic.MedtronicPumpPlugin
 import info.nightscout.androidaps.plugins.pump.medtronic.R
 import info.nightscout.androidaps.plugins.pump.medtronic.comm.MedtronicCommunicationManager
 import info.nightscout.androidaps.plugins.pump.medtronic.comm.ui.MedtronicUIComm
+import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicDeviceType
 import info.nightscout.androidaps.plugins.pump.medtronic.driver.MedtronicPumpStatus
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicConst
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil
@@ -39,7 +40,7 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
 
     private val mBinder: IBinder = LocalBinder()
     private var serialChanged = false
-    private var frequencies: Array<String?>? = null
+    lateinit var frequencies: Array<String>
     private var rileyLinkAddress: String? = null
     private var rileyLinkAddressChanged = false
     private var encodingType: RileyLinkEncodingType? = null
@@ -68,9 +69,10 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
      * If you have customized RileyLinkServiceData you need to override this
      */
     override fun initRileyLinkServiceData() {
-        frequencies = arrayOfNulls(2)
-        frequencies!![0] = resourceHelper.gs(R.string.key_medtronic_pump_frequency_us_ca)
-        frequencies!![1] = resourceHelper.gs(R.string.key_medtronic_pump_frequency_worldwide)
+        frequencies = arrayOf(resourceHelper.gs(R.string.key_medtronic_pump_frequency_us_ca),
+            resourceHelper.gs(R.string.key_medtronic_pump_frequency_worldwide))
+        // frequencies[0] = resourceHelper.gs(R.string.key_medtronic_pump_frequency_us_ca)
+        // frequencies[1] = resourceHelper.gs(R.string.key_medtronic_pump_frequency_worldwide)
         rileyLinkServiceData.targetDevice = RileyLinkTargetDevice.MedtronicPump
         setPumpIDString(sp.getString(MedtronicConst.Prefs.PumpSerial, "000000"))
 
@@ -109,7 +111,8 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
             val oldId = rileyLinkServiceData.pumpID
             rileyLinkServiceData.setPumpID(pumpID, pumpIDBytes)
             if (oldId != null && oldId != pumpID) {
-                medtronicUtil.medtronicPumpModel = null // if we change pumpId, model probably changed too
+                medtronicUtil.medtronicPumpModel = MedtronicDeviceType.Medtronic_522 // if we change pumpId, model probably changed too
+                medtronicUtil.isModelSet = false
             }
             return
         }
@@ -119,6 +122,7 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
     }
 
     inner class LocalBinder : Binder() {
+
         val serviceInstance: RileyLinkMedtronicService
             get() = this@RileyLinkMedtronicService
     }
@@ -157,9 +161,9 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
                     medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_pump_type_invalid)
                     return false
                 } else {
-                    val pumpType = medtronicPumpStatus.medtronicPumpMap[pumpTypePart]
-                    medtronicPumpStatus.medtronicDeviceType = medtronicPumpStatus.medtronicDeviceTypeMap[pumpTypePart]
-                    medtronicPumpStatus.pumpType = pumpType!!
+                    val pumpType = medtronicPumpStatus.medtronicPumpMap[pumpTypePart]!!
+                    medtronicPumpStatus.medtronicDeviceType = medtronicPumpStatus.medtronicDeviceTypeMap[pumpTypePart]!!
+                    medtronicPumpStatus.pumpType = pumpType
                     medtronicPumpPlugin.pumpType = pumpType
                     if (pumpTypePart.startsWith("7")) medtronicPumpStatus.reservoirFullUnits = 300 else medtronicPumpStatus.reservoirFullUnits = 176
                 }
@@ -169,12 +173,12 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
                 medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_pump_frequency_not_set)
                 return false
             } else {
-                if (pumpFrequency != frequencies!![0] && pumpFrequency != frequencies!![1]) {
+                if (pumpFrequency != frequencies[0] && pumpFrequency != frequencies[1]) {
                     medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_pump_frequency_invalid)
                     return false
                 } else {
                     medtronicPumpStatus.pumpFrequency = pumpFrequency
-                    val isFrequencyUS = pumpFrequency == frequencies!![0]
+                    val isFrequencyUS = pumpFrequency == frequencies[0]
                     val newTargetFrequency = if (isFrequencyUS) //
                         RileyLinkTargetFrequency.Medtronic_US else RileyLinkTargetFrequency.Medtronic_WorldWide
                     if (rileyLinkServiceData.rileyLinkTargetFrequency != newTargetFrequency) {
@@ -242,7 +246,7 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
     private fun reconfigureService(forceRileyLinkAddressRenewal: Boolean): Boolean {
         if (!inPreInit) {
             if (serialChanged) {
-                setPumpIDString(medtronicPumpStatus.serialNumber!!) // short operation
+                setPumpIDString(medtronicPumpStatus.serialNumber) // short operation
                 serialChanged = false
             }
             if (rileyLinkAddressChanged || forceRileyLinkAddressRenewal) {

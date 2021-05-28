@@ -30,28 +30,23 @@ import info.nightscout.androidaps.plugins.pump.medtronic.defs.PumpBolusType
  *
  * Author: Andy {andy@atech-software.com}
  */
-class BolusDTO : PumpTimeStampedRecord() {
-
-    @Expose
-    var requestedAmount: Double? = null
-
-    @Expose
-    var deliveredAmount: Double? = null
+class BolusDTO constructor(atechDateTime: Long,
+                           @Expose var requestedAmount: Double,
+                           @Expose var deliveredAmount: Double,
+                           @Expose var duration: Int = 0
+) : PumpTimeStampedRecord(atechDateTime) {
 
     @Expose
     var immediateAmount: Double? = null // when Multiwave this is used
 
     @Expose
-    var duration: Int? = null
-
-    @Expose
-    var bolusType: PumpBolusType? = null
+    lateinit var bolusType: PumpBolusType
 
     var insulinOnBoard: Double? = null
 
     private val durationString: String
         get() {
-            var minutes = duration!!
+            var minutes = duration
             val h = minutes / 60
             minutes -= h * 60
             return StringUtil.getLeadingZero(h, 2) + ":" + StringUtil.getLeadingZero(minutes, 2)
@@ -59,22 +54,22 @@ class BolusDTO : PumpTimeStampedRecord() {
 
     val value: String
         get() = if (bolusType === PumpBolusType.Normal || bolusType === PumpBolusType.Audio) {
-            getFormattedDecimal(deliveredAmount!!)
+            getFormattedDecimal(deliveredAmount)
         } else if (bolusType === PumpBolusType.Extended) {
-            String.format("AMOUNT_SQUARE=%s;DURATION=%s", getFormattedDecimal(deliveredAmount!!),
+            String.format("AMOUNT_SQUARE=%s;DURATION=%s", getFormattedDecimal(deliveredAmount),
                 durationString)
         } else {
             String.format("AMOUNT=%s;AMOUNT_SQUARE=%s;DURATION=%s", getFormattedDecimal(immediateAmount!!),
-                getFormattedDecimal(deliveredAmount!!), durationString)
+                getFormattedDecimal(deliveredAmount), durationString)
         }
 
     val displayableValue: String
         get() {
-            var value = value
-            value = value!!.replace("AMOUNT_SQUARE=", "Amount Square: ")
-            value = value.replace("AMOUNT=", "Amount: ")
-            value = value.replace("DURATION=", "Duration: ")
-            return value
+            var valueTemp = value
+            valueTemp = valueTemp.replace("AMOUNT_SQUARE=", "Amount Square: ")
+            valueTemp = valueTemp.replace("AMOUNT=", "Amount: ")
+            valueTemp = valueTemp.replace("DURATION=", "Duration: ")
+            return valueTemp
         }
 
     override fun getFormattedDecimal(value: Double): String {
@@ -82,9 +77,9 @@ class BolusDTO : PumpTimeStampedRecord() {
     }
 
     val bolusKey: String
-        get() = "Bolus_" + bolusType!!.name
+        get() = "Bolus_" + bolusType.name
 
     override fun toString(): String {
-        return "BolusDTO [type=" + bolusType!!.name + ", " + value + "]"
+        return "BolusDTO [type=" + bolusType.name + ", " + value + "]"
     }
 }

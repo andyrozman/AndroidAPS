@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.Reusable
 import info.nightscout.androidaps.interfaces.PumpSync
+import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.HistoryMapper
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.HistoryRecordDao
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistory
@@ -31,7 +32,7 @@ class YpsoPumpDatabase {
 
     @Provides
     @Singleton
-    internal fun provideYpsoPumpHistory(dao: HistoryRecordDao, pumpHistoryDatabase: YpsoPumpHistoryDatabase, historyMapper: HistoryMapper, pumpSync: PumpSync, pumpStatus: YpsopumpPumpStatus) =
-        YpsoPumpHistory(dao, pumpHistoryDatabase, historyMapper, pumpSync, pumpStatus)
+    internal fun provideYpsoPumpHistory(dao: HistoryRecordDao, pumpHistoryDatabase: YpsoPumpHistoryDatabase, historyMapper: HistoryMapper, pumpSync: PumpSync, pumpStatus: YpsopumpPumpStatus, aapsLogger: AAPSLogger) =
+        YpsoPumpHistory(dao, pumpHistoryDatabase, historyMapper, pumpSync, pumpStatus, aapsLogger)
 
 }

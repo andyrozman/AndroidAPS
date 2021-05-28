@@ -334,14 +334,6 @@
     <string name="pump_status_invalid_config">Invalid configuration</string>
     <string name="pump_status_active">Active</string>
     <string name="pump_status_sleeping">Sleeping</string>
-    <string name="pump_status_not_initialized">Not initialized</string>
-    <string name="pump_status_initialized">Initialized</string>
-    <string name="pump_status_encrypt">Encrypting communication</string>
-    <string name="pump_status_ready">Ready</string>
-    <string name="pump_status_busy">Busy</string>
-    <string name="pump_status_suspended">Suspended</string>
-    <string name="pump_status_executing_command">Executing Command</string>
-
 
     <!-- PumpCommon - History Group -->
     <string name="history_group_basal">Basals</string>
@@ -349,13 +341,11 @@
     <string name="history_group_notification">Notifications</string>
     <string name="history_group_statistic">Statistics</string>
     <string name="history_group_unknown">Unknowns</string>
-    <string name="history_group_base">Base</string>
     <string name="history_group_all">All</string>
     <string name="history_group_bolus">Boluses</string>
     <string name="history_group_prime">Prime</string>
     <string name="history_group_alarm">Alarms</string>
     <string name="history_group_glucose">Glucose</string>
-    <string name="history_group_other">Other</string>
     <string name="mute5min">Mute for 5 minutes</string>
 
     <!-- Maintenance -->
@@ -402,27 +392,6 @@
     <string name="signature_verifier">Signature verifier</string>
     <string name="running_invalid_version">We have detected that you are running an invalid version. Loop disabled!</string>
     <string name="versionavailable">Version %1$s available</string>
-
-    <!-- BLE Config -->
-    <string name="ble_config_button_scan_start">Scan</string>
-    <string name="ble_config_scan_stop">Stop</string>
-    <string name="ble_config_scan_selected">Selected</string>
-    <string name="ble_config_scan_scanning">Scanning</string>
-    <string name="ble_config_scan_finished">Scanning finished</string>
-    <string name="ble_config_scan_error">Scanning error: %1$d</string>
-    <string name="ble_config_connected_never">Never</string>
-    <string name="ble_config_remove">Remove</string>
-
-    <!-- BLE Errors -->
-    <string name="ble_error_bt_disabled">Bluetooth disabled</string>
-    <string name="ble_error_no_bt_adapter">No Bluetooth Adapter</string>
-    <string name="ble_error_configured_pump_not_found">Configured Pump Not Found</string>
-    <string name="ble_error_pump_unreachable">Pump unreachable</string>
-    <string name="ble_error_failed_to_conn_to_ble_device">Failed To Connect To BLE Device</string>
-    <string name="ble_error_encryption_failed">Encryption Failed</string>
-
-    <string name="rileylink_error_unreachable">RileyLink unreachable</string>
-
 
     <!-- Permissions -->
     <string name="alert_dialog_storage_permission_text">Please reboot your phone or restart AndroidAPS from the System Settings \notherwise Android APS will not have logging (important to track and verify that the algorithms are working correctly)!</string>

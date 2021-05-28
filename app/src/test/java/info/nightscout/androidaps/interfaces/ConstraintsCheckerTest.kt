@@ -28,8 +28,6 @@ import info.nightscout.androidaps.plugins.pump.insight.LocalInsightPlugin
 import info.nightscout.androidaps.plugins.pump.virtual.VirtualPumpPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityOref1Plugin
 import info.nightscout.androidaps.plugins.source.GlimpPlugin
-import info.nightscout.androidaps.plugins.treatments.TreatmentService
-import info.nightscout.androidaps.plugins.treatments.TreatmentsPlugin
 import info.nightscout.androidaps.utils.HardLimits
 import info.nightscout.androidaps.utils.Profiler
 import info.nightscout.androidaps.utils.buildHelper.BuildHelper
@@ -51,7 +49,7 @@ import java.util.*
 @RunWith(PowerMockRunner::class)
 @PrepareForTest(
     ConstraintChecker::class, SP::class, Context::class,
-    OpenAPSAMAPlugin::class, OpenAPSSMBPlugin::class, TreatmentsPlugin::class, TreatmentService::class,
+    OpenAPSAMAPlugin::class, OpenAPSSMBPlugin::class,
     VirtualPumpPlugin::class, DetailedBolusInfoStorage::class, TemporaryBasalStorage::class, GlimpPlugin::class, Profiler::class,
     UserEntryLogger::class, LoggerUtils::class, AppRepository::class, InsightDatabaseDao::class)
 class ConstraintsCheckerTest : TestBaseWithProfile() {
@@ -67,7 +65,6 @@ class ConstraintsCheckerTest : TestBaseWithProfile() {
     @Mock lateinit var profiler: Profiler
     @Mock lateinit var uel: UserEntryLogger
     @Mock lateinit var loggerUtils: LoggerUtils
-    @Mock lateinit var databaseHelper: DatabaseHelperInterface
     @Mock lateinit var repository: AppRepository
     @Mock lateinit var pumpSync: PumpSync
     @Mock lateinit var insightDatabaseDao: InsightDatabaseDao
@@ -127,6 +124,7 @@ class ConstraintsCheckerTest : TestBaseWithProfile() {
         `when`(resourceHelper.gs(R.string.limitingbolus, 6.0, "pump limit")).thenReturn("")
         `when`(resourceHelper.gs(R.string.limitingbasalratio, 0.8, "pump limit")).thenReturn("")
         `when`(resourceHelper.gs(R.string.limitingpercentrate, 200, "pump limit")).thenReturn("")
+        `when`(resourceHelper.gs(R.string.combo_pump_unsupported_operation)).thenReturn("Requested operation not supported by pump")
 
         // RS constructor
         `when`(sp.getString(R.string.key_danars_address, "")).thenReturn("")
@@ -141,7 +139,7 @@ class ConstraintsCheckerTest : TestBaseWithProfile() {
         danaPump = DanaPump(aapsLogger, sp, dateUtil, injector)
         hardLimits = HardLimits(aapsLogger, rxBus, sp, resourceHelper, context, repository)
         objectivesPlugin = ObjectivesPlugin(injector, aapsLogger, resourceHelper, activePlugin, sp, ConfigImpl(), dateUtil, uel)
-        comboPlugin = ComboPlugin(injector, aapsLogger, rxBus, resourceHelper, profileFunction, sp, commandQueue, context, databaseHelper, pumpSync, dateUtil)
+        comboPlugin = ComboPlugin(injector, aapsLogger, rxBus, resourceHelper, profileFunction, sp, commandQueue, context, pumpSync, dateUtil)
         danaRPlugin = DanaRPlugin(injector, aapsLogger, aapsSchedulers, rxBus, context, resourceHelper, constraintChecker, activePlugin, sp, commandQueue, danaPump, dateUtil, fabricPrivacy, pumpSync)
         danaRSPlugin = DanaRSPlugin(injector, aapsLogger, aapsSchedulers, rxBus, context, resourceHelper, constraintChecker, profileFunction, sp, commandQueue, danaPump, pumpSync, detailedBolusInfoStorage, temporaryBasalStorage, fabricPrivacy, dateUtil)
         insightPlugin = LocalInsightPlugin(injector, aapsLogger, rxBus, resourceHelper, sp, commandQueue, profileFunction, context, ConfigImpl(), dateUtil, insightDbHelper, pumpSync)

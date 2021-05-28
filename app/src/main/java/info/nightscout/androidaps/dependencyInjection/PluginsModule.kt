@@ -156,11 +156,11 @@ abstract class PluginsModule {
     @IntKey(130)
     abstract fun bindMedtronicPumpPlugin(plugin: MedtronicPumpPlugin): PluginBase
 
-    @Binds
-    @PumpDriver
-    @IntoMap
-    @IntKey(135)
-    abstract fun bindOmnipodPumpPlugin(plugin: OmnipodErosPumpPlugin): PluginBase
+    //@Binds
+    //@PumpDriver
+    //@IntoMap
+    //@IntKey(135)
+    //abstract fun bindOmnipodPumpPlugin(plugin: OmnipodErosPumpPlugin): PluginBase
 
     @Binds
     @PumpDriver
@@ -348,11 +348,11 @@ abstract class PluginsModule {
     @IntKey(470)
     abstract fun bindRandomBgPlugin(plugin: RandomBgPlugin): PluginBase
 
-    @Binds
-    @NotNSClient
-    @IntoMap
-    @IntKey(480)
-    abstract fun bindOpenHumansPlugin(plugin: OpenHumansUploader): PluginBase
+    // @Binds
+    // @NotNSClient
+    // @IntoMap
+    // @IntKey(480)
+    // abstract fun bindOpenHumansPlugin(plugin: OpenHumansUploader): PluginBase
 
     @Binds
     @AllConfigs
