@@ -8,16 +8,19 @@ sealed class EventObject {
     abstract fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String
 }
 
-data class EventDto(var id: Long?,
-                    var dateTime: DateTimeDto,
+data class EventDto(var id: Int?,
+                    var serial: Long,
                     var historyEntryType: HistoryEntryType,
+                    var dateTime: DateTimeDto,
                     var entryType: YpsoPumpEventType,
                     var entryTypeAsInt: Int,
                     var value1: Int,
                     var value2: Int,
                     var value3: Int,
                     var eventSequenceNumber: Int,
-                    var subObject: EventObject? = null) {
+                    var subObject: EventObject? = null,
+                    var created: Long? = null,
+                    var updated: Long? = null) {
 
     var dateTimeString: String = ""
         get() = "${dateTime.day}.${dateTime.month}.${dateTime.year} ${dateTime.hour}:${dateTime.minute}:${dateTime.second}"

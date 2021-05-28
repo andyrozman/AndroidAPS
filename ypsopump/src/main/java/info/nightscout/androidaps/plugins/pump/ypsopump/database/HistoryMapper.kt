@@ -11,8 +11,9 @@ class HistoryMapper @Inject constructor(var ypsoPumpUtil: YpsoPumpUtil) {
 
     fun domainToEntity(eventDto: EventDto): HistoryRecordEntity {
         var historyRecordEntity = HistoryRecordEntity(eventDto.id!!,
-            eventDto.dateTime.toATechDate(),
+            eventDto.serial,
             eventDto.historyEntryType,
+            eventDto.dateTime.toATechDate(),
             eventDto.entryType,
             eventDto.entryTypeAsInt,
             eventDto.value1,
@@ -27,8 +28,8 @@ class HistoryMapper @Inject constructor(var ypsoPumpUtil: YpsoPumpUtil) {
             null,
             null,
             null,
-            System.currentTimeMillis(),
-            System.currentTimeMillis()
+            if (eventDto.created==null) 0L else eventDto.created!!,
+            if (eventDto.updated==null) 0L else eventDto.updated!!
         )
 
         if (eventDto.subObject is Bolus) {
@@ -55,17 +56,20 @@ class HistoryMapper @Inject constructor(var ypsoPumpUtil: YpsoPumpUtil) {
 
     fun entityToDomain(entity: HistoryRecordEntity): EventDto {
 
-        var eventDto = EventDto(
+        val eventDto = EventDto(
             entity.id,
-            ypsoPumpUtil.toDateTimeDto(entity.date),
+            entity.serial,
             entity.historyRecordType,
+            ypsoPumpUtil.toDateTimeDto(entity.date),
             entity.entryType,
             entity.entryTypeAsInt,
             entity.value1,
             entity.value2,
             entity.value3,
             entity.eventSequenceNumber,
-            null
+            null,
+            entity.createdAt,
+            entity.updatedAt
         )
 
         if (entity.bolusRecord!=null) {

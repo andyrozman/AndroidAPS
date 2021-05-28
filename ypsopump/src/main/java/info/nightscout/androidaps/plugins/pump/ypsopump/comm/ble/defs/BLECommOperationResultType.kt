@@ -7,7 +7,9 @@ enum class BLECommOperationResultType(private val code: Int) {
     RESULT_TIMEOUT(2),
     RESULT_BUSY(3),
     RESULT_INTERRUPTED(4),
-    RESULT_NOT_CONFIGURED(5);
+    RESULT_NOT_CONFIGURED(5),
+    GATT_ERROR(6)
+    ;
 
     companion object {
 

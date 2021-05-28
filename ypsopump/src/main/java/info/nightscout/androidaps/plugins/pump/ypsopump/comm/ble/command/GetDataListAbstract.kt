@@ -4,40 +4,44 @@ import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
-import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 
-abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector) : AbstractBLECommand<List<T>>(hasAndroidInjector) {
+abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector,
+                                      var targetDate: Long?,
+                                      var eventSequenceNumber: Int?,
+                                      var includeEventSequence: Boolean = false) : AbstractBLECommand<List<T>>(hasAndroidInjector) {
 
+    // TODO support for targetDate or eventSequenceNumber
     override fun executeInternal(pumpBle: YpsoPumpBLE): Boolean {
 
-        var lastCountSaved = 0  // this needs to read saved value so that we don't read whole list always, but for testing this is ok
+        //var lastCountSaved = 0  // this needs to read saved value so that we don't read whole list always, but for testing this is ok
 
         var data: ByteArray? = readFromDevice(getCountUuid(), pumpBle)
 
         if (data == null) {
-            aapsLogger.error(LTag.PUMPBTCOMM, "Coudn't read last count.")
+            aapsLogger.error(LTag.PUMPCOMM, "Coudn't read last count.")
             return false
         }
 
         var lastCount = getResultAsInt(data)
-
         var lastCountGLB: Int = ypsoPumpUtil.getValueFromeGLB_SAFE_VAR(data)
 
-        aapsLogger.debug(LTag.PUMPBTCOMM, "Count: " + lastCount + ", lastCountGLB: " + lastCountGLB)
+        aapsLogger.debug(LTag.PUMPCOMM, "Count: " + lastCount + ", lastCountGLB: " + lastCountGLB)
 
-        if (lastCountSaved == lastCount) {
-            aapsLogger.debug(LTag.PUMPBTCOMM, "No new entries found for " + getEntryType() + " [lastCountSaved=$lastCountSaved, lastCountOnPump=$lastCount")
+        if (targetDate == null && eventSequenceNumber == null) {
+            aapsLogger.debug(LTag.PUMPCOMM, "Retrieving whole " + getEntryType() + " history, no limits imposed.")
+        } else if (targetDate != null) {
+            aapsLogger.debug(LTag.PUMPCOMM, "Retrieving " + getEntryType() + " with targetDate $targetDate as cutoff.")
         } else {
-            aapsLogger.debug(LTag.PUMPBTCOMM, "Count for " + getEntryType() + " $lastCount items.")
+            aapsLogger.debug(LTag.PUMPCOMM, "Retrieving " + getEntryType() + " with eventSequenceNumber $eventSequenceNumber as cutoff.")
         }
 
         //lastCount = 10   // TODO remove just for testing
 
         val outList: MutableList<T> = mutableListOf()
 
-        for (i in lastCountSaved..(lastCount - 1)) {
+        for (i in 0..(lastCount - 1)) {
 
-            aapsLogger.debug(LTag.PUMPBTCOMM, "Trying to read " + getEntryType() + " with index " + i)
+            aapsLogger.debug(LTag.PUMPCOMM, "Trying to read " + getEntryType() + " with index " + i)
 
             if (writeToDevice(i, getIndexUuid(), pumpBle)) {
 
@@ -47,8 +51,18 @@ abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector) : 
                     var decodedObject: T? = decodeEntry(data)
 
                     if (decodedObject != null) {
-                        aapsLogger.debug(LTag.PUMPBTCOMM, "Decoded object: " + decodedObject)
-                        outList.add(decodedObject)
+                        aapsLogger.debug(LTag.PUMPCOMM, "Decoded object: " + decodedObject)
+
+                        if (targetDate == null && eventSequenceNumber == null) {
+                            outList.add(decodedObject)
+                        } else {
+                            if (isEntryInRange(decodedObject)) {
+                                outList.add(decodedObject)
+                            } else {
+                                break;
+                            }
+                        }
+
                     }
                 } else
                     break;
@@ -58,11 +72,13 @@ abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector) : 
             }
         }
 
-        aapsLogger.debug(LTag.PUMPBTCOMM, "Found " + outList.size + " entries.")
+        aapsLogger.debug(LTag.PUMPBTCOMM, "Found " + outList.size + " new entries.")
         this.commandResponse = outList
 
         return true
     }
+
+    abstract fun isEntryInRange(decodedObject: T): Boolean
 
     abstract fun getIndexUuid(): YpsoGattCharacteristic
 

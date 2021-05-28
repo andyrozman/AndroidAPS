@@ -3,12 +3,12 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpFirmware
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
+import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import org.apache.commons.lang3.StringUtils
 import org.joda.time.DateTime
 import java.util.*
@@ -18,6 +18,7 @@ import kotlin.experimental.and
 
 @Singleton
 class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStatus,
+                                                var ypsoPumpUtil: YpsoPumpUtil,
                                                 var aapsLogger: AAPSLogger) {
 
     private val YPSOPUMP_10_MASTER_VERSIONS = Regex("^[a-zA-Z]?01\\.0[01]\\.[0-9][0-9]$")
@@ -119,8 +120,9 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             var entryType = YpsoPumpEventType.getByCode(entryTypeInt)
 
             eventDto = EventDto(null,
-                DateTimeDto(date.year, date.monthOfYear, date.dayOfMonth, date.hourOfDay, date.minuteOfHour, date.secondOfMinute),
+                pumpStatus.serialNumber!!,
                 historyEntryType,
+                DateTimeDto(date.year, date.monthOfYear, date.dayOfMonth, date.hourOfDay, date.minuteOfHour, date.secondOfMinute),
                 entryType,
                 entryTypeInt,
                 byteToInt(data, 5, 2),
@@ -140,9 +142,11 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             val entryTypeInt = byteToInt(data, 10, 1);
             val entryType = YpsoPumpEventType.getByCode(entryTypeInt)
 
-            eventDto = EventDto(null,
-                DateTimeDto(year, month, day, hour, minute, second),
+            eventDto = EventDto(
+                null,
+                pumpStatus.serialNumber!!,
                 historyEntryType,
+                DateTimeDto(year, month, day, hour, minute, second),
                 entryType,
                 entryTypeInt,
                 byteToInt(data, 11, 2),
@@ -247,7 +251,7 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             }
 
             BATTERY_REMOVED                 -> eventDto.subObject = PumpStatusChanged(PumpStatusType.BatteryRemoved)
-            BASAL_PROFILE_CHANGED           -> eventDto.subObject = ConfigurationChanged(ConfigurationType.BasalProfileChanged,
+            BASAL_PROFILE_SWITCHED          -> eventDto.subObject = ConfigurationChanged(ConfigurationType.BasalProfileChanged,
                 if (eventDto.value1 == 3) "A" else "B")
 
             PRIMING,
@@ -264,8 +268,12 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
                 eventDto.subObject = PumpStatusChanged(PumpStatusType.Rewind, rewind)
             }
 
+            UNDEFINED                       -> {
+                aapsLogger.error(LTag.PUMPBTCOMM, "Unknown event type: ${eventDto.entryTypeAsInt}. Object: " + ypsoPumpUtil.gson.toJson(eventDto) + ", Data: " + ByteUtil.getHex(data))
+            }
+
             else                            -> {
-                aapsLogger.warn(LTag.PUMPBTCOMM, "Event Type ${eventDto.entryType} is not supported.")
+                aapsLogger.error(LTag.PUMPBTCOMM, "Event Type ${eventDto.entryType} is not supported.")
             }
 
 //            BOLUS_DELAYED_BACKUP ->

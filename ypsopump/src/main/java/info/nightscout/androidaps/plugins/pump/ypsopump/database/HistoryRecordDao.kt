@@ -1,10 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.database
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
+import androidx.room.*
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.HistoryEntryType
 import io.reactivex.Completable
 import io.reactivex.Single
 
@@ -23,11 +20,25 @@ abstract class HistoryRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun saveBlocking(historyRecordEntity: HistoryRecordEntity)
 
+    @Query("SELECT * from history_records where id = :id and serial= :serialNumber and entryType= :entryType")
+    abstract fun getById(id: Int, serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun save(historyRecordEntity: HistoryRecordEntity): Completable
 
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    abstract fun update(historyRecordEntity: HistoryRecordEntity): Completable
+
     @Delete
     abstract fun delete(historyRecordEntity: HistoryRecordEntity): Completable
+
+    @Query("SELECT * from history_records where serial = :serialNumber and historyRecordType= :entryType " +
+        " and id= (select max(id) from history_records where serial = :serialNumber " +
+        " and historyRecordType= :entryType) ")
+    abstract fun getLatestHistoryEntry(serialNumber: Long, entryType: HistoryEntryType) : HistoryRecordEntity?
+
+    // select * from test_table where type = 'EVENT' and number_count =
+    // (select max(test_table.number_count) from test_table where type = 'EVENT')
 
     // @Query("UPDATE historyrecords SET resolvedResult = :resolvedResult, resolvedAt = :resolvedAt WHERE id = :id ")
     // abstract fun markResolved(id: String, resolvedResult: ResolvedResult, resolvedAt: Long): Completable

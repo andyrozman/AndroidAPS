@@ -2,17 +2,16 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.database
 
 import androidx.room.Embedded
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 
-@Entity(tableName = "history_records")
+@Entity(tableName = "history_records", primaryKeys = ["id", "serial", "historyRecordType"])
 data class HistoryRecordEntity(
-    @PrimaryKey(autoGenerate = true)
-    var id: Long,
-    val date: Long, // when event actually happened (yyyymmddHHmmss)
+    var id: Int,
+    var serial: Long,
     val historyRecordType: HistoryEntryType, // history entry type: event, alarm, systemEntry
-    val entryType: YpsoPumpEventType, // pump event type
+    var date: Long, // when event actually happened (yyyymmddHHmmss)
+    var entryType: YpsoPumpEventType, // pump event type
     var entryTypeAsInt: Int, // backup of eventId in case pumpEventType not recognized
     var value1: Int, // backup value1
     var value2: Int, // backup value2

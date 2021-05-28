@@ -39,6 +39,9 @@ class CharacteristicWriteOperation(aapsLogger: AAPSLogger,
     // This will be run on the IBinder thread
     override fun gattOperationCompletionCallback(uuid: UUID, value: ByteArray?, gattStatus: GattStatus) {
         super.gattOperationCompletionCallback(uuid, value, gattStatus)
+        if (gattStatus != GattStatus.GATT_SUCCESS) {
+
+        }
         operationComplete.release()
     }
 

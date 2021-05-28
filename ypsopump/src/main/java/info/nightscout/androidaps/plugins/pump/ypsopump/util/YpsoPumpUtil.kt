@@ -9,6 +9,7 @@ import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType
+import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpErrorType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpStatusChanged
 import java.nio.ByteBuffer
@@ -27,9 +28,10 @@ class YpsoPumpUtil @Inject constructor(
     val ypsopumpPumpStatus: YpsopumpPumpStatus
 ) {
 
+    //private var driverStatusInternal: PumpDriverState
     private var pumpCommandType: YpsoPumpCommandType? = null
     var gson = GsonBuilder().setPrettyPrinting().create()
-    private var driverStatusInternal: PumpDriverState = PumpDriverState.Sleeping
+
 
 
     // var driverStatus: PumpDriverState
@@ -60,6 +62,14 @@ class YpsoPumpUtil @Inject constructor(
             workWithStatusAndCommand(StatusChange.SetCommand, PumpDriverState.ExecutingCommand, currentCommand)
         }
 
+    var errorType: YpsoPumpErrorType?
+        get() {
+            return workWithStatusAndCommand(StatusChange.GetError, null, null) as YpsoPumpErrorType?
+        }
+        set(error) {
+            workWithStatusAndCommand(StatusChange.SetError, null, null, error)
+        }
+
     // fun getDriverStatus(): PumpDriverState {
     //     return workWithStatusAndCommand(StatusChange.GetStatus, null, null) as PumpDriverState
     // }
@@ -79,30 +89,36 @@ class YpsoPumpUtil @Inject constructor(
     // }
 
     @Synchronized
-    fun workWithStatusAndCommand(type: StatusChange?,
+    fun workWithStatusAndCommand(type: StatusChange,
                                  driverStatusIn: PumpDriverState?,
-                                 pumpCommandType: YpsoPumpCommandType?): Any? {
+                                 pumpCommandType: YpsoPumpCommandType?,
+                                 ypsoPumpErrorType: YpsoPumpErrorType? = null): Any? {
 
         //aapsLogger.debug(LTag.PUMP, "Status change type: " + type.name() + ", DriverStatus: " + (driverStatus != null ? driverStatus.name() : ""));
         when (type) {
             StatusChange.GetStatus  ->  {
                 aapsLogger.debug(LTag.PUMP, "GetStatus: DriverStatus: " + driverStatusInternal);
-                return this.driverStatusInternal
+                return driverStatusInternal
             }
-            StatusChange.GetCommand -> return this.pumpCommandType
-
             StatusChange.SetStatus  -> {
                 aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus Before: " + driverStatusInternal + ", Incoming: " + driverStatusIn);
-                this.driverStatusInternal = driverStatusIn!!
+                driverStatusInternal = driverStatusIn!!
                 this.pumpCommandType = null
                 aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus: " + driverStatusInternal);
                 rxBus.send(EventPumpStatusChanged(driverStatusInternal))
             }
-
+            StatusChange.GetCommand -> return this.pumpCommandType
             StatusChange.SetCommand -> {
-                this.driverStatusInternal = driverStatusIn!!
+                driverStatusInternal = driverStatusIn!!
                 this.pumpCommandType = pumpCommandType
-                rxBus.send(EventPumpStatusChanged(this.driverStatusInternal))
+                rxBus.send(EventPumpStatusChanged(driverStatusInternal))
+            }
+            StatusChange.GetError   -> return errorTypeInternal
+            StatusChange.SetError   -> {
+                errorTypeInternal = ypsoPumpErrorType!!
+                this.pumpCommandType = null
+                driverStatusInternal = PumpDriverState.ErrorCommunicatingWithPump
+                rxBus.send(EventPumpStatusChanged(driverStatusInternal))
             }
         }
         return null
@@ -141,7 +157,7 @@ class YpsoPumpUtil @Inject constructor(
     }
 
     enum class StatusChange {
-        GetStatus, GetCommand, SetStatus, SetCommand
+        GetStatus, GetCommand, SetStatus, SetCommand, GetError, SetError
     }
 
     fun getSettingIdAsArray(settingId: Int): ByteArray {
@@ -260,7 +276,8 @@ class YpsoPumpUtil @Inject constructor(
         const val MAX_RETRY = 2
         //private var driverStatus = PumpDriverState.Sleeping
 
-
+        @JvmStatic private var driverStatusInternal: PumpDriverState = PumpDriverState.Sleeping
+        @JvmStatic private var errorTypeInternal: YpsoPumpErrorType? = null
 
     }
 }

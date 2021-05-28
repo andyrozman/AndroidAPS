@@ -5,7 +5,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCh
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.EventDto
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.HistoryEntryType
 
-class GetSystemEntries(hasAndroidInjector: HasAndroidInjector?) : GetDataListAbstract<EventDto>(hasAndroidInjector!!) {
+class GetSystemEntries(hasAndroidInjector: HasAndroidInjector?, targetDate: Long?, eventSequenceNumber: Int?) : GetDataListAbstract<EventDto>(hasAndroidInjector!!, targetDate, eventSequenceNumber) {
 
     override fun getIndexUuid(): YpsoGattCharacteristic {
         return YpsoGattCharacteristic.SYSTEM_ENTRY_INDEX
@@ -27,5 +27,13 @@ class GetSystemEntries(hasAndroidInjector: HasAndroidInjector?) : GetDataListAbs
         return "System Entry"
     }
 
+    override fun isEntryInRange(event: EventDto): Boolean {
+        return if (targetDate != null) {
+            event.dateTime.toATechDate() >= targetDate!!
+        } else if (eventSequenceNumber != null) {
+            event.eventSequenceNumber > eventSequenceNumber!!
+        } else
+            true
+    }
 
 }

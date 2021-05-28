@@ -7,7 +7,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoBasalProfileType
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoSettingId
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.YpsoPumpSettingsDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.YpsoPumpSettingsDto
 
 class GetPumpSettings(hasAndroidInjector: HasAndroidInjector?) : GetSettingsAbstract<YpsoPumpSettingsDto?>(hasAndroidInjector!!) {
 

@@ -61,7 +61,7 @@ abstract class PumpPluginAbstract protected constructor(
     var pumpSyncStorage: PumpSyncStorage
 ) : PumpPluginBase(pluginDescription!!, injector!!, aapsLogger, resourceHelper, commandQueue), Pump, Constraints, PumpSyncEntriesCreator {
 
-    private val disposable = CompositeDisposable()
+    protected val disposable = CompositeDisposable()
 
     // Pump capabilities
     final override var pumpDescription = PumpDescription()
@@ -97,7 +97,7 @@ abstract class PumpPluginAbstract protected constructor(
             )
         }
         serviceRunning = true
-        onStartCustomActions()
+        onStartScheduledPumpActions()
     }
 
     override fun onStop() {
@@ -113,7 +113,7 @@ abstract class PumpPluginAbstract protected constructor(
     /**
      * If we need to run any custom actions in onStart (triggering events, etc)
      */
-    abstract fun onStartCustomActions()
+    abstract fun onStartScheduledPumpActions()
 
     /**
      * Service class (same one you did serviceConnection for)

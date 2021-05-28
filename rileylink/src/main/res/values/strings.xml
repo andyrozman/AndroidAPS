@@ -66,8 +66,8 @@
     <string name="rileylink_error_unreachable">RileyLink unreachable</string>
     <string name="rileylink_error_bt_disabled">Bluetooth disabled</string>
     <string name="rileylink_error_no_bt_adapter">No Bluetooth Adapter</string>
-    <string name="rileylink_error_tuneup_failed">TuneUp Failed</string>
     <string name="rileylink_error_pump_unreachable">Pump unreachable</string>
+    <string name="rileylink_error_tuneup_failed">TuneUp Failed</string>
     <string name="rileylink_error_pod_unreachable">Pod unreachable</string>
 
     <!-- RileyLink - Common -->

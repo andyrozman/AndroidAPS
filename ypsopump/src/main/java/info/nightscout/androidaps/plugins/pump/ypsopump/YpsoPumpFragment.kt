@@ -401,7 +401,7 @@ class YpsoPumpFragment : DaggerFragment() {
                 pump_firmware.text = "Unknown"
             }
 
-            pump_errors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""
+            //pump_errors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""
         }
 
         if (updateType == PumpUpdateFragmentType.OtherValues || updateType == PumpUpdateFragmentType.Full) {
@@ -429,7 +429,10 @@ class YpsoPumpFragment : DaggerFragment() {
 
             PumpDriverState.ErrorCommunicatingWithPump -> {
                 pump_status.text = "{fa-bed}   " + "Error ???"
-                aapsLogger.warn(LTag.PUMP, "Errors are not supported.")
+                val errorType = pumpUtil.errorType
+
+                pump_errors.text = if (errorType != null) errorType.name else ""
+                //aapsLogger.warn(LTag.PUMP, "Errors are not supported.")
             }
 
             PumpDriverState.ExecutingCommand           -> {

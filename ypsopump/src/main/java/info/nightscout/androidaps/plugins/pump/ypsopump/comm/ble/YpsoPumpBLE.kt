@@ -6,8 +6,10 @@ import android.os.SystemClock
 import com.google.gson.Gson
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.common.utils.ThreadUtil
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.BLECommOperationResultType
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.GattStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoConnectionStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
@@ -17,6 +19,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations.BLEC
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations.BLECommOperationResult
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations.CharacteristicReadOperation
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations.CharacteristicWriteOperation
+import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpErrorType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import info.nightscout.androidaps.utils.sharedPreferences.SP
@@ -121,7 +124,7 @@ class YpsoPumpBLE @Inject constructor(
                 }
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     if (status == BluetoothGatt.GATT_SUCCESS) {
-                        pumpStatus.connectionStatus = YpsoConnectionStatus.CONNECTED
+                        //pumpStatus.connectionStatus = YpsoConnectionStatus.CONNECTED
                         discoverServices()
                         //rileyLinkUtil.sendBroadcastMessage(RileyLinkConst.Intents.BluetoothConnected, context);
                     } else {
@@ -134,7 +137,8 @@ class YpsoPumpBLE @Inject constructor(
 
                     //rileyLinkUtil.sendBroadcastMessage(RileyLinkConst.Intents.RileyLinkDisconnected, context);
                     if (manualDisconnect) close()
-                    aapsLogger.warn(LTag.PUMPBTCOMM, "RileyLink Disconnected.")
+                    aapsLogger.warn(LTag.PUMPBTCOMM, "YpsoPump Disconnected.")
+                    ypsoPumpUtil.driverStatus = PumpDriverState.Disconnected
                 } else {
                     aapsLogger.warn(LTag.PUMPBTCOMM, String.format(Locale.ENGLISH, "Some other state: (status=%d, newState=%d)", status, newState))
                 }
@@ -209,9 +213,11 @@ class YpsoPumpBLE @Inject constructor(
                     aapsLogger.info(LTag.PUMPBTCOMM, "Gatt device is YpsoPump device: $ypsoPumpFound")
 
                     if (ypsoPumpFound) {
-                        pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_CONNECTED
+                        ypsoPumpUtil.driverStatus = PumpDriverState.Connected
+                        //pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_CONNECTED
                         Thread(Runnable { encryptCommunication() }).start()
                     } else {
+                        ypsoPumpUtil.errorType = YpsoPumpErrorType.DeviceIsNotPump
                         aapsLogger.error(LTag.PUMPBTCOMM, "Device found, but it doesn't seem like Ypso Pump device.")
 //                        mIsConnected = false;
 //                        rileyLinkServiceData.setServiceState(RileyLinkServiceState.RileyLinkError,
@@ -225,14 +231,33 @@ class YpsoPumpBLE @Inject constructor(
         }
     }
 
-    fun findYpsoPumpWithAddress(btAddress: String) {
+    fun startConnectToYpsoPump(btAddress: String) {
+        ypsoPumpUtil.driverStatus = PumpDriverState.Connecting
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        if (bluetoothAdapter == null) {
+            // device doesn't support bluetooth
+            ypsoPumpUtil.errorType = YpsoPumpErrorType.NoBluetoothAdapter
+            return;
+        }
+
+        // if (bluetoothAdapter!!.isEnabled) {
+        //     ypsoPumpUtil.errorType = YpsoPumpErrorType.BluetoothDisabled
+        //     return;
+        // }
+
+        aapsLogger.debug(LTag.PUMPBTCOMM, "State: " + bluetoothAdapter!!.state + ", enabled: " + bluetoothAdapter!!.isEnabled)
+
         aapsLogger.debug(LTag.PUMPBTCOMM, "Ypso Pump address: $btAddress")
         // Must verify that this is a valid MAC, or crash.
         ypsopumpDevice = bluetoothAdapter!!.getRemoteDevice(btAddress)
         // if this succeeds, we get a connection state change callback?
+
+        aapsLogger.debug(LTag.PUMPBTCOMM, "State: " + bluetoothAdapter!!.state + ", enabled: " + bluetoothAdapter!!.isEnabled)
+
         if (ypsopumpDevice != null) {
             connectGatt()
         } else {
+            ypsoPumpUtil.errorType = YpsoPumpErrorType.ConfiguredPumpNotFound
             aapsLogger.error(LTag.PUMPBTCOMM, "YpsoPump device not found with address: $btAddress")
         }
     }
@@ -245,6 +270,7 @@ class YpsoPumpBLE @Inject constructor(
         bluetoothConnectionGatt = ypsopumpDevice!!.connectGatt(context, true, bluetoothGattCallback)
         // , BluetoothDevice.TRANSPORT_LE
         if (bluetoothConnectionGatt == null) {
+            ypsoPumpUtil.errorType = YpsoPumpErrorType.FailedToConnectToBleDevice
             aapsLogger.error(LTag.PUMPBTCOMM, "Failed to connect to Bluetooth Low Energy device at " + bluetoothAdapter!!.address)
         } else {
             if (gattDebugEnabled) {
@@ -305,8 +331,13 @@ class YpsoPumpBLE @Inject constructor(
         }
     }
 
+    fun disconnectFromYpsoPump() {
+        ypsoPumpUtil.driverStatus = PumpDriverState.Disconnecting
+        disconnect()
+    }
+
     fun disconnect() {
-        pumpStatus.connectionStatus = YpsoConnectionStatus.DISCONNECTING
+        //pumpStatus.connectionStatus = YpsoConnectionStatus.DISCONNECTING
         //mIsConnected = false;
         aapsLogger.warn(LTag.PUMPBTCOMM, "Closing GATT connection")
         // Close old conenction
@@ -341,17 +372,21 @@ class YpsoPumpBLE @Inject constructor(
     }
 
     private fun encryptCommunication(): Boolean {
-        pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_ENCRYPTION
+        ypsoPumpUtil.driverStatus = PumpDriverState.EncryptCommunication
+        //pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_ENCRYPTION
         val pwd = ypsoPumpUtil.computeUserLevelPassword(deviceMac)
         val bleCommOperationResult = writeCharacteristicBlocking(
             YpsoGattCharacteristic.AUTHORIZATION_PASSWORD,
             pwd)
         if (bleCommOperationResult.isSuccessful) {
-            pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_READY
+            ypsoPumpUtil.driverStatus = PumpDriverState.Ready
+            //pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_READY
         } else {
-            pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_ENCRYPTION_ERROR
+            ypsoPumpUtil.errorType = YpsoPumpErrorType.EncryptionFailed
+            //pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_ENCRYPTION_ERROR
         }
-        aapsLogger.debug("Connection Status: " + pumpStatus.connectionStatus.name)
+        // TODO remove
+        aapsLogger.debug("Connection Status: " + ypsoPumpUtil.driverStatus.name)
 
         return bleCommOperationResult.isSuccessful
     }
@@ -368,7 +403,7 @@ class YpsoPumpBLE @Inject constructor(
                 return rval
             }
             if (mCurrentOperation != null) {
-                rval.resultCode = BLECommOperationResult.RESULT_BUSY
+                rval.operationResultType = BLECommOperationResultType.RESULT_BUSY
             } else {
                 val chara = characteristicMap[gattCharacteristic.uuid]
                 aapsLogger.debug(LTag.PUMPBTCOMM, "Characteristic: " + chara)
@@ -377,7 +412,7 @@ class YpsoPumpBLE @Inject constructor(
                     // GGW: Tue Jul 12 01:14:01 UTC 2016: This can also happen if the
                     // app that created the bluetoothConnectionGatt has been destroyed/created,
                     // e.g. when the user switches from portrait to landscape.
-                    rval.resultCode = BLECommOperationResult.RESULT_NONE
+                    rval.operationResultType = BLECommOperationResultType.RESULT_NONE
                     aapsLogger.error(LTag.PUMPBTCOMM, "BT Device not supported")
                     // TODO: 11/07/2016 UI update for user
                     // xyz rileyLinkServiceData.setServiceState(RileyLinkServiceState.BluetoothError, RileyLinkError.NoBluetoothAdapter);
@@ -385,11 +420,11 @@ class YpsoPumpBLE @Inject constructor(
                     mCurrentOperation = CharacteristicWriteOperation(aapsLogger, bluetoothConnectionGatt!!, chara, value)
                     mCurrentOperation!!.execute(this)
                     if (mCurrentOperation!!.timedOut) {
-                        rval.resultCode = BLECommOperationResult.RESULT_TIMEOUT
+                        rval.operationResultType = BLECommOperationResultType.RESULT_TIMEOUT
                     } else if (mCurrentOperation!!.interrupted) {
-                        rval.resultCode = BLECommOperationResult.RESULT_INTERRUPTED
+                        rval.operationResultType = BLECommOperationResultType.RESULT_INTERRUPTED
                     } else {
-                        rval.resultCode = BLECommOperationResult.RESULT_SUCCESS
+                        rval.operationResultType = BLECommOperationResultType.RESULT_SUCCESS
                     }
                 }
                 mCurrentOperation = null
@@ -397,7 +432,7 @@ class YpsoPumpBLE @Inject constructor(
             }
         } else {
             aapsLogger.error(LTag.PUMPBTCOMM, "writeCharacteristic_blocking: not configured!")
-            rval.resultCode = BLECommOperationResult.RESULT_NOT_CONFIGURED
+            rval.operationResultType = BLECommOperationResultType.RESULT_NOT_CONFIGURED
         }
         return rval
     }
@@ -413,12 +448,12 @@ class YpsoPumpBLE @Inject constructor(
                 return rval
             }
             if (mCurrentOperation != null) {
-                rval.resultCode = BLECommOperationResult.RESULT_BUSY
+                rval.operationResultType = BLECommOperationResultType.RESULT_BUSY
             } else {
                 val chara = characteristicMap[gattCharacteristic.uuid]
                 if (chara == null) {
                     // Catch if the service is not supported by the BLE device
-                    rval.resultCode = BLECommOperationResult.RESULT_NONE
+                    rval.operationResultType = BLECommOperationResultType.RESULT_NONE
                     aapsLogger.error(LTag.PUMPBTCOMM, "BT Device not supported")
                     // TODO: 11/07/2016 UI update for user
                     // xyz rileyLinkServiceData.setServiceState(RileyLinkServiceState.BluetoothError, RileyLinkError.NoBluetoothAdapter);
@@ -426,11 +461,11 @@ class YpsoPumpBLE @Inject constructor(
                     mCurrentOperation = CharacteristicReadOperation(aapsLogger, bluetoothConnectionGatt!!, chara)
                     mCurrentOperation!!.execute(this)
                     if (mCurrentOperation!!.timedOut) {
-                        rval.resultCode = BLECommOperationResult.RESULT_TIMEOUT
+                        rval.operationResultType = BLECommOperationResultType.RESULT_TIMEOUT
                     } else if (mCurrentOperation!!.interrupted) {
-                        rval.resultCode = BLECommOperationResult.RESULT_INTERRUPTED
+                        rval.operationResultType = BLECommOperationResultType.RESULT_INTERRUPTED
                     } else {
-                        rval.resultCode = BLECommOperationResult.RESULT_SUCCESS
+                        rval.operationResultType = BLECommOperationResultType.RESULT_SUCCESS
                         rval.value = mCurrentOperation!!.value
                     }
                 }
@@ -439,36 +474,9 @@ class YpsoPumpBLE @Inject constructor(
             gattOperationSema.release()
         } else {
             aapsLogger.error(LTag.PUMPBTCOMM, "readCharacteristic_blocking: not configured!")
-            rval.resultCode = BLECommOperationResult.RESULT_NOT_CONFIGURED
+            rval.operationResultType = BLECommOperationResultType.RESULT_NOT_CONFIGURED
         }
         return rval
-    }
-
-    fun doAction() {
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        val deviceMac = "EC:2A:F0:00:8B:8E"
-        if (bluetoothAdapter == null) {
-            // device doesn't support bluetooth
-        } else {
-            findYpsoPumpWithAddress(deviceMac)
-            // bluetooth is off, ask user to on it.
-//            if(!bluetoothAdapter.isEnabled()) {
-//                Intent enableAdapter = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-//                startActivityForResult(enableAdapter, 0);
-//            }
-
-            // Do whatever you want to do with your bluetoothAdapter
-//            Set<BluetoothDevice> all_devices = bluetoothAdapter.getBondedDevices();
-//            if (all_devices.size() > 0) {
-//                for (BluetoothDevice currentDevice : all_devices) {
-//                    Log.i("XXX", "Device Name " + currentDevice.getName());
-//                    Log.i("XXX", gson.toJson(currentDevice));
-//                    Log.i("XXX", currentDevice.getAddress());
-//
-//                    //currentDevice.fetchUuidsWithSdp()
-//                }
-//            }
-        }
     }
 
 }

@@ -4,6 +4,7 @@ import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.DateTimeDto
 
+@Deprecated("Just sample how to use")
 class GetDate(hasAndroidInjector: HasAndroidInjector?) : AbstractBLECommand<DateTimeDto?>(hasAndroidInjector!!) {
 
     override fun executeInternal(pumpBle: YpsoPumpBLE): Boolean {

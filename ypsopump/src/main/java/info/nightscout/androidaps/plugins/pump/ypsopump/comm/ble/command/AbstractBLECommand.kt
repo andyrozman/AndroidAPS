@@ -3,6 +3,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
@@ -76,18 +77,21 @@ abstract class AbstractBLECommand<T>(hasAndroidInjector: HasAndroidInjector) : B
     }
 
     protected fun setStartCommand() {
-        ypsopumpPumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_COMMAND_RUNNING
+        ypsoPumpUtil.driverStatus = PumpDriverState.ExecutingCommand
+        //ypsopumpPumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_COMMAND_RUNNING
     }
 
     protected fun setEndCommand() {
-        ypsopumpPumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_READY
+        ypsoPumpUtil.driverStatus = PumpDriverState.Ready
+        //ypsopumpPumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_READY
     }
 
     val isSuccessful: Boolean
         get() = bleCommOperationResult != null && bleCommOperationResult!!.isSuccessful
 
     fun getResultAsInt(data: ByteArray): Int {
-        return ByteUtil.toInt(data[3], data[2], data[1], data[0])
+        //return ByteUtil.toInt(data[3], data[2], data[1], data[0])
+        return ByteUtil.toInt(data[0], data[1], data[2], data[3], ByteUtil.BitConversion.LITTLE_ENDIAN)
     }
 
     override fun toString(): String {

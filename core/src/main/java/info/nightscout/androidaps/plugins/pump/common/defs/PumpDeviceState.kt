@@ -2,6 +2,7 @@ package info.nightscout.androidaps.plugins.pump.common.defs
 
 import info.nightscout.androidaps.core.R
 
+// TODO there are 3 classes now, that do similar things, sort of, need to define exact rules: PumpDeviceState, PumpDriverState, PumpStatusState
 enum class PumpDeviceState(var resourceId: Int) {
 
     NeverContacted(R.string.pump_status_never_contacted),

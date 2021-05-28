@@ -189,7 +189,7 @@ class MedtronicPumpPlugin @Inject constructor(
         }
     }
 
-    override fun onStartCustomActions() {
+    override fun onStartScheduledPumpActions() {
 
         // check status every minute (if any status needs refresh we send readStatus command)
         Thread(Runnable {

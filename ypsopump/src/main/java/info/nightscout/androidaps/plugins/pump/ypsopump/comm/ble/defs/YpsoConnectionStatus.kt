@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs
 
+@Deprecated("Use PumpDriverState")
 enum class YpsoConnectionStatus {
     NOT_CONNECTED,
     CONNECTING,

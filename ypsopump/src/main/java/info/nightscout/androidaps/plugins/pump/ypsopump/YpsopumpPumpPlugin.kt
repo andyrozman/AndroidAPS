@@ -6,8 +6,7 @@ import androidx.preference.Preference
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.data.PumpEnactResult
-import info.nightscout.androidaps.db.Source
-import info.nightscout.androidaps.db.TemporaryBasal
+import info.nightscout.androidaps.events.EventPreferenceChange
 import info.nightscout.androidaps.events.EventRefreshOverview
 import info.nightscout.androidaps.interfaces.*
 import info.nightscout.androidaps.interfaces.PumpSync.TemporaryBasalType
@@ -26,7 +25,8 @@ import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpConnectionManager
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpStatusRefreshType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
-import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpConfigurationChanged
+import info.nightscout.androidaps.plugins.pump.ypsopump.handlers.YpsoPumpHistoryHandler
+import info.nightscout.androidaps.plugins.pump.ypsopump.handlers.YpsoPumpStatusHandler
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import info.nightscout.androidaps.utils.DateUtil
@@ -56,12 +56,14 @@ class YpsopumpPumpPlugin @Inject constructor(
     commandQueue: CommandQueueProvider,
     fabricPrivacy: FabricPrivacy,
     val ypsopumpUtil: YpsoPumpUtil,
-    private val ypsopumpPumpStatus: YpsopumpPumpStatus,
+    val pumpStatus: YpsopumpPumpStatus,
     dateUtil: DateUtil,
-    connectionManager: YpsoPumpConnectionManager,
+    val pumpConnectionManager: YpsoPumpConnectionManager,
     aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
-    pumpSyncStorage: PumpSyncStorage
+    pumpSyncStorage: PumpSyncStorage,
+    var ypsoPumpStatusHandler: YpsoPumpStatusHandler,
+    var ypsoPumpHistoryHandler: YpsoPumpHistoryHandler
 ) : PumpPluginAbstract(PluginDescription() //
     .mainType(PluginType.PUMP) //
     .fragmentClass(YpsoPumpFragment::class.java.name) //
@@ -74,13 +76,13 @@ class YpsopumpPumpPlugin @Inject constructor(
     injector, resourceHelper, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage
 ), Pump {
 
-    private val pumpStatus: YpsopumpPumpStatus
-    private val pumpConnectionManager: YpsoPumpConnectionManager
+    //private val pumpStatus: YpsopumpPumpStatus
+    //private val pumpConnectionManager: YpsoPumpConnectionManager
 
     // variables for handling statuses and history
     private var firstRun = true
     private var isRefresh = false
-    private val statusRefreshMap: MutableMap<YpsoPumpStatusRefreshType?, Long?> = HashMap()
+    private val statusRefreshMap: MutableMap<YpsoPumpStatusRefreshType?, Long?> = mutableMapOf()
     private var isInitialized = false
     private var hasTimeDateOrTimeZoneChanged = false
 
@@ -88,8 +90,6 @@ class YpsopumpPumpPlugin @Inject constructor(
         aapsLogger.debug(LTag.PUMP, deviceID() + " started.")
         super.onStart()
     }
-
-    override fun onStartCustomActions() {}
 
     override fun updatePreferenceSummary(pref: Preference) {
         super.updatePreferenceSummary(pref)
@@ -100,7 +100,7 @@ class YpsopumpPumpPlugin @Inject constructor(
     }
 
     private val logPrefix: String
-        private get() = "YpsopumpPumpPlugin::"
+        get() = "YpsopumpPumpPlugin::"
 
     override fun initPumpStatusData() {
         pumpStatus.lastConnection = sp.getLong(YpsoPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
@@ -109,7 +109,7 @@ class YpsopumpPumpPlugin @Inject constructor(
         aapsLogger.debug(LTag.PUMP, "initPumpStatusData: " + pumpStatus)
 
         // this is only thing that can change, by being configured
-        //pumpDescription.maxTempAbsolute = (pumpStatus.maxBasal != null) ? pumpStatus.maxBasal : 35.0d;
+        // TODO pumpDescription.maxTempAbsolute = (pumpStatus.maxBasal != null) ? pumpStatus.maxBasal : 35.0d;
         aapsLogger.debug(LTag.PUMP, "pumpDescription: " + this.pumpDescription)
 
         // set first YpsoPump Pump Start
@@ -118,7 +118,16 @@ class YpsopumpPumpPlugin @Inject constructor(
         }
     }
 
-    fun onStartScheduledPumpActions() {
+    override fun onStartScheduledPumpActions() {
+
+        disposable.add(rxBus
+            .toObservable(EventPreferenceChange::class.java)
+            .observeOn(aapsSchedulers.io)
+            .subscribe({ event: EventPreferenceChange ->
+                if (event.isChanged(resourceHelper, YpsoPumpConst.Prefs.PumpSerial))
+                    ypsoPumpStatusHandler.switchPumpData()
+            }
+            ) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
 
         // TODO fix me
 //        Observable c = Observable.fromCallable(() -> {
@@ -156,7 +165,7 @@ class YpsopumpPumpPlugin @Inject constructor(
 //;;
 
         // check status every minute (if any status needs refresh we send readStatus command)
-        Thread(Runnable {
+        Thread {
             do {
                 SystemClock.sleep(60000)
                 if (this.isInitialized) {
@@ -169,7 +178,9 @@ class YpsopumpPumpPlugin @Inject constructor(
                     }
                 }
             } while (serviceRunning)
-        }).start()
+        }.start()
+
+        ypsoPumpStatusHandler.loadYpsoPumpStatusList()
     }
 
     override val serviceClass: Class<*>?
@@ -183,13 +194,13 @@ class YpsopumpPumpPlugin @Inject constructor(
     }
 
     override fun isInitialized(): Boolean {
-        aapsLogger.debug(LTag.PUMP, "isInitialized - ")
+        aapsLogger.debug(LTag.PUMP, "isInitialized - true (always)")
         return true
         //return pumpStatus.ypsopumpFirmware != null;
     }
 
     override fun isSuspended(): Boolean {
-        aapsLogger.debug(LTag.PUMP, "isSuspended - ")
+        aapsLogger.debug(LTag.PUMP, "isSuspended - false (always)")
         return false
     }
 
@@ -236,21 +247,6 @@ class YpsopumpPumpPlugin @Inject constructor(
         return false
     }
 
-    // Pump Plugin
-    // TODO
-    //    @Override
-    //    public boolean hasService() {
-    //        return false;
-    //    }
-    //    @Override
-    //    public long getLastConnectionTimeMillis() {
-    //        return ypsopumpPumpStatus.lastConnection;
-    //    }
-    //
-    //    @Override
-    //    public void setLastCommunicationToNow() {
-    //        ypsopumpPumpStatus.setLastCommunicationToNow();
-    //    }
     override fun isBusy(): Boolean {
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "isBusy")
         return false
@@ -303,18 +299,19 @@ class YpsopumpPumpPlugin @Inject constructor(
                         resetTime = true
                     }
 
-                    YpsoPumpStatusRefreshType.BatteryStatus, YpsoPumpStatusRefreshType.RemainingInsulin -> {
-                        pumpConnectionManager.remainingInsulin
+                    YpsoPumpStatusRefreshType.BatteryStatus,
+                    YpsoPumpStatusRefreshType.RemainingInsulin                                          -> {
+                        pumpConnectionManager.getRemainingInsulin()
                         refreshTypesNeededToReschedule.add(key)
                         resetDisplay = true
                         resetTime = true
                     }
 
-                    YpsoPumpStatusRefreshType.Configuration                                             -> {
-                        pumpConnectionManager.configuration // TODO this might not be needed
-                        resetDisplay = true
-                        resetTime = true
-                    }
+                    // YpsoPumpStatusRefreshType.Configuration                                             -> {
+                    //     pumpConnectionManager.configuration // TODO this might not be needed
+                    //     resetDisplay = true
+                    //     resetTime = true
+                    // }
                 }
             }
 
@@ -323,7 +320,10 @@ class YpsopumpPumpPlugin @Inject constructor(
                 scheduleNextRefresh(refreshType2)
             }
         }
-        if (resetTime) pumpStatus.setLastCommunicationToNow()
+
+        if (resetTime)
+            pumpStatus.setLastCommunicationToNow()
+
         return resetDisplay
     }
 
@@ -347,39 +347,51 @@ class YpsopumpPumpPlugin @Inject constructor(
         setRefreshButtonEnabled(false)
         pumpState = PumpDriverState.Connected
 
-        // time (1h)
+        // firmware version
+        pumpConnectionManager.determineFirmwareVersion()
+
+        // TODO time (1h)
         checkTimeAndOptionallySetTime()
+
+        // TODO
+        ypsoPumpHistoryHandler.readCurrentStatusOfPump()
+
+        // TODO readPumpHistory
         readPumpHistory()
 
         // remaining insulin (>50 = 4h; 50-20 = 1h; 15m)
-        pumpConnectionManager.remainingInsulin
-        scheduleNextRefresh(YpsoPumpStatusRefreshType.RemainingInsulin, 10)
+        // TODO pumpConnectionManager.remainingInsulin
+        //scheduleNextRefresh(YpsoPumpStatusRefreshType.RemainingInsulin, 10)
 
         // remaining power (1h)
-        pumpConnectionManager.batteryStatus
-        scheduleNextRefresh(YpsoPumpStatusRefreshType.BatteryStatus, 20)
+        // TODO pumpConnectionManager.batteryStatus
+        //scheduleNextRefresh(YpsoPumpStatusRefreshType.BatteryStatus, 20)
 
         // configuration (once and then if history shows config changes)
-        pumpConnectionManager.configuration
+        pumpConnectionManager.getConfiguration()
 
         // read profile (once, later its controlled by isThisProfileSet method)
-        basalProfiles
+        pumpConnectionManager.getBasalProfile()
+
         pumpStatus.setLastCommunicationToNow()
         setRefreshButtonEnabled(true)
+
         if (!isRefresh) {
             pumpState = PumpDriverState.Initialized
         }
+
         isInitialized = true
         firstRun = false
+
         return true
     }
 
-    private val basalProfiles: Unit
-        private get() {
-            if (!pumpConnectionManager.basalProfile) {
-                pumpConnectionManager.basalProfile
-            }
-        }
+    // private val basalProfiles: Unit
+    //     get() {
+    //         if (!pumpConnectionManager.basalProfile) {
+    //             pumpConnectionManager.basalProfile
+    //         }
+    //     }
 
     var profile: Profile? = null
 
@@ -449,6 +461,7 @@ class YpsopumpPumpPlugin @Inject constructor(
     //
     //        return (!invalid);
     //    }
+
     override fun lastDataTime(): Long {
         return if (pumpStatus.lastConnection != 0L) {
             pumpStatus.lastConnection
@@ -482,7 +495,7 @@ class YpsopumpPumpPlugin @Inject constructor(
         get() = pumpStatus.batteryRemaining
 
     override fun triggerUIChange() {
-        rxBus.send(EventPumpConfigurationChanged())
+        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.TreatmentValues))
     }
 
     override fun hasService(): Boolean {
@@ -555,6 +568,7 @@ class YpsopumpPumpPlugin @Inject constructor(
 //        scheduleNextRefresh(YpsoPumpStatusRefreshType.PumpTime, 0);
     }
 
+    // TODO progress bar
     override fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, logPrefix + "deliverBolus - " + BolusDeliveryType.DeliveryPrepared)
         return if (detailedBolusInfo.insulin > pumpStatus.reservoirRemainingUnits) {
@@ -570,17 +584,28 @@ class YpsopumpPumpPlugin @Inject constructor(
             if (commandResponse!=null && commandResponse.isSuccess) {
                 val now = System.currentTimeMillis()
 
-//                detailedBolusInfo.date = now;
-//                detailedBolusInfo.deliverAt = now; // not sure about that one
-
-                // TODO pumpSync
-                activePlugin.activeTreatments.addToHistoryTreatment(detailedBolusInfo, true)
+                detailedBolusInfo.bolusTimestamp = now
 
                 // we subtract insulin, exact amount will be visible with next remainingInsulin update.
-                pumpStatus.reservoirRemainingUnits -= detailedBolusInfo.insulin
+                //pumpStatus.reservoirRemainingUnits -= detailedBolusInfo.insulin
 
-//                incrementStatistics(detailedBolusInfo.isSMB ? YpsoPumpConst.Statistics.SMBBoluses
-//                        : YpsoPumpConst.Statistics.StandardBoluses);
+                incrementStatistics(if (detailedBolusInfo.bolusType == DetailedBolusInfo.BolusType.SMB)
+                    YpsoPumpConst.Statistics.SMBBoluses
+                else
+                    YpsoPumpConst.Statistics.StandardBoluses)
+
+                if (detailedBolusInfo.carbs > 0.0) {
+                    pumpSync.syncCarbsWithTimestamp(
+                        timestamp = now,
+                        amount = detailedBolusInfo.carbs,
+                        pumpId = null,
+                        pumpType = PumpType.YPSOPUMP,
+                        pumpSerial = serialNumber()
+                    )
+                }
+
+                readPumpHistoryAfterAction(detailedBolusInfo)
+
                 PumpEnactResult(injector).success(true) //
                     .enacted(true) //
                     .bolusDelivered(detailedBolusInfo.insulin) //
@@ -704,6 +729,7 @@ class YpsopumpPumpPlugin @Inject constructor(
 
     override fun stopBolusDelivering() {
         bolusDeliveryType = BolusDeliveryType.CancelDelivery
+        // TODO if there is command
         if (isLoggingEnabled) aapsLogger.warn(LTag.PUMP, "MedtronicPumpPlugin::deliverBolus - Stop Bolus Delivery.")
     }
 
@@ -771,14 +797,9 @@ class YpsopumpPumpPlugin @Inject constructor(
                 pumpStatus.tempBasalPercent = percent
                 pumpStatus.tempBasalDuration = durationInMinutes
                 pumpStatus.tempBasalEnd = System.currentTimeMillis() + durationInMinutes * 60 * 1000
-                val tempStart: TemporaryBasal = TemporaryBasal(injector) //
-                    .date(System.currentTimeMillis()) //
-                    .duration(durationInMinutes) //
-                    .percent(percent) //
-                    .source(Source.USER)
 
-                // TODO pumpSync
-//                activePlugin.getActiveTreatments().addToHistoryTempBasal(tempStart);
+                readPumpHistoryAfterAction(null)
+
                 incrementStatistics(YpsoPumpConst.Statistics.TBRsSet)
                 PumpEnactResult(injector).success(true).enacted(true) //
                     .percent(percent).duration(durationInMinutes)
@@ -791,10 +812,12 @@ class YpsopumpPumpPlugin @Inject constructor(
         }
     }
 
+    // TODO setTempBasalAbsolute
     override fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int, profile: Profile,
                                       enforceNew: Boolean, tbrType: TemporaryBasalType): PumpEnactResult {
         aapsLogger.debug(LTag.PUMP, "setTempBasalAbsolute called with a rate of $absoluteRate for $durationInMinutes min.")
         val unroundedPercentage = java.lang.Double.valueOf(absoluteRate / baseBasalRate * 100).toInt()
+        // TODO unroundedPercentage needs to be rounded correctly
         return this.setTempBasalPercent(unroundedPercentage, durationInMinutes, profile, enforceNew, tbrType)
     }
 
@@ -810,12 +833,12 @@ class YpsopumpPumpPlugin @Inject constructor(
                 pumpStatus.tempBasalStart = System.currentTimeMillis()
                 pumpStatus.tempBasalPercent = percent
                 pumpStatus.tempBasalDuration = durationInMinutes
-                val tempStart: TemporaryBasal = TemporaryBasal(injector) //
-                    .date(System.currentTimeMillis()) //
-                    .duration(durationInMinutes) //
-                    .percent(percent) //
-                    .source(Source.USER)
-                // TODO
+                // val tempStart: TemporaryBasal = TemporaryBasal(injector) //
+                //     .date(System.currentTimeMillis()) //
+                //     .duration(durationInMinutes) //
+                //     .percent(percent) //
+                //     .source(Source.USER)
+                // TODO pumpSync
                 //activePlugin.activeTreatments.addToHistoryTempBasal(tempStart)
                 incrementStatistics(YpsoPumpConst.Statistics.TBRsSet)
                 PumpEnactResult(injector).success(true).enacted(true) //
@@ -844,9 +867,20 @@ class YpsopumpPumpPlugin @Inject constructor(
         setRefreshButtonEnabled(true)
     }
 
+    // TODO we might want to return data
     private fun readPumpHistory() {
         aapsLogger.warn(LTag.PUMP, logPrefix + "readPumpHistory N/A.")
-        pumpConnectionManager.pumpHistory
+
+        ypsoPumpHistoryHandler.getPumpHistory()
+
+        //        pumpConnectionManager.getPumpHistory()
+
+        scheduleNextRefresh(YpsoPumpStatusRefreshType.PumpHistory)
+
+        //TODO("readPumpHistory - Not Fully implemented!!!")
+
+        // read last event history
+        // read 10 minutes in past
 
 //        if (isLoggingEnabled())
 //            aapsLogger.warn(LTag.PUMP, getLogPrefix() + "readPumpHistory WIP.");
@@ -1007,16 +1041,25 @@ class YpsopumpPumpPlugin @Inject constructor(
     //        }
     //
     //    }
+
+    private fun readPumpHistoryAfterAction(detailedBolusInfo: DetailedBolusInfo?) {
+        aapsLogger.warn(LTag.PUMP, logPrefix + "readPumpHistoryAfterAction N/A.")
+        ypsoPumpHistoryHandler.getPumpHistoryAfterAction()
+    }
+
     private fun scheduleNextRefresh(refreshType: YpsoPumpStatusRefreshType?, additionalTimeInMinutes: Int = 0) {
         when (refreshType) {
-            YpsoPumpStatusRefreshType.RemainingInsulin                                                                                                                  -> {
+            YpsoPumpStatusRefreshType.RemainingInsulin -> {
                 val remaining = pumpStatus.reservoirRemainingUnits
                 val min: Int
                 min = if (remaining > 50) 4 * 60 else if (remaining > 20) 60 else 15
                 workWithStatusRefresh(StatusRefreshAction.Add, refreshType, getTimeInFutureFromMinutes(min))
             }
 
-            YpsoPumpStatusRefreshType.PumpTime, YpsoPumpStatusRefreshType.Configuration, YpsoPumpStatusRefreshType.BatteryStatus, YpsoPumpStatusRefreshType.PumpHistory -> {
+            YpsoPumpStatusRefreshType.PumpTime,
+            YpsoPumpStatusRefreshType.Configuration,
+            YpsoPumpStatusRefreshType.BatteryStatus,
+            YpsoPumpStatusRefreshType.PumpHistory      -> {
                 workWithStatusRefresh(StatusRefreshAction.Add, refreshType,
                     getTimeInFutureFromMinutes(refreshType.refreshTime + additionalTimeInMinutes))
             }
@@ -1046,6 +1089,7 @@ class YpsopumpPumpPlugin @Inject constructor(
         }
     }
 
+
     private fun getTimeInFutureFromMinutes(minutes: Int): Long {
         return System.currentTimeMillis() + getTimeInMs(minutes)
     }
@@ -1055,7 +1099,7 @@ class YpsopumpPumpPlugin @Inject constructor(
     }
 
     private fun readTBR(): TempBasalPair? {
-        val temporaryBasalResponse = pumpConnectionManager.temporaryBasal
+        val temporaryBasalResponse = pumpConnectionManager.getTemporaryBasal()
         return if (temporaryBasalResponse!=null && temporaryBasalResponse.isSuccess) {
             val tbr = temporaryBasalResponse.tempBasalPair as TempBasalPair
 
@@ -1089,13 +1133,9 @@ class YpsopumpPumpPlugin @Inject constructor(
             val commandResponse = pumpConnectionManager.cancelTemporaryBasal()
             if (commandResponse!!.isSuccess) {
                 aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - Cancel TBR successful.")
-                val tempBasal: TemporaryBasal = TemporaryBasal(injector) //
-                    .date(System.currentTimeMillis()) //
-                    .duration(0) //
-                    .source(Source.USER)
 
-                // TODO pumpSync
-//                activePlugin.getActiveTreatments().addToHistoryTempBasal(tempBasal);
+                readPumpHistoryAfterAction(null)
+
                 PumpEnactResult(injector).success(true).enacted(true) //
                     .isTempCancel(true)
             } else {
@@ -1109,7 +1149,7 @@ class YpsopumpPumpPlugin @Inject constructor(
     }
 
     override fun serialNumber(): String {
-        return pumpStatus.serialNumber!!
+        return if (pumpStatus.serialNumber == null) "" else pumpStatus.serialNumber!!.toString()
     }
 
     //    @NotNull @Override
@@ -1212,9 +1252,9 @@ class YpsopumpPumpPlugin @Inject constructor(
     }
 
     init {
-        this.sp = sp
-        pumpStatus = ypsopumpPumpStatus
-        pumpConnectionManager = connectionManager
+        //this.sp = sp
+        // pumpStatus = ypsopumpPumpStatus
+        // pumpConnectionManager = connectionManager
         displayConnectionMessages = true
     }
 }

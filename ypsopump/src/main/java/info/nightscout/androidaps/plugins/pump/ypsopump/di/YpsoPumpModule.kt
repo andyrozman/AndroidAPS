@@ -8,18 +8,26 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConvert
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.dialog.YpsoPumpBLEConfigActivity
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
+import info.nightscout.androidaps.plugins.pump.ypsopump.handlers.YpsoPumpHistoryHandler
+import info.nightscout.androidaps.plugins.pump.ypsopump.handlers.YpsoPumpStatusHandler
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 
 @Module(includes = [YpsoPumpDatabase::class])
 @Suppress("unused")
 abstract class YpsoPumpModule {
 
-    // Drivers basics
+    // Driver basics
     @ContributesAndroidInjector abstract fun ypsopumpPumpStatus(): YpsopumpPumpStatus
-    @ContributesAndroidInjector abstract fun ypsopumpUtil(): YpsoPumpUtil
+    @ContributesAndroidInjector abstract fun contributeYpsoPumpUtil(): YpsoPumpUtil
+    @ContributesAndroidInjector
+    abstract fun contributeYpsoPumpStatusHandler(): YpsoPumpStatusHandler
 
     // Data
-    @ContributesAndroidInjector abstract fun contributesYpsoPumpDataConverter(): YpsoPumpDataConverter
+    @ContributesAndroidInjector
+    abstract fun contributesYpsoPumpDataConverter(): YpsoPumpDataConverter
+
+    @ContributesAndroidInjector
+    abstract fun contributeYpsoPumpHistoryHandler(): YpsoPumpHistoryHandler
 
     // Communication Layer
     @ContributesAndroidInjector abstract fun ypsopumpConnectionManager(): YpsoPumpConnectionManager

@@ -38,6 +38,7 @@
     <string name="key_ypsopump_address" translatable="false">pref_ypsopump_address</string>
     <string name="key_ypsopump_serial" translatable="false">pref_ypsopump_serial</string>
     <string name="key_ypsopump_name" translatable="false">pref_ypsopump_name</string>
+    <string name="key_ypsopump_status_list" translatable="false">pref_ypsopump_status_list</string>
 
     <!-- YpsoPump BLE Config -->
     <string name="ypsopump_ble_config_scan_title">YpsoPump Scan</string>
@@ -49,6 +50,10 @@
     <!-- YpsoPump History -->
     <string name="ypsopump_pump_history">YpsoPump Pump History</string>
     <string name="ypsopump_pump_history_type">Type:</string>
+
+    <!-- YpsoPump Error -->
+    <string name="ypsopump_error_not_correct_pump">Not YpsoPump device</string>
+
 
 
     <!-- ddd -->

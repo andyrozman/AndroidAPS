@@ -6,7 +6,8 @@ import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.BasalProfileStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDeviceState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoConnectionStatus
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.YpsoPumpStatusEntry
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.YpsoPumpStatusList
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpFirmware
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst
 import info.nightscout.androidaps.utils.resources.ResourceHelper
@@ -27,7 +28,8 @@ class YpsopumpPumpStatus @Inject constructor(private val resourceHelper: Resourc
     var errorDescription: String? = null
     var ypsopumpFirmware: YpsoPumpFirmware? = null
     @JvmField var baseBasalRate = 0.0
-    var serialNumber: String? = null
+    var serialNumber: Long? = null
+    var ypsoPumpStatusList: YpsoPumpStatusList? = null
 
     //        rileyLinkUtil.getRileyLinkHistory().add(new RLHistoryItem(pumpDeviceState, RileyLinkTargetDevice.MedtronicPump));
 //
@@ -45,7 +47,7 @@ class YpsopumpPumpStatus @Inject constructor(private val resourceHelper: Resourc
     var basalProfileStatus = BasalProfileStatus.NotInitialized
     var basalProfile: Profile? = null
 
-    var connectionStatus = YpsoConnectionStatus.NOT_CONNECTED
+    //var connectionStatus = YpsoConnectionStatus.NOT_CONNECTED
     var settingsServiceVersion: String? = null
 
     override fun initSettings() {
@@ -55,6 +57,17 @@ class YpsopumpPumpStatus @Inject constructor(private val resourceHelper: Resourc
         batteryRemaining = 75
         lastConnection = sp.getLong(YpsoPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         lastDataTime = lastConnection
+    }
+
+    //var ypsoPumpStatusList: YpsoPumpStatusList? = null
+
+    fun getPumpStatusValuesForSelectedPump(): YpsoPumpStatusEntry? {
+        return ypsoPumpStatusList!!.map.get(serialNumber)
+    }
+
+    fun setPumpStatusValues(entry: YpsoPumpStatusEntry) {
+        ypsoPumpStatusList!!.map.put(entry.serialNumber, entry)
+        
     }
 
     val basalProfileForHour: Double

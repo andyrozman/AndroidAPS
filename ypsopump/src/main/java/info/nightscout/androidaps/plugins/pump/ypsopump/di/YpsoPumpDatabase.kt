@@ -4,10 +4,12 @@ import android.content.Context
 import dagger.Module
 import dagger.Provides
 import dagger.Reusable
+import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.HistoryMapper
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.HistoryRecordDao
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistory
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistoryDatabase
+import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import javax.inject.Singleton
 
@@ -21,7 +23,7 @@ class YpsoPumpDatabase {
 
     @Provides
     @Singleton
-    internal fun provideHistoryRecordDao(dashHistoryDatabase: YpsoPumpHistoryDatabase): HistoryRecordDao = dashHistoryDatabase.historyRecordDao()
+    internal fun provideHistoryRecordDao(historyDatabase: YpsoPumpHistoryDatabase): HistoryRecordDao = historyDatabase.historyRecordDao()
 
     @Provides
     @Reusable // no state, let system decide when to reuse or create new.
@@ -29,7 +31,7 @@ class YpsoPumpDatabase {
 
     @Provides
     @Singleton
-    internal fun provideDashHistory(dao: HistoryRecordDao, historyMapper: HistoryMapper) =
-        YpsoPumpHistory(dao, historyMapper)
+    internal fun provideYpsoPumpHistory(dao: HistoryRecordDao, pumpHistoryDatabase: YpsoPumpHistoryDatabase, historyMapper: HistoryMapper, pumpSync: PumpSync, pumpStatus: YpsopumpPumpStatus) =
+        YpsoPumpHistory(dao, pumpHistoryDatabase, historyMapper, pumpSync, pumpStatus)
 
 }
