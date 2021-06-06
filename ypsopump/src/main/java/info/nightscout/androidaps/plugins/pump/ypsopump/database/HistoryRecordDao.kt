@@ -1,7 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.database
 
 import androidx.room.*
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.HistoryEntryType
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.HistoryEntryType
 import io.reactivex.Completable
 import io.reactivex.Single
 
@@ -35,7 +35,15 @@ abstract class HistoryRecordDao {
     @Query("SELECT * from history_records where serial = :serialNumber and historyRecordType= :entryType " +
         " and id= (select max(id) from history_records where serial = :serialNumber " +
         " and historyRecordType= :entryType) ")
-    abstract fun getLatestHistoryEntry(serialNumber: Long, entryType: HistoryEntryType) : HistoryRecordEntity?
+    abstract fun getLatestHistoryEntry(serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity?
+
+    @Query("SELECT * from history_records where serial = :serialNumber and historyRecordType='Event' " +
+        " and id= ( select max(id) from history_records where serial = :serialNumber " +
+        "           and historyRecordType='Event' " +
+        "           and (entryType='PUMP_MODE_CHANGED' or entryType='DELIVERY_STATUS_CHANGED')) ")
+    abstract fun getLatestDeliveryStatusChanged(serialNumber: Long): HistoryRecordEntity?
+
+    //PUMP_MODE_CHANGED, DELIVERY_STATUS_CHANGED
 
     // select * from test_table where type = 'EVENT' and number_count =
     // (select max(test_table.number_count) from test_table where type = 'EVENT')

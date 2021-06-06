@@ -1,6 +1,7 @@
-package info.nightscout.androidaps.plugins.pump.ypsopump.comm.data
+package info.nightscout.androidaps.plugins.pump.ypsopump.data
 
 import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
+import org.joda.time.DateTime
 
 data class DateTimeDto(var year: Int? = 0,
                        var month: Int? = 0,
@@ -27,5 +28,14 @@ data class DateTimeDto(var year: Int? = 0,
         return DateTimeUtil.toATechDate(this.year!!, this.month!!, this.day!!, this.hour!!, this.minute!!, this.second!!)
     }
 
+    // fun toMillis(): Long {
+    //     toLocalDateTime()
+    //     val calendar = GregorianCalendar(this.year!!, this.month!!, this.day!!, this.hour!!, this.minute!!, this.second!!)
+    //     return calendar.timeInMillis
+    // }
+
+    fun toLocalDateTime(): DateTime {
+        return DateTime(this.year!!, this.month!!, this.day!!, this.hour!!, this.minute!!, this.second!!)
+    }
 
 }

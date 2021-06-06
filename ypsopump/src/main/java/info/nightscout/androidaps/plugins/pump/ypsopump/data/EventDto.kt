@@ -1,5 +1,6 @@
-package info.nightscout.androidaps.plugins.pump.ypsopump.comm.data
+package info.nightscout.androidaps.plugins.pump.ypsopump.data
 
+import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.utils.resources.ResourceHelper
@@ -19,14 +20,15 @@ data class EventDto(var id: Int?,
                     var value3: Int,
                     var eventSequenceNumber: Int,
                     var subObject: EventObject? = null,
+                    var subObject2: EventObject? = null, // this is used only for fake TBR that emulates Pump Start/Stop for now
                     var created: Long? = null,
-                    var updated: Long? = null) {
+                    var updated: Long? = null) : Comparable<EventDto> {
 
-    var dateTimeString: String = ""
+    val dateTimeString: String
         get() = "${dateTime.day}.${dateTime.month}.${dateTime.year} ${dateTime.hour}:${dateTime.minute}:${dateTime.second}"
 
     fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
-        if (subObject!=null) {
+        if (subObject != null) {
             return subObject!!.getDisplayableValue(resourceHelper, ypsoPumpDataConverter)
         } else {
             return "???"
@@ -46,14 +48,17 @@ data class EventDto(var id: Int?,
         var sequenceString = "" + eventSequenceNumber
         sequenceString = sequenceString.padStart(8, ' ')
 
-
         val dataLine = dateTime.toString() + "   " + entryTypeFormated + "  " + sequenceString
 
         if (subObject == null) {
             return dataLine + "      value1=" + value1 + ", value2=" + value2 + ", value3=" + value3
         } else {
-            return dataLine + "      " + subObject.toString()
+            return dataLine + "      " + subObject.toString() + " " + dateTime.toLocalDateTime()
         }
+    }
+
+    override fun compareTo(other: EventDto): Int {
+        return this.eventSequenceNumber - other.eventSequenceNumber
     }
 }
 
@@ -107,7 +112,9 @@ data class TotalDailyInsulin(var bolus: Double,
 enum class BolusType {
     Normal,
     Extended,
-    Combined
+    Combined,
+    SMB,
+    Priming
 }
 
 
@@ -140,10 +147,12 @@ data class Bolus(var bolusType: BolusType,
     // TODO i18n
     // TODO show values
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
-        return when(bolusType) {
+        return when (bolusType) {
             BolusType.Normal   -> "Bolus: Normal, Amount: $immediateAmount"
             BolusType.Extended -> "Bolus: Extended, Amount: $extendedAmount, Duration: $durationMin min"
             BolusType.Combined -> "Bolus: Combined, Immediate Amount: $immediateAmount, Extended Amount: $extendedAmount, Duration: $durationMin min"
+            BolusType.SMB      -> "Bolus: SMB, Amount: $immediateAmount"
+            BolusType.Priming  -> "Bolus: Priming, Amount: $immediateAmount"
         }
     }
 
@@ -151,7 +160,9 @@ data class Bolus(var bolusType: BolusType,
 
 data class TemporaryBasal(var percent: Int,
                           var minutes: Int,
-                          var isRunning: Boolean): EventObject() {
+                          var isRunning: Boolean,
+                          var temporaryBasalType: PumpSync.TemporaryBasalType = PumpSync.TemporaryBasalType.NORMAL) : EventObject() {
+
     // TODO i18n
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
         return "Rate: " + percent + "%, " + minutes + " min"

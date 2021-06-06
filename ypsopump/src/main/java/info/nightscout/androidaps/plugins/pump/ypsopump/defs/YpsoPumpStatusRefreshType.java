@@ -7,7 +7,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.defs;
 public enum YpsoPumpStatusRefreshType {
 
     PumpHistory(5, null), //
-    Configuration(0, null), //
+    //Configuration(0, null), //
     RemainingInsulin(-1, null /*MedtronicCommandType.GetRemainingInsulin*/), //
     BatteryStatus(55, null /*MedtronicCommandType.GetBatteryStatus*/), //
     PumpTime(60, null /*MedtronicCommandType.GetRealTimeClock*/) //

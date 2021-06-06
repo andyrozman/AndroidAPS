@@ -1,6 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.driver
 
 import info.nightscout.androidaps.interfaces.Profile
+import info.nightscout.androidaps.interfaces.PumpDescription
 import info.nightscout.androidaps.plugins.bus.RxBusWrapper
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.BasalProfileStatus
@@ -25,8 +26,10 @@ class YpsopumpPumpStatus @Inject constructor(private val resourceHelper: Resourc
                                              private val rxBus: RxBusWrapper
 ) : PumpStatus(PumpType.YPSOPUMP) {
 
+    lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null
-    var ypsopumpFirmware: YpsoPumpFirmware? = null
+    var ypsopumpFirmware: YpsoPumpFirmware = YpsoPumpFirmware.VERSION_1_5
+    var isFirmwareSet = false
     @JvmField var baseBasalRate = 0.0
     var serialNumber: Long? = null
     var ypsoPumpStatusList: YpsoPumpStatusList? = null
@@ -49,6 +52,12 @@ class YpsopumpPumpStatus @Inject constructor(private val resourceHelper: Resourc
 
     //var connectionStatus = YpsoConnectionStatus.NOT_CONNECTED
     var settingsServiceVersion: String? = null
+
+    var lastConfigurationUpdate: Long = 0
+    var configChanged: Boolean = false
+    var bolusStep: Double = 0.1
+    var maxBolus: Double? = null
+    var maxBasal: Double? = null
 
     override fun initSettings() {
         activeProfileName = "A"
@@ -80,7 +89,7 @@ class YpsopumpPumpStatus @Inject constructor(private val resourceHelper: Resourc
             return 0.0
         }
 
-    override val errorInfo: String?
+    override val errorInfo: String
         get() = if (errorDescription == null) "-" else errorDescription!!
 
     init {

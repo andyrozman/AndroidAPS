@@ -2,8 +2,8 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.EventDto
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.HistoryEntryType
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.EventDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.HistoryEntryType
 
 class GetEvents(hasAndroidInjector: HasAndroidInjector?,
                 targetDate: Long? = null,
@@ -31,15 +31,23 @@ class GetEvents(hasAndroidInjector: HasAndroidInjector?,
     }
 
     override fun isEntryInRange(event: EventDto): Boolean {
-        return if (targetDate != null) {
-            event.dateTime.toATechDate() >= targetDate!!
+        var inRange: Boolean = false
+
+        if (targetDate != null) {
+            inRange = event.dateTime.toATechDate() >= targetDate!!
         } else if (eventSequenceNumber != null) {
             if (includeEventSequence)
-                event.eventSequenceNumber >= eventSequenceNumber!!
+                inRange = event.eventSequenceNumber >= eventSequenceNumber!!
             else
-                event.eventSequenceNumber > eventSequenceNumber!!
+                inRange = event.eventSequenceNumber > eventSequenceNumber!!
         } else
-            true
+            return true
+
+        if (!inRange) {
+            cancelProcessing = true
+        }
+
+        return inRange
     }
 
 }

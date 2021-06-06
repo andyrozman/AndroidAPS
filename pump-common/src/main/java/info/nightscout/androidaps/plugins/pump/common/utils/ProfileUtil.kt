@@ -78,4 +78,18 @@ object ProfileUtil {
 
     }
 
+    @JvmStatic
+    fun getProfilesByHourToString(data: DoubleArray?): String {
+        if (data == null) {
+            return " null "
+        }
+        
+        val stringBuilder = StringBuilder()
+        for (value in data) {
+            stringBuilder.append(String.format("%.3f", value))
+            stringBuilder.append(" ")
+        }
+        return stringBuilder.toString()
+    }
+
 }

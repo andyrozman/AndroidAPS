@@ -124,6 +124,9 @@ open class Notification {
         const val UNSUPPORTED_ACTION_IN_PUMP = 71
         const val WRONG_PUMP_DATA = 71
 
+        const val PUMP_PHONE_TIME_DIFF_TOO_BIG = 100
+        const val YPSOPUMP_PUMP_ALARM = 101
+
         const val USER_MESSAGE = 1000
 
         const val IMPORTANCE_HIGH = 2

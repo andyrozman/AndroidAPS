@@ -18,4 +18,6 @@ dependencies {
     implementation project(':core')
     implementation project(':pump-common')
     implementation project(':rileylink')
+
+    testImplementation 'org.mockito:mockito-inline:2.13.0'
 }

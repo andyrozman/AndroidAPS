@@ -54,6 +54,19 @@
     <!-- YpsoPump Error -->
     <string name="ypsopump_error_not_correct_pump">Not YpsoPump device</string>
 
+    <!-- YpsoPump UI - 1.5 Open Loop commands -->
+    <string name="ypsopump_cmd_exec_title_set_profile">Manually Set Profile on Pump</string>
+    <string name="ypsopump_cmd_exec_desc_set_profile">Please set Profile on your Pump, and AFTER\nyou are done confirm it here:\n %1$s</string>
+    <string name="ypsopump_cmd_exec_title_set_bolus">Manually Set Bolus on Pump</string>
+    <string name="ypsopump_cmd_exec_desc_set_bolus">Please set Bolus of %1$.2f U on your Pump, and AFTER\nyou are done confirm it here.</string>
+    <string name="ypsopump_cmd_exec_title_set_tbr">Manually Set Temporary Basal on Pump</string>
+    <string name="ypsopump_cmd_exec_desc_set_tbr">Please set Temporary Basal of %1$d %% for %2$d min\non your Pump, and AFTER you are done\nconfirm it here:\n %1$s</string>
+
+    <!-- Pump Common MOVE THERE -->
+    <string name="time_difference_too_big">Time difference between pump and phone is over %1$d s (%2$d)</string>
+
+    <!-- Configuration -->
+    <string name="eightdigitnumber" translatable="false">^\\d{8}</string>
 
 
     <!-- ddd -->
@@ -61,16 +74,6 @@
     <string name="ypsopump_cmd_desc_get_history_request">Get History - Page %1$d</string>
     <string name="ypsopump_cmd_desc_get_time">Get Pump Time</string>
     <!-- ddd end -->
-
-
-    <plurals name="duration_days">
-        <item quantity="one">%1$d day</item>
-        <item quantity="other">%1$d days</item>
-    </plurals>
-    <plurals name="duration_hours">
-        <item quantity="one">%1$d hour</item>
-        <item quantity="other">%1$d hours</item>
-    </plurals>
 
 
     <!-- OLD Ones past this line -->

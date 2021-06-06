@@ -2,10 +2,10 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.EventDto
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.HistoryEntryType
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.EventDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.HistoryEntryType
 
-class GetAlarms(hasAndroidInjector: HasAndroidInjector?, targetDate: Long?, eventSequenceNumber: Int?) : GetDataListAbstract<EventDto>(hasAndroidInjector!!, targetDate, eventSequenceNumber) {
+class GetAlarms(hasAndroidInjector: HasAndroidInjector?, eventSequenceNumber: Int?) : GetDataListAbstract<EventDto>(hasAndroidInjector!!, null, eventSequenceNumber, false) {
 
     override fun getIndexUuid(): YpsoGattCharacteristic {
         return YpsoGattCharacteristic.ALARM_ENTRY_INDEX
@@ -27,11 +27,11 @@ class GetAlarms(hasAndroidInjector: HasAndroidInjector?, targetDate: Long?, even
         return "Alarm"
     }
 
-    override fun isEntryInRange(event: EventDto): Boolean {
+    override fun isEntryInRange(decodedObject: EventDto): Boolean {
         return if (targetDate != null) {
-            event.dateTime.toATechDate() >= targetDate!!
+            decodedObject.dateTime.toATechDate() >= targetDate!!
         } else if (eventSequenceNumber != null) {
-            event.eventSequenceNumber > eventSequenceNumber!!
+            decodedObject.eventSequenceNumber > eventSequenceNumber!!
         } else
             true
     }

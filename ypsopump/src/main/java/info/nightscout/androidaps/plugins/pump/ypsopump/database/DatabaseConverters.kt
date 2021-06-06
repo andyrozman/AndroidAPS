@@ -1,7 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.database
 
 import androidx.room.TypeConverter
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.*
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.*
 
 class DatabaseConverters {
 

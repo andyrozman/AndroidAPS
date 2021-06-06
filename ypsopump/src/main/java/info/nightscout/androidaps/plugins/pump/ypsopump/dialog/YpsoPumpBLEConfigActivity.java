@@ -37,6 +37,7 @@ import info.nightscout.androidaps.logging.AAPSLogger;
 import info.nightscout.androidaps.logging.LTag;
 import info.nightscout.androidaps.plugins.bus.RxBusWrapper;
 import info.nightscout.androidaps.plugins.pump.common.ble.BlePreCheck;
+import info.nightscout.androidaps.plugins.pump.common.events.EventPumpChanged;
 import info.nightscout.androidaps.plugins.pump.ypsopump.R;
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst;
 import info.nightscout.androidaps.utils.resources.ResourceHelper;
@@ -115,14 +116,17 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
                 Log.d(TAG, "Device bonding status: " + bluetoothDevice.getBondState() + " desc: " + getBondingStatusDescription(bluetoothDevice.getBondState()));
 
                 // if we are not bonded, bonding is started
-                if (bondState!=12) {
+                if (bondState != 12) {
                     // TODO create bond
                     bluetoothDevice.createBond();
                 }
 
+                boolean addressChanged = false;
+
                 // set pump address
                 if (setSystemParameterForBT(YpsoPumpConst.Prefs.PumpAddress, bleAddress)) {
-                    // TODO send notification to pumpSync
+
+                    addressChanged = true;
                 }
 
                 setSystemParameterForBT(YpsoPumpConst.Prefs.PumpName, deviceName);
@@ -130,7 +134,13 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
                 String name = bluetoothDevice.getName();
 
                 if (name.contains("_")) {
-                    setSystemParameterForBT(YpsoPumpConst.Prefs.PumpSerial, name.substring(name.indexOf("_")+1));
+                    name = name.substring(name.indexOf("_") + 1);
+                    setSystemParameterForBT(YpsoPumpConst.Prefs.PumpSerial, name);
+                }
+
+                if (addressChanged) {
+                    // TODO send notification to pumpSync
+                    rxBus.send(new EventPumpChanged(name, bleAddress, null));
                 }
 
             } else {
@@ -161,7 +171,6 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
                         BluetoothDevice bluetoothDevice = devicesMap.get(device);
 
                         Log.d(TAG, "Device can be detected near, so trying to remove bond if possible.");
-
 
                         if (bluetoothDevice.getBondState()==12) {
                             // TODO remove bond

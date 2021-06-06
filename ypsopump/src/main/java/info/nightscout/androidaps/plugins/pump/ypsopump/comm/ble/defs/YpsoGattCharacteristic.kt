@@ -34,21 +34,22 @@ enum class YpsoGattCharacteristic(val uuid: String, val description: String) {
     EVENT_ENTRY_INDEX("669a0c20-0008-969e-e211-fcbecc3b7bc5", "Event Entry Index"),
     EVENT_ENTRY_VALUE("669a0c20-0008-969e-e211-fcbecd3b7bc5", "Event Entry Value"),
 
-    // 669a0c20-0008-969e-e211-fcbece3b7bc5  - Unknown
-    // 669a0c20-0008-969e-e211-fcbecf3b7bc5  - Unknown
-    // 669a0c20-0008-969e-e211-fcbed03b7bc5  - Unknown
+    UNDEFINED_001("669a0c20-0008-969e-e211-fcbece3b7bc5", "Undefined 001"),
+    UNDEFINED_002("669a0c20-0008-969e-e211-fcbecf3b7bc5", "Undefined 002"),
+    UNDEFINED_003("669a0c20-0008-969e-e211-fcbed03b7bc5", "Undefined 003"), // write ??
     HISTORY_SERVICE_VERSION("669a0c20-0008-969e-e211-fcbee43b7bc5", "History Service Version"),
 
-    // 449753d3-3cc5-7594-ae4f-8d4efa2af4fd) X
-    // db75669b-e6cc-f6a4-1f4b-0becaeb81f34)X
-    // 813a4e12-e1e2-47a0-2544-22664b3c9e62)X
-    
+    UNDEFINED_004("449753d3-3cc5-7594-ae4f-8d4efa2af4fd", "Undefined 004"),
+    UNDEFINED_005("db75669b-e6cc-f6a4-1f4b-0becaeb81f34", "Undefined 005"),
+    UNDEFINED_006("813a4e12-e1e2-47a0-2544-22664b3c9e62", "Undefined 006"),
+
     SYSTEM_ENTRY_COUNT("86a5a431-d442-2c8d-304b-19ee355571fc", "System Entry Count"),
     SYSTEM_ENTRY_INDEX("381ddce9-e934-b4ae-e345-eb87283db426", "System Entry Index"),
     SYSTEM_ENTRY_VALUE("ae3022af-2ec8-bf88-e64c-da68c9a3891a", "System Entry Value"),
     UNKNOWN("", "Unknown Characteristic");
 
     companion object {
+
         //
         const val YPSOPUMP_BT_ADDRESS = "EC:2A:F0" // aYpsoPumpBle extends aBleDevice
 

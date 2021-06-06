@@ -4,11 +4,10 @@ package info.nightscout.androidaps.plugins.pump.common.utils;
  * Created by andy on 10/25/18.
  */
 
+import org.joda.time.DateTime;
 import org.joda.time.LocalDateTime;
 import org.joda.time.Minutes;
-
-import java.util.Calendar;
-import java.util.GregorianCalendar;
+import org.joda.time.Period;
 
 /**
  * This is simple version of ATechDate, limited only to one format (yyyymmddHHMIss)
@@ -49,13 +48,40 @@ public class DateTimeUtil {
     }
 
 
-    /**
-     * DateTime is packed as long: yyyymmddHHMMss
-     *
-     * @param atechDateTime
-     * @return
-     */
-    public static GregorianCalendar toGregorianCalendar(long atechDateTime) {
+//    /**
+//     * DateTime is packed as long: yyyymmddHHMMss
+//     *
+//     * @param atechDateTime
+//     * @return
+//     */
+//    public static GregorianCalendar toGregorianCalendar(long atechDateTime) {
+//        int year = (int) (atechDateTime / 10000000000L);
+//        atechDateTime -= year * 10000000000L;
+//
+//        int month = (int) (atechDateTime / 100000000L);
+//        atechDateTime -= month * 100000000L;
+//
+//        int dayOfMonth = (int) (atechDateTime / 1000000L);
+//        atechDateTime -= dayOfMonth * 1000000L;
+//
+//        int hourOfDay = (int) (atechDateTime / 10000L);
+//        atechDateTime -= hourOfDay * 10000L;
+//
+//        int minute = (int) (atechDateTime / 100L);
+//        atechDateTime -= minute * 100L;
+//
+//        int second = (int) atechDateTime;
+//
+//        try {
+//            return new GregorianCalendar(year, month - 1, dayOfMonth, hourOfDay, minute, second);
+//        } catch (Exception ex) {
+//            //LOG.error("DateTimeUtil", String.format("Error creating GregorianCalendar from values [atechDateTime=%d, year=%d, month=%d, day=%d, hour=%d, minute=%d, second=%d]", atechDateTime, year, month, dayOfMonth, hourOfDay, minute, second));
+//            //return null;
+//            throw ex;
+//        }
+//    }
+
+    public static DateTime toJodaDateTime(long atechDateTime) {
         int year = (int) (atechDateTime / 10000000000L);
         atechDateTime -= year * 10000000000L;
 
@@ -74,7 +100,7 @@ public class DateTimeUtil {
         int second = (int) atechDateTime;
 
         try {
-            return new GregorianCalendar(year, month - 1, dayOfMonth, hourOfDay, minute, second);
+            return new DateTime(year, month - 1, dayOfMonth, hourOfDay, minute, second);
         } catch (Exception ex) {
             //LOG.error("DateTimeUtil", String.format("Error creating GregorianCalendar from values [atechDateTime=%d, year=%d, month=%d, day=%d, hour=%d, minute=%d, second=%d]", atechDateTime, year, month, dayOfMonth, hourOfDay, minute, second));
             //return null;
@@ -82,6 +108,18 @@ public class DateTimeUtil {
         }
     }
 
+    public static long toATechDate(DateTime ldt) {
+        long atechDateTime = 0L;
+
+        atechDateTime += ldt.getYear() * 10000000000L;
+        atechDateTime += ldt.getMonthOfYear() * 100000000L;
+        atechDateTime += ldt.getDayOfMonth() * 1000000L;
+        atechDateTime += ldt.getHourOfDay() * 10000L;
+        atechDateTime += ldt.getMinuteOfHour() * 100L;
+        atechDateTime += ldt.getSecondOfMinute();
+
+        return atechDateTime;
+    }
 
     public static long toATechDate(LocalDateTime ldt) {
         long atechDateTime = 0L;
@@ -97,25 +135,10 @@ public class DateTimeUtil {
     }
 
 
-    public static long toATechDate(GregorianCalendar gc) {
-        long atechDateTime = 0L;
-
-        atechDateTime += gc.get(Calendar.YEAR) * 10000000000L;
-        atechDateTime += (gc.get(Calendar.MONTH) + 1) * 100000000L;
-        atechDateTime += gc.get(Calendar.DAY_OF_MONTH) * 1000000L;
-        atechDateTime += gc.get(Calendar.HOUR_OF_DAY) * 10000L;
-        atechDateTime += gc.get(Calendar.MINUTE) * 100L;
-        atechDateTime += gc.get(Calendar.SECOND);
-
-        return atechDateTime;
-    }
-
-
     public static long toATechDate(long timeInMillis) {
-        GregorianCalendar gc = new GregorianCalendar();
-        gc.setTimeInMillis(timeInMillis);
+        DateTime dt = new DateTime(timeInMillis);
 
-        return toATechDate(gc);
+        return toATechDate(dt);
     }
 
 
@@ -190,22 +213,19 @@ public class DateTimeUtil {
     }
 
 
-    public static String toString(GregorianCalendar gc) {
+    public static String toString(DateTime dt) {
 
-        return getZeroPrefixed(gc.get(Calendar.DAY_OF_MONTH)) + "." + getZeroPrefixed(gc.get(Calendar.MONTH) + 1) + "."
-                + gc.get(Calendar.YEAR) + " "
-                + //
-                getZeroPrefixed(gc.get(Calendar.HOUR_OF_DAY)) + ":" + getZeroPrefixed(gc.get(Calendar.MINUTE)) + ":"
-                + getZeroPrefixed(gc.get(Calendar.SECOND));
+        return getZeroPrefixed(dt.getDayOfMonth()) + "." + getZeroPrefixed(dt.getMonthOfYear()) + "." + dt.getYear() + " "
+                + getZeroPrefixed(dt.getHourOfDay()) + ":" + getZeroPrefixed(dt.getMinuteOfHour()) + ":"
+                + getZeroPrefixed(dt.getSecondOfMinute());
     }
 
 
     public static String toStringFromTimeInMillis(long timeInMillis) {
 
-        GregorianCalendar gc = new GregorianCalendar();
-        gc.setTimeInMillis(timeInMillis);
+        DateTime dt = new DateTime(timeInMillis);
 
-        return toString(gc);
+        return toString(dt);
     }
 
 
@@ -227,8 +247,7 @@ public class DateTimeUtil {
 
     public static boolean isSameDayATDAndMillis(long atechDateTime, long timeInMillis) {
 
-        GregorianCalendar dt = new GregorianCalendar();
-        dt.setTimeInMillis(timeInMillis);
+        DateTime dt = new DateTime(timeInMillis);
 
         long entryDate = toATechDate(dt);
 
@@ -237,10 +256,9 @@ public class DateTimeUtil {
 
 
     public static long toMillisFromATD(long atechDateTime) {
+        DateTime dt = toJodaDateTime(atechDateTime);
 
-        GregorianCalendar gc = toGregorianCalendar(atechDateTime);
-
-        return gc.getTimeInMillis();
+        return dt.getMillis();
     }
 
 
@@ -253,23 +271,22 @@ public class DateTimeUtil {
 
 
     public static long getMillisFromATDWithAddedMinutes(long atd, int minutesDiff) {
-        GregorianCalendar oldestEntryTime = DateTimeUtil.toGregorianCalendar(atd);
-        oldestEntryTime.add(Calendar.MINUTE, minutesDiff);
+        DateTime oldestEntryTime = toJodaDateTime(atd);
+        oldestEntryTime.plus(Period.minutes(minutesDiff));
 
-        return oldestEntryTime.getTimeInMillis();
+        return oldestEntryTime.getMillis();
     }
 
 
     public static long getATDWithAddedMinutes(long atd, int minutesDiff) {
-        GregorianCalendar oldestEntryTime = DateTimeUtil.toGregorianCalendar(atd);
-        oldestEntryTime.add(Calendar.MINUTE, minutesDiff);
+        DateTime oldestEntryTime = toJodaDateTime(atd);
+        oldestEntryTime.plus(Period.minutes(minutesDiff));
 
-        return oldestEntryTime.getTimeInMillis();
+        return toATechDate(oldestEntryTime);
     }
 
-
-    public static long getATDWithAddedMinutes(GregorianCalendar oldestEntryTime, int minutesDiff) {
-        oldestEntryTime.add(Calendar.MINUTE, minutesDiff);
+    public static long getATDWithAddedMinutes(DateTime oldestEntryTime, int minutesDiff) {
+        oldestEntryTime.plus(Period.minutes(minutesDiff));
 
         return toATechDate(oldestEntryTime);
     }

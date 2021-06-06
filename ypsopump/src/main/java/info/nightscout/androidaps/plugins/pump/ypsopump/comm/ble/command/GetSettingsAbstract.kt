@@ -6,7 +6,6 @@ import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoSettingId
-import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import java.util.*
 
 abstract class GetSettingsAbstract<T>(hasAndroidInjector: HasAndroidInjector) : AbstractBLECommand<T>(hasAndroidInjector) {
@@ -31,6 +30,8 @@ abstract class GetSettingsAbstract<T>(hasAndroidInjector: HasAndroidInjector) : 
             return null
         }
         val data = bleCommOperationResultRead.value
+        this.bleCommOperationResult = bleCommOperationResultRead
+
         aapsLogger.debug(LTag.PUMPBTCOMM, String.format(Locale.ENGLISH, "Setting read [name=%s, index=%d, result=%s]", settingsId.name, index, ByteUtil.getHex(data)))
         return data
     }

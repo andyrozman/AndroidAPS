@@ -2,7 +2,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.DateTimeDto
 
 @Deprecated("Just sample how to use")
 class GetDate(hasAndroidInjector: HasAndroidInjector?) : AbstractBLECommand<DateTimeDto?>(hasAndroidInjector!!) {

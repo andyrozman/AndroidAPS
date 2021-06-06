@@ -10,16 +10,22 @@ import info.nightscout.androidaps.plugins.bus.RxBusWrapper
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpUpdateFragmentType
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentValuesChanged
-import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.GetEvents
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.GetBasalProfile
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.GetDateTime
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.GetFirmwareVersion
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.GetPumpSettings
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoBasalProfileType
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoPumpNotificationType
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.parameters.CommandParameters
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.CommandResponse
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.SimpleDataCommandResponse
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.TemporaryBasalResponse
 import info.nightscout.androidaps.plugins.pump.ypsopump.connector.YpsoPumpConnectorInterface
 import info.nightscout.androidaps.plugins.pump.ypsopump.connector.YpsoPumpDummyConnector
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.BasalProfileDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.YpsoPumpSettingsDto
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpFirmware
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
@@ -35,7 +41,7 @@ import javax.inject.Singleton
 
 @Singleton
 class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPumpStatus,
-                                                    val ypsopumpUtil: YpsoPumpUtil,
+                                                    val pumpUtil: YpsoPumpUtil,
                                                     val sp: SP,
                                                     val injector: HasAndroidInjector,
                                                     val aapsLogger: AAPSLogger,
@@ -50,14 +56,14 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
         : YpsoPumpConnectorInterface
     private val selectedConnector: YpsoPumpConnectorInterface
     private val disposable = CompositeDisposable()
-    private val oldFirmware: YpsoPumpFirmware? = null
-    private val currentFirmware: YpsoPumpFirmware? = null
+    private var oldFirmware: YpsoPumpFirmware? = null
+    private var currentFirmware: YpsoPumpFirmware? = null
     var inConnectMode = false
     var inDisconnectMode = false
 
     fun connectToPump(): Boolean {
 
-        if (ypsopumpUtil.driverStatus === PumpDriverState.Ready) {
+        if (pumpUtil.driverStatus === PumpDriverState.Ready) {
             return true
         }
 
@@ -78,7 +84,7 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
         while (System.currentTimeMillis() < timeoutTime) {
             SystemClock.sleep(5000)
 
-            driverStatus = ypsopumpUtil.driverStatus
+            driverStatus = pumpUtil.driverStatus
 
             aapsLogger.debug(LTag.PUMPCOMM, "connectToPump: " + driverStatus.name)
 
@@ -121,6 +127,8 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
 
         if (command.isSuccessful) {
             pumpStatus.ypsopumpFirmware = command.commandResponse!!
+            pumpStatus.isFirmwareSet = true
+            this.currentFirmware = pumpStatus.ypsopumpFirmware
             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
         } else {
             aapsLogger.error(LTag.PUMPCOMM, "Problem getting firmware version: " + command.bleCommOperationResult!!.operationResultType.name)
@@ -144,15 +152,15 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
 //        }
 
         // TODO single only ATM
-        ypsopumpUtil.currentCommand = parameters.commandType
-        ypsopumpUtil.sleepSeconds(40)
-        ypsopumpUtil.driverStatus = PumpDriverState.Connected
+        pumpUtil.currentCommand = parameters.commandType
+        pumpUtil.sleepSeconds(40)
+        pumpUtil.driverStatus = PumpDriverState.Connected
         return CommandResponse.builder().success(true).build()
     }
 
     fun disconnectFromPump() {
 
-        var driverStatus: PumpDriverState? = ypsopumpUtil.driverStatus
+        var driverStatus: PumpDriverState? = pumpUtil.driverStatus
 
         when (driverStatus) {
             PumpDriverState.NotInitialized,
@@ -162,7 +170,7 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
             }
 
             PumpDriverState.ErrorCommunicatingWithPump -> {
-                val errorType = ypsopumpUtil.errorType
+                val errorType = pumpUtil.errorType
                 aapsLogger.warn(LTag.PUMPCOMM, "disconnectFromPump. Pump is in error ($errorType.name), exiting.")
                 return;
             }
@@ -174,7 +182,7 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
             PumpDriverState.Suspended,
             PumpDriverState.Connected                  -> {
                 aapsLogger.warn(LTag.PUMPCOMM, "disconnectFromPump. Pump seems to be in unallowed state ($driverStatus.name), exiting and setting to Sleep.")
-                ypsopumpUtil.driverStatus = PumpDriverState.Sleeping
+                pumpUtil.driverStatus = PumpDriverState.Sleeping
                 return;
             }
 
@@ -203,7 +211,7 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
         while (System.currentTimeMillis() < timeoutTime) {
             SystemClock.sleep(5000)
 
-            driverStatus = ypsopumpUtil.driverStatus
+            driverStatus = pumpUtil.driverStatus
 
             aapsLogger.debug(LTag.PUMPCOMM, "disconnectFromPump: " + driverStatus.name)
 
@@ -214,7 +222,7 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
         }
 
         if (driverStatus == PumpDriverState.Disconnected) {
-            ypsopumpUtil.driverStatus = PumpDriverState.Sleeping
+            pumpUtil.driverStatus = PumpDriverState.Sleeping
         }
 
         inDisconnectMode = false
@@ -232,38 +240,48 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
     }
 
     fun deliverBolus(detailedBolusInfo: DetailedBolusInfo?): CommandResponse? {
-        ypsopumpUtil.currentCommand = YpsoPumpCommandType.SetBolus
+        aapsLogger.error(LTag.PUMP, "deliverBolus command is not available!!!")
+        pumpUtil.currentCommand = YpsoPumpCommandType.SetBolus
         val commandResponse = selectedConnector.sendBolus(detailedBolusInfo!!) // TODO refactor this not to use AAPS object
-        ypsopumpUtil.resetDriverStatusToConnected()
+        pumpUtil.resetDriverStatusToConnected()
         return commandResponse
     }
 
     // TODO refactor this not to use AAPS object
     fun getTemporaryBasal(): TemporaryBasalResponse? {
-        ypsopumpUtil.currentCommand = YpsoPumpCommandType.GetTemporaryBasal
+        pumpUtil.currentCommand = YpsoPumpCommandType.GetTemporaryBasal
         val commandResponse = selectedConnector.retrieveTemporaryBasal() // TODO refactor this not to use AAPS object
-        ypsopumpUtil.resetDriverStatusToConnected()
+        pumpUtil.resetDriverStatusToConnected()
         return commandResponse
     }
 
     fun setTemporaryBasal(value: Int, duration: Int): CommandResponse? {
-        ypsopumpUtil.currentCommand = YpsoPumpCommandType.SetTemporaryBasal
+        aapsLogger.error(LTag.PUMP, "setTemporaryBasal command is not available!!!")
+        pumpUtil.currentCommand = YpsoPumpCommandType.SetTemporaryBasal
         val commandResponse = selectedConnector.sendTemporaryBasal(value, duration) // TODO refactor this not to use AAPS object
-        ypsopumpUtil.resetDriverStatusToConnected()
+        pumpUtil.resetDriverStatusToConnected()
         return commandResponse
     }
 
     fun setBasalProfile(profile: Profile?): CommandResponse? {
-        ypsopumpUtil.currentCommand = YpsoPumpCommandType.SetBasalProfile
+        aapsLogger.error(LTag.PUMP, "setBasalProfile command is not available!!!")
+        pumpUtil.currentCommand = YpsoPumpCommandType.SetBasalProfile
         val commandResponse = selectedConnector.sendBasalProfile(profile!!) // TODO refactor this not to use AAPS object
-        ypsopumpUtil.resetDriverStatusToConnected()
+        pumpUtil.resetDriverStatusToConnected()
         return commandResponse
     }
 
+    fun sendFakeCommand(commandType: YpsoPumpCommandType): CommandResponse? {
+        pumpUtil.currentCommand = commandType
+        pumpUtil.sleepSeconds(10)
+        pumpUtil.resetDriverStatusToConnected()
+        return CommandResponse.builder().success(true).build()
+    }
+
     fun cancelTemporaryBasal(): CommandResponse? {
-        ypsopumpUtil.currentCommand = YpsoPumpCommandType.CancelTemporaryBasal
+        pumpUtil.currentCommand = YpsoPumpCommandType.CancelTemporaryBasal
         val commandResponse = selectedConnector.cancelTemporaryBasal() // TODO refactor this not to use AAPS object
-        ypsopumpUtil.resetDriverStatusToConnected()
+        pumpUtil.resetDriverStatusToConnected()
         return commandResponse
     }
 
@@ -273,9 +291,47 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
         return SimpleDataCommandResponse.builder().errorDescription("Command Npt Supported yet!").build()
     }
 
-    // TODO
-    fun getConfiguration(): Unit {
-        // TODO
+    fun getConfiguration() {
+        val command = GetPumpSettings(injector)
+
+        command.execute(pumpBle = ypsoPumpBLE)
+
+        if (command.isSuccessful) {
+            val pumpSettings: YpsoPumpSettingsDto? = command.commandResponse
+
+            if (pumpSettings != null) {
+                pumpStatus.lastConfigurationUpdate = System.currentTimeMillis()
+
+                if (pumpSettings.bolusIncStep != null) {
+                    pumpStatus.bolusStep = pumpSettings.bolusIncStep!!
+                    pumpStatus.pumpDescription.bolusStep = pumpStatus.bolusStep
+                }
+
+                if (pumpSettings.basalProfileType != null) {
+                    pumpStatus.activeProfileName = if (pumpSettings.basalProfileType == YpsoBasalProfileType.BASAL_PROFILE_A) "A" else "B"
+
+                    if (pumpSettings.basalProfileType == YpsoBasalProfileType.BASAL_PROFILE_B) {
+                        pumpUtil.sendNotification(
+                            notificationType = YpsoPumpNotificationType.PumpIncorrectBasalProfileSelected,
+                            "A")
+                    }
+                }
+
+                if (pumpSettings.bolusAmoutLimit != null) {
+                    pumpStatus.maxBolus = pumpSettings.bolusIncStep!!
+                    //pumpStatus.pumpDescription.bolusStep = pumpStatus.bolusStep
+                }
+
+                if (pumpSettings.basalRateLimit != null) {
+                    pumpStatus.maxBasal = pumpSettings.bolusIncStep!!
+                    pumpStatus.pumpDescription.basalMaximumRate = pumpStatus.maxBasal!!
+                }
+            }
+
+        } else {
+            aapsLogger.error(LTag.PUMPCOMM, "Problem reading configuration.")
+            return
+        }
     }
 
     // TODO
@@ -283,76 +339,47 @@ class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPump
         get() =// TODO
             null
 
-    // TODO
-    fun getPumpHistory() {
-
-        val pumpStatusValues = pumpStatus.getPumpStatusValuesForSelectedPump()
-
-        if (pumpStatusValues == null) {
-            aapsLogger.debug(LTag.PUMP, "PumpStatusValues could not be loaded, skipping history reading.")
-            return
-        }
-
-        if (true)
-            return
-
-        // events
-        var targetDate: Long? = null
-
-        if (pumpStatusValues!!.lastEventDate != null) {
-            targetDate = DateTimeUtil.getATDWithAddedMinutes(pumpStatusValues.lastEventDate!!, -15)
-        }
-
-        var commandEvents = GetEvents(injector, targetDate, null)
-
-        var result = commandEvents.execute(ypsoPumpBLE)
-
-        if (result) {
-            // TODO 1. process returned data  2. add it into database 3. update pumpStatusValues
-        } else {
-            return  // if any of commands fails we stop execution
-        }
-
-        // alarms
-
-        // TODO systemEntry we are ignoring this for now
-
-        // TODO write pumpStatusValues
-    }
-
-    //
-    fun getPumpHistoryAfterEvent() {
-
-        val pumpStatusValues = pumpStatus.getPumpStatusValuesForSelectedPump()
-
-        if (pumpStatusValues == null) {
-            aapsLogger.debug(LTag.PUMP, "PumpStatusValues could not be loaded, skipping history reading.")
-            return
-        }
-
-        // events
-        var commandEvents = GetEvents(hasAndroidInjector = injector,
-            targetDate = null,
-            eventSequenceNumber = pumpStatusValues.lastEventSequenceNumber)
-
-        var result = commandEvents.execute(ypsoPumpBLE)
-
-        if (result) {
-            // TODO 1. process returned data  2. add it into database 3. update pumpStatusValues
-        } else {
-            return  // if any of commands fails we stop execution
-        }
-
-        // TODO write pumpStatusValues
-    }
-
     fun getBasalProfile(): Boolean {
-        // TODO
+
+        val command = GetBasalProfile(injector)
+
+        command.execute(pumpBle = ypsoPumpBLE)
+
+        if (command.isSuccessful) {
+            val basalProfile: BasalProfileDto? = command.commandResponse
+
+            if (basalProfile != null) {
+                pumpStatus.basalsByHour = basalProfile.basalPatterns
+                return true
+            } else {
+                aapsLogger.error(LTag.PUMPCOMM, "Null basal profile.")
+            }
+        } else {
+            aapsLogger.error(LTag.PUMPCOMM, "Problem reading basal profile.")
+        }
+
         return false;
     }
 
+    fun getTime(): DateTimeDto? {
+        val command = GetDateTime(injector)
+
+        command.execute(pumpBle = ypsoPumpBLE)
+
+        if (command.isSuccessful) {
+            return command.commandResponse
+        } else {
+            aapsLogger.error(LTag.PUMPCOMM, "Problem getting Time from Pump.")
+            return null
+        }
+    }
+
+    fun setTime(): DateTimeDto? {
+        TODO("Not yet implemented")
+    }
+
     init {
-        baseConnector = YpsoPumpDummyConnector(pumpStatus, ypsopumpUtil, injector, aapsLogger) //new YpsoPumpBaseConnector(ypsopumpUtil, injector, aapsLogger);
+        baseConnector = YpsoPumpDummyConnector(pumpStatus, pumpUtil, injector, aapsLogger) //new YpsoPumpBaseConnector(ypsopumpUtil, injector, aapsLogger);
         selectedConnector = baseConnector //new YpsoPumpDummyConnector(ypsopumpUtil, injector, aapsLogger);
         //this.fabricPrivacy = fabricPrivacy
         disposable.add(rxBus

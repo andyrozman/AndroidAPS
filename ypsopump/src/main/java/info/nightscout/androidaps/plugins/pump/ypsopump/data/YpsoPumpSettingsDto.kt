@@ -12,25 +12,6 @@ class YpsoPumpSettingsDto {
     var bolusAmoutLimit: Double? = null
     var basalRateLimit: Double? = null
 
-    // base
-    // var pumpIsOn = false
-    // var lastEventBasalRate: Event? = null
-    // var lastBasalRateEventId: Guid? = null
-
-    // // 11
-    // var lastEventCounterNumber: Short = 0
-    // var lastAlertCounterNumber: Short = 0
-    // var lastEventCount = 0
-    // var lastAlertCount = 0
-    //
-    // // 15
-    // var lastEventSequenceNumber = 0
-    // var lastAlertSequenceNumber = 0
-    // var lastSystemSequenceNumber = 0
-
-    //    var lastEventCount = 0
-//    var lastAlertCount = 0
-//     var lastSystemCount = 0
 
     override fun toString(): String {
         return "YpsoPumpSettingsDto [basalProfileType=$basalProfileType, bolusIncStep=$bolusIncStep, " +

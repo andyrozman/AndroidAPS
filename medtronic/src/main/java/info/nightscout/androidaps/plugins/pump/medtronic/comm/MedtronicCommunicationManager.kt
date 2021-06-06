@@ -31,7 +31,9 @@ import info.nightscout.androidaps.plugins.pump.medtronic.driver.MedtronicPumpSta
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil.Companion.createByteArray
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil.Companion.getByteArrayFromUnsignedShort
+import org.joda.time.DateTime
 import org.joda.time.LocalDateTime
+import org.joda.time.Period
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -599,10 +601,11 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
     }
 
     fun setPumpTime(): Boolean {
-        val gc = GregorianCalendar()
-        gc.add(Calendar.SECOND, 5)
-        aapsLogger.info(LTag.PUMPCOMM, "setPumpTime: " + DateTimeUtil.toString(gc))
-        val yearByte = getByteArrayFromUnsignedShort(gc[Calendar.YEAR], true)
+        val dt = DateTime.now()
+        dt.plus(Period.minutes(5))
+
+        aapsLogger.info(LTag.PUMPCOMM, "setPumpTime: " + DateTimeUtil.toString(dt))
+        val yearByte = getByteArrayFromUnsignedShort(dt.year, true)
         // val i = 1
         // val data = ByteArray(8)
         // data[0] = 7
@@ -617,13 +620,13 @@ class MedtronicCommunicationManager  // This empty constructor must be kept, oth
 
         val timeData = byteArrayOf(
             7,
-            gc[Calendar.HOUR_OF_DAY].toByte(),
-            gc[Calendar.MINUTE].toByte(),
-            gc[Calendar.SECOND].toByte(),
+            dt.hourOfDay.toByte(),
+            dt.minuteOfHour.toByte(),
+            dt.secondOfMinute.toByte(),
             yearByte[0],
             yearByte[1],
-            (gc[Calendar.MONTH] + 1).toByte(),
-            gc[Calendar.DAY_OF_MONTH].toByte()
+            dt.monthOfYear.toByte(),
+            dt.dayOfMonth.toByte()
         )
 
         //aapsLogger.info(LTag.PUMPCOMM,"setPumpTime: Body:  " + ByteUtil.getHex(data));

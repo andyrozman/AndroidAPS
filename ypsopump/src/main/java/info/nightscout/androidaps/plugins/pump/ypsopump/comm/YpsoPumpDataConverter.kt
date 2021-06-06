@@ -3,7 +3,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.*
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpFirmware
@@ -160,8 +160,8 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
         when (eventDto.entryType) {
             BASAL_PROFILE_A_PATTERN_CHANGED,
             BASAL_PROFILE_B_PATTERN_CHANGED -> eventDto.subObject = BasalProfileEntry(
-                eventDto.value1,
-                eventDto.value2 / 100.0)
+                hour = eventDto.value1,
+                rate = eventDto.value2 / 100.0)
             DAILY_TOTAL_INSULIN             -> eventDto.subObject = TotalDailyInsulin((((eventDto.value2 shl 16) + eventDto.value1) * 1.0) / 100.0)
             DATE_CHANGED                    -> eventDto.subObject = DateTimeChanged(2000 + eventDto.value3,
                 eventDto.value2,

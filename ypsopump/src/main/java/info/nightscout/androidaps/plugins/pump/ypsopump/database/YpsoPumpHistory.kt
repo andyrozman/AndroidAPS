@@ -2,7 +2,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.database
 
 import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.*
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import io.reactivex.Single
@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 class YpsoPumpHistory @Inject constructor(
     val pumpHistoryDao: HistoryRecordDao,
-    val pumpHistoryDatabase: YpsoPumpHistoryDatabase,
+    val pumpHistoryDatabase: YpsoPumpDatabase,
     val historyMapper: HistoryMapper,
     val pumpSync: PumpSync,
     val pumpStatus: YpsopumpPumpStatus,
@@ -68,7 +68,7 @@ class YpsoPumpHistory @Inject constructor(
                 updatedAt = currentTimeMillis(),
                 temporaryBasalRecord = tempBasalRecord,
                 bolusRecord = bolusRecord,
-                tdiRecord = tdiRecord,
+                tddRecord = tdiRecord,
                 basalProfileRecord = basalProfileRecord,
                 alarmRecord = alarmRecord,
                 configRecord = configRecord,
@@ -94,15 +94,16 @@ class YpsoPumpHistory @Inject constructor(
 
     fun getRecordsAfter(time: Long): Single<List<HistoryRecordEntity>> = pumpHistoryDao.allSince(time)
 
-    fun processList(entityList: List<HistoryRecordEntity>) {
-        var first = true
-        for (historyRecordEntity in entityList) {
-            insertOrUpdate(historyRecordEntity)
-        }
-    }
+    // fun processList(entityList: List<HistoryRecordEntity>) {
+    //     var first = true
+    //     for (historyRecordEntity in entityList) {
+    //         insertOrUpdate(historyRecordEntity)
+    //     }
+    // }
 
     // TODO main database method we will use
-    fun insertOrUpdate(entity: HistoryRecordEntity) {
+    fun insertOrUpdate(event: EventDto): HistoryRecordEntity? {
+        val entity = historyMapper.domainToEntity(event)
         var returnEntity: HistoryRecordEntity? = null
         pumpHistoryDatabase.runInTransaction {
             val dbEntity = pumpHistoryDao.getById(entity.id, entity.serial, entity.historyRecordType)
@@ -120,13 +121,14 @@ class YpsoPumpHistory @Inject constructor(
                     pumpHistoryDao.update(entityForUpdate)
                     returnEntity = entityForUpdate
                 }
-
             }
         }
 
-        if (returnEntity != null) {
-            //sendDataToPumpSync(returnEntity!!)
-        }
+        return returnEntity
+
+        // if (returnEntity != null) {
+        //     //sendDataToPumpSync(returnEntity!!)
+        // }
 
     }
 
@@ -155,8 +157,8 @@ class YpsoPumpHistory @Inject constructor(
         if (!Objects.equals(dbEntity.temporaryBasalRecord, newEntity.temporaryBasalRecord))
             dbEntity.temporaryBasalRecord = newEntity.temporaryBasalRecord
 
-        if (!Objects.equals(dbEntity.tdiRecord, newEntity.tdiRecord))
-            dbEntity.tdiRecord = newEntity.tdiRecord
+        if (!Objects.equals(dbEntity.tddRecord, newEntity.tddRecord))
+            dbEntity.tddRecord = newEntity.tddRecord
 
         if (!Objects.equals(dbEntity.basalProfileRecord, newEntity.basalProfileRecord))
             dbEntity.basalProfileRecord = newEntity.basalProfileRecord
@@ -189,7 +191,7 @@ class YpsoPumpHistory @Inject constructor(
 
         if (!Objects.equals(entity1.bolusRecord, entity2.bolusRecord) ||
             !Objects.equals(entity1.temporaryBasalRecord, entity2.temporaryBasalRecord) ||
-            !Objects.equals(entity1.tdiRecord, entity2.tdiRecord) ||
+            !Objects.equals(entity1.tddRecord, entity2.tddRecord) ||
             !Objects.equals(entity1.basalProfileRecord, entity2.basalProfileRecord) ||
             !Objects.equals(entity1.alarmRecord, entity2.alarmRecord) ||
             !Objects.equals(entity1.configRecord, entity2.configRecord) ||
@@ -203,6 +205,10 @@ class YpsoPumpHistory @Inject constructor(
 
     fun getLatestHistoryEntry(serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity? {
         return pumpHistoryDao.getLatestHistoryEntry(serialNumber, entryType)
+    }
+
+    fun getLatestDeliveryStatusChangedEntry(): HistoryRecordEntity? {
+        return pumpHistoryDao.getLatestDeliveryStatusChanged(pumpStatus.serialNumber!!)
     }
 
 }

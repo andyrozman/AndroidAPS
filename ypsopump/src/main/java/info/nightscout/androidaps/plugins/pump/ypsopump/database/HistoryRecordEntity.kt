@@ -2,7 +2,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.database
 
 import androidx.room.Embedded
 import androidx.room.Entity
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.*
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 
 @Entity(tableName = "history_records", primaryKeys = ["id", "serial", "historyRecordType"])
@@ -19,7 +19,7 @@ data class HistoryRecordEntity(
     var eventSequenceNumber: Int, // sequence Number, this is unique pumpId
     @Embedded(prefix = "temporaryBasal_") var temporaryBasalRecord: TemporaryBasal?,
     @Embedded(prefix = "bolus_") var bolusRecord: Bolus?,
-    @Embedded(prefix = "tdi_") var tdiRecord: TotalDailyInsulin?,
+    @Embedded(prefix = "tdd_") var tddRecord: TotalDailyInsulin?,
     @Embedded(prefix = "basal_profile_") var basalProfileRecord: BasalProfile?,
     @Embedded(prefix = "alarm_") var alarmRecord: Alarm?,
     @Embedded(prefix = "config_") var configRecord: ConfigurationChanged?,

@@ -8,7 +8,9 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCh
 abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector,
                                       var targetDate: Long?,
                                       var eventSequenceNumber: Int?,
-                                      var includeEventSequence: Boolean = false) : AbstractBLECommand<List<T>>(hasAndroidInjector) {
+                                      var includeEventSequence: Boolean = false) : AbstractBLECommand<MutableList<T>>(hasAndroidInjector) {
+
+    var cancelProcessing: Boolean = false
 
     // TODO support for targetDate or eventSequenceNumber
     override fun executeInternal(pumpBle: YpsoPumpBLE): Boolean {
@@ -39,7 +41,7 @@ abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector,
 
         val outList: MutableList<T> = mutableListOf()
 
-        for (i in 0..(lastCount - 1)) {
+        for (i in 0 until (lastCount - 1)) {
 
             aapsLogger.debug(LTag.PUMPCOMM, "Trying to read " + getEntryType() + " with index " + i)
 
@@ -48,7 +50,7 @@ abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector,
                 data = readFromDevice(getValueUuid(), pumpBle)
 
                 if (data != null) {
-                    var decodedObject: T? = decodeEntry(data)
+                    val decodedObject: T? = decodeEntry(data)
 
                     if (decodedObject != null) {
                         aapsLogger.debug(LTag.PUMPCOMM, "Decoded object: " + decodedObject)
@@ -63,20 +65,25 @@ abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector,
                             }
                         }
 
-                    }
+                    } // decoded object
+
                 } else
                     break;
 
             } else {
                 break;
-            }
+            } // writeToDevice
+
+            if (cancelProcessing)
+                break;
+
         }
 
         aapsLogger.debug(LTag.PUMPBTCOMM, "Found " + outList.size + " new entries.")
         this.commandResponse = outList
 
         return true
-    }
+    } // for
 
     abstract fun isEntryInRange(decodedObject: T): Boolean
 

@@ -22,4 +22,5 @@ public enum YpsoPumpFirmware {
     public boolean isClosedLoopPossible() {
         return closedLoopPossible;
     }
+
 }

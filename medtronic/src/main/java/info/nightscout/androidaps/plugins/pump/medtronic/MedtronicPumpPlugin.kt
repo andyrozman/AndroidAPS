@@ -112,7 +112,7 @@ class MedtronicPumpPlugin @Inject constructor(
     private var isBusy = false
 
     override fun onStart() {
-        aapsLogger.debug(LTag.PUMP, deviceID() + " started.")
+        aapsLogger.debug(LTag.PUMP, model().model + " started.")
         serviceConnection = object : ServiceConnection {
             override fun onServiceDisconnected(name: ComponentName) {
                 aapsLogger.debug(LTag.PUMP, "RileyLinkMedtronicService is disconnected")
@@ -214,10 +214,6 @@ class MedtronicPumpPlugin @Inject constructor(
 
     override val pumpStatusData: info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
         get() = medtronicPumpStatus
-
-    override fun deviceID(): String {
-        return "Medtronic"
-    }
 
     override val isFakingTempsByExtendedBoluses: Boolean
         get() = false

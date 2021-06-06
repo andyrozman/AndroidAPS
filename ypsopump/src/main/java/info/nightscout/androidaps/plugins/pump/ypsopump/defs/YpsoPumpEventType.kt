@@ -10,8 +10,8 @@ enum class YpsoPumpEventType(val code: Int, val group: PumpHistoryEntryGroup) {
     PRIMING(4, PumpHistoryEntryGroup.Base),
     BOLUS_STEP_CHANGED(5, PumpHistoryEntryGroup.Configuration),
     BASAL_PROFILE_SWITCHED(6, PumpHistoryEntryGroup.Basal),
-    BASAL_PROFILE_A_PATTERN_CHANGED(7, PumpHistoryEntryGroup.Configuration),
-    BASAL_PROFILE_B_PATTERN_CHANGED(8, PumpHistoryEntryGroup.Configuration),
+    BASAL_PROFILE_A_PATTERN_CHANGED(7, PumpHistoryEntryGroup.Basal),
+    BASAL_PROFILE_B_PATTERN_CHANGED(8, PumpHistoryEntryGroup.Basal),
     TEMPORARY_BASAL_RUNNING(9, PumpHistoryEntryGroup.Basal),
     TEMPORARY_BASAL(10, PumpHistoryEntryGroup.Basal),
     DATE_CHANGED(12, PumpHistoryEntryGroup.Configuration),
@@ -45,7 +45,10 @@ enum class YpsoPumpEventType(val code: Int, val group: PumpHistoryEntryGroup) {
     ALARM_AUTO_STOP(106, PumpHistoryEntryGroup.Alarm),
     ALARM_LIPO_DISCHARGED(107, PumpHistoryEntryGroup.Alarm),
     ALARM_BATTERY_REJECTED(108, PumpHistoryEntryGroup.Alarm),
-    DELIVERY_STATUS_CHANGED(150, PumpHistoryEntryGroup.Base);
+    DELIVERY_STATUS_CHANGED(150, PumpHistoryEntryGroup.Base),
+    BASAL_PROFILE_A_CHANGED(4000, PumpHistoryEntryGroup.Basal),
+    BASAL_PROFILE_B_CHANGED(4001, PumpHistoryEntryGroup.Basal),
+    ;
 
     companion object {
 

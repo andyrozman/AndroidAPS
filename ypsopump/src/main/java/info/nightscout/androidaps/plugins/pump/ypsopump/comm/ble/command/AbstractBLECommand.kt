@@ -7,7 +7,6 @@ import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoConnectionStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations.BLECommOperationResult
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus

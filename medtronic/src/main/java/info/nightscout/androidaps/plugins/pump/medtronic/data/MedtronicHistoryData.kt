@@ -25,6 +25,7 @@ import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicConst
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil
 import info.nightscout.androidaps.utils.sharedPreferences.SP
 import org.apache.commons.lang3.StringUtils
+import org.joda.time.DateTime
 import org.joda.time.LocalDateTime
 import java.util.*
 import javax.inject.Inject
@@ -114,7 +115,7 @@ class MedtronicHistoryData @Inject constructor(
         val newHistory2: MutableList<PumpHistoryEntry> = mutableListOf()
         var tbrs: MutableList<PumpHistoryEntry> = mutableListOf()
         val bolusEstimates: MutableList<PumpHistoryEntry> = mutableListOf()
-        val atechDate = DateTimeUtil.toATechDate(GregorianCalendar())
+        val atechDate = DateTimeUtil.toATechDate(DateTime.now())
 
         //aapsLogger.debug(LTag.PUMP, "Filter new entries: Before {}", newHistory);
         if (!isCollectionEmpty(newHistory)) {
@@ -378,7 +379,7 @@ class MedtronicHistoryData @Inject constructor(
     }
 
     private fun processPrime(primeRecords: List<PumpHistoryEntry>) {
-        val maxAllowedTimeInPast = DateTimeUtil.getATDWithAddedMinutes(GregorianCalendar(), -30)
+        val maxAllowedTimeInPast = DateTimeUtil.getATDWithAddedMinutes(DateTime.now(), -30)
         var lastPrimeRecordTime = 0L
         var lastPrimeRecord: PumpHistoryEntry? = null
         for (primeRecord in primeRecords) {
@@ -404,7 +405,7 @@ class MedtronicHistoryData @Inject constructor(
     }
 
     private fun processRewind(rewindRecords: List<PumpHistoryEntry>) {
-        val maxAllowedTimeInPast = DateTimeUtil.getATDWithAddedMinutes(GregorianCalendar(), -30)
+        val maxAllowedTimeInPast = DateTimeUtil.getATDWithAddedMinutes(DateTime.now(), -30)
         var lastRewindRecordTime = 0L
         var lastRewindRecord: PumpHistoryEntry? = null
         for (rewindRecord in rewindRecords) {

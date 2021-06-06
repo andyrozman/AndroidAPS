@@ -2,8 +2,8 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.EventDto
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.HistoryEntryType
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.EventDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.HistoryEntryType
 
 class GetSystemEntries(hasAndroidInjector: HasAndroidInjector?, targetDate: Long?, eventSequenceNumber: Int?) : GetDataListAbstract<EventDto>(hasAndroidInjector!!, targetDate, eventSequenceNumber) {
 

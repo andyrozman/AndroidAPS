@@ -2,12 +2,16 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm
 
 import android.util.Log
 import info.nightscout.androidaps.logging.AAPSLoggerTest
+import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.HistoryEntryType
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.HistoryEntryType
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpFirmware
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
+import org.joda.time.DateTime
+import org.joda.time.LocalDateTime
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -18,6 +22,7 @@ import org.powermock.modules.junit4.PowerMockRunner
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
+import java.util.*
 import kotlin.experimental.and
 
 @RunWith(PowerMockRunner::class)
@@ -27,6 +32,7 @@ class YpsoPumpDataConverterUTest {
     @Mock lateinit var ypsoPumpUtil: YpsoPumpUtil
 
     lateinit var converter: YpsoPumpDataConverter
+    var aapsLogger = AAPSLoggerTest()
 
 
     @Before
@@ -170,7 +176,7 @@ class YpsoPumpDataConverterUTest {
 
     }
 
-    //@Test
+    @Test
     fun decodeEvents() {
         val f: File = File("./src/test/resources/events.txt")
 
@@ -183,7 +189,7 @@ class YpsoPumpDataConverterUTest {
             //Log.d("ZZ", "Event: " + it)
             val data = ByteUtil.createByteArrayFromString(it)
             val event = converter.decodeEvent(data, HistoryEntryType.Event)
-            Log.d("ZZ", "Event: " + event)
+            aapsLogger.debug(LTag.PUMP, "Event: " + event)
         }
 
 //        while (line in fileReader.lines()) {
@@ -209,4 +215,38 @@ class YpsoPumpDataConverterUTest {
         }
         return num
     }
+
+    @Test
+    fun testDates() {
+        var date: DateTimeDto = DateTimeDto(2021, 5, 14, 12, 15, 0)
+
+        // var millis = date.toMillis()
+        //
+        // var date2: Date = Date(millis)
+        //
+        // aapsLogger.debug(LTag.PUMP, "DateTimeDto:         millis: $millis, dateTime: $date2")
+
+        var dateO = Date(2021, 5, 14, 12, 15, 0)
+
+        aapsLogger.debug(LTag.PUMP, "Date:                millis: ${dateO.time}")
+
+        var gc = GregorianCalendar(2021, 5, 14, 12, 15, 0)
+        aapsLogger.debug(LTag.PUMP, "GregorianCalendar:   millis: ${gc.timeInMillis}")
+
+        var ldt = LocalDateTime(2021, 5, 14, 12, 15, 0)
+        var millis2 = ldt.toDate().time
+        aapsLogger.debug(LTag.PUMP, "joda.LocalDateTime:  millis: $millis2, dateTime: $ldt")
+
+        var dt: DateTime = DateTime(2021, 5, 14, 12, 15, 0)
+        aapsLogger.debug(LTag.PUMP, "joda.DateTime:       millis: ${dt.millis}")
+
+        var gcNow = GregorianCalendar()
+        var dtNow = DateTime.now()
+
+        aapsLogger.debug(LTag.PUMP, "gc now       :       millis: ${gcNow.timeInMillis}")
+
+        aapsLogger.debug(LTag.PUMP, "joda.DateTime:       millis: ${dtNow.millis}")
+
+    }
+
 }

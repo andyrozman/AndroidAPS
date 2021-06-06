@@ -15,7 +15,7 @@ import dagger.android.DaggerActivity
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
 import info.nightscout.androidaps.plugins.pump.ypsopump.R
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.EventDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.EventDto
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import java.util.*
 import javax.inject.Inject

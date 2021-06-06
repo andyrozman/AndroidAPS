@@ -3,8 +3,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoSettingId
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.BasalProfileDto
-import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.BasalProfileDto
 
 class GetBasalProfile(hasAndroidInjector: HasAndroidInjector?) : GetSettingsAbstract<BasalProfileDto?>(hasAndroidInjector!!) {
 

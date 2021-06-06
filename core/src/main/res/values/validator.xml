@@ -16,6 +16,7 @@
     <string name="error_date_not_valid">Format not valid</string>
     <string name="error_mustbe4digitnumber">Must be 4 digit number</string>
     <string name="error_mustbe6digitnumber">Must be 6 digit number</string>
+    <string name="error_mustbe8digitnumber">Must be 8 digit number</string>
     <string name="error_mustbe12hexadidits">Must be 12 characters of ABCDEF0123456789</string>
     <string name="error_mustbe8hexadidits">Must be 8 characters of ABCDEF0123456789</string>
     <string name="error_mustbe4hexadidits">Must be 4 characters of ABCDEF0123456789</string>

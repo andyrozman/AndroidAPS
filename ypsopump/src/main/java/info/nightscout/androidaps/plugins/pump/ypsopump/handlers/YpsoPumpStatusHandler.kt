@@ -1,8 +1,8 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.handlers
 
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.HistoryEntryType
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.YpsoPumpStatusEntry
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.YpsoPumpStatusList
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.HistoryEntryType
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.HistoryRecordEntity
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistory
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
@@ -40,6 +40,7 @@ class YpsoPumpStatusHandler
                     generateNewPumpStatusEntry(serialNumber)
                 }.start()
             }
+            pumpStatus.serialNumber = serialNumber
         }
     }
 
@@ -50,30 +51,30 @@ class YpsoPumpStatusHandler
 
         if (entry != null) {
             ypsoPumpStatusEntry.lastEventSequenceNumber = entry.eventSequenceNumber
-            ypsoPumpStatusEntry.lastEventDate = entry.date
+            //ypsoPumpStatusEntry.lastEventDate = entry.date
         } else {
             ypsoPumpStatusEntry.lastEventSequenceNumber = 0
-            ypsoPumpStatusEntry.lastEventDate = 0
+            //ypsoPumpStatusEntry.lastEventDate = 0
         }
 
         entry = getLatestEntryFromDatabase(serialNumber, HistoryEntryType.Alarm);
 
         if (entry != null) {
             ypsoPumpStatusEntry.lastAlarmSequenceNumber = entry.eventSequenceNumber
-            ypsoPumpStatusEntry.lastAlarmDate = entry.date
+            //ypsoPumpStatusEntry.lastAlarmDate = entry.date
         } else {
             ypsoPumpStatusEntry.lastAlarmSequenceNumber = 0
-            ypsoPumpStatusEntry.lastAlarmDate = 0
+            //ypsoPumpStatusEntry.lastAlarmDate = 0
         }
 
         entry = getLatestEntryFromDatabase(serialNumber, HistoryEntryType.SystemEntry);
 
         if (entry != null) {
             ypsoPumpStatusEntry.lastSystemEntrySequenceNumber = entry.eventSequenceNumber
-            ypsoPumpStatusEntry.lastSystemEntryDate = entry.date
+            //ypsoPumpStatusEntry.lastSystemEntryDate = entry.date
         } else {
             ypsoPumpStatusEntry.lastSystemEntrySequenceNumber = 0
-            ypsoPumpStatusEntry.lastSystemEntryDate = 0
+            //ypsoPumpStatusEntry.lastSystemEntryDate = 0
         }
 
         pumpStatus.ypsoPumpStatusList!!.map.put(serialNumber, ypsoPumpStatusEntry)

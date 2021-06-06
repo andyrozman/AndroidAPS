@@ -4,14 +4,14 @@ import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations.BLECommOperationResult
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.DateTimeDto
 
-class GetDateTime(hasAndroidInjector: HasAndroidInjector?) : AbstractBLECommand<DateTimeDto?>(hasAndroidInjector!!) {
+class GetDateTime(hasAndroidInjector: HasAndroidInjector) : AbstractBLECommand<DateTimeDto?>(hasAndroidInjector) {
 
     override fun executeInternal(pumpBle: YpsoPumpBLE): Boolean {
         var date: DateTimeDto?
         val bleCommOperationResultDate = executeBLEReadCommandWithRetry(YpsoGattCharacteristic.SYSTEM_DATE,
-                pumpBle)
+            pumpBle)
 
         bleCommOperationResult = bleCommOperationResultDate
 

@@ -5,13 +5,17 @@ import com.google.gson.GsonBuilder
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
+import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoPumpNotificationType
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpErrorType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpStatusChanged
+import info.nightscout.androidaps.utils.resources.ResourceHelper
 import java.nio.ByteBuffer
 import java.security.InvalidParameterException
 import java.security.MessageDigest
@@ -25,6 +29,7 @@ import kotlin.experimental.inv
 class YpsoPumpUtil @Inject constructor(
     val aapsLogger: AAPSLogger,
     val rxBus: RxBusWrapper,
+    val resourceHelper: ResourceHelper,
     val ypsopumpPumpStatus: YpsopumpPumpStatus
 ) {
 
@@ -250,10 +255,10 @@ class YpsoPumpUtil @Inject constructor(
         pbyBuffer[2] = piValue.toByte()
         piValue = piValue shr 8
         pbyBuffer[3] = piValue.toByte()
-        pbyBuffer[4] = pbyBuffer[0].inv() as Byte
-        pbyBuffer[5] = pbyBuffer[1].inv() as Byte
-        pbyBuffer[6] = pbyBuffer[2].inv() as Byte
-        pbyBuffer[7] = pbyBuffer[3].inv() as Byte
+        pbyBuffer[4] = pbyBuffer[0].inv()
+        pbyBuffer[5] = pbyBuffer[1].inv()
+        pbyBuffer[6] = pbyBuffer[2].inv()
+        pbyBuffer[7] = pbyBuffer[3].inv()
     }
 
     fun getValueFromeGLB_SAFE_VAR(paBuffer: ByteArray): Int {
@@ -269,6 +274,22 @@ class YpsoPumpUtil @Inject constructor(
     fun getBytesFromIntArray2(value: Int): ByteArray {
         val array = ByteBuffer.allocate(4).putInt(value).array()
         return byteArrayOf(array[3], array[2])
+    }
+
+    fun sendNotification(notificationType: YpsoPumpNotificationType) {
+        val notification = Notification( //
+            notificationType.notificationType,  //
+            resourceHelper.gs(notificationType.resourceId),  //
+            notificationType.notificationUrgency)
+        rxBus.send(EventNewNotification(notification))
+    }
+
+    fun sendNotification(notificationType: YpsoPumpNotificationType, vararg parameters: Any?) {
+        val notification = Notification( //
+            notificationType.notificationType,  //
+            resourceHelper.gs(notificationType.resourceId, *parameters),  //
+            notificationType.notificationUrgency)
+        rxBus.send(EventNewNotification(notification))
     }
 
     companion object {

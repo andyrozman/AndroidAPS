@@ -9,19 +9,21 @@ import androidx.room.TypeConverters
 @Database(
     entities = [HistoryRecordEntity::class],
     exportSchema = true,
-    version = YpsoPumpHistoryDatabase.VERSION
+    version = YpsoPumpDatabase.VERSION
 )
 @TypeConverters(DatabaseConverters::class)
-abstract class YpsoPumpHistoryDatabase: RoomDatabase() {
+abstract class YpsoPumpDatabase : RoomDatabase() {
 
-    abstract fun historyRecordDao() : HistoryRecordDao
+    abstract fun historyRecordDao(): HistoryRecordDao
 
     companion object {
 
         const val VERSION = 1
 
         fun build(context: Context) =
-            Room.databaseBuilder(context.applicationContext, YpsoPumpHistoryDatabase::class.java, "ypsopump_history_database.db")
+            Room.databaseBuilder(context.applicationContext,
+                YpsoPumpDatabase::class.java,
+                "ypsopump_database.db")
                 .fallbackToDestructiveMigration()
                 .build()
     }

@@ -1,4 +1,4 @@
-package info.nightscout.androidaps.plugins.pump.ypsopump.comm.data
+package info.nightscout.androidaps.plugins.pump.ypsopump.data
 
 import java.util.*
 

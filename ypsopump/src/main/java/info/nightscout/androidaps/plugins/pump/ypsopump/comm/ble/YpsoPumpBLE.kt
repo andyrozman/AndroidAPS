@@ -11,7 +11,6 @@ import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.common.utils.ThreadUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.BLECommOperationResultType
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.GattStatus
-import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoConnectionStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattService.Companion.isYpsoPumpDevice
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattService.Companion.lookup
