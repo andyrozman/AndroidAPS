@@ -70,7 +70,7 @@ class PumpSyncImplementation @Inject constructor(
 
         if (type.description != storedType || serialNumber != storedSerial)
             rxBus.send(EventNewNotification(Notification(Notification.WRONG_PUMP_DATA, resourceHelper.gs(R.string.wrong_pump_data), Notification.URGENT)))
-        aapsLogger.error(LTag.PUMP, "Ignoring pump history record  Allowed: ${dateUtil.dateAndTimeAndSecondsString(storedTimestamp)} $storedType $storedSerial Received: $timestamp ${dateUtil.dateAndTimeAndSecondsString(timestamp)}${type.description} $serialNumber")
+        aapsLogger.error(LTag.PUMP, "Ignoring pump history record  Allowed: ${dateUtil.dateAndTimeAndSecondsString(storedTimestamp)} $storedType $storedSerial Received: $timestamp ${dateUtil.dateAndTimeAndSecondsString(timestamp)} ${type.description} $serialNumber")
         return false
     }
 
@@ -320,6 +320,19 @@ class PumpSyncImplementation @Inject constructor(
 
     override fun invalidateTemporaryBasal(id: Long): Boolean {
         repository.runTransactionForResult(InvalidateTemporaryBasalTransaction(id))
+            .doOnError { aapsLogger.error(LTag.DATABASE, "Error while invalidating TemporaryBasal", it) }
+            .blockingGet()
+            .also { result ->
+                result.invalidated.forEach {
+                    aapsLogger.debug(LTag.DATABASE, "Invalidated TemporaryBasal $it")
+                }
+                return result.invalidated.size > 0
+            }
+    }
+
+    override fun invalidateTemporaryBasalWithPumpId(pumpId: Long, pumpType: PumpType, pumpSerial: String): Boolean {
+        repository.runTransactionForResult(InvalidateTemporaryBasalTransactionWithPumpId(pumpId, pumpType.toDbPumpType(),
+                                                                                         pumpSerial))
             .doOnError { aapsLogger.error(LTag.DATABASE, "Error while invalidating TemporaryBasal", it) }
             .blockingGet()
             .also { result ->

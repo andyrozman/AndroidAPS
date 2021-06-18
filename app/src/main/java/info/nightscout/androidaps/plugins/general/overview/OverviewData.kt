@@ -10,11 +10,7 @@ import info.nightscout.androidaps.R
 import info.nightscout.androidaps.data.IobTotal
 import info.nightscout.androidaps.database.AppRepository
 import info.nightscout.androidaps.database.ValueWrapper
-import info.nightscout.androidaps.database.entities.Bolus
-import info.nightscout.androidaps.database.entities.ExtendedBolus
-import info.nightscout.androidaps.database.entities.GlucoseValue
-import info.nightscout.androidaps.database.entities.TemporaryBasal
-import info.nightscout.androidaps.database.entities.TemporaryTarget
+import info.nightscout.androidaps.database.entities.*
 import info.nightscout.androidaps.extensions.*
 import info.nightscout.androidaps.interfaces.*
 import info.nightscout.androidaps.logging.AAPSLogger
@@ -74,6 +70,44 @@ class OverviewData @Inject constructor(
     var toTime: Long = 0
     var fromTime: Long = 0
     var endTime: Long = 0
+
+    fun reset() {
+        profile = null
+        profileName = null
+        profileNameWithRemainingTime = null
+        calcProgress = ""
+        lastBg = null
+        temporaryBasal = null
+        extendedBolus = null
+        bolusIob = null
+        basalIob = null
+        cobInfo = null
+        lastCarbsTime = 0L
+        temporaryTarget = null
+        lastAutosensData = null
+        bgReadingsArray = ArrayList()
+        bucketedGraphSeries = PointsWithLabelGraphSeries()
+        bgReadingGraphSeries = PointsWithLabelGraphSeries()
+        predictionsGraphSeries = PointsWithLabelGraphSeries()
+        baseBasalGraphSeries = LineGraphSeries()
+        tempBasalGraphSeries = LineGraphSeries()
+        basalLineGraphSeries = LineGraphSeries()
+        absoluteBasalGraphSeries = LineGraphSeries()
+        activitySeries = FixedLineGraphSeries()
+        activityPredictionSeries = FixedLineGraphSeries()
+        iobSeries = FixedLineGraphSeries()
+        absIobSeries = FixedLineGraphSeries()
+        iobPredictions1Series = PointsWithLabelGraphSeries()
+        iobPredictions2Series = PointsWithLabelGraphSeries()
+        minusBgiSeries = FixedLineGraphSeries()
+        minusBgiHistSeries = FixedLineGraphSeries()
+        cobSeries = FixedLineGraphSeries()
+        cobMinFailOverSeries = PointsWithLabelGraphSeries()
+        deviationsSeries = BarGraphSeries()
+        ratioSeries = LineGraphSeries()
+        dsMaxSeries = LineGraphSeries()
+        dsMinSeries = LineGraphSeries()
+    }
 
     fun initRange() {
         rangeToDisplay = sp.getInt(R.string.key_rangetodisplay, 6)
@@ -191,7 +225,7 @@ class OverviewData @Inject constructor(
                 if (!extendedBolus.isInProgress(dateUtil)) {
                     this@OverviewData.extendedBolus = null
                     ""
-                } else if (activePlugin.activePump.isFakingTempsByExtendedBoluses) resourceHelper.gs(R.string.pump_basebasalrate, extendedBolus.rate)
+                } else if (!activePlugin.activePump.isFakingTempsByExtendedBoluses) resourceHelper.gs(R.string.pump_basebasalrate, extendedBolus.rate)
                 else ""
             } ?: ""
 
@@ -531,6 +565,11 @@ class OverviewData @Inject constructor(
         // ProfileSwitch
         repository.getEffectiveProfileSwitchDataFromTimeToTime(fromTime, endTime, true).blockingGet()
             .map { EffectiveProfileSwitchDataPoint(it) }
+            .forEach(filteredTreatments::add)
+
+        // OfflineEvent
+        repository.getOfflineEventDataFromTimeToTime(fromTime, endTime, true).blockingGet()
+            .map { TherapyEventDataPoint(TherapyEvent(timestamp = it.timestamp, duration = it.duration, type = TherapyEvent.Type.APS_OFFLINE, glucoseUnit = TherapyEvent.GlucoseUnit.MMOL), resourceHelper, profileFunction, translator) }
             .forEach(filteredTreatments::add)
 
         // Extended bolus
