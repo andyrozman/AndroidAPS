@@ -357,6 +357,8 @@ class YpsopumpPumpPlugin @Inject constructor(
         setRefreshButtonEnabled(false)
         pumpState = PumpDriverState.Connected
 
+        startUITest()
+
         // firmware version
         pumpConnectionManager.determineFirmwareVersion()
         setDriverMode()
@@ -393,6 +395,21 @@ class YpsopumpPumpPlugin @Inject constructor(
         firstRun = false
 
         return true
+    }
+
+    private fun startUITest() {
+        aapsLogger.debug(LTag.PUMP, "Before UI Test")
+        var commandResponse: CommandResponse? = null
+
+        Looper.prepare()
+        OKDialog.showConfirmation(context = context,
+            title = resourceHelper.gs(R.string.ypsopump_cmd_exec_title_set_profile),
+            message = resourceHelper.gs(R.string.ypsopump_cmd_exec_desc_set_profile, "Unknown"),
+            { _: DialogInterface?, _: Int ->
+                commandResponse = CommandResponse.builder().success(true).build()
+            }, null)
+
+        aapsLogger.debug(LTag.PUMP, "After UI Test: $commandResponse")
     }
 
     private fun setDriverMode() {
