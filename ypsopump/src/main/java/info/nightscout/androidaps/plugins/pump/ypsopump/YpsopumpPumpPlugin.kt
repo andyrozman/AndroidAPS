@@ -399,15 +399,24 @@ class YpsopumpPumpPlugin @Inject constructor(
 
     private fun startUITest() {
         aapsLogger.debug(LTag.PUMP, "Before UI Test")
+
         var commandResponse: CommandResponse? = null
 
-        Looper.prepare()
-        OKDialog.showConfirmation(context = context,
-            title = resourceHelper.gs(R.string.ypsopump_cmd_exec_title_set_profile),
-            message = resourceHelper.gs(R.string.ypsopump_cmd_exec_desc_set_profile, "Unknown"),
-            { _: DialogInterface?, _: Int ->
-                commandResponse = CommandResponse.builder().success(true).build()
-            }, null)
+
+        Thread(Runnable {
+            SystemClock.sleep(2000)
+            //ErrorHelperActivity.runAlarm(context, resourceHelper.gs(R.string.medtronic_cmd_cancel_bolus_not_supported), resourceHelper.gs(R.string.medtronic_warning), R.raw.boluserror)
+
+            OKDialog.showConfirmation(context = context,
+                title = resourceHelper.gs(R.string.ypsopump_cmd_exec_title_set_profile),
+                message = resourceHelper.gs(R.string.ypsopump_cmd_exec_desc_set_profile, "Unknown"),
+                { _: DialogInterface?, _: Int ->
+                    commandResponse = CommandResponse.builder().success(true).build()
+                }, null)
+
+        }).start()
+
+        //Looper.prepare()
 
         aapsLogger.debug(LTag.PUMP, "After UI Test: $commandResponse")
     }
