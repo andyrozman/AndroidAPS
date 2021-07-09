@@ -111,7 +111,7 @@ android {
     defaultConfig {
         multiDexEnabled true
         versionCode 1500
-        version "2.8.2.1-dev-e5-ypso_andy"
+        version "2.8.2.2-dev-ypso_andy"
         buildConfigField "String", "VERSION", '"' + version + '"'
         buildConfigField "String", "BUILDVERSION", '"' + generateGitBuild() + '-' + generateDate() + '"'
         buildConfigField "String", "REMOTE", '"' + generateGitRemote() + '"'
@@ -192,6 +192,7 @@ dependencies {
     implementation project(':omnipod-common')
     implementation project(':omnipod-eros')
     implementation project(':omnipod-dash')
+    implementation project(':diaconn')
     implementation project(':ypsopump')
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
@@ -205,9 +206,6 @@ dependencies {
 
     /* Dagger2 - default dependency */
     kapt "com.google.dagger:dagger-compiler:$dagger_version"
-
-    implementation 'com.dropbox.core:dropbox-core-sdk:2.1.1'
-
 }
 
 apply from: "${project.rootDir}/gradle/test_dependencies.gradle"

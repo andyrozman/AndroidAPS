@@ -8,6 +8,7 @@ import org.joda.time.DateTime;
 import org.joda.time.LocalDateTime;
 import org.joda.time.Minutes;
 import org.joda.time.Period;
+import org.joda.time.Seconds;
 
 /**
  * This is simple version of ATechDate, limited only to one format (yyyymmddHHMIss)
@@ -267,6 +268,12 @@ public class DateTimeUtil {
         Minutes minutes = Minutes.minutesBetween(toLocalDateTime(date1), toLocalDateTime(date2));
 
         return minutes.getMinutes();
+    }
+
+
+    public static int getATechDateDiferenceAsSeconds(Long date1, Long date2) {
+        Seconds seconds = Seconds.secondsBetween(toLocalDateTime(date1), toLocalDateTime(date2));
+        return seconds.getSeconds();
     }
 
 

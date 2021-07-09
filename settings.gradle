@@ -14,4 +14,6 @@ include ':medtronic'
 include ':omnipod-common'
 include ':omnipod-eros'
 include ':omnipod-dash'
+include ':diaconn'
 include ':ypsopump'
+
