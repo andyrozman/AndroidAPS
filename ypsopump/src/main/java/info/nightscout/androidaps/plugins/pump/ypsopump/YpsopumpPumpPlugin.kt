@@ -357,6 +357,7 @@ class YpsopumpPumpPlugin @Inject constructor(
         setRefreshButtonEnabled(false)
         pumpState = PumpDriverState.Connected
 
+        // TODO remove
         startUITest()
 
         // firmware version
@@ -404,15 +405,19 @@ class YpsopumpPumpPlugin @Inject constructor(
 
 
         Thread(Runnable {
-            SystemClock.sleep(2000)
+            SystemClock.sleep(500)
             //ErrorHelperActivity.runAlarm(context, resourceHelper.gs(R.string.medtronic_cmd_cancel_bolus_not_supported), resourceHelper.gs(R.string.medtronic_warning), R.raw.boluserror)
 
             OKDialog.showConfirmation(context = context,
                 title = resourceHelper.gs(R.string.ypsopump_cmd_exec_title_set_profile),
                 message = resourceHelper.gs(R.string.ypsopump_cmd_exec_desc_set_profile, "Unknown"),
                 { _: DialogInterface?, _: Int ->
-                    commandResponse = CommandResponse.builder().success(true).build()
-                }, null)
+                    //commandResponse = CommandResponse.builder().success(true).build()
+                    aapsLogger.debug(LTag.PUMP, "UI Test -> Success")
+                }, { _: DialogInterface?, _: Int ->
+                    //commandResponse = CommandResponse.builder().success(true).build()
+                    aapsLogger.debug(LTag.PUMP, "UI Test -> Cancel")
+                })
 
         }).start()
 
