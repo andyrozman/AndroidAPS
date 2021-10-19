@@ -3,7 +3,7 @@ package info.nightscout.androidaps.plugins.pump.medtronic.util
 import com.google.gson.GsonBuilder
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.overview.events.EventDismissNotification
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
@@ -33,7 +33,7 @@ import kotlin.experimental.or
 @Singleton
 class MedtronicUtil @Inject constructor(
     private val aapsLogger: AAPSLogger,
-    private val rxBus: RxBusWrapper,
+    private val rxBus: RxBus,
     private val rileyLinkUtil: RileyLinkUtil,
     private val medtronicPumpStatus: MedtronicPumpStatus
 ) {
@@ -93,7 +93,7 @@ class MedtronicUtil @Inject constructor(
         return ByteUtil.concat(input.size.toByte(), input)
     }
 
-    fun sendNotification(notificationType: MedtronicNotificationType, resourceHelper: ResourceHelper, rxBus: RxBusWrapper) {
+    fun sendNotification(notificationType: MedtronicNotificationType, resourceHelper: ResourceHelper, rxBus: RxBus) {
         val notification = Notification( //
             notificationType.notificationType,  //
             resourceHelper.gs(notificationType.resourceId),  //
@@ -101,7 +101,7 @@ class MedtronicUtil @Inject constructor(
         rxBus.send(EventNewNotification(notification))
     }
 
-    fun sendNotification(notificationType: MedtronicNotificationType, resourceHelper: ResourceHelper, rxBus: RxBusWrapper, vararg parameters: Any?) {
+    fun sendNotification(notificationType: MedtronicNotificationType, resourceHelper: ResourceHelper, rxBus: RxBus, vararg parameters: Any?) {
         val notification = Notification( //
             notificationType.notificationType,  //
             resourceHelper.gs(notificationType.resourceId, *parameters),  //
@@ -109,7 +109,7 @@ class MedtronicUtil @Inject constructor(
         rxBus.send(EventNewNotification(notification))
     }
 
-    fun dismissNotification(notificationType: MedtronicNotificationType, rxBus: RxBusWrapper) {
+    fun dismissNotification(notificationType: MedtronicNotificationType, rxBus: RxBus) {
         rxBus.send(EventDismissNotification(notificationType.notificationType))
     }
 
@@ -257,7 +257,6 @@ class MedtronicUtil @Inject constructor(
             return b2 and 0xff shl 8 or b1 and 0xff
         }
 
-        @JvmStatic
         fun getByteArrayFromUnsignedShort(shortValue: Int, returnFixedSize: Boolean): ByteArray {
             val highByte = (shortValue shr 8 and 0xFF).toByte()
             val lowByte = (shortValue and 0xFF).toByte()
@@ -272,7 +271,6 @@ class MedtronicUtil @Inject constructor(
             return data
         }
 
-        @JvmStatic
         fun createByteArray(data: List<Byte>): ByteArray {
             val array = ByteArray(data.size)
             for (i in data.indices) {
@@ -304,7 +302,6 @@ class MedtronicUtil @Inject constructor(
             return strokes
         }
 
-        @JvmStatic
         fun isSame(d1: Double, d2: Double): Boolean {
             val diff = d1 - d2
             return Math.abs(diff) <= 0.000001

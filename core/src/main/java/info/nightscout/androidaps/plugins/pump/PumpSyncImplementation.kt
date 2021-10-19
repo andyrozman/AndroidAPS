@@ -11,7 +11,8 @@ import info.nightscout.androidaps.interfaces.ProfileFunction
 import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.logging.UserEntryLogger
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
@@ -27,10 +28,11 @@ class PumpSyncImplementation @Inject constructor(
     private val aapsLogger: AAPSLogger,
     private val dateUtil: DateUtil,
     private val sp: SP,
-    private val rxBus: RxBusWrapper,
+    private val rxBus: RxBus,
     private val resourceHelper: ResourceHelper,
     private val profileFunction: ProfileFunction,
-    private val repository: AppRepository
+    private val repository: AppRepository,
+    private val uel: UserEntryLogger
 ) : PumpSync {
 
     private val disposable = CompositeDisposable()
@@ -213,6 +215,7 @@ class PumpSyncImplementation @Inject constructor(
                 pumpType = pumpType.toDbPumpType(),
                 pumpSerial = pumpSerial)
         )
+        uel.log(UserEntry.Action.CAREPORTAL, pumpType.source, note, ValueWithUnit.Timestamp(timestamp), ValueWithUnit.TherapyEventType(type.toDBbEventType()))
         repository.runTransactionForResult(InsertIfNewByTimestampTherapyEventTransaction(therapyEvent))
             .doOnError {
                 aapsLogger.error(LTag.DATABASE, "Error while saving TherapyEvent", it)

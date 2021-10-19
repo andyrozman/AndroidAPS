@@ -17,12 +17,14 @@ import info.nightscout.androidaps.database.AppRepository
 import info.nightscout.androidaps.database.ValueWrapper
 import info.nightscout.androidaps.extensions.getCustomizedName
 import info.nightscout.androidaps.extensions.pureProfileFromJson
+import info.nightscout.androidaps.extensions.toVisibility
 import info.nightscout.androidaps.interfaces.ActivePlugin
 import info.nightscout.androidaps.interfaces.Config
 import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.interfaces.ProfileFunction
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.utils.DateUtil
+import info.nightscout.androidaps.utils.HardLimits
 import info.nightscout.androidaps.utils.HtmlHelper
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import org.json.JSONObject
@@ -38,7 +40,8 @@ class ProfileViewerDialog : DaggerDialogFragment() {
     @Inject lateinit var repository: AppRepository
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var config: Config
-    @Inject lateinit var rxBus: RxBusWrapper
+    @Inject lateinit var rxBus: RxBus
+    @Inject lateinit var hardLimits: HardLimits
 
     private var time: Long = 0
 
@@ -149,7 +152,9 @@ class ProfileViewerDialog : DaggerDialogFragment() {
                 }
 
                 binding.noprofile.visibility = View.GONE
-                binding.invalidprofile.visibility = if (profile1.isValid("ProfileViewDialog", activePlugin.activePump, config, resourceHelper, rxBus)) View.GONE else View.VISIBLE
+                val validity = profile1.isValid("ProfileViewDialog", activePlugin.activePump, config, resourceHelper, rxBus, hardLimits)
+                binding.invalidprofile.text = resourceHelper.gs(R.string.invalidprofile) + "\n" + validity.reasons.joinToString(separator = "\n")
+                binding.invalidprofile.visibility = validity.isValid.not().toVisibility()
             }
         else
             profile?.let {
@@ -164,7 +169,9 @@ class ProfileViewerDialog : DaggerDialogFragment() {
                 binding.basalGraph.show(it)
 
                 binding.noprofile.visibility = View.GONE
-                binding.invalidprofile.visibility = if (it.isValid("ProfileViewDialog", activePlugin.activePump, config, resourceHelper, rxBus)) View.GONE else View.VISIBLE
+                val validity = it.isValid("ProfileViewDialog", activePlugin.activePump, config, resourceHelper, rxBus, hardLimits)
+                binding.invalidprofile.text = resourceHelper.gs(R.string.invalidprofile) + "\n" + validity.reasons.joinToString(separator = "\n")
+                binding.invalidprofile.visibility = validity.isValid.not().toVisibility()
             }
     }
 

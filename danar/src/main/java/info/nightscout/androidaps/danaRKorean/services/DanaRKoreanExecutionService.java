@@ -48,7 +48,7 @@ import info.nightscout.androidaps.interfaces.ProfileFunction;
 import info.nightscout.androidaps.interfaces.PumpSync;
 import info.nightscout.androidaps.logging.AAPSLogger;
 import info.nightscout.androidaps.logging.LTag;
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper;
+import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.configBuilder.ConstraintChecker;
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification;
 import info.nightscout.androidaps.plugins.general.overview.events.EventOverviewBolusProgress;
@@ -61,7 +61,7 @@ import info.nightscout.androidaps.utils.resources.ResourceHelper;
 
 public class DanaRKoreanExecutionService extends AbstractDanaRExecutionService {
     @Inject AAPSLogger aapsLogger;
-    @Inject RxBusWrapper rxBus;
+    @Inject RxBus rxBus;
     @Inject ResourceHelper resourceHelper;
     @Inject ConstraintChecker constraintChecker;
     @Inject DanaPump danaPump;
@@ -184,7 +184,7 @@ public class DanaRKoreanExecutionService extends AbstractDanaRExecutionService {
                 if (Math.abs(timeDiff) > 10) {
                     waitForWholeMinute(); // Dana can set only whole minute
                     // add 10sec to be sure we are over minute (will be cut off anyway)
-                    mSerialIOThread.sendMessage(new MsgSetTime(injector, dateUtil.now() + T.secs(10).msecs()));
+                    mSerialIOThread.sendMessage(new MsgSetTime(injector, dateUtil.now() + T.Companion.secs(10).msecs()));
                     mSerialIOThread.sendMessage(new MsgSettingPumpTime(injector));
                     timeDiff = (danaPump.getPumpTime() - System.currentTimeMillis()) / 1000L;
                     aapsLogger.debug(LTag.PUMP, "Pump time difference: " + timeDiff + " seconds");
@@ -258,7 +258,7 @@ public class DanaRKoreanExecutionService extends AbstractDanaRExecutionService {
 
     public boolean bolus(double amount, int carbs, long carbTimeStamp, final EventOverviewBolusProgress.Treatment t) {
         if (!isConnected()) return false;
-        if (BolusProgressDialog.stopPressed) return false;
+        if (BolusProgressDialog.Companion.getStopPressed()) return false;
 
         danaPump.setBolusingTreatment(t);
         danaPump.setBolusDone(false);

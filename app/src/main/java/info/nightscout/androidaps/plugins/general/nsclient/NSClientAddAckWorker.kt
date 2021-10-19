@@ -12,7 +12,7 @@ import info.nightscout.androidaps.interfaces.DataSyncSelector
 import info.nightscout.androidaps.interfaces.DataSyncSelector.*
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.nsclient.acks.NSAddAck
 import info.nightscout.androidaps.plugins.general.nsclient.events.EventNSClientNewLog
 import info.nightscout.androidaps.receivers.DataWorker
@@ -27,7 +27,7 @@ class NSClientAddAckWorker(
     @Inject lateinit var dataWorker: DataWorker
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var repository: AppRepository
-    @Inject lateinit var rxBus: RxBusWrapper
+    @Inject lateinit var rxBus: RxBus
     @Inject lateinit var dataSyncSelector: DataSyncSelector
     @Inject lateinit var aapsSchedulers: AapsSchedulers
 
@@ -226,6 +226,25 @@ class NSClientAddAckWorker(
                 rxBus.send(EventNSClientNewLog("DBADD", "Acked ProfileSwitch " + pair.value.interfaceIDs.nightscoutId))
                 // Send new if waiting
                 dataSyncSelector.processChangedProfileSwitchesCompat()
+            }
+
+            is PairEffectiveProfileSwitch         -> {
+                val pair = ack.originalObject
+                pair.value.interfaceIDs.nightscoutId = ack.id
+                repository.runTransactionForResult(UpdateNsIdEffectiveProfileSwitchTransaction(pair.value))
+                    .doOnError { error ->
+                        aapsLogger.error(LTag.DATABASE, "Updated ns id of EffectiveProfileSwitch failed", error)
+                        ret = Result.failure((workDataOf("Error" to error.toString())))
+                    }
+                    .doOnSuccess {
+                        ret = Result.success(workDataOf("ProcessedData" to pair.toString()))
+                        aapsLogger.debug(LTag.DATABASE, "Updated ns id of EffectiveProfileSwitch " + pair.value)
+                        dataSyncSelector.confirmLastEffectiveProfileSwitchIdIfGreater(pair.updateRecordId)
+                    }
+                    .blockingGet()
+                rxBus.send(EventNSClientNewLog("DBADD", "Acked EffectiveProfileSwitch " + pair.value.interfaceIDs.nightscoutId))
+                // Send new if waiting
+                dataSyncSelector.processChangedEffectiveProfileSwitchesCompat()
             }
 
             is DeviceStatus              -> {

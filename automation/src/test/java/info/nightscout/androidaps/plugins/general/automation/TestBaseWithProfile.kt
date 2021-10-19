@@ -11,7 +11,7 @@ import info.nightscout.androidaps.interfaces.Config
 import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.interfaces.ProfileFunction
 import info.nightscout.androidaps.interfaces.ProfileStore
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.DefaultValueHelper
 import info.nightscout.androidaps.utils.FabricPrivacy
@@ -19,10 +19,8 @@ import info.nightscout.androidaps.utils.resources.ResourceHelper
 import org.json.JSONObject
 import org.junit.Before
 import org.mockito.Mock
-import org.powermock.core.classloader.annotations.PrepareForTest
 
 @Suppress("SpellCheckingInspection")
-@PrepareForTest(FabricPrivacy::class, AppRepository::class)
 open class TestBaseWithProfile : TestBase() {
 
     @Mock lateinit var activePluginProvider: ActivePlugin
@@ -34,7 +32,7 @@ open class TestBaseWithProfile : TestBase() {
     @Mock lateinit var config: Config
     @Mock lateinit var repository: AppRepository
 
-    val rxBus = RxBusWrapper(aapsSchedulers)
+    val rxBus = RxBus(aapsSchedulers)
 
     val profileInjector = HasAndroidInjector {
         AndroidInjector {

@@ -3,13 +3,13 @@ package info.nightscout.androidaps.plugins.general.automation.triggers
 import android.content.Context
 import dagger.android.AndroidInjector
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.plugins.general.automation.TestBaseWithProfile
 import info.nightscout.androidaps.TestPumpPlugin
 import info.nightscout.androidaps.interfaces.ActivePlugin
 import info.nightscout.androidaps.interfaces.IobCobCalculator
 import info.nightscout.androidaps.interfaces.PluginDescription
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.automation.AutomationPlugin
+import info.nightscout.androidaps.plugins.general.automation.TestBaseWithProfile
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.AutosensDataStore
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.GlucoseStatusProvider
 import info.nightscout.androidaps.receivers.ReceiverStatusStore
@@ -18,9 +18,7 @@ import info.nightscout.androidaps.utils.sharedPreferences.SP
 import org.junit.Before
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
-import org.powermock.core.classloader.annotations.PrepareForTest
 
-@PrepareForTest(LastLocationDataContainer::class, AutomationPlugin::class, AutosensDataStore::class)
 open class TriggerTestBase : TestBaseWithProfile() {
 
     @Mock lateinit var sp: SP
@@ -47,7 +45,7 @@ open class TriggerTestBase : TestBaseWithProfile() {
         AndroidInjector {
             if (it is Trigger) {
                 it.aapsLogger = aapsLogger
-                it.rxBus = RxBusWrapper(aapsSchedulers)
+                it.rxBus = RxBus(aapsSchedulers)
                 it.resourceHelper = resourceHelper
                 it.profileFunction = profileFunction
                 it.sp = sp

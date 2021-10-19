@@ -7,7 +7,7 @@ import info.nightscout.androidaps.TestBase
 import info.nightscout.androidaps.combo.R
 import info.nightscout.androidaps.data.PumpEnactResult
 import info.nightscout.androidaps.interfaces.*
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.combo.ruffyscripter.history.Bolus
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.resources.ResourceHelper
@@ -15,14 +15,9 @@ import info.nightscout.androidaps.utils.sharedPreferences.SP
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
-import org.powermock.core.classloader.annotations.PrepareForTest
-import org.powermock.modules.junit4.PowerMockRunner
 
-@RunWith(PowerMockRunner::class)
-@PrepareForTest(Context::class)
 class ComboPluginTest : TestBase() {
 
     @Mock lateinit var resourceHelper: ResourceHelper
@@ -48,7 +43,7 @@ class ComboPluginTest : TestBase() {
     fun prepareMocks() {
         `when`(resourceHelper.gs(R.string.novalidbasalrate)).thenReturn("No valid basal rate read from pump")
         `when`(resourceHelper.gs(R.string.combo_pump_unsupported_operation)).thenReturn("Requested operation not supported by pump")
-        comboPlugin = ComboPlugin(injector, aapsLogger, RxBusWrapper(aapsSchedulers), resourceHelper, profileFunction, sp, commandQueue, context, pumpSync, dateUtil)
+        comboPlugin = ComboPlugin(injector, aapsLogger, RxBus(aapsSchedulers), resourceHelper, profileFunction, sp, commandQueue, context, pumpSync, dateUtil)
     }
 
     @Test

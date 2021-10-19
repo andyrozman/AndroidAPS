@@ -40,7 +40,7 @@ import info.nightscout.androidaps.interfaces.PumpPluginBase;
 import info.nightscout.androidaps.interfaces.PumpSync;
 import info.nightscout.androidaps.logging.AAPSLogger;
 import info.nightscout.androidaps.logging.LTag;
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper;
+import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.common.ManufacturerType;
 import info.nightscout.androidaps.plugins.general.overview.events.EventDismissNotification;
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification;
@@ -93,7 +93,7 @@ public class ComboPlugin extends PumpPluginBase implements Pump, Constraints {
     // collaborators
     private final ProfileFunction profileFunction;
     private final SP sp;
-    private RxBusWrapper rxBus;
+    private RxBus rxBus;
     private final CommandQueueProvider commandQueue;
     private final Context context;
     private final PumpSync pumpSync;
@@ -146,7 +146,7 @@ public class ComboPlugin extends PumpPluginBase implements Pump, Constraints {
     public ComboPlugin(
             HasAndroidInjector injector,
             AAPSLogger aapsLogger,
-            RxBusWrapper rxBus,
+            RxBus rxBus,
             ResourceHelper resourceHelper,
             ProfileFunction profileFunction,
             SP sp,
@@ -768,7 +768,7 @@ public class ComboPlugin extends PumpPluginBase implements Pump, Constraints {
             pumpSync.syncTemporaryBasalWithPumpId(
                     state.timestamp,
                     state.tbrPercent,
-                    T.mins(state.tbrRemainingDuration).msecs(),
+                    T.Companion.mins(state.tbrRemainingDuration).msecs(),
                     false,
                     tbrType,
                     // There are no IDs for TBRs on the pump and none is calculated (in contrast to boluses).
@@ -974,7 +974,7 @@ public class ComboPlugin extends PumpPluginBase implements Pump, Constraints {
                 pumpSync.syncTemporaryBasalWithPumpId(
                         now,
                         0.0,
-                        T.mins(15).msecs(),
+                        T.Companion.mins(15).msecs(),
                         false,
                         PumpSync.TemporaryBasalType.PUMP_SUSPEND,
                         // Combo doesn't have nor uses IDs for TBRs, see note in #setTempBasalPercent
@@ -1107,7 +1107,7 @@ public class ComboPlugin extends PumpPluginBase implements Pump, Constraints {
             pumpSync.syncTemporaryBasalWithPumpId(
                     now,
                     state.tbrPercent,
-                    T.mins(state.tbrRemainingDuration).msecs(),
+                    T.Companion.mins(state.tbrRemainingDuration).msecs(),
                     false,
                     PumpSync.TemporaryBasalType.NORMAL,
                     tbrId,
@@ -1140,7 +1140,7 @@ public class ComboPlugin extends PumpPluginBase implements Pump, Constraints {
             pumpSync.syncTemporaryBasalWithPumpId(
                     now,
                     state.tbrPercent,
-                    T.mins(state.tbrRemainingDuration).msecs(),
+                    T.Companion.mins(state.tbrRemainingDuration).msecs(),
                     false,
                     PumpSync.TemporaryBasalType.NORMAL,
                     tbrId,

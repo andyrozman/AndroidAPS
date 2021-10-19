@@ -4,20 +4,19 @@ import android.content.Context
 import dagger.android.AndroidInjector
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.TestBase
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.sharedPreferences.SP
 import org.junit.Assert
 import org.junit.Test
 import org.mockito.Mock
 
-@kotlin.ExperimentalStdlibApi
 class SignatureVerifierPluginTest : TestBase() {
 
     @Mock lateinit var resourceHelper: ResourceHelper
     @Mock lateinit var sp: SP
     @Mock lateinit var context: Context
-    private val rxBus = RxBusWrapper(aapsSchedulers)
+    private val rxBus = RxBus(aapsSchedulers)
 
     val injector = HasAndroidInjector { AndroidInjector { } }
 

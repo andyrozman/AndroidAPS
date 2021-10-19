@@ -14,7 +14,7 @@ import info.nightscout.androidaps.dialogs.ProfileSwitchDialog
 import info.nightscout.androidaps.events.EventPumpStatusChanged
 import info.nightscout.androidaps.interfaces.*
 import info.nightscout.androidaps.plugins.aps.loop.LoopPlugin
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.constraints.objectives.ObjectivesFragment
 import info.nightscout.androidaps.plugins.constraints.objectives.ObjectivesPlugin
 import info.nightscout.androidaps.plugins.general.nsclient.NSClientPlugin
@@ -28,6 +28,7 @@ import info.nightscout.androidaps.setupwizard.elements.*
 import info.nightscout.androidaps.setupwizard.events.EventSWUpdate
 import info.nightscout.androidaps.utils.AndroidPermission
 import info.nightscout.androidaps.utils.CryptoUtil
+import info.nightscout.androidaps.utils.HardLimits
 import info.nightscout.androidaps.utils.extensions.isRunningTest
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.sharedPreferences.SP
@@ -38,7 +39,7 @@ import javax.inject.Singleton
 @Singleton
 class SWDefinition @Inject constructor(
     injector: HasAndroidInjector,
-    private val rxBus: RxBusWrapper,
+    private val rxBus: RxBus,
     private val context: Context,
     resourceHelper: ResourceHelper,
     private val sp: SP,
@@ -53,7 +54,8 @@ class SWDefinition @Inject constructor(
     private val importExportPrefs: ImportExportPrefs,
     private val androidPermission: AndroidPermission,
     private val cryptoUtil: CryptoUtil,
-    private val config: Config
+    private val config: Config,
+    private val hardLimits: HardLimits
 ) {
 
     lateinit var activity: AppCompatActivity
@@ -255,7 +257,7 @@ class SWDefinition @Inject constructor(
         .add(SWFragment(injector, this)
             .add(LocalProfileFragment()))
         .validator {
-            localProfilePlugin.profile?.getDefaultProfile()?.let { ProfileSealed.Pure(it).isValid("StartupWizard", activePlugin.activePump, config, resourceHelper, rxBus) }
+            localProfilePlugin.profile?.getDefaultProfile()?.let { ProfileSealed.Pure(it).isValid("StartupWizard", activePlugin.activePump, config, resourceHelper, rxBus, hardLimits).isValid }
                 ?: false
         }
         .visibility { localProfilePlugin.isEnabled() }
@@ -265,7 +267,7 @@ class SWDefinition @Inject constructor(
             .label(R.string.profileswitch_ismissing))
         .add(SWButton(injector)
             .text(R.string.doprofileswitch)
-            .action { ProfileSwitchDialog().show(activity.supportFragmentManager, "SetupWizard") })
+            .action { ProfileSwitchDialog().show(activity.supportFragmentManager, "ProfileSwitchDialog") })
         .validator { profileFunction.getProfile() != null }
         .visibility { profileFunction.getProfile() == null }
     private val screenPump = SWScreen(injector, R.string.configbuilder_pump)

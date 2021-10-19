@@ -6,6 +6,7 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
+import com.uber.rxdogtag.RxDogTag
 import dagger.android.AndroidInjector
 import dagger.android.DaggerApplication
 import info.nightscout.androidaps.database.AppRepository
@@ -32,6 +33,7 @@ import info.nightscout.androidaps.receivers.TimeDateOrTZChangeReceiver
 import info.nightscout.androidaps.utils.ActivityMonitor
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.locale.LocaleHelper.update
+import info.nightscout.androidaps.utils.protection.PasswordCheck
 import info.nightscout.androidaps.utils.sharedPreferences.SP
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.plusAssign
@@ -56,10 +58,12 @@ class MainApp : DaggerApplication() {
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var staticInjector: StaticInjector// TODO avoid , here fake only to initialize
     @Inject lateinit var uel: UserEntryLogger
+    @Inject lateinit var passwordCheck: PasswordCheck
 
     override fun onCreate() {
         super.onCreate()
         aapsLogger.debug("onCreate")
+        RxDogTag.install()
         update(this)
 
         var gitRemote: String? = BuildConfig.REMOTE
@@ -69,7 +73,7 @@ class MainApp : DaggerApplication() {
             commitHash = null
         }
         disposable += repository.runTransaction(VersionChangeTransaction(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, gitRemote, commitHash)).subscribe()
-        disposable += repository.runTransaction(InsertIfNewByTimestampTherapyEventTransaction(timestamp = dateUtil.now(), type = TherapyEvent.Type.NOTE, note = getString(info.nightscout.androidaps.core.R.string.androidaps_start).toString() + " - " + Build.MANUFACTURER + " " + Build.MODEL, glucoseUnit = TherapyEvent.GlucoseUnit.MGDL)).subscribe()
+        disposable += repository.runTransaction(InsertIfNewByTimestampTherapyEventTransaction(timestamp = dateUtil.now(), type = TherapyEvent.Type.NOTE, note = getString(info.nightscout.androidaps.core.R.string.androidaps_start) + " - " + Build.MANUFACTURER + " " + Build.MODEL, glucoseUnit = TherapyEvent.GlucoseUnit.MGDL)).subscribe()
         disposable += compatDBHelper.dbChangeDisposable()
         registerActivityLifecycleCallbacks(activityMonitor)
         JodaTimeAndroid.init(this)
@@ -87,6 +91,7 @@ class MainApp : DaggerApplication() {
         keepAliveManager.setAlarm(this)
         doMigrations()
         uel.log(UserEntry.Action.START_AAPS, UserEntry.Sources.Aaps)
+        passwordCheck.passwordResetCheck(this)
     }
 
     private fun doMigrations() {

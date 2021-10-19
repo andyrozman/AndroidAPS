@@ -13,7 +13,7 @@ import info.nightscout.androidaps.events.EventProfileSwitchChanged
 import info.nightscout.androidaps.events.EventProfileStoreChanged
 import info.nightscout.androidaps.events.EventPumpStatusChanged
 import info.nightscout.androidaps.logging.UserEntryLogger
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.nsclient.events.EventNSClientStatus
 import info.nightscout.androidaps.plugins.profile.local.LocalProfilePlugin
 import info.nightscout.androidaps.plugins.pump.common.events.EventRileyLinkDeviceStatusChange
@@ -34,7 +34,7 @@ class SetupWizardActivity : NoSplashAppCompatActivity() {
     @Inject lateinit var injector: HasAndroidInjector
     @Inject lateinit var localProfilePlugin: LocalProfilePlugin
     @Inject lateinit var swDefinition: SWDefinition
-    @Inject lateinit var rxBus: RxBusWrapper
+    @Inject lateinit var rxBus: RxBus
     @Inject lateinit var sp: SP
     @Inject lateinit var fabricPrivacy: FabricPrivacy
     @Inject lateinit var aapsSchedulers: AapsSchedulers
@@ -70,7 +70,7 @@ class SetupWizardActivity : NoSplashAppCompatActivity() {
         }
     }
 
-    public override fun onPause() {
+    override fun onPause() {
         super.onPause()
         disposable.clear()
     }
@@ -127,7 +127,7 @@ class SetupWizardActivity : NoSplashAppCompatActivity() {
     override fun updateButtons() {
         runOnUiThread {
             val currentScreen = screens[currentWizardPage]
-            if (currentScreen.validator == null || currentScreen.validator!!.isValid || currentScreen.skippable) {
+            if (currentScreen.validator == null || currentScreen.validator?.isValid == true || currentScreen.skippable) {
                 if (currentWizardPage == nextPage(null)) {
                     findViewById<View>(R.id.finish_button).visibility = View.VISIBLE
                     findViewById<View>(R.id.next_button).visibility = View.GONE
@@ -184,7 +184,7 @@ class SetupWizardActivity : NoSplashAppCompatActivity() {
     private fun nextPage(view: View?): Int {
         var page = currentWizardPage + 1
         while (page < screens.size) {
-            if (screens[page].visibility == null || screens[page].visibility!!.isValid) return page
+            if (screens[page].visibility == null || screens[page].visibility?.isValid == true) return page
             page++
         }
         return min(currentWizardPage, screens.size - 1)
@@ -194,7 +194,7 @@ class SetupWizardActivity : NoSplashAppCompatActivity() {
     private fun previousPage(view: View?): Int {
         var page = currentWizardPage - 1
         while (page >= 0) {
-            if (screens[page].visibility == null || screens[page].visibility!!.isValid) return page
+            if (screens[page].visibility == null || screens[page].visibility?.isValid == true) return page
             page--
         }
         return max(currentWizardPage, 0)

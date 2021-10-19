@@ -5,23 +5,20 @@ import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.TestBase
 import info.nightscout.androidaps.interfaces.Constraint
 import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.anyLong
-import org.powermock.modules.junit4.PowerMockRunner
 
-@RunWith(PowerMockRunner::class)
 class StorageConstraintPluginTest : TestBase() {
 
     @Mock lateinit var resourceHelper: ResourceHelper
-    private val rxBusWrapper = RxBusWrapper(aapsSchedulers)
+    private val rxBusWrapper = RxBus(aapsSchedulers)
 
     private lateinit var storageConstraintPlugin: StorageConstraintPlugin
 
@@ -34,7 +31,7 @@ class StorageConstraintPluginTest : TestBase() {
         injector: HasAndroidInjector,
         aapsLogger: AAPSLogger,
         resourceHelper: ResourceHelper,
-        rxBus: RxBusWrapper
+        rxBus: RxBus
     ) : StorageConstraintPlugin(injector, aapsLogger, resourceHelper, rxBus) {
 
         var memSize = 150L

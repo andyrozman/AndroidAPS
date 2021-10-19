@@ -26,7 +26,7 @@ import info.nightscout.androidaps.events.EventFoodDatabaseChanged
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.logging.UserEntryLogger
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.nsclient.events.EventNSClientRestart
 import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
@@ -45,7 +45,7 @@ import kotlin.collections.ArrayList
 class FoodFragment : DaggerFragment() {
 
     @Inject lateinit var aapsSchedulers: AapsSchedulers
-    @Inject lateinit var rxBus: RxBusWrapper
+    @Inject lateinit var rxBus: RxBus
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var fabricPrivacy: FabricPrivacy
@@ -67,7 +67,6 @@ class FoodFragment : DaggerFragment() {
         return binding.root
     }
 
-    @kotlin.ExperimentalStdlibApi
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -129,7 +128,6 @@ class FoodFragment : DaggerFragment() {
     }
 
     @Synchronized
-    @kotlin.ExperimentalStdlibApi
     override fun onResume() {
         super.onResume()
         disposable.add(rxBus
@@ -141,7 +139,6 @@ class FoodFragment : DaggerFragment() {
         swapAdapter()
     }
 
-    @kotlin.ExperimentalStdlibApi
     private fun swapAdapter() {
         disposable += repository
             .getFoodData()
@@ -202,7 +199,6 @@ class FoodFragment : DaggerFragment() {
         }
     }
 
-    @kotlin.ExperimentalStdlibApi
     private fun filterData() {
         val textFilter = binding.filter.text.toString()
         val categoryFilter = binding.category.selectedItem?.toString()

@@ -2,10 +2,11 @@ package info.nightscout.androidaps.interfaces
 
 import info.nightscout.androidaps.Constants
 import info.nightscout.androidaps.data.PureProfile
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.DecimalFormatter.to0Decimal
 import info.nightscout.androidaps.utils.DecimalFormatter.to1Decimal
+import info.nightscout.androidaps.utils.HardLimits
 import info.nightscout.androidaps.utils.Round
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import org.joda.time.DateTime
@@ -13,7 +14,9 @@ import org.json.JSONObject
 
 interface Profile {
 
-    fun isValid(from: String, pump: Pump, config: Config, resourceHelper: ResourceHelper, rxBus: RxBusWrapper): Boolean
+    class ValidityCheck(var isValid: Boolean = true, val reasons: ArrayList<String> = arrayListOf())
+
+    fun isValid(from: String, pump: Pump, config: Config, resourceHelper: ResourceHelper, rxBus: RxBus, hardLimits: HardLimits): ValidityCheck
 
     /**
      * Units used for ISF & target

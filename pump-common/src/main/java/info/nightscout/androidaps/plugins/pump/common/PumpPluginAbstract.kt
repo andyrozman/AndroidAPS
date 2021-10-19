@@ -18,15 +18,12 @@ import info.nightscout.androidaps.interfaces.*
 import info.nightscout.androidaps.interfaces.PumpSync.TemporaryBasalType
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.common.ManufacturerType
 import info.nightscout.androidaps.plugins.general.overview.events.EventOverviewBolusProgress
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
-import info.nightscout.androidaps.plugins.pump.common.sync.PumpDbEntryCarbs
-import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncEntriesCreator
-import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.DecimalFormatter.to0Decimal
 import info.nightscout.androidaps.utils.DecimalFormatter.to2Decimal
@@ -49,7 +46,7 @@ abstract class PumpPluginAbstract protected constructor(
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger,
     commandQueue: CommandQueueProvider,
-    var rxBus: RxBusWrapper,
+    var rxBus: RxBus,
     var activePlugin: ActivePlugin,
     var sp: SP,
     var context: Context,
@@ -57,18 +54,19 @@ abstract class PumpPluginAbstract protected constructor(
     var dateUtil: DateUtil,
     var aapsSchedulers: AapsSchedulers,
     var pumpSync: PumpSync,
-    var pumpSyncStorage: PumpSyncStorage
-) : PumpPluginBase(pluginDescription!!, injector!!, aapsLogger, resourceHelper, commandQueue), Pump, Constraints, PumpSyncEntriesCreator {
+    var pumpSyncStorage: info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
+) : PumpPluginBase(pluginDescription!!, injector!!, aapsLogger, resourceHelper, commandQueue), Pump, Constraints, info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncEntriesCreator {
+
+    private val disposable = CompositeDisposable()
 
     // Pump capabilities
     final override var pumpDescription = PumpDescription()
     //protected set
 
-    @JvmField protected val disposable = CompositeDisposable()
-    @JvmField protected var serviceConnection: ServiceConnection? = null
-    @JvmField protected var serviceRunning = false
-    @JvmField protected var pumpState = PumpDriverState.NotInitialized
-    @JvmField protected var displayConnectionMessages = false
+    protected var serviceConnection: ServiceConnection? = null
+    protected var serviceRunning = false
+    protected var pumpState = PumpDriverState.NotInitialized
+    protected var displayConnectionMessages = false
 
     var pumpType: PumpType = PumpType.GENERIC_AAPS
         get() = field
@@ -118,7 +116,6 @@ abstract class PumpPluginAbstract protected constructor(
      * @return Class
      */
     abstract val serviceClass: Class<*>?
-
     abstract val pumpStatusData: PumpStatus
 
     override fun isInitialized(): Boolean {
@@ -222,10 +219,10 @@ abstract class PumpPluginAbstract protected constructor(
     // public JSONObject getJSONStatus(Profile profile, String profileName) {
     // return pumpDriver.getJSONStatus(profile, profileName);
     // }
-    // open fun deviceID(): String {
-    //     aapsLogger.debug(LTag.PUMP, "deviceID [PumpPluginAbstract] - Not implemented.")
-    //     return "FakeDevice"
-    // }
+    open fun deviceID(): String {
+        aapsLogger.debug(LTag.PUMP, "deviceID [PumpPluginAbstract] - Not implemented.")
+        return "FakeDevice"
+    }
 
     // Short info for SMS, Wear etc
     override val isFakingTempsByExtendedBoluses: Boolean
@@ -250,7 +247,8 @@ abstract class PumpPluginAbstract protected constructor(
         val extended = JSONObject()
         try {
             battery.put("percent", pumpStatusData.batteryRemaining)
-            status.put("status", pumpStatusData.pumpRunningState.status)
+            status.put("status", pumpStatusData.pumpStatusType.status)
+//            status.put("status", pumpStatusData.pumpRunningState.status)
             extended.put("Version", version)
             try {
                 extended.put("ActiveProfile", profileName)

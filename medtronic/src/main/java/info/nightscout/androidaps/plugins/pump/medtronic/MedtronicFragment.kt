@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,7 +18,7 @@ import info.nightscout.androidaps.interfaces.CommandQueueProvider
 import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDeviceState
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
 import info.nightscout.androidaps.plugins.pump.common.events.EventRileyLinkDeviceStatusChange
@@ -53,7 +54,7 @@ class MedtronicFragment : DaggerFragment() {
     @Inject lateinit var fabricPrivacy: FabricPrivacy
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var dateUtil: DateUtil
-    @Inject lateinit var rxBus: RxBusWrapper
+    @Inject lateinit var rxBus: RxBus
     @Inject lateinit var commandQueue: CommandQueueProvider
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var medtronicPumpPlugin: MedtronicPumpPlugin
@@ -67,7 +68,7 @@ class MedtronicFragment : DaggerFragment() {
 
     private var disposable: CompositeDisposable = CompositeDisposable()
 
-    private val loopHandler = Handler()
+    private val loopHandler = Handler(Looper.getMainLooper())
     private lateinit var refreshLoop: Runnable
 
     init {
@@ -89,8 +90,6 @@ class MedtronicFragment : DaggerFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.pumpStatus.setBackgroundColor(resourceHelper.gc(R.color.colorInitializingBorder))
-
         binding.rlStatus.text = resourceHelper.gs(RileyLinkServiceState.NotStarted.resourceId)
 
         binding.pumpStatusIcon.setTextColor(Color.WHITE)
@@ -98,7 +97,7 @@ class MedtronicFragment : DaggerFragment() {
         binding.pumpStatusIcon.text = "{fa-bed}"
 
         binding.history.setOnClickListener {
-            if (medtronicPumpPlugin.rileyLinkService.verifyConfiguration() == true) {
+            if (medtronicPumpPlugin.rileyLinkService.verifyConfiguration()) {
                 startActivity(Intent(context, MedtronicHistoryActivity::class.java))
             } else {
                 displayNotConfiguredDialog()
@@ -106,7 +105,7 @@ class MedtronicFragment : DaggerFragment() {
         }
 
         binding.refresh.setOnClickListener {
-            if (medtronicPumpPlugin.rileyLinkService.verifyConfiguration() != true) {
+            if (!medtronicPumpPlugin.rileyLinkService.verifyConfiguration()) {
                 displayNotConfiguredDialog()
             } else {
                 binding.refresh.isEnabled = false
@@ -120,7 +119,7 @@ class MedtronicFragment : DaggerFragment() {
         }
 
         binding.stats.setOnClickListener {
-            if (medtronicPumpPlugin.rileyLinkService.verifyConfiguration() == true) {
+            if (medtronicPumpPlugin.rileyLinkService.verifyConfiguration()) {
                 startActivity(Intent(context, RileyLinkStatusActivity::class.java))
             } else {
                 displayNotConfiguredDialog()

@@ -24,7 +24,7 @@ import info.nightscout.androidaps.interfaces.ProfileFunction
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.aps.loop.LoopPlugin
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.nsclient.data.NSDeviceStatus
 import info.nightscout.androidaps.plugins.general.overview.OverviewData
 import info.nightscout.androidaps.plugins.general.overview.OverviewMenus
@@ -50,7 +50,7 @@ class HistoryBrowseActivity : NoSplashAppCompatActivity() {
     @Inject lateinit var injector: HasAndroidInjector
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var aapsSchedulers: AapsSchedulers
-    @Inject lateinit var rxBus: RxBusWrapper
+    @Inject lateinit var rxBus: RxBus
     @Inject lateinit var sp: SP
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var defaultValueHelper: DefaultValueHelper
@@ -93,11 +93,11 @@ class HistoryBrowseActivity : NoSplashAppCompatActivity() {
         overviewData = OverviewData(injector, aapsLogger, resourceHelper, dateUtil, sp, activePlugin, defaultValueHelper, profileFunction, config, loopPlugin, nsDeviceStatus, repository, overviewMenus, iobCobCalculator, translator)
 
         binding.left.setOnClickListener {
-            setTime(overviewData.fromTime - T.hours(rangeToDisplay.toLong()).msecs())
+            adjustTimeRange(overviewData.fromTime - T.hours(rangeToDisplay.toLong()).msecs())
             loadAll("onClickLeft")
         }
         binding.right.setOnClickListener {
-            setTime(overviewData.fromTime + T.hours(rangeToDisplay.toLong()).msecs())
+            adjustTimeRange(overviewData.fromTime + T.hours(rangeToDisplay.toLong()).msecs())
             loadAll("onClickRight")
         }
         binding.end.setOnClickListener {
@@ -151,7 +151,11 @@ class HistoryBrowseActivity : NoSplashAppCompatActivity() {
         }
 
         val dm = DisplayMetrics()
-        windowManager?.defaultDisplay?.getMetrics(dm)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R)
+            display?.getRealMetrics(dm)
+        else
+            @Suppress("DEPRECATION") windowManager.defaultDisplay.getMetrics(dm)
+
 
         axisWidth = if (dm.densityDpi <= 120) 3 else if (dm.densityDpi <= 160) 10 else if (dm.densityDpi <= 320) 35 else if (dm.densityDpi <= 420) 50 else if (dm.densityDpi <= 560) 70 else 80
         binding.bgGraph.gridLabelRenderer?.gridColor = resourceHelper.gc(R.color.graphgrid)
@@ -167,7 +171,7 @@ class HistoryBrowseActivity : NoSplashAppCompatActivity() {
         }
     }
 
-    public override fun onPause() {
+    override fun onPause() {
         super.onPause()
         disposable.clear()
         iobCobCalculator.stopCalculation("onPause")
@@ -179,38 +183,39 @@ class HistoryBrowseActivity : NoSplashAppCompatActivity() {
         super.onDestroy()
     }
 
-    public override fun onResume() {
+    override fun onResume() {
         super.onResume()
-        disposable.add(rxBus
-                .toObservable(EventAutosensCalculationFinished::class.java)
-                .observeOn(aapsSchedulers.io)
-                .subscribe({
-                    // catch only events from iobCobCalculator
-                    if (it.cause is EventCustomCalculationFinished)
-                        refreshLoop("EventAutosensCalculationFinished")
-                }, fabricPrivacy::logException)
-        )
-        disposable.add(rxBus
-                .toObservable(EventIobCalculationProgress::class.java)
-                .observeOn(aapsSchedulers.main)
-                .subscribe({
-                    if (it.cause is EventCustomCalculationFinished)
-                        binding.overviewIobcalculationprogess.text = it.progress
-                }, fabricPrivacy::logException)
-        )
-        disposable.add(rxBus
-                .toObservable(EventRefreshOverview::class.java)
-                .observeOn(aapsSchedulers.main)
-                .subscribe({ updateGUI("EventRefreshOverview") }, fabricPrivacy::logException)
-        )
         disposable += rxBus
-                .toObservable(EventBucketedDataCreated::class.java)
-                .observeOn(aapsSchedulers.io)
-                .subscribe({
-                    overviewData.prepareBucketedData("EventBucketedDataCreated")
-                    overviewData.prepareBgData("EventBucketedDataCreated")
-                    rxBus.send(EventRefreshOverview("EventBucketedDataCreated"))
-                }, fabricPrivacy::logException)
+            .toObservable(EventAutosensCalculationFinished::class.java)
+            .observeOn(aapsSchedulers.io)
+            .subscribe({
+                           // catch only events from iobCobCalculator
+                           if (it.cause is EventCustomCalculationFinished)
+                               try {
+                                   refreshLoop("EventAutosensCalculationFinished")
+                               } catch (e: InterruptedException) {
+                                   fabricPrivacy.logException(e)
+                               }
+                       }, fabricPrivacy::logException)
+        disposable += rxBus
+            .toObservable(EventIobCalculationProgress::class.java)
+            .observeOn(aapsSchedulers.main)
+            .subscribe({
+                           if (it.cause is EventCustomCalculationFinished)
+                               binding.overviewIobcalculationprogess.text = it.progress
+                       }, fabricPrivacy::logException)
+        disposable += rxBus
+            .toObservable(EventRefreshOverview::class.java)
+            .observeOn(aapsSchedulers.main)
+            .subscribe({ updateGUI("EventRefreshOverview") }, fabricPrivacy::logException)
+        disposable += rxBus
+            .toObservable(EventBucketedDataCreated::class.java)
+            .observeOn(aapsSchedulers.io)
+            .subscribe({
+                           overviewData.prepareBucketedData("EventBucketedDataCreated")
+                           overviewData.prepareBgData("EventBucketedDataCreated")
+                           rxBus.send(EventRefreshOverview("EventBucketedDataCreated"))
+                       }, fabricPrivacy::logException)
 
         if (overviewData.fromTime == 0L) {
             // set start of current day
@@ -226,7 +231,6 @@ class HistoryBrowseActivity : NoSplashAppCompatActivity() {
         outState.putInt("rangeToDisplay", rangeToDisplay)
         outState.putLong("start", overviewData.fromTime)
         outState.putLong("end", overviewData.toTime)
-
     }
 
     private fun prepareGraphsIfNeeded(numOfGraphs: Int) {
@@ -266,10 +270,14 @@ class HistoryBrowseActivity : NoSplashAppCompatActivity() {
 
     @Suppress("SameParameterValue")
     private fun loadAll(from: String) {
+        updateDate()
         Thread {
-            overviewData.prepareBasalData(from)
-            overviewData.prepareTemporaryTargetData(from)
+            overviewData.prepareBgData("$from")
             overviewData.prepareTreatmentsData(from)
+            rxBus.send(EventRefreshOverview("loadAll_$from"))
+            overviewData.prepareTemporaryTargetData(from)
+            rxBus.send(EventRefreshOverview("loadAll_$from"))
+            overviewData.prepareBasalData(from)
             rxBus.send(EventRefreshOverview(from))
             aapsLogger.debug(LTag.UI, "loadAll $from finished")
             runCalculation(from)
@@ -277,16 +285,20 @@ class HistoryBrowseActivity : NoSplashAppCompatActivity() {
     }
 
     private fun setTime(start: Long) {
-        Calendar.getInstance().also { calendar ->
+        GregorianCalendar().also { calendar ->
             calendar.timeInMillis = start
             calendar[Calendar.MILLISECOND] = 0
             calendar[Calendar.SECOND] = 0
             calendar[Calendar.MINUTE] = 0
-            calendar[Calendar.HOUR_OF_DAY] = 0
-            overviewData.fromTime = calendar.timeInMillis
-            overviewData.toTime = overviewData.fromTime + T.hours(rangeToDisplay.toLong()).msecs()
-            overviewData.endTime = overviewData.toTime
+            calendar[Calendar.HOUR_OF_DAY] -= (calendar[Calendar.HOUR_OF_DAY] % rangeToDisplay)
+            adjustTimeRange(calendar.timeInMillis)
         }
+    }
+
+    private fun adjustTimeRange(start: Long) {
+        overviewData.fromTime = start
+        overviewData.toTime = overviewData.fromTime + T.hours(rangeToDisplay.toLong()).msecs()
+        overviewData.endTime = overviewData.toTime
     }
 
     private fun runCalculation(from: String) {
@@ -308,13 +320,17 @@ class HistoryBrowseActivity : NoSplashAppCompatActivity() {
         runningRefresh = false
     }
 
+    fun updateDate() {
+        binding.date.text = dateUtil.dateAndTimeString(overviewData.fromTime)
+        binding.zoom.text = rangeToDisplay.toString()
+    }
+
     @Suppress("UNUSED_PARAMETER")
     @SuppressLint("SetTextI18n")
     fun updateGUI(from: String) {
         aapsLogger.debug(LTag.UI, "updateGui $from")
 
-        binding.date.text = dateUtil.dateAndTimeString(overviewData.fromTime)
-        binding.zoom.text = rangeToDisplay.toString()
+        updateDate()
 
         val pump = activePlugin.activePump
         val graphData = GraphData(injector, binding.bgGraph, overviewData)

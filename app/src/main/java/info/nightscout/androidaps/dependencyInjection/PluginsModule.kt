@@ -10,6 +10,7 @@ import info.nightscout.androidaps.danar.DanaRPlugin
 import info.nightscout.androidaps.danars.DanaRSPlugin
 import info.nightscout.androidaps.diaconn.DiaconnG8Plugin
 import info.nightscout.androidaps.interfaces.PluginBase
+import info.nightscout.androidaps.plugin.general.openhumans.OpenHumansUploader
 import info.nightscout.androidaps.plugins.aps.loop.LoopPlugin
 import info.nightscout.androidaps.plugins.aps.openAPSAMA.OpenAPSAMAPlugin
 import info.nightscout.androidaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
@@ -41,8 +42,8 @@ import info.nightscout.androidaps.plugins.pump.combo.ComboPlugin
 import info.nightscout.androidaps.plugins.pump.insight.LocalInsightPlugin
 import info.nightscout.androidaps.plugins.pump.mdi.MDIPlugin
 import info.nightscout.androidaps.plugins.pump.medtronic.MedtronicPumpPlugin
+import info.nightscout.androidaps.plugins.pump.omnipod.dash.OmnipodDashPumpPlugin
 import info.nightscout.androidaps.plugins.pump.virtual.VirtualPumpPlugin
-import info.nightscout.androidaps.plugins.pump.ypsopump.YpsopumpPumpPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityAAPSPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityOref1Plugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityWeightedAveragePlugin
@@ -164,7 +165,14 @@ abstract class PluginsModule {
     @PumpDriver
     @IntoMap
     @IntKey(140)
+    abstract fun bindOmnipodDashPumpPlugin(plugin: OmnipodDashPumpPlugin): PluginBase
+
+    @Binds
+    @PumpDriver
+    @IntoMap
+    @IntKey(145)
     abstract fun bindYpsopumpPlugin(plugin: YpsopumpPumpPlugin): PluginBase
+
 
     @Binds
     @PumpDriver
@@ -351,6 +359,12 @@ abstract class PluginsModule {
     // @IntoMap
     // @IntKey(480)
     // abstract fun bindOpenHumansPlugin(plugin: OpenHumansUploader): PluginBase
+
+    @Binds
+    @NotNSClient
+    @IntoMap
+    @IntKey(480)
+    abstract fun bindsOpenHumansPlugin(plugin: OpenHumansUploader): PluginBase
 
     @Binds
     @AllConfigs

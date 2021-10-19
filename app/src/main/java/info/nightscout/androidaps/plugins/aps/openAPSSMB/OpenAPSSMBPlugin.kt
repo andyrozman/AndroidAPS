@@ -5,6 +5,7 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.R
+import info.nightscout.androidaps.annotations.OpenForTesting
 import info.nightscout.androidaps.database.AppRepository
 import info.nightscout.androidaps.database.ValueWrapper
 import info.nightscout.androidaps.extensions.target
@@ -14,7 +15,7 @@ import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.aps.events.EventOpenAPSUpdateGui
 import info.nightscout.androidaps.plugins.aps.events.EventOpenAPSUpdateResultGui
 import info.nightscout.androidaps.plugins.aps.loop.ScriptReader
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.configBuilder.ConstraintChecker
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.AutosensResult
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.GlucoseStatusProvider
@@ -27,11 +28,12 @@ import info.nightscout.androidaps.utils.sharedPreferences.SP
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@OpenForTesting
 @Singleton
-open class OpenAPSSMBPlugin @Inject constructor(
+class OpenAPSSMBPlugin @Inject constructor(
     injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
-    private val rxBus: RxBusWrapper,
+    private val rxBus: RxBus,
     private val constraintChecker: ConstraintChecker,
     resourceHelper: ResourceHelper,
     private val profileFunction: ProfileFunction,
@@ -128,11 +130,11 @@ open class OpenAPSSMBPlugin @Inject constructor(
             maxBg = hardLimits.verifyHardLimits(tempTarget.value.highTarget, R.string.temp_target_high_target, HardLimits.VERY_HARD_LIMIT_TEMP_MAX_BG[0].toDouble(), HardLimits.VERY_HARD_LIMIT_TEMP_MAX_BG[1].toDouble())
             targetBg = hardLimits.verifyHardLimits(tempTarget.value.target(), R.string.temp_target_value, HardLimits.VERY_HARD_LIMIT_TEMP_TARGET_BG[0].toDouble(), HardLimits.VERY_HARD_LIMIT_TEMP_TARGET_BG[1].toDouble())
         }
-        if (!hardLimits.checkOnlyHardLimits(profile.dia, R.string.profile_dia, hardLimits.minDia(), hardLimits.maxDia())) return
-        if (!hardLimits.checkOnlyHardLimits(profile.getIcTimeFromMidnight(Profile.secondsFromMidnight()), R.string.profile_carbs_ratio_value, hardLimits.minIC(), hardLimits.maxIC())) return
-        if (!hardLimits.checkOnlyHardLimits(profile.getIsfMgdl(), R.string.profile_sensitivity_value, HardLimits.MIN_ISF, HardLimits.MAX_ISF)) return
-        if (!hardLimits.checkOnlyHardLimits(profile.getMaxDailyBasal(), R.string.profile_max_daily_basal_value, 0.02, hardLimits.maxBasal())) return
-        if (!hardLimits.checkOnlyHardLimits(pump.baseBasalRate, R.string.current_basal_value, 0.01, hardLimits.maxBasal())) return
+        if (!hardLimits.checkHardLimits(profile.dia, R.string.profile_dia, hardLimits.minDia(), hardLimits.maxDia())) return
+        if (!hardLimits.checkHardLimits(profile.getIcTimeFromMidnight(Profile.secondsFromMidnight()), R.string.profile_carbs_ratio_value, hardLimits.minIC(), hardLimits.maxIC())) return
+        if (!hardLimits.checkHardLimits(profile.getIsfMgdl(), R.string.profile_sensitivity_value, HardLimits.MIN_ISF, HardLimits.MAX_ISF)) return
+        if (!hardLimits.checkHardLimits(profile.getMaxDailyBasal(), R.string.profile_max_daily_basal_value, 0.02, hardLimits.maxBasal())) return
+        if (!hardLimits.checkHardLimits(pump.baseBasalRate, R.string.current_basal_value, 0.01, hardLimits.maxBasal())) return
         startPart = System.currentTimeMillis()
         if (constraintChecker.isAutosensModeEnabled().value()) {
             val autosensData = iobCobCalculator.getLastAutosensDataWithWaitForCalculationFinish("OpenAPSPlugin")

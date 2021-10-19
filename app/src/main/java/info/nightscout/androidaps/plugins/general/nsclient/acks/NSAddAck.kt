@@ -3,7 +3,7 @@ package info.nightscout.androidaps.plugins.general.nsclient.acks
 import info.nightscout.androidaps.events.Event
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.nsclient.events.EventNSClientRestart
 import io.socket.client.Ack
 import org.json.JSONArray
@@ -11,13 +11,13 @@ import org.json.JSONObject
 
 class NSAddAck(
     private val aapsLogger: AAPSLogger,
-    private val rxBus: RxBusWrapper,
+    private val rxBus: RxBus,
     val originalObject: Any? = null
 ) : Event(), Ack {
 
     var id: String? = null
-    @JvmField var nsClientID: String? = null
-    @JvmField var json: JSONObject? = null
+    var nsClientID: String? = null
+    var json: JSONObject? = null
     override fun call(vararg args: Any) {
         // Regular response
         try {

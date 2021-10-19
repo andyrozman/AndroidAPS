@@ -1,6 +1,7 @@
 package info.nightscout.androidaps.plugins.general.maintenance
 
 import android.os.Environment
+import info.nightscout.androidaps.annotations.OpenForTesting
 import info.nightscout.androidaps.core.R
 import info.nightscout.androidaps.interfaces.Config
 import info.nightscout.androidaps.plugins.constraints.versionChecker.VersionCheckerUtils
@@ -18,6 +19,7 @@ import javax.inject.Singleton
 import kotlin.math.abs
 
 @Suppress("SpellCheckingInspection")
+@OpenForTesting
 @Singleton
 class PrefFileListProvider @Inject constructor(
     private val resourceHelper: ResourceHelper,
@@ -27,7 +29,7 @@ class PrefFileListProvider @Inject constructor(
     private val storage: Storage,
     private val versionCheckerUtils: VersionCheckerUtils
 ) {
-
+    @Suppress("DEPRECATION")
     private val path = File(Environment.getExternalStorageDirectory().toString())
     private val aapsPath = File(path, "AAPS" + File.separator + "preferences")
     private val exportsPath = File(path, "AAPS" + File.separator + "exports")

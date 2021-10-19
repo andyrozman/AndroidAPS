@@ -13,6 +13,7 @@ import androidx.work.workDataOf
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.Constants
 import info.nightscout.androidaps.R
+import info.nightscout.androidaps.annotations.OpenForTesting
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.database.AppRepository
 import info.nightscout.androidaps.database.entities.OfflineEvent
@@ -31,7 +32,7 @@ import info.nightscout.androidaps.interfaces.*
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.logging.UserEntryLogger
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.configBuilder.ConstraintChecker
 import info.nightscout.androidaps.plugins.general.nsclient.events.EventNSClientRestart
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
@@ -59,15 +60,17 @@ import javax.inject.Singleton
 import kotlin.math.max
 import kotlin.math.min
 
+@OpenForTesting
 @Singleton
 class SmsCommunicatorPlugin @Inject constructor(
     injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
     resourceHelper: ResourceHelper,
+    private val smsManager: SmsManager,
     private val aapsSchedulers: AapsSchedulers,
     private val sp: SP,
     private val constraintChecker: ConstraintChecker,
-    private val rxBus: RxBusWrapper,
+    private val rxBus: RxBus,
     private val profileFunction: ProfileFunction,
     private val fabricPrivacy: FabricPrivacy,
     private val activePlugin: ActivePlugin,
@@ -181,7 +184,6 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
 
         @Suppress("SpellCheckingInspection")
-        @kotlin.ExperimentalStdlibApi
         override fun doWork(): Result {
             val bundle = dataWorker.pickupBundle(inputData.getLong(DataWorker.STORE_KEY, -1))
                 ?: return Result.failure(workDataOf("Error" to "missing input data"))
@@ -224,7 +226,6 @@ class SmsCommunicatorPlugin @Inject constructor(
         return false
     }
 
-    @kotlin.ExperimentalStdlibApi
     fun processSms(receivedSms: Sms) {
         if (!isEnabled(PluginType.GENERAL)) {
             aapsLogger.debug(LTag.SMS, "Ignoring SMS. Plugin disabled.")
@@ -341,7 +342,6 @@ class SmsCommunicatorPlugin @Inject constructor(
         receivedSms.processed = true
     }
 
-    @kotlin.ExperimentalStdlibApi
     private fun processLOOP(divided: Array<String>, receivedSms: Sms) {
         when (divided[1].uppercase(Locale.getDefault())) {
             "DISABLE", "STOP" -> {
@@ -470,7 +470,6 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
     }
 
-    @kotlin.ExperimentalStdlibApi
     private fun processNSCLIENT(divided: Array<String>, receivedSms: Sms) {
         if (divided[1].uppercase(Locale.getDefault()) == "RESTART") {
             rxBus.send(EventNSClientRestart())
@@ -480,7 +479,6 @@ class SmsCommunicatorPlugin @Inject constructor(
             sendSMS(Sms(receivedSms.phoneNumber, resourceHelper.gs(R.string.wrongformat)))
     }
 
-    @kotlin.ExperimentalStdlibApi
     private fun processHELP(divided: Array<String>, receivedSms: Sms) {
         when {
             divided.size == 1                                                             -> {
@@ -567,7 +565,6 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
     }
 
-    @kotlin.ExperimentalStdlibApi
     private fun processPROFILE(divided: Array<String>, receivedSms: Sms) { // load profiles
         val anInterface = activePlugin.activeProfileSource
         val store = anInterface.profile
@@ -621,7 +618,6 @@ class SmsCommunicatorPlugin @Inject constructor(
         receivedSms.processed = true
     }
 
-    @kotlin.ExperimentalStdlibApi
     private fun processBASAL(divided: Array<String>, receivedSms: Sms) {
         if (divided[1].uppercase(Locale.getDefault()) == "CANCEL" || divided[1].uppercase(Locale.getDefault()) == "STOP") {
             val passCode = generatePassCode()
@@ -738,7 +734,6 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
     }
 
-    @kotlin.ExperimentalStdlibApi
     private fun processEXTENDED(divided: Array<String>, receivedSms: Sms) {
         if (divided[1].uppercase(Locale.getDefault()) == "CANCEL" || divided[1].uppercase(Locale.getDefault()) == "STOP") {
             val passCode = generatePassCode()
@@ -905,7 +900,6 @@ class SmsCommunicatorPlugin @Inject constructor(
         return retVal
     }
 
-    @kotlin.ExperimentalStdlibApi
     private fun processCARBS(divided: Array<String>, receivedSms: Sms) {
         var grams = SafeParse.stringToInt(divided[1])
         var time = dateUtil.now()
@@ -949,7 +943,6 @@ class SmsCommunicatorPlugin @Inject constructor(
         }
     }
 
-    @kotlin.ExperimentalStdlibApi
     private fun processTARGET(divided: Array<String>, receivedSms: Sms) {
         val isMeal = divided[1].equals("MEAL", ignoreCase = true)
         val isActivity = divided[1].equals("ACTIVITY", ignoreCase = true)
@@ -1098,7 +1091,6 @@ class SmsCommunicatorPlugin @Inject constructor(
     }
 
     fun sendSMS(sms: Sms): Boolean {
-        val smsManager = SmsManager.getDefault()
         sms.text = stripAccents(sms.text)
         try {
             aapsLogger.debug(LTag.SMS, "Sending SMS to " + sms.phoneNumber + ": " + sms.text)

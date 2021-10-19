@@ -72,7 +72,6 @@
     <string name="overview">Oorsig</string>
     <string name="treatments">Behandelings</string>
     <string name="virtualpump">Virtuele Pomp</string>
-    <string name="careportal">Careportal</string>
     <string name="configbuilder_pump">Pomp</string>
     <string name="configbuilder_pump_description">Watter pomp wil jy gebruik met AndroidAPS?</string>
     <string name="configbuilder_profile">Profiel</string>
@@ -147,7 +146,6 @@
     <string name="smscommunicator_loophasbeendisabled">Loop is gedeaktiveer</string>
     <string name="smscommunicator_loophasbeenenabled">Loop is geaktiveerd</string>
     <string name="smscommunicator_loopisenabled">Lus geaktiveer</string>
-    <string name="valuelimitedto">%1$.2f beperk tot %2$.2f</string>
     <string name="smscommunicator_remotecommandnotallowed">Afstandbeheerde bevel word nie toegelaat nie</string>
     <string name="smscommunicator_remotebolusnotallowed">Afstandbeheerde bolus nie beskikbaar nie. Probeer later weer.</string>
     <string name="smscommunicator_profilereplywithcode">Om profiel te verander na %1$s %2$d%% antwoord met %3$s</string>
@@ -197,7 +195,6 @@
     <string name="ongoingnotificaction">Voortgesette kennisgewing</string>
     <string name="old_data">OU DATA</string>
     <string name="sms_minago">%1$d min terug</string>
-    <string name="localprofile">Plaaslike profiel</string>
     <string name="openapsama">OpenAPS AMA</string>
     <string name="array_of_elements">Matriks van %1$d elemente. \nWerklike waarde:</string>
     <string name="openapsma_autosensdata_label">Autosens data</string>

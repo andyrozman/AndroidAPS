@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.*
 import info.nightscout.androidaps.activities.ErrorHelperActivity
+import info.nightscout.androidaps.annotations.OpenForTesting
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.data.PumpEnactResult
@@ -35,7 +36,7 @@ import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.aps.loop.events.EventLoopSetLastRunGui
 import info.nightscout.androidaps.plugins.aps.loop.events.EventLoopUpdateGui
 import info.nightscout.androidaps.plugins.aps.loop.events.EventNewOpenLoopNotification
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.configBuilder.ConstraintChecker
 import info.nightscout.androidaps.plugins.configBuilder.RunningConfiguration
 import info.nightscout.androidaps.plugins.general.overview.events.EventDismissNotification
@@ -45,7 +46,6 @@ import info.nightscout.androidaps.plugins.general.wear.events.EventWearConfirmAc
 import info.nightscout.androidaps.plugins.general.wear.events.EventWearInitiateAction
 import info.nightscout.androidaps.plugins.pump.virtual.VirtualPumpPlugin
 import info.nightscout.androidaps.queue.Callback
-import info.nightscout.androidaps.queue.commands.Command
 import info.nightscout.androidaps.receivers.ReceiverStatusStore
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.FabricPrivacy
@@ -65,12 +65,13 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
 
+@OpenForTesting
 @Singleton
-open class LoopPlugin @Inject constructor(
+class LoopPlugin @Inject constructor(
     injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
     private val aapsSchedulers: AapsSchedulers,
-    private val rxBus: RxBusWrapper,
+    private val rxBus: RxBus,
     private val sp: SP,
     config: Config,
     private val constraintChecker: ConstraintChecker,

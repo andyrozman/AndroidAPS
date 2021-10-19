@@ -37,7 +37,7 @@ import info.nightscout.androidaps.interfaces.IobCobCalculator
 import info.nightscout.androidaps.interfaces.ProfileFunction
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.UserEntryLogger
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.actions.defs.CustomAction
 import info.nightscout.androidaps.plugins.general.overview.StatusLightHandler
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.OmnipodErosPumpPlugin
@@ -62,7 +62,7 @@ class ActionsFragment : DaggerFragment() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var aapsSchedulers: AapsSchedulers
-    @Inject lateinit var rxBus: RxBusWrapper
+    @Inject lateinit var rxBus: RxBus
     @Inject lateinit var sp: SP
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var profileFunction: ProfileFunction
@@ -115,7 +115,10 @@ class ActionsFragment : DaggerFragment() {
                               savedInstanceState: Bundle?): View? {
         //check screen width
         dm = DisplayMetrics()
-        activity?.windowManager?.defaultDisplay?.getMetrics(dm)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R)
+            activity?.display?.getRealMetrics(dm)
+        else
+            @Suppress("DEPRECATION") activity?.windowManager?.defaultDisplay?.getMetrics(dm)
 
         val screenWidth = dm.widthPixels
         val screenHeight = dm.heightPixels
@@ -153,7 +156,7 @@ class ActionsFragment : DaggerFragment() {
         pbLevelLabel = view.findViewById(R.id.pb_level_label)
 
         profileSwitch?.setOnClickListener {
-            ProfileSwitchDialog().show(childFragmentManager, "Actions")
+            ProfileSwitchDialog().show(childFragmentManager, "ProfileSwitchDialog")
         }
         tempTarget?.setOnClickListener {
             TempTargetDialog().show(childFragmentManager, "Actions")
