@@ -235,7 +235,7 @@
                         android:textSize="14sp" />
 
                     <TextView
-                        android:id="@+id/pump_lastconnection"
+                        android:id="@+id/pump_last_connection"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -280,7 +280,7 @@
                         android:textSize="14sp" />
 
                     <TextView
-                        android:id="@+id/pump_lastbolus"
+                        android:id="@+id/pump_last_bolus"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -326,7 +326,7 @@
                         android:textSize="14sp" />
 
                     <TextView
-                        android:id="@+id/pump_basabasalrate"
+                        android:id="@+id/pump_base_basal_rate"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -371,7 +371,7 @@
                         android:textSize="14sp" />
 
                     <TextView
-                        android:id="@+id/pump_tempbasal"
+                        android:id="@+id/pump_temp_basal"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -525,7 +525,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:drawableTop="@drawable/ic_danarhistory"
+                    android:drawableTop="@drawable/ic_pump_history"
                     android:paddingLeft="0dp"
                     android:paddingRight="0dp"
                     android:text="@string/pumphistory" />

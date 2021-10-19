@@ -35,7 +35,7 @@ import info.nightscout.androidaps.activities.NoSplashAppCompatActivity;
 import info.nightscout.androidaps.interfaces.ActivePlugin;
 import info.nightscout.androidaps.logging.AAPSLogger;
 import info.nightscout.androidaps.logging.LTag;
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper;
+import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.pump.common.ble.BlePreCheck;
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpChanged;
 import info.nightscout.androidaps.plugins.pump.ypsopump.R;
@@ -51,7 +51,7 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
     @Inject ResourceHelper resourceHelper;
     @Inject BlePreCheck blePrecheck;
     @Inject ActivePlugin activePlugin;
-    @Inject RxBusWrapper rxBus;
+    @Inject RxBus rxBus;
 
     private static final String TAG = "YpsoPumpBLEConfigActivity";
     private static final long SCAN_PERIOD_MILLIS = 15_000;

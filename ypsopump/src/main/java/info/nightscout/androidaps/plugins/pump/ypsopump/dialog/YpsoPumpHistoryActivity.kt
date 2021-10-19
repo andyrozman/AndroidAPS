@@ -96,7 +96,7 @@ class YpsoPumpHistoryActivity : DaggerActivity() {
         recyclerView.adapter = recyclerViewAdapter
         statusView.visibility = View.GONE
         typeListFull = getTypeList(PumpHistoryEntryGroup.getTranslatedList(resourceHelper))
-        val spinnerAdapter = ArrayAdapter(this, R.layout.spinner_centered, typeListFull)
+        val spinnerAdapter = ArrayAdapter(this, R.layout.spinner_centered, typeListFull!!)
         historyTypeSpinner.adapter = spinnerAdapter
         historyTypeSpinner.setOnItemSelectedListener(object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View, position: Int, id: Long) {

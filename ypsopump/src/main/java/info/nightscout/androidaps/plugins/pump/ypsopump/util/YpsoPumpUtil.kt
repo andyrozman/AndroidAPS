@@ -4,7 +4,7 @@ import android.util.Log
 import com.google.gson.GsonBuilder
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
@@ -28,7 +28,7 @@ import kotlin.experimental.inv
 @Singleton
 class YpsoPumpUtil @Inject constructor(
     val aapsLogger: AAPSLogger,
-    val rxBus: RxBusWrapper,
+    val rxBus: RxBus,
     val resourceHelper: ResourceHelper,
     val ypsopumpPumpStatus: YpsopumpPumpStatus
 ) {

@@ -1,20 +1,36 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-//apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'kotlin-allopen'
 apply plugin: 'com.hiya.jacoco-android'
+//apply plugin: 'kotlin-android-extensions'
 
 apply from: "${project.rootDir}/gradle/android_dependencies.gradle"
 apply from: "${project.rootDir}/gradle/android_module_dependencies.gradle"
 apply from: "${project.rootDir}/gradle/test_dependencies.gradle"
 apply from: "${project.rootDir}/gradle/jacoco_global.gradle"
 
-android {
+//android {
+//
+//    defaultConfig {
+//        versionCode 1
+//        versionName "1.0"
+//        kapt {
+//            arguments {
+//                arg("room.incremental", "true")
+//                arg("room.schemaLocation", "$projectDir/schemas")
+//            }
+//        }
+//    }
+//
+//    buildFeatures {
+//        viewBinding true
+//    }
+//
+//}
 
+android {
     defaultConfig {
-        versionCode 1
-        versionName "1.0"
         kapt {
             arguments {
                 arg("room.incremental", "true")
@@ -22,16 +38,23 @@ android {
             }
         }
     }
-
 }
 
 dependencies {
     implementation project(':core')
     implementation project(':pump-common')
 
-    implementation "androidx.room:room-runtime:$room_version"
-    implementation "androidx.room:room-rxjava2:$room_version"
+//    implementation "androidx.room:room-runtime:$room_version"
+//    implementation "androidx.room:room-rxjava2:$room_version"
+//    kapt "androidx.room:room-compiler:$room_version"
+
+    api "androidx.room:room-ktx:$room_version"
+    api "androidx.room:room-runtime:$room_version"
+    api "androidx.room:room-rxjava2:$room_version"
     kapt "androidx.room:room-compiler:$room_version"
 
+
     implementation 'com.github.guepardoapps:kulid:1.1.2.0'
+    testImplementation 'org.mockito:mockito-inline:2.13.0'
 }
+

@@ -6,7 +6,7 @@ import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpUpdateFragmentType
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentValuesChanged
@@ -40,15 +40,16 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class YpsoPumpConnectionManager @Inject constructor(val pumpStatus: YpsopumpPumpStatus,
-                                                    val pumpUtil: YpsoPumpUtil,
-                                                    val sp: SP,
-                                                    val injector: HasAndroidInjector,
-                                                    val aapsLogger: AAPSLogger,
-                                                    val rxBus: RxBusWrapper,
-                                                    val fabricPrivacy: FabricPrivacy,
-                                                    val ypsoPumpBLE: YpsoPumpBLE,
-                                                    val ypsoPumpHistoryHandler: YpsoPumpHistoryHandler
+class YpsoPumpConnectionManager @Inject constructor(
+    val pumpStatus: YpsopumpPumpStatus,
+    val pumpUtil: YpsoPumpUtil,
+    val sp: SP,
+    val injector: HasAndroidInjector,
+    val aapsLogger: AAPSLogger,
+    val rxBus: RxBus,
+    val fabricPrivacy: FabricPrivacy,
+    val ypsoPumpBLE: YpsoPumpBLE,
+    val ypsoPumpHistoryHandler: YpsoPumpHistoryHandler
 ) {
 
     //private val fabricPrivacy: FabricPrivacy

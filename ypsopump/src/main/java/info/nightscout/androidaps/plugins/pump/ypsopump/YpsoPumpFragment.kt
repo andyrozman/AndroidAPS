@@ -1,22 +1,22 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump
 
+//import kotlinx.android.synthetic.main.ypsopump_fragment.*
 import android.graphics.Color
-import android.os.Bundle
 import android.os.Handler
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import dagger.android.support.DaggerFragment
 import info.nightscout.androidaps.events.EventExtendedBolusChange
 import info.nightscout.androidaps.events.EventTempBasalChange
 import info.nightscout.androidaps.interfaces.ActivePlugin
 import info.nightscout.androidaps.interfaces.CommandQueueProvider
+import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpUpdateFragmentType
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentValuesChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
+import info.nightscout.androidaps.plugins.pump.ypsopump.databinding.YpsopumpFragmentBinding
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpStatusChanged
@@ -31,25 +31,32 @@ import info.nightscout.androidaps.utils.resources.ResourceHelper
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.plusAssign
-import kotlinx.android.synthetic.main.ypsopump_fragment.*
 import javax.inject.Inject
 
 class YpsoPumpFragment : DaggerFragment() {
+
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var fabricPrivacy: FabricPrivacy
     @Inject lateinit var resourceHelper: ResourceHelper
-    @Inject lateinit var rxBus: RxBusWrapper
+    @Inject lateinit var rxBus: RxBus
     @Inject lateinit var commandQueue: CommandQueueProvider
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var warnColors: WarnColors
     @Inject lateinit var pumpUtil: YpsoPumpUtil
     @Inject lateinit var pumpStatus: YpsopumpPumpStatus
     @Inject lateinit var dateUtil: DateUtil
+    @Inject lateinit var pumpSync: PumpSync
 
     private var disposable: CompositeDisposable = CompositeDisposable()
 
     private val loopHandler = Handler()
     private lateinit var refreshLoop: Runnable
+
+    private var _binding: YpsopumpFragmentBinding? = null
+
+    // This property is only valid between onCreateView and
+    // onDestroyView.
+    private val binding get() = _binding!!
 
     init {
         refreshLoop = Runnable {
@@ -58,61 +65,76 @@ class YpsoPumpFragment : DaggerFragment() {
         }
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.ypsopump_fragment, container, false)
-    }
+    //private var _binding: YpsoPumpFragmentBinding? = null
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    //private var _bind: YpsoPumpFragment? = null
 
-        // TODO fix
-        // medtronic_pumpstatus.setBackgroundColor(resourceHelper.gc(R.color.colorInitializingBorder))
-        //
-        // medtronic_rl_status.text = resourceHelper.gs(RileyLinkServiceState.NotStarted.resourceId)
-        //
-        // medtronic_pump_status.setTextColor(Color.WHITE)
-        // medtronic_pump_status.text = "{fa-bed}"
-        //
-        // medtronic_history.setOnClickListener {
-        //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true) {
-        //         startActivity(Intent(context, MedtronicHistoryActivity::class.java))
-        //     } else {
-        //         displayNotConfiguredDialog()
-        //     }
-        // }
-        //
-        // medtronic_refresh.setOnClickListener {
-        //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() != true) {
-        //         displayNotConfiguredDialog()
-        //     } else {
-        //         medtronic_refresh.isEnabled = false
-        //         medtronicPumpPlugin.resetStatusState()
-        //         commandQueue.readStatus("Clicked refresh", object : Callback() {
-        //             override fun run() {
-        //                 activity?.runOnUiThread { medtronic_refresh?.isEnabled = true }
-        //             }
-        //         })
-        //     }
-        // }
+    // TODO re-add
+    // private var _binding: YpsoPumpFragmentBinding? = null
+    //
+    // // This property is only valid between onCreateView and
+    // // onDestroyView.
+    // private val binding get() = _binding!!
+    //
+    // override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+    //     MedtronicFragmentBinding.inflate(inflater, container, false).also { _binding = it }.root
+    //
+    // override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    //     return inflater.inflate(R.layout.ypsopump_fragment, container, false)
+    // }
 
-        // medtronic_stats.setOnClickListener {
-        //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true) {
-        //         startActivity(Intent(context, RileyLinkStatusActivity::class.java))
-        //     } else {
-        //         displayNotConfiguredDialog()
-        //     }
-        // }
-    }
+    // override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    //     super.onViewCreated(view, savedInstanceState)
+    //
+    //     // TODO fix
+    //     // medtronic_pumpstatus.setBackgroundColor(resourceHelper.gc(R.color.colorInitializingBorder))
+    //     //
+    //     // medtronic_rl_status.text = resourceHelper.gs(RileyLinkServiceState.NotStarted.resourceId)
+    //     //
+    //     // medtronic_pump_status.setTextColor(Color.WHITE)
+    //     // medtronic_pump_status.text = "{fa-bed}"
+    //     //
+    //     // medtronic_history.setOnClickListener {
+    //     //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true) {
+    //     //         startActivity(Intent(context, MedtronicHistoryActivity::class.java))
+    //     //     } else {
+    //     //         displayNotConfiguredDialog()
+    //     //     }
+    //     // }
+    //     //
+    //     // medtronic_refresh.setOnClickListener {
+    //     //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() != true) {
+    //     //         displayNotConfiguredDialog()
+    //     //     } else {
+    //     //         medtronic_refresh.isEnabled = false
+    //     //         medtronicPumpPlugin.resetStatusState()
+    //     //         commandQueue.readStatus("Clicked refresh", object : Callback() {
+    //     //             override fun run() {
+    //     //                 activity?.runOnUiThread { medtronic_refresh?.isEnabled = true }
+    //     //             }
+    //     //         })
+    //     //     }
+    //     // }
+    //
+    //     // medtronic_stats.setOnClickListener {
+    //     //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true) {
+    //     //         startActivity(Intent(context, RileyLinkStatusActivity::class.java))
+    //     //     } else {
+    //     //         displayNotConfiguredDialog()
+    //     //     }
+    //     // }
+    // }
 
     @Synchronized
     override fun onResume() {
         // TODO fix
         super.onResume()
+
         loopHandler.postDelayed(refreshLoop, T.mins(1).msecs())
         disposable += rxBus
             .toObservable(EventRefreshButtonState::class.java)
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ pump_refresh.isEnabled = it.newState }, { fabricPrivacy.logException(it) })
+            .subscribe({ binding.pumpRefresh.isEnabled = it.newState }, { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventPumpStatusChanged::class.java)
             .observeOn(AndroidSchedulers.mainThread())
@@ -309,27 +331,27 @@ class YpsoPumpFragment : DaggerFragment() {
             val minAgo = dateUtil.minAgo(resourceHelper, pumpStatus.lastConnection)
             val min = (System.currentTimeMillis() - pumpStatus.lastConnection) / 1000 / 60
             if (pumpStatus.lastConnection + 60 * 1000 > System.currentTimeMillis()) {
-                pump_lastconnection.setText(R.string.medtronic_pump_connected_now)
-                pump_lastconnection.setTextColor(Color.WHITE)
+                binding.pumpLastConnection.setText(R.string.medtronic_pump_connected_now)
+                binding.pumpLastConnection.setTextColor(Color.WHITE)
             } else if (pumpStatus.lastConnection + 30 * 60 * 1000 < System.currentTimeMillis()) {
 
                 if (min < 60) {
-                    pump_lastconnection.text = resourceHelper.gs(R.string.minago, min)
+                    binding.pumpLastConnection.text = resourceHelper.gs(R.string.minago, min)
                 } else if (min < 1440) {
                     val h = (min / 60).toInt()
-                    pump_lastconnection.text = (resourceHelper.gq(R.plurals.duration_hours, h, h) + " "
+                    binding.pumpLastConnection.text = (resourceHelper.gq(R.plurals.duration_hours, h, h) + " "
                         + resourceHelper.gs(R.string.ago))
                 } else {
                     val h = (min / 60).toInt()
                     val d = h / 24
                     // h = h - (d * 24);
-                    pump_lastconnection.text = (resourceHelper.gq(R.plurals.duration_days, d, d) + " "
+                    binding.pumpLastConnection.text = (resourceHelper.gq(R.plurals.duration_days, d, d) + " "
                         + resourceHelper.gs(R.string.ago))
                 }
-                pump_lastconnection.setTextColor(Color.RED)
+                binding.pumpLastConnection.setTextColor(Color.RED)
             } else {
-                pump_lastconnection.text = minAgo
-                pump_lastconnection.setTextColor(Color.WHITE)
+                binding.pumpLastConnection.text = minAgo
+                binding.pumpLastConnection.setTextColor(Color.WHITE)
             }
         }
 
@@ -349,10 +371,10 @@ class YpsoPumpFragment : DaggerFragment() {
             // Queue
             val status = commandQueue.spannedStatus()
             if (status.toString() == "") {
-                pump_queue.visibility = View.GONE
+                binding.pumpQueue.visibility = View.GONE
             } else {
-                pump_queue.visibility = View.VISIBLE
-                pump_queue.text = status
+                binding.pumpQueue.visibility = View.VISIBLE
+                binding.pumpQueue.text = status
             }
         }
 
@@ -374,17 +396,17 @@ class YpsoPumpFragment : DaggerFragment() {
                 } else {
                     ago = dateUtil.hourAgo(pumpStatus.lastBolusTime!!.time, resourceHelper)
                 }
-                pump_lastbolus.text = resourceHelper.gs(R.string.pump_last_bolus, bolus, unit, ago)
+                binding.pumpLastBolus.text = resourceHelper.gs(R.string.pump_last_bolus, bolus, unit, ago)
             } else {
-                pump_lastbolus.text = ""
+                binding.pumpLastBolus.text = ""
             }
 
             // base basal rate
-            pump_basabasalrate.text = ("(" + pumpStatus.activeProfileName + ")  "
+            binding.pumpBaseBasalRate.text = ("(" + pumpStatus.activeProfileName + ")  "
                 + resourceHelper.gs(R.string.pump_basebasalrate, pumpStatus.baseBasalRate))
 
-            // TBR TODO
-            // pump_tempbasal.text = activePlugin.activeTreatments.getTempBasalFromHistory(System.currentTimeMillis())?.toStringFull()
+            //TBR TODO
+            // binding.pumpTempBasal.text = activePlugin.activeTreatments.getTempBasalFromHistory(System.currentTimeMillis())?.toStringFull()
             //     ?: ""
         }
 
@@ -392,12 +414,12 @@ class YpsoPumpFragment : DaggerFragment() {
             // Firmware, Errors
             if (pumpStatus.ypsopumpFirmware != null) {
                 if (pumpStatus.ypsopumpFirmware!!.isClosedLoopPossible) {
-                    pump_firmware.text = pumpStatus.ypsopumpFirmware!!.description
+                    binding.pumpFirmware.text = pumpStatus.ypsopumpFirmware!!.description
                 } else {
-                    pump_firmware.text = resourceHelper.gs(R.string.pump_firmware_open_loop_only, pumpStatus.ypsopumpFirmware!!.description)
+                    binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_open_loop_only, pumpStatus.ypsopumpFirmware!!.description)
                 }
             } else {
-                pump_firmware.text = "Unknown"
+                binding.pumpFirmware.text = "Unknown"
             }
 
             //pump_errors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""
@@ -407,12 +429,12 @@ class YpsoPumpFragment : DaggerFragment() {
             // Battery, Reservoir
 
             // battery
-            pump_battery.text = "{fa-battery-" + pumpStatus.batteryRemaining / 25 + "}  " + pumpStatus.batteryRemaining + "%"
-            warnColors.setColorInverse(pump_battery, pumpStatus.batteryRemaining.toDouble(), 25.0, 10.0)
+            binding.pumpBattery.text = "{fa-battery-" + pumpStatus.batteryRemaining / 25 + "}  " + pumpStatus.batteryRemaining + "%"
+            warnColors.setColorInverse(binding.pumpBattery, pumpStatus.batteryRemaining.toDouble(), 25.0, 10.0)
 
             // reservoir
-            pump_reservoir.text = resourceHelper.gs(R.string.reservoirvalue, pumpStatus.reservoirRemainingUnits, pumpStatus.reservoirFullUnits)
-            warnColors.setColorInverse(pump_reservoir, pumpStatus.reservoirRemainingUnits, 50.0, 20.0)
+            binding.pumpReservoir.text = resourceHelper.gs(R.string.reservoirvalue, pumpStatus.reservoirRemainingUnits, pumpStatus.reservoirFullUnits)
+            warnColors.setColorInverse(binding.pumpReservoir, pumpStatus.reservoirRemainingUnits, 50.0, 20.0)
         }
 
     }
@@ -420,27 +442,27 @@ class YpsoPumpFragment : DaggerFragment() {
     private fun updatePumpStatus(pumpDriverState: PumpDriverState?) {
         when (pumpDriverState) {
             null,
-            PumpDriverState.Sleeping                   -> pump_status.text = "{fa-bed}   "
+            PumpDriverState.Sleeping                   -> binding.pumpStatus.text = "{fa-bed}   "
             PumpDriverState.Connecting,
-            PumpDriverState.Disconnecting              -> pump_status.text = "{fa-bluetooth-b spin}   " + resourceHelper.gs(pumpDriverState.resourceId)
+            PumpDriverState.Disconnecting              -> binding.pumpStatus.text = "{fa-bluetooth-b spin}   " + resourceHelper.gs(pumpDriverState.resourceId)
             PumpDriverState.Connected,
-            PumpDriverState.Disconnected               -> pump_status.text = "{fa-bluetooth-b}   " + resourceHelper.gs(pumpDriverState.resourceId)
+            PumpDriverState.Disconnected               -> binding.pumpStatus.text = "{fa-bluetooth-b}   " + resourceHelper.gs(pumpDriverState.resourceId)
 
             PumpDriverState.ErrorCommunicatingWithPump -> {
-                pump_status.text = "{fa-bed}   " + "Error ???"
+                binding.pumpStatus.text = "{fa-bed}   " + "Error ???"
                 val errorType = pumpUtil.errorType
 
-                pump_errors.text = if (errorType != null) errorType.name else ""
+                binding.pumpErrors.text = if (errorType != null) errorType.name else ""
                 //aapsLogger.warn(LTag.PUMP, "Errors are not supported.")
             }
 
             PumpDriverState.ExecutingCommand           -> {
                 var commandType: YpsoPumpCommandType = pumpUtil.currentCommand
-                pump_status.text = "{fa-bluetooth-b}   " + resourceHelper.gs(commandType.resourceId)
+                binding.pumpStatus.text = "{fa-bluetooth-b}   " + resourceHelper.gs(commandType.resourceId)
             }
 
             else                                       -> {
-                pump_status.text = " " + resourceHelper.gs(pumpDriverState.resourceId)
+                binding.pumpStatus.text = " " + resourceHelper.gs(pumpDriverState.resourceId)
             }
         }
     }

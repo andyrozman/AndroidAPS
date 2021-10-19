@@ -10,6 +10,9 @@ import org.joda.time.Minutes;
 import org.joda.time.Period;
 import org.joda.time.Seconds;
 
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+
 /**
  * This is simple version of ATechDate, limited only to one format (yyyymmddHHMIss)
  */
@@ -118,6 +121,19 @@ public class DateTimeUtil {
         atechDateTime += ldt.getHourOfDay() * 10000L;
         atechDateTime += ldt.getMinuteOfHour() * 100L;
         atechDateTime += ldt.getSecondOfMinute();
+
+        return atechDateTime;
+    }
+
+    public static long toATechDate(GregorianCalendar gc) {
+        long atechDateTime = 0L;
+
+        atechDateTime += gc.get(Calendar.YEAR) * 10000000000L;
+        atechDateTime += (gc.get(Calendar.MONTH) + 1) * 100000000L;
+        atechDateTime += gc.get(Calendar.DAY_OF_MONTH) * 1000000L;
+        atechDateTime += gc.get(Calendar.HOUR_OF_DAY) * 10000L;
+        atechDateTime += gc.get(Calendar.MINUTE) * 100L;
+        atechDateTime += gc.get(Calendar.SECOND);
 
         return atechDateTime;
     }
@@ -288,6 +304,12 @@ public class DateTimeUtil {
     public static long getATDWithAddedMinutes(long atd, int minutesDiff) {
         DateTime oldestEntryTime = toJodaDateTime(atd);
         oldestEntryTime.plus(Period.minutes(minutesDiff));
+
+        return toATechDate(oldestEntryTime);
+    }
+
+    public static long getATDWithAddedMinutes(GregorianCalendar oldestEntryTime, int minutesDiff) {
+        oldestEntryTime.add(Calendar.MINUTE, minutesDiff);
 
         return toATechDate(oldestEntryTime);
     }

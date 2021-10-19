@@ -2,7 +2,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.driver
 
 import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.interfaces.PumpDescription
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.BasalProfileStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDeviceState
@@ -23,7 +23,7 @@ import javax.inject.Singleton
 @Singleton
 class YpsopumpPumpStatus @Inject constructor(private val resourceHelper: ResourceHelper,
                                              private val sp: SP,
-                                             private val rxBus: RxBusWrapper
+                                             private val rxBus: RxBus
 ) : PumpStatus(PumpType.YPSOPUMP) {
 
     lateinit var pumpDescription: PumpDescription
