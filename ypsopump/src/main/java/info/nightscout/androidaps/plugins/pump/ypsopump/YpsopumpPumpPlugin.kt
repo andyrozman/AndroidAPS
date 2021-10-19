@@ -14,7 +14,7 @@ import info.nightscout.androidaps.interfaces.*
 import info.nightscout.androidaps.interfaces.PumpSync.TemporaryBasalType
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
-import info.nightscout.androidaps.plugins.bus.RxBusWrapper
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
 import info.nightscout.androidaps.plugins.pump.common.PumpPluginAbstract
@@ -60,7 +60,7 @@ import javax.inject.Singleton
 class YpsopumpPumpPlugin @Inject constructor(
     injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
-    rxBus: RxBusWrapper,
+    rxBus: RxBus,
     context: Context,
     resourceHelper: ResourceHelper,
     activePlugin: ActivePlugin,

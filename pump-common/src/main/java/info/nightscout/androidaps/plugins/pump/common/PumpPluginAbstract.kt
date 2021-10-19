@@ -24,6 +24,7 @@ import info.nightscout.androidaps.plugins.general.overview.events.EventOverviewB
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
+import info.nightscout.androidaps.plugins.pump.common.sync.PumpDbEntryCarbs
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.DecimalFormatter.to0Decimal
 import info.nightscout.androidaps.utils.DecimalFormatter.to2Decimal
@@ -57,7 +58,7 @@ abstract class PumpPluginAbstract protected constructor(
     var pumpSyncStorage: info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
 ) : PumpPluginBase(pluginDescription!!, injector!!, aapsLogger, resourceHelper, commandQueue), Pump, Constraints, info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncEntriesCreator {
 
-    private val disposable = CompositeDisposable()
+    val disposable = CompositeDisposable()
 
     // Pump capabilities
     final override var pumpDescription = PumpDescription()
@@ -247,8 +248,8 @@ abstract class PumpPluginAbstract protected constructor(
         val extended = JSONObject()
         try {
             battery.put("percent", pumpStatusData.batteryRemaining)
-            status.put("status", pumpStatusData.pumpStatusType.status)
-//            status.put("status", pumpStatusData.pumpRunningState.status)
+// TODO check this            status.put("status", pumpStatusData.pumpStatusType.status)
+            status.put("status", pumpStatusData.pumpRunningState.status)
             extended.put("Version", version)
             try {
                 extended.put("ActiveProfile", profileName)
