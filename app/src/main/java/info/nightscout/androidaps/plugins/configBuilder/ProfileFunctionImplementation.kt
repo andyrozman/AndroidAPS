@@ -94,6 +94,11 @@ class ProfileFunctionImplementation @Inject constructor(
 
     @Synchronized
     override fun getProfile(time: Long): Profile? {
+        // Clear cache after longer use
+        if (cache.size() > 30000) {
+            cache.clear()
+            aapsLogger.debug("Profile cache cleared")
+        }
         val rounded = time - time % 1000
         val cached = cache[rounded]
         if (cached != null) {
@@ -158,7 +163,8 @@ class ProfileFunctionImplementation @Inject constructor(
             config,
             resourceHelper,
             rxBus,
-            hardLimits
+            hardLimits,
+            false
         )
         var returnValue = true
         if (validity.isValid) {

@@ -168,7 +168,7 @@ class ProfileSwitchDialog : DialogFragmentWithDate() {
 
         activity?.let { activity ->
             val ps = profileFunction.buildProfileSwitch(profileStore, profileName, duration, percent, timeShift, eventTime)
-            val validity = ProfileSealed.PS(ps).isValid(resourceHelper.gs(R.string.careportal_profileswitch), activePlugin.activePump, config, resourceHelper, rxBus, hardLimits)
+            val validity = ProfileSealed.PS(ps).isValid(resourceHelper.gs(R.string.careportal_profileswitch), activePlugin.activePump, config, resourceHelper, rxBus, hardLimits, false)
             if (validity.isValid)
                 OKDialog.showConfirmation(activity, resourceHelper.gs(R.string.careportal_profileswitch), HtmlHelper.fromHtml(Joiner.on("<br/>").join(actions)), {
                     profileFunction.createProfileSwitch(profileStore,
@@ -185,6 +185,7 @@ class ProfileSwitchDialog : DialogFragmentWithDate() {
                         ValueWithUnit.Percent(percent),
                         ValueWithUnit.Hour(timeShift).takeIf { timeShift != 0 },
                         ValueWithUnit.Minute(duration).takeIf { duration != 0 })
+                    if (percent == 90 && duration == 10) sp.putBoolean(R.string.key_objectiveuseprofileswitch, true)
                     if (isTT) {
                         disposable += repository.runTransactionForResult(
                             InsertAndCancelCurrentTemporaryTargetTransaction(

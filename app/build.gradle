@@ -109,7 +109,7 @@ android {
     defaultConfig {
         multiDexEnabled true
         versionCode 1500
-        version "2.8.2.5-dev-ypso_andy"
+        version "2.8.2.6-dev-ypso_andy"
         buildConfigField "String", "VERSION", '"' + version + '"'
         buildConfigField "String", "BUILDVERSION", '"' + generateGitBuild() + '-' + generateDate() + '"'
         buildConfigField "String", "REMOTE", '"' + generateGitRemote() + '"'
@@ -192,7 +192,6 @@ dependencies {
     implementation project(':omnipod-dash')
     implementation project(':diaconn')
     implementation project(':openhumans')
-    implementation project(':ypsopump')
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 

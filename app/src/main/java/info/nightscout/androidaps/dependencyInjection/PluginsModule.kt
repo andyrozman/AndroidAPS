@@ -43,6 +43,7 @@ import info.nightscout.androidaps.plugins.pump.insight.LocalInsightPlugin
 import info.nightscout.androidaps.plugins.pump.mdi.MDIPlugin
 import info.nightscout.androidaps.plugins.pump.medtronic.MedtronicPumpPlugin
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.OmnipodDashPumpPlugin
+import info.nightscout.androidaps.plugins.pump.omnipod.eros.OmnipodErosPumpPlugin
 import info.nightscout.androidaps.plugins.pump.virtual.VirtualPumpPlugin
 import info.nightscout.androidaps.plugins.pump.ypsopump.YpsopumpPumpPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityAAPSPlugin
@@ -117,13 +118,13 @@ abstract class PluginsModule {
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(100)
+    @IntKey(90)
     abstract fun bindDanaRPlugin(plugin: DanaRPlugin): PluginBase
 
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(105)
+    @IntKey(100)
     abstract fun bindDanaRKoreanPlugin(plugin: DanaRKoreanPlugin): PluginBase
 
     @Binds
@@ -135,38 +136,38 @@ abstract class PluginsModule {
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(115)
+    @IntKey(120)
     abstract fun bindDanaRSPlugin(plugin: DanaRSPlugin): PluginBase
 
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(120)
+    @IntKey(130)
     abstract fun bindLocalInsightPlugin(plugin: LocalInsightPlugin): PluginBase
 
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(125)
+    @IntKey(140)
     abstract fun bindComboPlugin(plugin: ComboPlugin): PluginBase
 
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(130)
+    @IntKey(150)
     abstract fun bindMedtronicPumpPlugin(plugin: MedtronicPumpPlugin): PluginBase
-
-    //@Binds
-    //@PumpDriver
-    //@IntoMap
-    //@IntKey(135)
-    //abstract fun bindOmnipodPumpPlugin(plugin: OmnipodErosPumpPlugin): PluginBase
 
     @Binds
     @PumpDriver
     @IntoMap
-    @IntKey(140)
+    @IntKey(156)
     abstract fun bindOmnipodDashPumpPlugin(plugin: OmnipodDashPumpPlugin): PluginBase
+
+    @Binds
+    @PumpDriver
+    @IntoMap
+    @IntKey(135)
+    abstract fun bindOmnipodErosPumpPlugin(plugin: OmnipodErosPumpPlugin): PluginBase
 
     @Binds
     @PumpDriver
