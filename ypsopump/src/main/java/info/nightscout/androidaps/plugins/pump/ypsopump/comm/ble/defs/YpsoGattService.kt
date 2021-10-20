@@ -20,8 +20,8 @@ enum class YpsoGattService(val uuid: String?, val description: String) {
 
         @JvmStatic
         fun lookup(uuid: String): YpsoGattService? {
-            return if (mapByUuid.containsKey(uuid.toLowerCase(Locale.ROOT))) {
-                mapByUuid[uuid.toLowerCase(Locale.ROOT)]
+            return if (mapByUuid.containsKey(uuid.lowercase())) {
+                mapByUuid[uuid.lowercase()]
             } else {
                 UNKNOWN
             }

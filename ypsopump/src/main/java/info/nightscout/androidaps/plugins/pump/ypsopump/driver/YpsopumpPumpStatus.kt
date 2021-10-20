@@ -28,7 +28,7 @@ class YpsopumpPumpStatus @Inject constructor(private val resourceHelper: Resourc
 
     lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null
-    var ypsopumpFirmware: YpsoPumpFirmware = YpsoPumpFirmware.VERSION_1_5
+    var ypsopumpFirmware: YpsoPumpFirmware = YpsoPumpFirmware.VERSION_1_5  // TODO we default to 1.0 here
     var isFirmwareSet = false
     @JvmField var baseBasalRate = 0.0
     var serialNumber: Long? = null

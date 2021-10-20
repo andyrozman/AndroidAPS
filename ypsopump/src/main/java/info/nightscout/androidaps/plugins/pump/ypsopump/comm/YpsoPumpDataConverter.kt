@@ -109,9 +109,9 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
 //    }
 
     fun decodeEvent(data: ByteArray, historyEntryType: HistoryEntryType): EventDto? {
-        var eventDto: EventDto? = null
+        var eventDto: EventDto?
         // firmware should always be there, but if its not we default to 1.5
-        if (pumpStatus.ypsopumpFirmware == null || pumpStatus.ypsopumpFirmware == YpsoPumpFirmware.VERSION_1_5) {
+        if (pumpStatus.ypsopumpFirmware == YpsoPumpFirmware.VERSION_1_5) {
 
             val date = DateTime(2000, 1, 1, 0, 0)
                 .plusSeconds(byteToInt(data, 0, 4))
@@ -119,7 +119,8 @@ class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStat
             var entryTypeInt = byteToInt(data, 4, 1);
             var entryType = YpsoPumpEventType.getByCode(entryTypeInt)
 
-            eventDto = EventDto(null,
+            eventDto = EventDto(
+                null,
                 pumpStatus.serialNumber!!,
                 historyEntryType,
                 DateTimeDto(date.year, date.monthOfYear, date.dayOfMonth, date.hourOfDay, date.minuteOfHour, date.secondOfMinute),

@@ -60,8 +60,8 @@ enum class YpsoGattCharacteristic(val uuid: String, val description: String) {
         }
 
         fun lookup(uuid: String): YpsoGattCharacteristic {
-            return if (mapByUuid.containsKey(uuid.toLowerCase(Locale.ROOT))) {
-                mapByUuid[uuid.toLowerCase(Locale.ROOT)]!!
+            return if (mapByUuid.containsKey(uuid.lowercase())) {
+                mapByUuid[uuid.lowercase()]!!
             } else {
                 UNKNOWN
             }

@@ -384,9 +384,9 @@ class YpsoPumpConnectionManager @Inject constructor(
         selectedConnector = baseConnector //new YpsoPumpDummyConnector(ypsopumpUtil, injector, aapsLogger);
         //this.fabricPrivacy = fabricPrivacy
         disposable.add(rxBus
-            .toObservable(EventPumpConfigurationChanged::class.java)
-            .observeOn(Schedulers.io())
-            .subscribe({ event: EventPumpConfigurationChanged? -> resetFirmwareVersion() }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) }
+                           .toObservable(EventPumpConfigurationChanged::class.java)
+                           .observeOn(Schedulers.io())
+                           .subscribe({ _ -> resetFirmwareVersion() }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) }
         )
     }
 }

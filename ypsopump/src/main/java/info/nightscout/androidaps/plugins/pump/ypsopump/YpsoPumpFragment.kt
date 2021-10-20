@@ -2,8 +2,12 @@ package info.nightscout.androidaps.plugins.pump.ypsopump
 
 //import kotlinx.android.synthetic.main.ypsopump_fragment.*
 import android.graphics.Color
+import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import dagger.android.support.DaggerFragment
 import info.nightscout.androidaps.events.EventExtendedBolusChange
 import info.nightscout.androidaps.events.EventTempBasalChange
@@ -49,7 +53,7 @@ class YpsoPumpFragment : DaggerFragment() {
 
     private var disposable: CompositeDisposable = CompositeDisposable()
 
-    private val loopHandler = Handler()
+    private val loopHandler = Handler(Looper.getMainLooper())
     private lateinit var refreshLoop: Runnable
 
     private var _binding: YpsopumpFragmentBinding? = null
@@ -63,6 +67,11 @@ class YpsoPumpFragment : DaggerFragment() {
             activity?.runOnUiThread { updateGUI(PumpUpdateFragmentType.Full) }
             loopHandler.postDelayed(refreshLoop, T.mins(1).msecs())
         }
+    }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        _binding = YpsopumpFragmentBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     //private var _binding: YpsoPumpFragmentBinding? = null
@@ -412,15 +421,16 @@ class YpsoPumpFragment : DaggerFragment() {
 
         if (updateType == PumpUpdateFragmentType.Configuration || updateType == PumpUpdateFragmentType.Full) {
             // Firmware, Errors
-            if (pumpStatus.ypsopumpFirmware != null) {
-                if (pumpStatus.ypsopumpFirmware!!.isClosedLoopPossible) {
-                    binding.pumpFirmware.text = pumpStatus.ypsopumpFirmware!!.description
-                } else {
-                    binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_open_loop_only, pumpStatus.ypsopumpFirmware!!.description)
-                }
+//            if (pumpStatus.ypsopumpFirmware != null) {
+            if (pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
+                binding.pumpFirmware.text = pumpStatus.ypsopumpFirmware.description
             } else {
-                binding.pumpFirmware.text = "Unknown"
+                binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_open_loop_only, pumpStatus.ypsopumpFirmware.description)
             }
+            // }
+            // else {
+            //     binding.pumpFirmware.text = "Unknown"
+            // }
 
             //pump_errors.text = if (pumpStatus.errorDescription != null) pumpStatus.errorDescription else ""
         }

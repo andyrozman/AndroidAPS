@@ -34,10 +34,10 @@ class GetLastEvent(hasAndroidInjector: HasAndroidInjector?,
         return "Event"
     }
 
-    override fun isEntryInRange(event: EventDto): Boolean {
+    override fun isEntryInRange(decodedObject: EventDto): Boolean {
 
-        val type = event.entryType
-        var found = false
+        val type = decodedObject.entryType
+        var found: Boolean
 
         if (bolusInfo != null) {
             found = (type == YpsoPumpEventType.BOLUS_NORMAL ||

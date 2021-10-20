@@ -8,17 +8,17 @@ import android.os.Bundle
 import androidx.annotation.XmlRes
 import androidx.preference.*
 import dagger.android.support.AndroidSupportInjection
-import info.nightscout.androidaps.interfaces.Config
 import info.nightscout.androidaps.R
 import info.nightscout.androidaps.danaRKorean.DanaRKoreanPlugin
 import info.nightscout.androidaps.danaRv2.DanaRv2Plugin
 import info.nightscout.androidaps.danar.DanaRPlugin
 import info.nightscout.androidaps.danars.DanaRSPlugin
 import info.nightscout.androidaps.diaconn.DiaconnG8Plugin
-import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.events.EventPreferenceChange
 import info.nightscout.androidaps.events.EventRebuildTabs
+import info.nightscout.androidaps.interfaces.Config
 import info.nightscout.androidaps.interfaces.PluginBase
+import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.interfaces.ProfileFunction
 import info.nightscout.androidaps.plugin.general.openhumans.OpenHumansUploader
 import info.nightscout.androidaps.plugins.aps.loop.LoopPlugin
@@ -40,6 +40,7 @@ import info.nightscout.androidaps.plugins.pump.combo.ComboPlugin
 import info.nightscout.androidaps.plugins.pump.insight.LocalInsightPlugin
 import info.nightscout.androidaps.plugins.pump.medtronic.MedtronicPumpPlugin
 import info.nightscout.androidaps.plugins.pump.virtual.VirtualPumpPlugin
+import info.nightscout.androidaps.plugins.pump.ypsopump.YpsopumpPumpPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityAAPSPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityOref1Plugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityWeightedAveragePlugin
@@ -101,6 +102,7 @@ class MyPreferenceFragment : PreferenceFragmentCompat(), OnSharedPreferenceChang
     @Inject lateinit var nsSettingStatus: NSSettingsStatus
     @Inject lateinit var openHumansUploader: OpenHumansUploader
     @Inject lateinit var diaconnG8Plugin: DiaconnG8Plugin
+    @Inject lateinit var ypsopumpPumpPlugin: YpsopumpPumpPlugin
 
     override fun onAttach(context: Context) {
         AndroidSupportInjection.inject(this)
@@ -189,6 +191,7 @@ class MyPreferenceFragment : PreferenceFragmentCompat(), OnSharedPreferenceChang
             addPreferencesFromResource(R.xml.pref_datachoices, rootKey)
             addPreferencesFromResourceIfEnabled(maintenancePlugin, rootKey)
             addPreferencesFromResourceIfEnabled(openHumansUploader, rootKey)
+            addPreferencesFromResourceIfEnabled(ypsopumpPumpPlugin, rootKey)
         }
         initSummary(preferenceScreen, pluginId != -1)
         preprocessPreferences()

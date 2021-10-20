@@ -32,7 +32,8 @@ class YpsoPumpStatusHandler
             pumpStatus.ypsoPumpStatusList = YpsoPumpStatusList(map = mutableMapOf())
         }
 
-        val serialNumber = sp.getLong(YpsoPumpConst.Prefs.PumpSerial, 0L)
+        val serialNumberString = sp.getString(YpsoPumpConst.Prefs.PumpSerial, "0")
+        val serialNumber = serialNumberString.toLong()
 
         if (serialNumber != 0L) {
             if (!pumpStatus.ypsoPumpStatusList!!.map.containsKey(serialNumber)) {
@@ -87,7 +88,8 @@ class YpsoPumpStatusHandler
     }
 
     fun switchPumpData() {
-        val serialNumber = sp.getLong(YpsoPumpConst.Prefs.PumpSerial, 0L)
+        val serialNumberString = sp.getString(YpsoPumpConst.Prefs.PumpSerial, "0")
+        val serialNumber = serialNumberString.toLong()
 
         if (serialNumber == 0L) {// this would only happen if user removed his pump, and haven't set the new one
             pumpStatus.serialNumber = null
