@@ -39,6 +39,9 @@
     <string name="key_ypsopump_serial" translatable="false">pref_ypsopump_serial</string>
     <string name="key_ypsopump_name" translatable="false">pref_ypsopump_name</string>
     <string name="key_ypsopump_status_list" translatable="false">pref_ypsopump_status_list</string>
+    <string name="key_ypsopump_bolus_size" translatable="false">pref_ypsopump_bolus_size</string>
+    <string name="ypsopump_bolus_size">Bolus size</string>
+
 
     <!-- YpsoPump BLE Config -->
     <string name="ypsopump_ble_config_scan_title">YpsoPump Scan</string>
@@ -61,6 +64,10 @@
     <string name="ypsopump_cmd_exec_desc_set_bolus">Please set Bolus of %1$.2f U on your Pump, and AFTER\nyou are done confirm it here.</string>
     <string name="ypsopump_cmd_exec_title_set_tbr">Manually Set Temporary Basal on Pump</string>
     <string name="ypsopump_cmd_exec_desc_set_tbr">Please set Temporary Basal of %1$d %% for %2$d min\non your Pump, and AFTER you are done\nconfirm it here:\n %1$s</string>
+
+    <!-- YpsoPump UI - 1.5 Forced Open Loop -->
+    <string name="ypsopump_fol_closed_loop_not_allowed">Closed Loop not available with Firmware less than 1.6 (DOZE)</string>
+    <string name="ypsopump_fol_smb_not_allowed">SMB not available with Firmware less than 1.6 (DOZE)</string>
 
     <!-- Pump Common MOVE THERE -->
     <string name="time_difference_too_big">Time difference between pump and phone is over %1$d s (%2$d)</string>

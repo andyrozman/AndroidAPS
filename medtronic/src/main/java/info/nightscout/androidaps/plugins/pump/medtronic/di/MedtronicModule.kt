@@ -15,15 +15,12 @@ import info.nightscout.androidaps.plugins.pump.medtronic.service.RileyLinkMedtro
 @Suppress("unused")
 abstract class MedtronicModule {
 
-    @ContributesAndroidInjector
-    abstract fun contributesMedtronicHistoryActivity(): MedtronicHistoryActivity
+    @ContributesAndroidInjector abstract fun contributesMedtronicHistoryActivity(): MedtronicHistoryActivity
     @ContributesAndroidInjector abstract fun contributesMedtronicFragment(): MedtronicFragment
 
-    @ContributesAndroidInjector
-    abstract fun contributesRileyLinkMedtronicService(): RileyLinkMedtronicService
+    @ContributesAndroidInjector abstract fun contributesRileyLinkMedtronicService(): RileyLinkMedtronicService
 
-    @ContributesAndroidInjector
-    abstract fun medtronicCommunicationManagerProvider(): MedtronicCommunicationManager
+    @ContributesAndroidInjector abstract fun medtronicCommunicationManagerProvider(): MedtronicCommunicationManager
     @ContributesAndroidInjector abstract fun medtronicUITaskProvider(): MedtronicUITask
     @ContributesAndroidInjector abstract fun medtronicUICommProvider(): MedtronicUIComm
 

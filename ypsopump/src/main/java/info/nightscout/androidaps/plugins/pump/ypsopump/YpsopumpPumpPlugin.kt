@@ -75,17 +75,18 @@ class YpsopumpPumpPlugin @Inject constructor(
     pumpSyncStorage: PumpSyncStorage,
     var ypsoPumpStatusHandler: YpsoPumpStatusHandler,
     var ypsoPumpHistoryHandler: YpsoPumpHistoryHandler
-) : PumpPluginAbstract(PluginDescription() //
-    .mainType(PluginType.PUMP) //
-    .fragmentClass(YpsoPumpFragment::class.java.name) //
-    .pluginIcon(R.drawable.ic_ypsopump128)
-    .pluginName(R.string.ypsopump_name) //
-    .shortName(R.string.ypsopump_name_short) //
-    .preferencesId(R.xml.pref_ypsopump)
-    .description(R.string.description_pump_ypsopump),  //
+) : PumpPluginAbstract(
+    PluginDescription() //
+        .mainType(PluginType.PUMP) //
+        .fragmentClass(YpsoPumpFragment::class.java.name) //
+        .pluginIcon(R.drawable.ic_ypsopump128)
+        .pluginName(R.string.ypsopump_name) //
+        .shortName(R.string.ypsopump_name_short) //
+        .preferencesId(R.xml.pref_ypsopump)
+        .description(R.string.description_pump_ypsopump),  //
     PumpType.YPSOPUMP,
     injector, resourceHelper, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage
-), Pump {
+), Pump, Constraints {
 
     // variables for handling statuses and history
     private var firstRun = true
@@ -111,6 +112,7 @@ class YpsopumpPumpPlugin @Inject constructor(
     private val logPrefix: String
         get() = "YpsopumpPumpPlugin::"
 
+    // PumpAbstract implementations
     override fun initPumpStatusData() {
         pumpStatus.lastConnection = sp.getLong(YpsoPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         pumpStatus.lastDataTime = pumpStatus.lastConnection
@@ -210,7 +212,22 @@ class YpsopumpPumpPlugin @Inject constructor(
     override val pumpStatusData: PumpStatus
         get() = pumpStatus
 
+    // Constraints interface
+    override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
+        if (value.value()) {
+            value[aapsLogger, driverMode == YpsoDriverMode.Automatic, resourceHelper.gs(R.string.ypsopump_fol_closed_loop_not_allowed)] = this
+        }
+        return value
+    }
 
+    override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
+        if (value.value()) {
+            value[aapsLogger, driverMode == YpsoDriverMode.Automatic, resourceHelper.gs(R.string.ypsopump_fol_smb_not_allowed)] = this
+        }
+        return value
+    }
+
+    // Pump Interface
     override fun isInitialized(): Boolean {
         aapsLogger.debug(LTag.PUMP, "isInitialized - true (always)")
         return true
@@ -379,7 +396,7 @@ class YpsopumpPumpPlugin @Inject constructor(
         ypsoPumpHistoryHandler.readCurrentStatusOfPump()
 
         // TODO readPumpHistory
-        //readPumpHistory()
+        readPumpHistory()
 
         // TODO remaining insulin (>50 = 4h; 50-20 = 1h; 15m) - pumpConnectionManager.remainingInsulin (command not available)
         //scheduleNextRefresh(YpsoPumpStatusRefreshType.RemainingInsulin, 10)
@@ -435,6 +452,7 @@ class YpsopumpPumpPlugin @Inject constructor(
     }
 
     private fun setDriverMode() {
+        // TODO history refresh data
         if (pumpStatus.isFirmwareSet) {
             if (pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
                 // TODO
@@ -589,46 +607,53 @@ class YpsopumpPumpPlugin @Inject constructor(
     private fun checkTimeAndOptionallySetTime(): Boolean {
         aapsLogger.info(LTag.PUMP, logPrefix + "checkTimeAndOptionallySetTime - Start")
 
-        val clock = pumpConnectionManager.getTime()
+        try {
 
-        if (clock != null) {
-            // TODO check if this works, migneed to use LocalDateTime...
-            pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), clock.toLocalDateTime())
-            val diff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
+            val clock = pumpConnectionManager.getTime()
 
-            if (diff > 60) {
-                aapsLogger.error(LTag.PUMP, "Time difference between phone and pump is more than 60s ($diff)")
+            if (clock != null) {
+                // TODO check if this works, migneed to use LocalDateTime...
+                pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), clock.toLocalDateTime())
+                val diff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
 
-                if (!pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
-                    val notification = Notification(Notification.PUMP_PHONE_TIME_DIFF_TOO_BIG, resourceHelper.gs(R.string.time_difference_too_big, 60, diff), Notification.INFO, 60)
-                    rxBus.send(EventNewNotification(notification))
-                } else {
+                if (diff > 60) {
+                    aapsLogger.error(LTag.PUMP, "Time difference between phone and pump is more than 60s ($diff)")
 
-                    // TODO setNewTime, different notification
-                    val time = pumpConnectionManager.setTime()
+                    if (!pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
+                        val notification = Notification(Notification.PUMP_PHONE_TIME_DIFF_TOO_BIG, resourceHelper.gs(R.string.time_difference_too_big, 60, diff), Notification.INFO, 60)
+                        rxBus.send(EventNewNotification(notification))
+                    } else {
 
-                    if (time != null) {
-                        pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), time.toLocalDateTime())
+                        // TODO setNewTime, different notification
+                        val time = pumpConnectionManager.setTime()
 
-                        val newTimeDiff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
+                        if (time != null) {
+                            pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), time.toLocalDateTime())
 
-                        if (newTimeDiff < 60) {
-                            val notification = Notification(Notification.INSIGHT_DATE_TIME_UPDATED,
-                                resourceHelper.gs(R.string.pump_time_updated),
-                                Notification.INFO, 60)
-                            rxBus.send(EventNewNotification(notification))
+                            val newTimeDiff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
+
+                            if (newTimeDiff < 60) {
+                                val notification = Notification(
+                                    Notification.INSIGHT_DATE_TIME_UPDATED,
+                                    resourceHelper.gs(R.string.pump_time_updated),
+                                    Notification.INFO, 60
+                                )
+                                rxBus.send(EventNewNotification(notification))
+                            } else {
+                                aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
+                            }
                         } else {
                             aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
                         }
-                    } else {
-                        aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
                     }
                 }
             }
+        } catch (ex: Exception) {
+            aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
+        } finally {
+            setRefreshButtonEnabled(false)
+            scheduleNextRefresh(YpsoPumpStatusRefreshType.PumpTime, 0)
         }
-
-        setRefreshButtonEnabled(false)
-        scheduleNextRefresh(YpsoPumpStatusRefreshType.PumpTime, 0)
 
         return true
     }
@@ -811,6 +836,7 @@ class YpsopumpPumpPlugin @Inject constructor(
 
     // if enforceNew===true current temp basal is canceled and new TBR set (duration is prolonged),
     // if false and the same rate is requested enacted=false and success=true is returned and TBR is not changed
+    @Synchronized
     override fun setTempBasalPercent(percent: Int, durationInMinutes: Int, profile: Profile,
                                      enforceNew: Boolean, tbrType: TemporaryBasalType): PumpEnactResult {
         setRefreshButtonEnabled(false)
@@ -900,7 +926,7 @@ class YpsopumpPumpPlugin @Inject constructor(
 
     // TODO we might want to return data
     private fun readPumpHistory() {
-        aapsLogger.warn(LTag.PUMP, logPrefix + "readPumpHistory N/A.")
+        aapsLogger.warn(LTag.PUMP, logPrefix + "readPumpHistory N/A WIP.")
 
         ypsoPumpHistoryHandler.getPumpHistory()
 
@@ -1099,9 +1125,19 @@ class YpsopumpPumpPlugin @Inject constructor(
                 //YpsoPumpStatusRefreshType.Configuration,
             YpsoPumpStatusRefreshType.BatteryStatus,
             YpsoPumpStatusRefreshType.PumpHistory      -> {
-                workWithStatusRefresh(StatusRefreshAction.Add, refreshType,
-                    getTimeInFutureFromMinutes(refreshType.refreshTime + additionalTimeInMinutes))
+                workWithStatusRefresh(
+                    StatusRefreshAction.Add, refreshType,
+                    getTimeInFutureFromMinutes(getHistoryRefreshTime() + additionalTimeInMinutes)
+                )
             }
+        }
+    }
+
+    private fun getHistoryRefreshTime(): Int {
+        if (this.driverMode != YpsoDriverMode.Automatic) {
+            return 15 // TODO use settings
+        } else {
+            return 5
         }
     }
 
@@ -1111,9 +1147,11 @@ class YpsopumpPumpPlugin @Inject constructor(
     }
 
     @Synchronized
-    private fun workWithStatusRefresh(action: StatusRefreshAction,  //
-                                      statusRefreshType: YpsoPumpStatusRefreshType?,  //
-                                      time: Long?): Map<YpsoPumpStatusRefreshType?, Long?>? {
+    private fun workWithStatusRefresh(
+        action: StatusRefreshAction,  //
+        statusRefreshType: YpsoPumpStatusRefreshType?,  //
+        time: Long?
+    ): Map<YpsoPumpStatusRefreshType?, Long?>? {
         return when (action) {
             StatusRefreshAction.Add     -> {
                 statusRefreshMap[statusRefreshType] = time

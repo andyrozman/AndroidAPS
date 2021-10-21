@@ -1,5 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.handlers
 
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
@@ -53,6 +55,8 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
      *  - reset 5 minutes read
      */
 
+    var gson: Gson = GsonBuilder().setPrettyPrinting().create()
+
     fun getPumpHistory() {
 
         Thread {
@@ -64,8 +68,8 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                 return@Thread
             }
 
-            if (true)
-                return@Thread
+            // if (true)
+            //     return@Thread
 
             // events
             var lastSequenceNumber: Int? = pumpStatusValues.lastEventSequenceNumber
@@ -93,9 +97,12 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
             val commandEvents = GetEvents(
                 hasAndroidInjector = hasAndroidInjector,
                 eventSequenceNumber = if (targetSequenceNumber == 0) null else targetSequenceNumber,
-                includeEventSequence = true)
+                includeEventSequence = true
+            )
 
             val result = commandEvents.execute(ypsoPumpBLE)
+
+            aapsLogger.warn(LTag.PUMPCOMM, "DD: commandEvents.execute ${result}")
 
             if (result) {
                 val dataEvents = commandEvents.commandResponse
@@ -116,18 +123,33 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                     pumpStatusValues.lastEventSequenceNumber = newLastEvent
                     pumpStatusValues.runningEventsSequences = runningSet
 
+                    aapsLogger.warn(LTag.PUMPCOMM, "DD: Data Events size=${dataEvents.size}")
+                    //aapsLogger.warn(LTag.PUMPCOMM, "DD: Data Events " + gson.toJson(dataEvents))
+
                     val events = preProcessHistory(dataEvents)
+
+                    aapsLogger.warn(LTag.PUMPCOMM, "DD: Preprocessed Events size=${events.size}")
+                    //aapsLogger.warn(LTag.PUMPCOMM, "DD: Events, after preprocess: " + gson.toJson(events))
+
+                    // // TODO
+                    // if (true)
+                    //     return@Thread
 
                     addHistoryToDatabase(
                         entityList = events,
                         sendToPumpSync = true,
-                        pumpStatusEntry = pumpStatusValues)
+                        pumpStatusEntry = pumpStatusValues
+                    )
 
                 }
 
             } else {
                 return@Thread  // if any of commands fails we stop execution
             }
+
+            // TODO
+            if (true)
+                return@Thread
 
             // alarms
 
@@ -466,11 +488,14 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                              pumpStatusEntry: YpsoPumpStatusEntry? = null,
                              sendToPumpSync: Boolean = false) {
         var first = true
+        var counter: Int = 0
         for (historyRecordEntity in entityList) {
             if (first) {
                 // for bolus type
                 first = false
             }
+
+            aapsLogger.debug(LTag.PUMP, "Add history to Database: ${counter}\n ${gson.toJson(historyRecordEntity)}")
 
             val changedItem = ypsoPumpHistory.insertOrUpdate(event = historyRecordEntity)
 

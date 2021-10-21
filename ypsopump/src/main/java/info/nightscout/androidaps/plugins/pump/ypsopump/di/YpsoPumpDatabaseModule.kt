@@ -28,11 +28,19 @@ class YpsoPumpDatabaseModule {
 
     @Provides
     @Reusable // no state, let system decide when to reuse or create new.
-    internal fun provideHistoryMapper(ypsoPumpUtil: YpsoPumpUtil) = HistoryMapper(ypsoPumpUtil)
+    internal fun provideHistoryMapper(ypsoPumpUtil: YpsoPumpUtil, aapsLogger: AAPSLogger) = HistoryMapper(ypsoPumpUtil, aapsLogger)
 
     @Provides
     @Singleton
-    internal fun provideYpsoPumpHistory(dao: HistoryRecordDao, pumpHistoryDatabase: YpsoPumpDatabase, historyMapper: HistoryMapper, pumpSync: PumpSync, pumpStatus: YpsopumpPumpStatus, aapsLogger: AAPSLogger) =
-        YpsoPumpHistory(dao, pumpHistoryDatabase, historyMapper, pumpSync, pumpStatus, aapsLogger)
+    internal fun provideYpsoPumpHistory(
+        dao: HistoryRecordDao,
+        pumpHistoryDatabase: YpsoPumpDatabase,
+        historyMapper: HistoryMapper,
+        pumpSync: PumpSync,
+        ypsoPumpUtil: YpsoPumpUtil,
+        pumpStatus: YpsopumpPumpStatus,
+        aapsLogger: AAPSLogger
+    ) =
+        YpsoPumpHistory(dao, pumpHistoryDatabase, historyMapper, pumpSync, ypsoPumpUtil, pumpStatus, aapsLogger)
 
 }

@@ -1,15 +1,20 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.database
 
+import info.nightscout.androidaps.logging.AAPSLogger
+import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import javax.inject.Inject
 
-class HistoryMapper @Inject constructor(var ypsoPumpUtil: YpsoPumpUtil) {
+class HistoryMapper @Inject constructor(var ypsoPumpUtil: YpsoPumpUtil, var aapsLogger: AAPSLogger) {
 
     fun domainToEntity(eventDto: EventDto): HistoryRecordEntity {
-        var historyRecordEntity = HistoryRecordEntity(
-            id = eventDto.id!!,
+
+        aapsLogger.debug(LTag.PUMP, "EventDto before entity: \n${ypsoPumpUtil.gson.toJson(eventDto)}")
+
+        val historyRecordEntity = HistoryRecordEntity(
+            id = if (eventDto.id == null) eventDto.eventSequenceNumber else eventDto.id!!,
             serial = eventDto.serial,
             historyRecordType = eventDto.historyEntryType,
             date = eventDto.dateTime.toATechDate(),
@@ -27,8 +32,8 @@ class HistoryMapper @Inject constructor(var ypsoPumpUtil: YpsoPumpUtil) {
             configRecord = null,
             pumpStatusRecord = null,
             dateTimeRecord = null,
-            if (eventDto.created == null) 0L else eventDto.created!!,
-            if (eventDto.updated == null) 0L else eventDto.updated!!
+            createdAt = if (eventDto.created == null) System.currentTimeMillis() else eventDto.created!!,
+            updatedAt = if (eventDto.updated == null) System.currentTimeMillis() else eventDto.updated!!
         )
 
         if (eventDto.subObject is Bolus) {

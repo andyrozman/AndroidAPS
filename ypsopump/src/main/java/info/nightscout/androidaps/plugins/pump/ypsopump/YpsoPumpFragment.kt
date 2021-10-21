@@ -1,6 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump
 
 //import kotlinx.android.synthetic.main.ypsopump_fragment.*
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -22,9 +23,11 @@ import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentVa
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
 import info.nightscout.androidaps.plugins.pump.ypsopump.databinding.YpsopumpFragmentBinding
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType
+import info.nightscout.androidaps.plugins.pump.ypsopump.dialog.YpsoPumpHistoryActivity
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpStatusChanged
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
+import info.nightscout.androidaps.queue.Callback
 import info.nightscout.androidaps.queue.events.EventQueueChanged
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.FabricPrivacy
@@ -50,6 +53,7 @@ class YpsoPumpFragment : DaggerFragment() {
     @Inject lateinit var pumpStatus: YpsopumpPumpStatus
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var pumpSync: PumpSync
+    @Inject lateinit var ypsopumpPumpPlugin: YpsopumpPumpPlugin
 
     private var disposable: CompositeDisposable = CompositeDisposable()
 
@@ -92,47 +96,61 @@ class YpsoPumpFragment : DaggerFragment() {
     //     return inflater.inflate(R.layout.ypsopump_fragment, container, false)
     // }
 
-    // override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-    //     super.onViewCreated(view, savedInstanceState)
-    //
-    //     // TODO fix
-    //     // medtronic_pumpstatus.setBackgroundColor(resourceHelper.gc(R.color.colorInitializingBorder))
-    //     //
-    //     // medtronic_rl_status.text = resourceHelper.gs(RileyLinkServiceState.NotStarted.resourceId)
-    //     //
-    //     // medtronic_pump_status.setTextColor(Color.WHITE)
-    //     // medtronic_pump_status.text = "{fa-bed}"
-    //     //
-    //     // medtronic_history.setOnClickListener {
-    //     //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true) {
-    //     //         startActivity(Intent(context, MedtronicHistoryActivity::class.java))
-    //     //     } else {
-    //     //         displayNotConfiguredDialog()
-    //     //     }
-    //     // }
-    //     //
-    //     // medtronic_refresh.setOnClickListener {
-    //     //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() != true) {
-    //     //         displayNotConfiguredDialog()
-    //     //     } else {
-    //     //         medtronic_refresh.isEnabled = false
-    //     //         medtronicPumpPlugin.resetStatusState()
-    //     //         commandQueue.readStatus("Clicked refresh", object : Callback() {
-    //     //             override fun run() {
-    //     //                 activity?.runOnUiThread { medtronic_refresh?.isEnabled = true }
-    //     //             }
-    //     //         })
-    //     //     }
-    //     // }
-    //
-    //     // medtronic_stats.setOnClickListener {
-    //     //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true) {
-    //     //         startActivity(Intent(context, RileyLinkStatusActivity::class.java))
-    //     //     } else {
-    //     //         displayNotConfiguredDialog()
-    //     //     }
-    //     // }
-    // }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.pumpRefresh.setOnClickListener {
+            binding.pumpRefresh.isEnabled = false
+            ypsopumpPumpPlugin.resetStatusState()
+            commandQueue.readStatus("Clicked refresh", object : Callback() {
+                override fun run() {
+                    activity?.runOnUiThread { binding.pumpRefresh.isEnabled = true }
+                }
+            })
+        }
+
+        binding.pumpHistory.setOnClickListener {
+            startActivity(Intent(context, YpsoPumpHistoryActivity::class.java))
+        }
+
+        // TODO fix
+        // medtronic_pumpstatus.setBackgroundColor(resourceHelper.gc(R.color.colorInitializingBorder))
+        //
+        // medtronic_rl_status.text = resourceHelper.gs(RileyLinkServiceState.NotStarted.resourceId)
+        //
+        // medtronic_pump_status.setTextColor(Color.WHITE)
+        // medtronic_pump_status.text = "{fa-bed}"
+        //
+        // medtronic_history.setOnClickListener {
+        //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true) {
+        //         startActivity(Intent(context, MedtronicHistoryActivity::class.java))
+        //     } else {
+        //         displayNotConfiguredDialog()
+        //     }
+        // }
+        //
+        // medtronic_refresh.setOnClickListener {
+        //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() != true) {
+        //         displayNotConfiguredDialog()
+        //     } else {
+        //         medtronic_refresh.isEnabled = false
+        //         medtronicPumpPlugin.resetStatusState()
+        //         commandQueue.readStatus("Clicked refresh", object : Callback() {
+        //             override fun run() {
+        //                 activity?.runOnUiThread { medtronic_refresh?.isEnabled = true }
+        //             }
+        //         })
+        //     }
+        // }
+
+        // medtronic_stats.setOnClickListener {
+        //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true) {
+        //         startActivity(Intent(context, RileyLinkStatusActivity::class.java))
+        //     } else {
+        //         displayNotConfiguredDialog()
+        //     }
+        // }
+    }
 
     @Synchronized
     override fun onResume() {

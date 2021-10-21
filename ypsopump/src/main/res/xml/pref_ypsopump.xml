@@ -25,6 +25,13 @@
             <intent android:action="info.nightscout.androidaps.plugins.pump.ypsopump.config.YpsoPumpBLEConfigActivity" />
         </Preference>
 
+        <ListPreference
+            android:defaultValue="0.1"
+            android:entries="@array/ypsoPumpBolusSize"
+            android:entryValues="@array/ypsoPumpBolusSize"
+            android:key="@string/key_ypsopump_bolus_size"
+            android:title="@string/ypsopump_bolus_size" />
+
     </PreferenceCategory>
 
 </androidx.preference.PreferenceScreen>

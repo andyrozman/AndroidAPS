@@ -12,11 +12,16 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import dagger.android.DaggerActivity
+import info.nightscout.androidaps.logging.AAPSLogger
+import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
+import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.R
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.EventDto
+import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistory
 import info.nightscout.androidaps.utils.resources.ResourceHelper
+import org.joda.time.DateTime
 import java.util.*
 import javax.inject.Inject
 
@@ -26,43 +31,67 @@ class YpsoPumpHistoryActivity : DaggerActivity() {
     //@Inject lateinit var  medtronicHistoryData: MedtronicHistoryData
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var ypsoPumpDataConverter: YpsoPumpDataConverter
+    @Inject lateinit var ypsoPumpHistory: YpsoPumpHistory
+    @Inject lateinit var aapsLogger: AAPSLogger
 
     lateinit var historyTypeSpinner: Spinner
     lateinit var statusView: TextView
     lateinit var recyclerView: RecyclerView
+
     //lateinit var llm: LinearLayoutManager
     lateinit var recyclerViewAdapter: RecyclerViewAdapter
 
-    var filteredHistoryList: MutableList<EventDto> = ArrayList()
+    var filteredHistoryList: MutableList<EventDto> = mutableListOf()
     var manualChange = false
     var typeListFull: List<TypeList>? = null
+    var fullList: MutableList<EventDto> = mutableListOf()
 
+    private fun prepareData() {
+        // val gc = GregorianCalendar()
+        // gc.add(Calendar.HOUR_OF_DAY, -24)
+        // fullList.addAll(erosHistory.getAllErosHistoryRecordsFromTimestamp(gc.timeInMillis))
+
+        val allSince = ypsoPumpHistory.getHistoryRecordsAfter(DateTimeUtil.toATechDate(DateTime().minusDays(3)))
+        this.fullList.clear()
+
+        aapsLogger.info(LTag.PUMP, "Loaded ${allSince.size} items from database (age 3 days).")
+
+        for (historyRecordEntity in allSince) {
+            val domainObject = ypsoPumpHistory.historyMapper.entityToDomain(historyRecordEntity)
+            this.fullList.add(domainObject)
+        }
+    }
 
     private fun filterHistory(group: PumpHistoryEntryGroup) {
         filteredHistoryList.clear()
-        val list: MutableList<EventDto> = ArrayList()
+        //val list: MutableList<EventDto> = ArrayList()
         // TODO read data from database
         //list.addAll(medtronicHistoryData.allHistory)
 
         //LOG.debug("Items on full list: {}", list.size());
         if (group === PumpHistoryEntryGroup.All) {
-            filteredHistoryList.addAll(list)
+            filteredHistoryList.addAll(fullList)
         } else {
-            for (pumpHistoryEntry in list) {
+            for (pumpHistoryEntry in fullList) {
                 if (pumpHistoryEntry.entryType.group === group) {
                     filteredHistoryList.add(pumpHistoryEntry)
                 }
             }
         }
 
-            recyclerViewAdapter.setHistoryListInternal(filteredHistoryList)
-            recyclerViewAdapter.notifyDataSetChanged()
+        aapsLogger.info(LTag.PUMP, "Filtered list ${filteredHistoryList.size} items (group ${group}), from full list (${fullList.size}).")
+
+        recyclerViewAdapter.setHistoryListInternal(filteredHistoryList)
+        recyclerViewAdapter.notifyDataSetChanged()
 
         //LOG.debug("Items on filtered list: {}", filteredHistoryList.size());
     }
 
     override fun onResume() {
         super.onResume()
+
+
+
         filterHistory(selectedGroup)
         setHistoryTypeSpinner()
     }
@@ -86,6 +115,9 @@ class YpsoPumpHistoryActivity : DaggerActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.ypsopump_history_activity)
+
+        prepareData()
+
         historyTypeSpinner = findViewById(R.id.ypsopump_historytype)
         statusView = findViewById(R.id.ypsopump_historystatus)
         recyclerView = findViewById(R.id.ypsopump_history_recyclerview)

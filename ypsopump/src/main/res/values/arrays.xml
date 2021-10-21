@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="ypsoPumpBolusSize">
+        <item>0.1</item>
+        <item>0.5</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <string-array name="onOff">
+        <item>@string/common_on</item>
+        <item>@string/common_off</item>
+    </string-array>
+
+</resources>

@@ -1,10 +1,13 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.database
 
+import com.google.gson.Gson
 import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.logging.AAPSLogger
+import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
+import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import io.reactivex.Single
 import java.lang.System.currentTimeMillis
 import java.util.*
@@ -15,9 +18,13 @@ class YpsoPumpHistory @Inject constructor(
     val pumpHistoryDatabase: YpsoPumpDatabase,
     val historyMapper: HistoryMapper,
     val pumpSync: PumpSync,
+    val pumpUtil: YpsoPumpUtil,
     val pumpStatus: YpsopumpPumpStatus,
     val aapsLogger: AAPSLogger
 ) {
+
+    var gson: Gson = pumpUtil.gson
+
     //fun markSuccess(id: String, date: Long): Completable = dao.markResolved(id, ResolvedResult.SUCCESS, currentTimeMillis())
 
     //fun markFailure(id: String, date: Long): Completable = dao.markResolved(id, ResolvedResult.FAILURE, currentTimeMillis())
@@ -101,25 +108,37 @@ class YpsoPumpHistory @Inject constructor(
     //     }
     // }
 
+    fun getHistoryRecordsAfter(atdTime: Long): List<HistoryRecordEntity> {
+        return pumpHistoryDao.allSince(atdTime).blockingGet()
+    }
+
     // TODO main database method we will use
     fun insertOrUpdate(event: EventDto): HistoryRecordEntity? {
+        aapsLogger.debug(LTag.PUMP, "EventDto to convert = ${gson.toJson(event)}")
         val entity = historyMapper.domainToEntity(event)
         var returnEntity: HistoryRecordEntity? = null
         pumpHistoryDatabase.runInTransaction {
             val dbEntity = pumpHistoryDao.getById(entity.id, entity.serial, entity.historyRecordType)
+
+            aapsLogger.debug(LTag.PUMP, "pumpHistoryDao.getById ${entity.id} = $gson.toJson(dbEntity)}")
 
             if (dbEntity == null) {
                 entity.id = entity.eventSequenceNumber
                 entity.createdAt = System.currentTimeMillis()
                 entity.updatedAt = entity.createdAt
 
+                aapsLogger.debug(LTag.PUMP, "pumpHistoryDao.save()")
+
                 pumpHistoryDao.save(entity)
                 returnEntity = entity
             } else {
                 if (isDifferentData(dbEntity, entity)) {
                     val entityForUpdate = prepareData(dbEntity, entity)
+                    aapsLogger.debug(LTag.PUMP, "pumpHistoryDao.update()")
                     pumpHistoryDao.update(entityForUpdate)
                     returnEntity = entityForUpdate
+                } else {
+                    aapsLogger.debug(LTag.PUMP, "same data no Db action.")
                 }
             }
         }

@@ -12,6 +12,9 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".dialog.YpsoPumpHistoryActivity" />
+
+
         <!--        <activity android:name=".dialog.MedtronicHistoryActivity" />-->
 
         <!--        <uses-library android:name="org.apache.http.legacy" android:required="false"/>-->
