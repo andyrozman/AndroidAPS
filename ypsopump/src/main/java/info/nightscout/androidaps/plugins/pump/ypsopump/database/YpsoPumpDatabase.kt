@@ -21,9 +21,12 @@ abstract class YpsoPumpDatabase : RoomDatabase() {
         const val VERSION = 1
 
         fun build(context: Context) =
-            Room.databaseBuilder(context.applicationContext,
+            Room.databaseBuilder(
+                context.applicationContext,
                 YpsoPumpDatabase::class.java,
-                "ypsopump_database.db")
+                "ypsopump_database.db"
+            )
+                .allowMainThreadQueries()
                 .fallbackToDestructiveMigration()
                 .build()
     }

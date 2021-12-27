@@ -15,13 +15,11 @@ import dagger.android.DaggerActivity
 import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
-import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.R
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.EventDto
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistory
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import org.joda.time.DateTime
 import java.util.*
 import javax.inject.Inject
 
@@ -51,7 +49,9 @@ class YpsoPumpHistoryActivity : DaggerActivity() {
         // gc.add(Calendar.HOUR_OF_DAY, -24)
         // fullList.addAll(erosHistory.getAllErosHistoryRecordsFromTimestamp(gc.timeInMillis))
 
-        val allSince = ypsoPumpHistory.getHistoryRecordsAfter(DateTimeUtil.toATechDate(DateTime().minusDays(3)))
+        val allSince = ypsoPumpHistory.getHistoryRecords()
+
+        //ypsoPumpHistory.getHistoryRecordsAfter(DateTimeUtil.toATechDate(DateTime().minusDays(3)))
         this.fullList.clear()
 
         aapsLogger.info(LTag.PUMP, "Loaded ${allSince.size} items from database (age 3 days).")

@@ -129,6 +129,7 @@ android {
                     appIcon     : "@mipmap/ic_launcher",
                     appIconRound: "@mipmap/ic_launcher_round"
             ]
+            resValue("string", "PORT_NUMBER", "8084")
         }
         pumpcontrol {
             applicationId "info.nightscout.aapspumpcontrol"
@@ -162,6 +163,7 @@ android {
         }
     }
 
+
     useLibrary "org.apache.http.legacy"
 }
 
@@ -172,6 +174,7 @@ allprojects {
         }
     }
 }
+
 
 dependencies {
     wearApp project(':wear')
@@ -205,6 +208,8 @@ dependencies {
 
     /* Dagger2 - default dependency */
     kapt "com.google.dagger:dagger-compiler:$dagger_version"
+
+    debugImplementation 'com.github.amitshekhariitbhu.Android-Debug-Database:debug-db:v1.0.6'
 }
 
 apply from: "${project.rootDir}/gradle/test_dependencies.gradle"

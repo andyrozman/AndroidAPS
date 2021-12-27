@@ -353,6 +353,8 @@ class YpsoPumpFragment : DaggerFragment() {
     @Synchronized
     fun updateGUI(updateType: PumpUpdateFragmentType) {
 
+        val pumpState = pumpSync.expectedPumpState()
+
         // last connection
         if (pumpStatus.lastConnection != 0L) {
             val minAgo = dateUtil.minAgo(resourceHelper, pumpStatus.lastConnection)
@@ -408,6 +410,8 @@ class YpsoPumpFragment : DaggerFragment() {
         if (updateType == PumpUpdateFragmentType.TreatmentValues || updateType == PumpUpdateFragmentType.Full) {
             // Last Bolus, TBR (Profile Change)
 
+            val bolusState: PumpSync.PumpState.Bolus? = pumpState.bolus
+            
             // last bolus
             val bolus = pumpStatus.lastBolusAmount
             val bolusTime = pumpStatus.lastBolusTime

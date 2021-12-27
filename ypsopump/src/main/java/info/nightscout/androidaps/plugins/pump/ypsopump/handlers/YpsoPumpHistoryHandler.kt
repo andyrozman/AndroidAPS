@@ -94,6 +94,8 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                 }
             }
 
+            aapsLogger.warn(LTag.PUMPCOMM, "DD: GetEvents")
+
             val commandEvents = GetEvents(
                 hasAndroidInjector = hasAndroidInjector,
                 eventSequenceNumber = if (targetSequenceNumber == 0) null else targetSequenceNumber,
@@ -495,7 +497,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                 first = false
             }
 
-            aapsLogger.debug(LTag.PUMP, "Add history to Database: ${counter}\n ${gson.toJson(historyRecordEntity)}")
+            aapsLogger.debug(LTag.PUMP, "DD: Add history to Database: ${counter}\n ${gson.toJson(historyRecordEntity)}")
 
             val changedItem = ypsoPumpHistory.insertOrUpdate(event = historyRecordEntity)
 

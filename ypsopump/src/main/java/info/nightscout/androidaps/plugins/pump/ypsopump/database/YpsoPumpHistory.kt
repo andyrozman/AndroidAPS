@@ -108,37 +108,41 @@ class YpsoPumpHistory @Inject constructor(
     //     }
     // }
 
+    fun getHistoryRecords(): List<HistoryRecordEntity> {
+        return pumpHistoryDao.all().blockingGet()
+    }
+
     fun getHistoryRecordsAfter(atdTime: Long): List<HistoryRecordEntity> {
         return pumpHistoryDao.allSince(atdTime).blockingGet()
     }
 
     // TODO main database method we will use
     fun insertOrUpdate(event: EventDto): HistoryRecordEntity? {
-        aapsLogger.debug(LTag.PUMP, "EventDto to convert = ${gson.toJson(event)}")
+        aapsLogger.debug(LTag.PUMP, "DD: EventDto to convert = ${gson.toJson(event)}")
         val entity = historyMapper.domainToEntity(event)
         var returnEntity: HistoryRecordEntity? = null
         pumpHistoryDatabase.runInTransaction {
             val dbEntity = pumpHistoryDao.getById(entity.id, entity.serial, entity.historyRecordType)
 
-            aapsLogger.debug(LTag.PUMP, "pumpHistoryDao.getById ${entity.id} = $gson.toJson(dbEntity)}")
+            aapsLogger.debug(LTag.PUMP, "DD: pumpHistoryDao.getById[${entity.id}] = ${gson.toJson(dbEntity)}")
 
             if (dbEntity == null) {
                 entity.id = entity.eventSequenceNumber
                 entity.createdAt = System.currentTimeMillis()
                 entity.updatedAt = entity.createdAt
 
-                aapsLogger.debug(LTag.PUMP, "pumpHistoryDao.save()")
+                aapsLogger.debug(LTag.PUMP, "DD: pumpHistoryDao.save()")
 
                 pumpHistoryDao.save(entity)
                 returnEntity = entity
             } else {
                 if (isDifferentData(dbEntity, entity)) {
                     val entityForUpdate = prepareData(dbEntity, entity)
-                    aapsLogger.debug(LTag.PUMP, "pumpHistoryDao.update()")
+                    aapsLogger.debug(LTag.PUMP, "DD: pumpHistoryDao.update()")
                     pumpHistoryDao.update(entityForUpdate)
                     returnEntity = entityForUpdate
                 } else {
-                    aapsLogger.debug(LTag.PUMP, "same data no Db action.")
+                    aapsLogger.debug(LTag.PUMP, "DD: same data no Db action.")
                 }
             }
         }

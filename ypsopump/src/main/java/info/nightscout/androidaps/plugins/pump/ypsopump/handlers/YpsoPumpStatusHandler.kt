@@ -42,6 +42,10 @@ class YpsoPumpStatusHandler
                 }.start()
             }
             pumpStatus.serialNumber = serialNumber
+
+            // TODO remove this, just for database testing
+            val ypsoPumpStatusEntry = pumpStatus.ypsoPumpStatusList!!.map[serialNumber]
+            ypsoPumpStatusEntry!!.lastSystemEntrySequenceNumber = 0
         }
     }
 
