@@ -12,7 +12,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.YpsoPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpFirmware
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton

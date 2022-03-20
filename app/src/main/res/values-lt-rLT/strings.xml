@@ -12,7 +12,6 @@
     <string name="nav_resetdb">Iš naujo nustatyti duomenų bazę</string>
     <string name="reset_db_confirm">Ar tikrai norite iš naujo nustatyti duomenų bazę?</string>
     <string name="nav_exit">Išeiti</string>
-    <string name="ns_sync_use_absolute_title">Visada naudoti bazės absoliučias vertes</string>
     <string name="alert_dialog_permission_battery_optimization_failed">Šis įrenginys nepalaiko baterijos optimizavimo išimčių - galite patirti veikimo nesklandumų.</string>
     <string name="description_actions">Mygtukai greitesniam pagrindinių funkcijų paleidimui</string>
     <string name="description_config_builder">Naudojama aktyvių įskiepių konfigūravimui</string>
@@ -58,7 +57,6 @@
     <string name="treatments_wizard_tt_label">LT</string>
     <string name="treatments_wizard_carbs_label">AV</string>
     <string name="treatments_wizard_correction_label">Korekcija</string>
-    <string name="treatments_wizard_bolusiob_label">Bolusų AIO</string>
     <string name="openapsma_run">Paleisti dabar</string>
     <string name="vitualpump_label">Virtuali pompa</string>
     <string name="openapsma_lastrun_label">Paskutinis veiksmas</string>
@@ -97,7 +95,6 @@
     <string name="safety">Saugumas</string>
     <string name="openapsma_disabled">Įskiepis išjungtas</string>
     <string name="constraints_violation">Apribojimų pažeidimas</string>
-    <string name="treatmentdeliveryerror">Boluso suleidimo klaida</string>
     <string name="setbasalquestion">Patvirtinti naują laikiną bazę:</string>
     <string name="overview_treatment_label">Terapija</string>
     <string name="overview_calculator_label">Skaičiuotuvas</string>
@@ -123,9 +120,7 @@
     <string name="careportal_newnstreatment_other">Kiti</string>
     <string name="careportal_newnstreatment_meter">Matuoklis</string>
     <string name="careportal_newnstreatment_sensor">Sensorius</string>
-    <string name="careportal_newnstreatment_carbtime_label">AV laikas</string>
     <string name="careportal_newnstreatment_duration_label">Trukmė</string>
-    <string name="careportal_newnstreatment_profile_label">Profilis</string>
     <string name="careportal_newnstreatment_glucosetype">Gliukozės tipas</string>
     <string name="overview_tempbasal_button">Laikina bazė</string>
     <string name="overview_extendedbolus_button">Ištęstas bolusas</string>
@@ -229,6 +224,7 @@
     <string name="correctionbous">Korekcija</string>
     <string name="actions">Veiksmai</string>
     <string name="ns_upload_only">(PAVOJINGA IŠJUNGTI) Tik įkeliama į NS</string>
+    <string name="ns_upload_only_summary">Tik įkelti į Nightscout (be sinchronizavimo). Netaikoma NGJ reikšmėms, nebent pasirinktas vietinis duomenų šaltinis, pvz., xDrip+. Taip pat netaikoma profilio duomenims, jei naudojamas NS profilis.\n!!! ĮSPĖJIMAS !!! Išjungus šią parinktį, galimas insulino perdozavimas, jei bet kuris iš komponentų (AAPS, NS, xDrip+) sukonfigūruotas neteisingai. Atidžiai stebėkite, ar AAPS rodomi duomenys atitinka pompos duomenis!</string>
     <string name="pumpNotInitialized">Pompa neprijungta!</string>
     <string name="primefill">Užpildymas</string>
     <string name="fillwarning">Įsitikinkite, kad nurodytas kiekis atitinka Jūsų infuzijos rinkinio specifikaciją!</string>
@@ -355,7 +351,6 @@
     <string name="smscommunicator_wrongduration">Neteisinga trukmė</string>
     <string name="smscommunicator_loopsuspended">Ciklas sustabdytas</string>
     <string name="smscommunicator_loopresumed">Ciklas atnaujintas</string>
-    <string name="treatments_wizard_bgtrend_label">15 min tendencija</string>
     <string name="treatments_wizard_cob_label">AAO</string>
     <string name="superbolus">Superbolus</string>
     <string name="ns_logappstartedevent">Siųsti programos paleidimo žymę į NS</string>
@@ -385,6 +380,7 @@
     <string name="basal_shortname">VB</string>
     <string name="deviation_shortname">DEV</string>
     <string name="activity_shortname">VEIKS</string>
+    <string name="bgi_shortname">-KGS</string>
     <string name="abs_insulin_shortname">ABS</string>
     <string name="devslope_shortname">DEVSLOPE</string>
     <string name="nav_about">Apie</string>
@@ -520,8 +516,6 @@
     <string name="enablesmbwithhightemptarget_summary">Įjungti SMB, kai yra aktyvus aukštas tikslas (aktyvumas, daugiau nei 100 mg/dl arba 5,5 mmol/l)</string>
     <string name="overview_insulin_label">Insulinas</string>
     <string name="overview_buttons_selection">Mygtukai</string>
-    <string name="show_calibration_button_summary">Siunčia kalibravimą į xDrip+ arba atidaro G5 kalibravimo dialogą</string>
-    <string name="show_cgm_button_summary">Atidaro xDrip+, o mygtukas ATGAL gražina į AAPS</string>
     <string name="carb_increment_button_message">Paspaudus mygtuką įvedamas nustatytas angliavandenių kiekis</string>
     <string name="insulin_increment_button_message">Paspaudus mygtuką įvedamas nustatytas insulino kiekis</string>
     <string name="error_starting_cgm">Nepavyko paleisti NGJ programos.  Įsitikinkite, kad ji įdiegta.</string>
@@ -627,7 +621,6 @@
     <string name="exitwizard">Praleisti sąrankos vedlį</string>
     <string name="setupwizard_loop_description">Paspauskite mygtuką žemiau, norėdami leisti AndroidAPS patarti/atlikti bazės pakeitimus</string>
     <string name="setupwizard_sensitivity_description">Jautrumo įskiepis yra naudojamas jautrumo aptikimui ir AAO skaičiavimams. Daugiau informacijos:</string>
-    <string name="setupwizard_sensitivity_url">https://github.com/MilosKozak/AndroidAPS/wiki/Sensitivity-detection-and-COB</string>
     <string name="nsclientinfotext">NSClient palaiko ryšį su Nightscout. Jūs galite praleisti šią dalį dabar, bet negalėsite baigti mokymosi programos, kol nenustatysite ryšio su NS.</string>
     <string name="diawarning">Atminkite: DKS profiliams reikia IVT bent 5 val. IVT = 5 - 6 val DKS profilyje atitinka IVT = 3 val sename (pompos terapijos) insulino profilyje.</string>
     <string name="setupwizard_aps_description">Pasirinkite vieną iš esamų algoritmų. Jie yra išdėstyti nuo seniausio iki naujausio. Naujesni algoritmai yra galingesni ir agresyvesni. Taigi jei esate naujas vartotojas, geriau pradėti nuo AMA, o ne naujesnio. Nepamirškite perskaityti dokumentaciją ir sukonfigūruoti jį prieš naudojant.</string>
@@ -663,7 +656,6 @@
     <string name="error_adding_treatment_title">Terapijos duomenys nepilni</string>
     <string name="maintenance_settings">Serviso nustatymai</string>
     <string name="maintenance_email">Gavėjo el. paštas</string>
-    <string name="maintenance_encrypt_exported_prefs">Užšifruoti eksportuotus parametrus</string>
     <string name="maintenance_amount">Siunčiamų įrašų skaičius</string>
     <string name="maintenance">Servisas</string>
     <string name="maintenance_shortname">Serv</string>
@@ -715,11 +707,9 @@
     <string name="versionChecker">Versijos tikrintuvas</string>
     <string name="old_version">sena versija</string>
     <string name="very_old_version">labai sena versija</string>
+    <string name="application_expired">Aplikacijos laikas baigėsi</string>
     <string name="new_version_warning">Nauja versija pasiekiama mažiausiai %1$d d.! Po %2$d grįšite prie stabdymo prie žemo, po %3$d ciklas bus išjungtas</string>
     <string name="twohours">2 val</string>
-    <string name="dexcom_app_patched">Dexcom programėlė (modifikuota)</string>
-    <string name="dexcom_short">DXCM</string>
-    <string name="description_source_dexcom">Gauti kraujo gliukozės reikšmes iš modifikuotos Dexcom programėlės.</string>
     <string name="cobvsiob">AAO prieš AIO</string>
     <string name="bolusconstraintappliedwarn">Pritaikytas boluso apribojimas: %1$.2f vv iki %2$.2f vv</string>
     <string name="slowabsorptiondetected"><![CDATA[<font color=\'%1$s\'>!!!!! Nustatytas lėtas angliavandenių įsisavinimas: %2$d%% laiko. Dar karą patikrinkite savo skaičiavimus. AAO gali būti pervertinti, todėl gali būti suleista per daug insulino!!!!!</font>]]></string>
@@ -843,16 +833,39 @@
     <string name="time_to_eat">Laikas valgyti!\nĮjunkite Boluso patarėją ir atlikite skaičiavimą dar kartą.</string>
     <string name="timetoeat">Laikas valgyti</string>
     <string name="fabric_upload_disabled">Sutrikimų žurnalo įrašų įkėlimas išjungtas!</string>
+    <string name="graph_menu_divider_header">Grafikas</string>
+    <string name="chart_menu">Grafiko meniu</string>
     <string name="clear_filter">Valyti filtrą</string>
     <string name="trend_arrow">Tendencijos kryptis</string>
     <string name="cannula">Kaniulė</string>
     <string name="userentry">Naudotojo įrašas</string>
+    <string name="common_values">Naudokite gausiausio patiekalo, kurį paprastai valgote, reikšmes\n</string>
     <string name="email_address">El. pašto adresas</string>
     <string name="privacy_settings">Privatumo nuostatos</string>
     <string name="privacy_summary">Nurodykite el. pašto adresą (neprivaloma), jei norite gauti informaciją apie programos strigimus. Tai nėra automatizuota paslauga. Kūrėjai susisieks esant pavojingoms situacijoms.</string>
+    <string name="full_sync">Pilna sinchronizacija</string>
+    <string name="full_sync_comment">Vykdyti pilną sinchronizaciją? Tai gali užtrukti nemažai valandų ir kol ji nebus užbaigta, nematysite atnaujintų NS duomenų.</string>
     <string name="prime">Užpildyti sistemą</string>
     <string name="ns_sync_options">Sinchronizacija</string>
     <string name="ns_upload_summary">Profiliai, bolusai, angliavandeniai, laikinos bazės įkeltos į NS</string>
     <string name="ns_upload">Įkelti duomenis į NS</string>
     <string name="ns_receive_profile_store">Priimti profilių saugyklą</string>
+    <string name="ns_receive_profile_store_summary">Sinchronizuoti profilius iš NS</string>
+    <string name="ns_receive_temp_target">Gauti laikinus tikslus</string>
+    <string name="ns_receive_temp_target_summary">Priimti laikinus tikslus, įvestus per NS arba NSClient</string>
+    <string name="ns_receive_profile_switch">Gauti profilio keitimus</string>
+    <string name="ns_receive_profile_switch_summary">Priimti profilio keitimus, įvestus per NS arba NSClient</string>
+    <string name="ns_receive_offline_event">Gauti APS įvykius neprisijungus</string>
+    <string name="ns_receive_offline_event_summary">Priimti APS įvykius neprisijungus, įvestus per NS arba NSClient</string>
+    <string name="ns_receive_insulin">Gauti insulino duomenis</string>
+    <string name="ns_receive_insulin_summary">Priimti insulino duomenis, įvestus per NS arba NSClient (jis nėra suleidžiamas, tik įskaičiuojamas į AIO)</string>
+    <string name="ns_receive_carbs">Gauti angliavandenių duomenis</string>
+    <string name="ns_receive_carbs_summary">Priimti angliavandenių duomenis, įvestus per NS arba NSClient</string>
+    <string name="ns_receive_therapy_events">Gauti terapijos įvykius</string>
+    <string name="ns_receive_therapy_events_summary">Priimti terapijos įvykius (kaniulės, insulino, baterijos keitimą ir pan.), įvestus per NS arba NSClient</string>
+    <string name="ns_receive_cgm">Gauti/užpildyti atgaline data NGJ duomenis</string>
+    <string name="ns_receive_cgm_summary">Priimti NGJ duomenis iš NS</string>
+    <string name="sms_timeout_while_wating">Baigėsi laikas kol buvo laukiama, kada baigsis ankstesnis susijungimas su pompa</string>
+    <string name="smscommunicator_another_bolus_in_queue">Kitas bolusas laukia eilėje. Bandykite dar kartą vėliau.</string>
+    <string name="calculation_in_progress">Skaičiuojama</string>
 </resources>

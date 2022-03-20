@@ -1,13 +1,13 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoBasalProfileType
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoSettingId
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.YpsoPumpSettingsDto
+import info.nightscout.shared.logging.LTag
 
 class GetPumpSettings(hasAndroidInjector: HasAndroidInjector?) : GetSettingsAbstract<YpsoPumpSettingsDto?>(hasAndroidInjector!!) {
 

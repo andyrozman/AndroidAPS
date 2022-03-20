@@ -1,7 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.medtronic.comm
 
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.common.utils.StringUtil
@@ -94,6 +94,10 @@ class MedtronicConverter @Inject constructor(
     }
 
     fun decodeTime(rawContent: ByteArray): LocalDateTime? {
+        if (rawContent.size < 7) {
+            aapsLogger.error(LTag.PUMPCOMM, "decodeTime: Byte array too short")
+            return null
+        }
         val hours = ByteUtil.asUINT8(rawContent[0])
         val minutes = ByteUtil.asUINT8(rawContent[1])
         val seconds = ByteUtil.asUINT8(rawContent[2])
@@ -103,8 +107,9 @@ class MedtronicConverter @Inject constructor(
         return try {
             LocalDateTime(year, month, day, hours, minutes, seconds)
         } catch (e: IllegalFieldValueException) {
-            aapsLogger.error(LTag.PUMPCOMM, String.format(Locale.ENGLISH, "decodeTime: Failed to parse pump time value: year=%d, month=%d, hours=%d, minutes=%d, seconds=%d",
-                year, month, day, hours, minutes, seconds))
+            aapsLogger.error(
+                LTag.PUMPCOMM, String.format(Locale.ENGLISH, "decodeTime: Failed to parse pump time value: year=%d, month=%d, hours=%d, minutes=%d, seconds=%d",
+                                             year, month, day, hours, minutes, seconds))
             null
         }
     }

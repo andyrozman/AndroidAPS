@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.activities
 
+import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
@@ -9,8 +10,6 @@ import android.widget.PopupMenu
 import info.nightscout.androidaps.R
 import info.nightscout.androidaps.data.ProfileSealed
 import info.nightscout.androidaps.data.PureProfile
-import info.nightscout.androidaps.data.defaultProfile.DefaultProfile
-import info.nightscout.androidaps.data.defaultProfile.DefaultProfileDPV
 import info.nightscout.androidaps.database.AppRepository
 import info.nightscout.androidaps.database.entities.EffectiveProfileSwitch
 import info.nightscout.androidaps.databinding.ActivityProfilehelperBinding
@@ -18,7 +17,6 @@ import info.nightscout.androidaps.dialogs.ProfileViewerDialog
 import info.nightscout.androidaps.extensions.toVisibility
 import info.nightscout.androidaps.interfaces.ActivePlugin
 import info.nightscout.androidaps.interfaces.ProfileFunction
-import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.profile.local.LocalProfilePlugin
 import info.nightscout.androidaps.plugins.profile.local.events.EventLocalProfileChanged
@@ -26,13 +24,14 @@ import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.T
 import info.nightscout.androidaps.utils.ToastUtils
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
+import info.nightscout.androidaps.utils.defaultProfile.DefaultProfile
+import info.nightscout.androidaps.utils.defaultProfile.DefaultProfileDPV
 import info.nightscout.androidaps.utils.stats.TddCalculator
 import java.text.DecimalFormat
 import javax.inject.Inject
 
 class ProfileHelperActivity : NoSplashAppCompatActivity() {
 
-    @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var tddCalculator: TddCalculator
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var defaultProfile: DefaultProfile
@@ -140,11 +139,14 @@ class ProfileHelperActivity : NoSplashAppCompatActivity() {
             val profile = if (typeSelected[tabSelected] == ProfileType.MOTOL_DEFAULT) defaultProfile.profile(age, tdd, weight, profileFunction.getUnits())
             else defaultProfileDPV.profile(age, tdd, pct / 100.0, profileFunction.getUnits())
             profile?.let {
-                OKDialog.showConfirmation(this, resourceHelper.gs(R.string.careportal_profileswitch), resourceHelper.gs(R.string.copytolocalprofile), Runnable {
-                    localProfilePlugin.addProfile(localProfilePlugin.copyFrom(it, "DefaultProfile " +
-                        dateUtil.dateAndTimeAndSecondsString(dateUtil.now())
-                            .replace(".", "/")
-                    ))
+                OKDialog.showConfirmation(this, rh.gs(R.string.careportal_profileswitch), rh.gs(R.string.copytolocalprofile), Runnable {
+                    localProfilePlugin.addProfile(
+                        localProfilePlugin.copyFrom(
+                            it, "DefaultProfile " +
+                                dateUtil.dateAndTimeAndSecondsString(dateUtil.now())
+                                    .replace(".", "/")
+                        )
+                    )
                     rxBus.send(EventLocalProfileChanged())
                 })
             }
@@ -168,7 +170,12 @@ class ProfileHelperActivity : NoSplashAppCompatActivity() {
 
         binding.basalpctfromtdd.setParams(32.0, 32.0, 37.0, 1.0, DecimalFormat("0"), false, null)
 
-        binding.tdds.text = tddCalculator.stats()
+        @SuppressLint("SetTextI18n")
+        binding.tdds.text = getString(R.string.tdd) + ": " + rh.gs(R.string.calculation_in_progress)
+        Thread {
+            val tdds = tddCalculator.stats()
+            runOnUiThread { binding.tdds.text = tdds }
+        }.start()
 
         // Current profile
         binding.currentProfileText.text = profileFunction.getProfileName()
@@ -215,7 +222,16 @@ class ProfileHelperActivity : NoSplashAppCompatActivity() {
                             it.putInt("mode", ProfileViewerDialog.Mode.PROFILE_COMPARE.ordinal)
                             it.putString("customProfile", profile0.jsonObject.toString())
                             it.putString("customProfile2", profile1.jsonObject.toString())
-                            it.putString("customProfileName", getProfileName(ageUsed[0], tddUsed[0], weightUsed[0], pctUsed[0] / 100.0, 0) + "\n" + getProfileName(ageUsed[1], tddUsed[1], weightUsed[1], pctUsed[1] / 100.0, 1))
+                            it.putString(
+                                "customProfileName",
+                                getProfileName(ageUsed[0], tddUsed[0], weightUsed[0], pctUsed[0] / 100.0, 0) + "\n" + getProfileName(
+                                    ageUsed[1],
+                                    tddUsed[1],
+                                    weightUsed[1],
+                                    pctUsed[1] / 100.0,
+                                    1
+                                )
+                            )
                         }
                     }.show(supportFragmentManager, "ProfileViewDialog")
                     return@setOnClickListener
@@ -242,8 +258,8 @@ class ProfileHelperActivity : NoSplashAppCompatActivity() {
 
     private fun getProfileName(age: Double, tdd: Double, weight: Double, basalSumPct: Double, tab: Int): String =
         when (typeSelected[tab]) {
-            ProfileType.MOTOL_DEFAULT     -> if (tdd > 0) resourceHelper.gs(R.string.formatwithtdd, age, tdd) else resourceHelper.gs(R.string.formatwithweight, age, weight)
-            ProfileType.DPV_DEFAULT       -> resourceHelper.gs(R.string.formatwittddandpct, age, tdd, (basalSumPct * 100).toInt())
+            ProfileType.MOTOL_DEFAULT     -> if (tdd > 0) rh.gs(R.string.formatwithtdd, age, tdd) else rh.gs(R.string.formatwithweight, age, weight)
+            ProfileType.DPV_DEFAULT       -> rh.gs(R.string.formatwittddandpct, age, tdd, (basalSumPct * 100).toInt())
             ProfileType.CURRENT           -> profileFunction.getProfileName()
             ProfileType.AVAILABLE_PROFILE -> profileList[profileUsed[tab]].toString()
             ProfileType.PROFILE_SWITCH    -> profileSwitch[profileSwitchUsed[tab]].originalCustomizedName
@@ -263,17 +279,18 @@ class ProfileHelperActivity : NoSplashAppCompatActivity() {
 
         tabSelected = tab
         typeSelected[tabSelected] = newContent
-        binding.profiletypeTitle.defaultHintTextColor = ColorStateList.valueOf(resourceHelper.gc(if (tab == 0) R.color.tabBgColorSelected else R.color.examinedProfile))
+        binding.profiletypeTitle.defaultHintTextColor = ColorStateList.valueOf(rh.gc(if (tab == 0) R.color.tabBgColorSelected else R.color.examinedProfile))
 
         // show new content
         binding.profiletype.setText(
             when (typeSelected[tabSelected]) {
-                ProfileType.MOTOL_DEFAULT     -> resourceHelper.gs(R.string.motoldefaultprofile)
-                ProfileType.DPV_DEFAULT       -> resourceHelper.gs(R.string.dpvdefaultprofile)
-                ProfileType.CURRENT           -> resourceHelper.gs(R.string.currentprofile)
-                ProfileType.AVAILABLE_PROFILE -> resourceHelper.gs(R.string.availableprofile)
-                ProfileType.PROFILE_SWITCH    -> resourceHelper.gs(R.string.careportal_profileswitch)
-            })
+                ProfileType.MOTOL_DEFAULT     -> rh.gs(R.string.motoldefaultprofile)
+                ProfileType.DPV_DEFAULT       -> rh.gs(R.string.dpvdefaultprofile)
+                ProfileType.CURRENT           -> rh.gs(R.string.currentprofile)
+                ProfileType.AVAILABLE_PROFILE -> rh.gs(R.string.availableprofile)
+                ProfileType.PROFILE_SWITCH    -> rh.gs(R.string.careportal_profileswitch)
+            }
+        )
         binding.defaultProfile.visibility = (newContent == ProfileType.MOTOL_DEFAULT || newContent == ProfileType.DPV_DEFAULT).toVisibility()
         binding.currentProfile.visibility = (newContent == ProfileType.CURRENT).toVisibility()
         binding.availableProfile.visibility = (newContent == ProfileType.AVAILABLE_PROFILE).toVisibility()
@@ -293,7 +310,7 @@ class ProfileHelperActivity : NoSplashAppCompatActivity() {
     }
 
     private fun setBackgroundColorOnSelected(tab: Int) {
-        binding.menu1.setBackgroundColor(resourceHelper.gc(if (tab == 1) R.color.defaultbackground else R.color.tempbasal))
-        binding.menu2.setBackgroundColor(resourceHelper.gc(if (tab == 0) R.color.defaultbackground else R.color.examinedProfile))
+        binding.menu1.setBackgroundColor(rh.gc(if (tab == 1) R.color.defaultbackground else R.color.tempbasal))
+        binding.menu2.setBackgroundColor(rh.gc(if (tab == 0) R.color.defaultbackground else R.color.examinedProfile))
     }
 }

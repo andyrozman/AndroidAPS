@@ -14,11 +14,13 @@ import dagger.android.support.DaggerFragment
 import info.nightscout.androidaps.Constants
 import info.nightscout.androidaps.R
 import info.nightscout.androidaps.activities.ErrorHelperActivity
+import info.nightscout.androidaps.activities.HistoryBrowseActivity
 import info.nightscout.androidaps.activities.TDDStatsActivity
 import info.nightscout.androidaps.database.AppRepository
 import info.nightscout.androidaps.database.ValueWrapper
 import info.nightscout.androidaps.database.entities.UserEntry.Action
 import info.nightscout.androidaps.database.entities.UserEntry.Sources
+import info.nightscout.androidaps.diaconn.DiaconnG8Plugin
 import info.nightscout.androidaps.dialogs.*
 import info.nightscout.androidaps.events.EventCustomActionsChanged
 import info.nightscout.androidaps.events.EventExtendedBolusChange
@@ -28,14 +30,8 @@ import info.nightscout.androidaps.events.EventTherapyEventChange
 import info.nightscout.androidaps.extensions.toStringMedium
 import info.nightscout.androidaps.extensions.toStringShort
 import info.nightscout.androidaps.extensions.toVisibility
-import info.nightscout.androidaps.activities.HistoryBrowseActivity
-import info.nightscout.androidaps.diaconn.DiaconnG8Plugin
-import info.nightscout.androidaps.interfaces.ActivePlugin
-import info.nightscout.androidaps.interfaces.CommandQueueProvider
-import info.nightscout.androidaps.interfaces.Config
-import info.nightscout.androidaps.interfaces.IobCobCalculator
-import info.nightscout.androidaps.interfaces.ProfileFunction
-import info.nightscout.androidaps.logging.AAPSLogger
+import info.nightscout.androidaps.interfaces.*
+import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.actions.defs.CustomAction
@@ -50,7 +46,7 @@ import info.nightscout.androidaps.utils.buildHelper.BuildHelper
 import info.nightscout.androidaps.utils.protection.ProtectionCheck
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import info.nightscout.androidaps.utils.ui.SingleClickButton
 import info.nightscout.androidaps.utils.ui.UIRunnable
 import io.reactivex.disposables.CompositeDisposable
@@ -67,18 +63,19 @@ class ActionsFragment : DaggerFragment() {
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var ctx: Context
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var statusLightHandler: StatusLightHandler
     @Inject lateinit var fabricPrivacy: FabricPrivacy
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var iobCobCalculator: IobCobCalculator
-    @Inject lateinit var commandQueue: CommandQueueProvider
+    @Inject lateinit var commandQueue: CommandQueue
     @Inject lateinit var buildHelper: BuildHelper
     @Inject lateinit var protectionCheck: ProtectionCheck
     @Inject lateinit var skinProvider: SkinProvider
     @Inject lateinit var config: Config
     @Inject lateinit var uel: UserEntryLogger
     @Inject lateinit var repository: AppRepository
+    @Inject lateinit var loop: Loop
 
     private var disposable: CompositeDisposable = CompositeDisposable()
 
@@ -111,8 +108,10 @@ class ActionsFragment : DaggerFragment() {
     private var insulinLevelLabel: TextView? = null
     private var pbLevelLabel: TextView? = null
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
         //check screen width
         dm = DisplayMetrics()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R)
@@ -164,10 +163,12 @@ class ActionsFragment : DaggerFragment() {
         extendedBolus?.setOnClickListener {
             activity?.let { activity ->
                 protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable {
-                    OKDialog.showConfirmation(activity, resourceHelper.gs(R.string.extended_bolus), resourceHelper.gs(R.string.ebstopsloop),
+                    OKDialog.showConfirmation(
+                        activity, rh.gs(R.string.extended_bolus), rh.gs(R.string.ebstopsloop),
                         Runnable {
                             ExtendedBolusDialog().show(childFragmentManager, "Actions")
-                        }, null)
+                        }, null
+                    )
                 })
             }
         }
@@ -177,7 +178,7 @@ class ActionsFragment : DaggerFragment() {
                 commandQueue.cancelExtended(object : Callback() {
                     override fun run() {
                         if (!result.success) {
-                            ErrorHelperActivity.runAlarm(ctx, result.comment, resourceHelper.gs(R.string.extendedbolusdeliveryerror), R.raw.boluserror)
+                            ErrorHelperActivity.runAlarm(ctx, result.comment, rh.gs(R.string.extendedbolusdeliveryerror), R.raw.boluserror)
                         }
                     }
                 })
@@ -192,7 +193,7 @@ class ActionsFragment : DaggerFragment() {
                 commandQueue.cancelTempBasal(true, object : Callback() {
                     override fun run() {
                         if (!result.success) {
-                            ErrorHelperActivity.runAlarm(ctx, result.comment, resourceHelper.gs(R.string.tempbasaldeliveryerror), R.raw.boluserror)
+                            ErrorHelperActivity.runAlarm(ctx, result.comment, rh.gs(R.string.tempbasaldeliveryerror), R.raw.boluserror)
                         }
                     }
                 })
@@ -272,9 +273,10 @@ class ActionsFragment : DaggerFragment() {
             activePlugin.activeProfileSource.profile != null &&
                 pump.pumpDescription.isSetBasalProfileCapable &&
                 pump.isInitialized() &&
-                !pump.isSuspended()).toVisibility()
+                !pump.isSuspended() &&
+                !loop.isDisconnected).toVisibility()
 
-        if (!pump.pumpDescription.isExtendedBolusCapable || !pump.isInitialized() || pump.isSuspended() || pump.isFakingTempsByExtendedBoluses) {
+        if (!pump.pumpDescription.isExtendedBolusCapable || !pump.isInitialized() || pump.isSuspended() || loop.isDisconnected || pump.isFakingTempsByExtendedBoluses || config.NSCLIENT) {
             extendedBolus?.visibility = View.GONE
             extendedBolusCancel?.visibility = View.GONE
         } else {
@@ -283,14 +285,14 @@ class ActionsFragment : DaggerFragment() {
                 extendedBolus?.visibility = View.GONE
                 extendedBolusCancel?.visibility = View.VISIBLE
                 @Suppress("SetTextI18n")
-                extendedBolusCancel?.text = resourceHelper.gs(R.string.cancel) + " " + activeExtendedBolus.value.toStringMedium(dateUtil)
+                extendedBolusCancel?.text = rh.gs(R.string.cancel) + " " + activeExtendedBolus.value.toStringMedium(dateUtil)
             } else {
                 extendedBolus?.visibility = View.VISIBLE
                 extendedBolusCancel?.visibility = View.GONE
             }
         }
 
-        if (!pump.pumpDescription.isTempBasalCapable || !pump.isInitialized() || pump.isSuspended()) {
+        if (!pump.pumpDescription.isTempBasalCapable || !pump.isInitialized() || pump.isSuspended() || loop.isDisconnected || config.NSCLIENT) {
             setTempBasal?.visibility = View.GONE
             cancelTempBasal?.visibility = View.GONE
         } else {
@@ -299,7 +301,7 @@ class ActionsFragment : DaggerFragment() {
                 setTempBasal?.visibility = View.GONE
                 cancelTempBasal?.visibility = View.VISIBLE
                 @Suppress("SetTextI18n")
-                cancelTempBasal?.text = resourceHelper.gs(R.string.cancel) + " " + activeTemp.toStringShort()
+                cancelTempBasal?.text = rh.gs(R.string.cancel) + " " + activeTemp.toStringShort()
             } else {
                 setTempBasal?.visibility = View.VISIBLE
                 cancelTempBasal?.visibility = View.GONE
@@ -308,17 +310,18 @@ class ActionsFragment : DaggerFragment() {
         val activeBgSource = activePlugin.activeBgSource
         historyBrowser?.visibility = (profile != null).toVisibility()
         fill?.visibility = (pump.pumpDescription.isRefillingCapable && pump.isInitialized() && !pump.isSuspended()).toVisibility()
-        if(pump is DiaconnG8Plugin) {
+        if (pump is DiaconnG8Plugin) {
             pumpBatteryChange?.visibility = (pump.pumpDescription.isBatteryReplaceable && !pump.isBatteryChangeLoggingEnabled()).toVisibility()
         } else {
-            pumpBatteryChange?.visibility = (pump.pumpDescription.isBatteryReplaceable || (pump is OmnipodErosPumpPlugin && pump.isUseRileyLinkBatteryLevel && pump.isBatteryChangeLoggingEnabled)).toVisibility()
+            pumpBatteryChange?.visibility =
+                (pump.pumpDescription.isBatteryReplaceable || (pump is OmnipodErosPumpPlugin && pump.isUseRileyLinkBatteryLevel && pump.isBatteryChangeLoggingEnabled)).toVisibility()
         }
-        tempTarget?.visibility = (profile != null && config.APS).toVisibility()
+        tempTarget?.visibility = (profile != null && !loop.isDisconnected).toVisibility()
         tddStats?.visibility = pump.pumpDescription.supportsTDDs.toVisibility()
 
         if (!config.NSCLIENT) {
             statusLightHandler.updateStatusLights(cannulaAge, insulinAge, reservoirLevel, sensorAge, sensorLevel, pbAge, batteryLevel)
-            sensorLevelLabel?.text = if (activeBgSource.sensorBatteryLevel == -1) "" else resourceHelper.gs(R.string.careportal_level_label)
+            sensorLevelLabel?.text = if (activeBgSource.sensorBatteryLevel == -1) "" else rh.gs(R.string.careportal_level_label)
         } else {
             statusLightHandler.updateStatusLights(cannulaAge, insulinAge, null, sensorAge, null, pbAge, null)
             sensorLevelLabel?.text = ""
@@ -339,10 +342,11 @@ class ActionsFragment : DaggerFragment() {
             if (!customAction.isEnabled) continue
 
             val btn = SingleClickButton(currentContext, null, android.R.attr.buttonStyle)
-            btn.text = resourceHelper.gs(customAction.name)
+            btn.text = rh.gs(customAction.name)
 
             val layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 0.5f)
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 0.5f
+            )
             layoutParams.setMargins(20, 8, 20, 8) // 10,3,10,3
 
             btn.layoutParams = layoutParams
@@ -357,7 +361,7 @@ class ActionsFragment : DaggerFragment() {
 
             buttonsLayout?.addView(btn)
 
-            this.pumpCustomActions[resourceHelper.gs(customAction.name)] = customAction
+            this.pumpCustomActions[rh.gs(customAction.name)] = customAction
             this.pumpCustomButtons.add(btn)
         }
     }

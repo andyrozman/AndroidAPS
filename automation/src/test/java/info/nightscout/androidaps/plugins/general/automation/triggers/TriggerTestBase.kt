@@ -14,7 +14,7 @@ import info.nightscout.androidaps.plugins.iob.iobCobCalculator.AutosensDataStore
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.GlucoseStatusProvider
 import info.nightscout.androidaps.receivers.ReceiverStatusStore
 import info.nightscout.androidaps.services.LastLocationDataContainer
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import org.junit.Before
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
@@ -36,7 +36,7 @@ open class TriggerTestBase : TestBaseWithProfile() {
     @Before
     fun prepareMock1() {
         receiverStatusStore = ReceiverStatusStore(context, rxBus)
-        testPumpPlugin = TestPumpPlugin(pluginDescription, aapsLogger, resourceHelper, injector)
+        testPumpPlugin = TestPumpPlugin(pluginDescription, aapsLogger, rh, injector)
         `when`(activePlugin.activePump).thenReturn(testPumpPlugin)
         `when`(iobCobCalculator.ads).thenReturn(autosensDataStore)
     }
@@ -45,8 +45,8 @@ open class TriggerTestBase : TestBaseWithProfile() {
         AndroidInjector {
             if (it is Trigger) {
                 it.aapsLogger = aapsLogger
-                it.rxBus = RxBus(aapsSchedulers)
-                it.resourceHelper = resourceHelper
+                it.rxBus = RxBus(aapsSchedulers, aapsLogger)
+                it.rh = rh
                 it.profileFunction = profileFunction
                 it.sp = sp
                 it.locationDataContainer = locationDataContainer

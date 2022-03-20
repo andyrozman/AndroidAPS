@@ -2,7 +2,7 @@ package info.nightscout.androidaps.danars.comm
 
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.danars.R
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
@@ -16,7 +16,7 @@ class DanaRSPacketGeneralGetPumpCheck(
 ) : DanaRSPacket(injector) {
 
     @Inject lateinit var rxBus: RxBus
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var danaPump: DanaPump
 
     init {
@@ -43,7 +43,7 @@ class DanaRSPacketGeneralGetPumpCheck(
         aapsLogger.debug(LTag.PUMPCOMM, "Protocol: " + String.format("%02X ", danaPump.protocol))
         aapsLogger.debug(LTag.PUMPCOMM, "Product Code: " + String.format("%02X ", danaPump.productCode))
         if (danaPump.productCode < 2) {
-            rxBus.send(EventNewNotification(Notification(Notification.UNSUPPORTED_FIRMWARE, resourceHelper.gs(R.string.unsupportedfirmware), Notification.URGENT)))
+            rxBus.send(EventNewNotification(Notification(Notification.UNSUPPORTED_FIRMWARE, rh.gs(R.string.unsupportedfirmware), Notification.URGENT)))
         }
     }
 

@@ -3,7 +3,6 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.connector
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
-import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.BasalProfileResponse
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.CommandResponse
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.MapDataCommandResponse
@@ -11,6 +10,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.Si
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.TemporaryBasalResponse
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpFirmware
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
+import info.nightscout.shared.logging.AAPSLogger
 
 abstract class YpsoPumpConnectorAbstract(protected var pumpUtil: YpsoPumpUtil,
                                          protected var injector: HasAndroidInjector,

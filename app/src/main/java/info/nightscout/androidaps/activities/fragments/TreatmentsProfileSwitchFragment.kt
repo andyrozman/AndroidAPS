@@ -21,8 +21,8 @@ import info.nightscout.androidaps.dialogs.ProfileViewerDialog
 import info.nightscout.androidaps.events.EventProfileSwitchChanged
 import info.nightscout.androidaps.extensions.getCustomizedName
 import info.nightscout.androidaps.extensions.toVisibility
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.nsclient.events.EventNSClientRestart
@@ -39,7 +39,7 @@ import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.utils.buildHelper.BuildHelper
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.Completable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.plusAssign
@@ -52,7 +52,7 @@ class TreatmentsProfileSwitchFragment : DaggerFragment() {
     @Inject lateinit var sp: SP
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var localProfilePlugin: LocalProfilePlugin
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var fabricPrivacy: FabricPrivacy
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var buildHelper: BuildHelper
@@ -80,7 +80,7 @@ class TreatmentsProfileSwitchFragment : DaggerFragment() {
 
         binding.refreshFromNightscout.setOnClickListener {
             activity?.let { activity ->
-                OKDialog.showConfirmation(activity, resourceHelper.gs(R.string.refresheventsfromnightscout) + "?") {
+                OKDialog.showConfirmation(activity, rh.gs(R.string.refresheventsfromnightscout) + "?") {
                     uel.log(Action.TREATMENTS_NS_REFRESH, Sources.Treatments)
                     disposable +=
                         Completable.fromAction {
@@ -149,11 +149,14 @@ class TreatmentsProfileSwitchFragment : DaggerFragment() {
     override fun onResume() {
         super.onResume()
         swapAdapter()
-        disposable.add(rxBus
+        disposable += rxBus
             .toObservable(EventProfileSwitchChanged::class.java)
             .observeOn(aapsSchedulers.main)
             .subscribe({ swapAdapter() }, fabricPrivacy::logException)
-        )
+        disposable += rxBus
+            .toObservable(EventEffectiveProfileSwitchChanged::class.java)
+            .observeOn(aapsSchedulers.main)
+            .subscribe({ swapAdapter() }, fabricPrivacy::logException)
     }
 
     @Synchronized
@@ -179,9 +182,9 @@ class TreatmentsProfileSwitchFragment : DaggerFragment() {
             holder.binding.ph.visibility = (profileSwitch is ProfileSealed.EPS).toVisibility()
             holder.binding.ns.visibility = (profileSwitch.interfaceIDs_backing?.nightscoutId != null).toVisibility()
             holder.binding.date.text = dateUtil.dateAndTimeString(profileSwitch.timestamp)
-            holder.binding.duration.text = resourceHelper.gs(R.string.format_mins, T.msecs(profileSwitch.duration ?: 0L).mins())
+            holder.binding.duration.text = rh.gs(R.string.format_mins, T.msecs(profileSwitch.duration ?: 0L).mins())
             holder.binding.name.text = if (profileSwitch is ProfileSealed.PS) profileSwitch.value.getCustomizedName() else if (profileSwitch is ProfileSealed.EPS) profileSwitch.value.originalCustomizedName else ""
-            if (profileSwitch.isInProgress(dateUtil)) holder.binding.date.setTextColor(resourceHelper.gc(R.color.colorActive))
+            if (profileSwitch.isInProgress(dateUtil)) holder.binding.date.setTextColor(rh.gc(R.color.colorActive))
             else holder.binding.date.setTextColor(holder.binding.duration.currentTextColor)
             holder.binding.remove.tag = profileSwitch
             holder.binding.clone.tag = profileSwitch
@@ -192,7 +195,7 @@ class TreatmentsProfileSwitchFragment : DaggerFragment() {
             holder.binding.remove.visibility = (profileSwitch is ProfileSealed.PS).toVisibility()
             holder.binding.clone.visibility = (profileSwitch is ProfileSealed.PS).toVisibility()
             holder.binding.spacer.visibility = (profileSwitch is ProfileSealed.PS).toVisibility()
-            holder.binding.root.setBackgroundColor(resourceHelper.gc(if (profileSwitch is ProfileSealed.PS) R.color.defaultbackground else R.color.list_delimiter))
+            holder.binding.root.setBackgroundColor(rh.gc(if (profileSwitch is ProfileSealed.PS) R.color.defaultbackground else R.color.list_delimiter))
         }
 
         override fun getItemCount(): Int {
@@ -207,9 +210,9 @@ class TreatmentsProfileSwitchFragment : DaggerFragment() {
                 binding.remove.setOnClickListener { view ->
                     val profileSwitch = view.tag as ProfileSealed.PS
                     activity?.let { activity ->
-                        OKDialog.showConfirmation(activity, resourceHelper.gs(R.string.removerecord),
-                            resourceHelper.gs(R.string.careportal_profileswitch) + ": " + profileSwitch.profileName +
-                                "\n" + resourceHelper.gs(R.string.date) + ": " + dateUtil.dateAndTimeString(profileSwitch.timestamp), Runnable {
+                        OKDialog.showConfirmation(activity, rh.gs(R.string.removerecord),
+                            rh.gs(R.string.careportal_profileswitch) + ": " + profileSwitch.profileName +
+                                "\n" + rh.gs(R.string.date) + ": " + dateUtil.dateAndTimeString(profileSwitch.timestamp), Runnable {
                             uel.log(Action.PROFILE_SWITCH_REMOVED, Sources.Treatments, profileSwitch.profileName,
                                 ValueWithUnit.Timestamp(profileSwitch.timestamp))
                             disposable += repository.runTransactionForResult(InvalidateProfileSwitchTransaction(profileSwitch.id))
@@ -224,7 +227,7 @@ class TreatmentsProfileSwitchFragment : DaggerFragment() {
                     activity?.let { activity ->
                         val profileSwitch = (it.tag as ProfileSealed.PS).value
                         val profileSealed = it.tag as ProfileSealed
-                        OKDialog.showConfirmation(activity, resourceHelper.gs(R.string.careportal_profileswitch), resourceHelper.gs(R.string.copytolocalprofile) + "\n" + profileSwitch.getCustomizedName() + "\n" + dateUtil.dateAndTimeString(profileSwitch.timestamp), Runnable {
+                        OKDialog.showConfirmation(activity, rh.gs(R.string.careportal_profileswitch), rh.gs(R.string.copytolocalprofile) + "\n" + profileSwitch.getCustomizedName() + "\n" + dateUtil.dateAndTimeString(profileSwitch.timestamp), Runnable {
                             uel.log(Action.PROFILE_SWITCH_CLONED, Sources.Treatments,
                                 profileSwitch.getCustomizedName() + " " + dateUtil.dateAndTimeString(profileSwitch.timestamp).replace(".", "_"),
                                 ValueWithUnit.Timestamp(profileSwitch.timestamp),

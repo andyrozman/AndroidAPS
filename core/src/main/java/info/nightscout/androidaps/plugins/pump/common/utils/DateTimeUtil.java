@@ -125,6 +125,7 @@ public class DateTimeUtil {
         return atechDateTime;
     }
 
+
     public static long toATechDate(GregorianCalendar gc) {
         long atechDateTime = 0L;
 
@@ -307,6 +308,17 @@ public class DateTimeUtil {
 
         return toATechDate(oldestEntryTime);
     }
+
+    public static long getATDWithAddedSeconds(Long atd, int addedSeconds) {
+//        GregorianCalendar oldestEntryTime = DateTimeUtil.toGregorianCalendar(atd);
+//        oldestEntryTime.add(Calendar.SECOND, addedSeconds);
+
+        DateTime oldestEntryTime = toJodaDateTime(atd);
+        oldestEntryTime.plus(Period.seconds(addedSeconds));
+
+        return toATechDate(oldestEntryTime);
+    }
+
 
     public static long getATDWithAddedMinutes(GregorianCalendar oldestEntryTime, int minutesDiff) {
         oldestEntryTime.add(Calendar.MINUTE, minutesDiff);

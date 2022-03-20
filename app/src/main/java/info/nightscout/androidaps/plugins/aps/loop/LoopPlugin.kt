@@ -30,8 +30,8 @@ import info.nightscout.androidaps.events.EventNewBG
 import info.nightscout.androidaps.events.EventTempTargetChange
 import info.nightscout.androidaps.interfaces.*
 import info.nightscout.androidaps.interfaces.Loop.LastRun
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.aps.loop.events.EventLoopSetLastRunGui
 import info.nightscout.androidaps.plugins.aps.loop.events.EventLoopUpdateGui
@@ -58,7 +58,7 @@ import info.nightscout.androidaps.extensions.plannedRemainingMinutes
 import info.nightscout.androidaps.plugins.aps.events.EventLoopInvoked
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.plusAssign
 import javax.inject.Inject
@@ -75,10 +75,10 @@ class LoopPlugin @Inject constructor(
     private val sp: SP,
     config: Config,
     private val constraintChecker: ConstraintChecker,
-    resourceHelper: ResourceHelper,
+    rh: ResourceHelper,
     private val profileFunction: ProfileFunction,
     private val context: Context,
-    private val commandQueue: CommandQueueProvider,
+    private val commandQueue: CommandQueue,
     private val activePlugin: ActivePlugin,
     private val virtualPumpPlugin: VirtualPumpPlugin,
     private val iobCobCalculator: IobCobCalculator,
@@ -97,7 +97,7 @@ class LoopPlugin @Inject constructor(
     .preferencesId(R.xml.pref_loop)
     .enableByDefault(config.APS)
     .description(R.string.description_loop),
-    aapsLogger, resourceHelper, injector
+    aapsLogger, rh, injector
 ), Loop {
 
     private val disposable = CompositeDisposable()
@@ -175,7 +175,7 @@ class LoopPlugin @Inject constructor(
             setPluginEnabled(PluginType.LOOP, value)
         }
 
-    val isLGS: Boolean
+    override val isLGS: Boolean
         get() {
             val closedLoopEnabled = constraintChecker.isClosedLoopAllowed()
             val maxIobAllowed = constraintChecker.getMaxIOBAllowed().value()
@@ -186,13 +186,13 @@ class LoopPlugin @Inject constructor(
             return isLGS
         }
 
-    val isSuperBolus: Boolean
+    override val isSuperBolus: Boolean
         get() {
             val offlineEventWrapped = repository.getOfflineEventActiveAt(dateUtil.now()).blockingGet()
             return offlineEventWrapped is ValueWrapper.Existing && offlineEventWrapped.value.reason == OfflineEvent.Reason.SUPER_BOLUS
         }
 
-    val isDisconnected: Boolean
+    override val isDisconnected: Boolean
         get() {
             val offlineEventWrapped = repository.getOfflineEventActiveAt(dateUtil.now()).blockingGet()
             return offlineEventWrapped is ValueWrapper.Existing && offlineEventWrapped.value.reason == OfflineEvent.Reason.DISCONNECT_PUMP
@@ -208,10 +208,6 @@ class LoopPlugin @Inject constructor(
         return bool
     }
 
-    @Synchronized operator fun invoke(initiator: String, allowNotification: Boolean) {
-        invoke(initiator, allowNotification, false)
-    }
-
     @Synchronized
     fun isEmptyQueue(): Boolean {
         val maxMinutes = 2L
@@ -224,13 +220,13 @@ class LoopPlugin @Inject constructor(
     }
 
     @Synchronized
-    operator fun invoke(initiator: String, allowNotification: Boolean, tempBasalFallback: Boolean) {
+    override fun invoke(initiator: String, allowNotification: Boolean, tempBasalFallback: Boolean) {
         try {
             aapsLogger.debug(LTag.APS, "invoke from $initiator")
             val loopEnabled = constraintChecker.isLoopInvocationAllowed()
             if (!loopEnabled.value()) {
                 val message = """
-                    ${resourceHelper.gs(R.string.loopdisabled)}
+                    ${rh.gs(R.string.loopdisabled)}
                     ${loopEnabled.getReasons(aapsLogger)}
                     """.trimIndent()
                 aapsLogger.debug(LTag.APS, message)
@@ -242,28 +238,28 @@ class LoopPlugin @Inject constructor(
             if (!isEnabled(PluginType.LOOP)) return
             val profile = profileFunction.getProfile()
             if (profile == null || !profileFunction.isProfileValid("Loop")) {
-                aapsLogger.debug(LTag.APS, resourceHelper.gs(R.string.noprofileselected))
-                rxBus.send(EventLoopSetLastRunGui(resourceHelper.gs(R.string.noprofileselected)))
+                aapsLogger.debug(LTag.APS, rh.gs(R.string.noprofileset))
+                rxBus.send(EventLoopSetLastRunGui(rh.gs(R.string.noprofileset)))
                 return
             }
 
             // Check if pump info is loaded
             if (pump.baseBasalRate < 0.01) return
             val usedAPS = activePlugin.activeAPS
-            if ((usedAPS as PluginBase).isEnabled(PluginType.APS)) {
+            if ((usedAPS as PluginBase).isEnabled()) {
                 usedAPS.invoke(initiator, tempBasalFallback)
                 apsResult = usedAPS.lastAPSResult
             }
 
             // Check if we have any result
             if (apsResult == null) {
-                rxBus.send(EventLoopSetLastRunGui(resourceHelper.gs(R.string.noapsselected)))
+                rxBus.send(EventLoopSetLastRunGui(rh.gs(R.string.noapsselected)))
                 return
             } else rxBus.send(EventLoopInvoked())
 
             if (!isEmptyQueue()) {
-                aapsLogger.debug(LTag.APS, resourceHelper.gs(R.string.pumpbusy))
-                rxBus.send(EventLoopSetLastRunGui(resourceHelper.gs(R.string.pumpbusy)))
+                aapsLogger.debug(LTag.APS, rh.gs(R.string.pumpbusy))
+                rxBus.send(EventLoopSetLastRunGui(rh.gs(R.string.pumpbusy)))
                 return
             }
 
@@ -307,13 +303,13 @@ class LoopPlugin @Inject constructor(
                 }
 
                 if (isSuspended) {
-                    aapsLogger.debug(LTag.APS, resourceHelper.gs(R.string.loopsuspended))
-                    rxBus.send(EventLoopSetLastRunGui(resourceHelper.gs(R.string.loopsuspended)))
+                    aapsLogger.debug(LTag.APS, rh.gs(R.string.loopsuspended))
+                    rxBus.send(EventLoopSetLastRunGui(rh.gs(R.string.loopsuspended)))
                     return
                 }
                 if (pump.isSuspended()) {
-                    aapsLogger.debug(LTag.APS, resourceHelper.gs(R.string.pumpsuspended))
-                    rxBus.send(EventLoopSetLastRunGui(resourceHelper.gs(R.string.pumpsuspended)))
+                    aapsLogger.debug(LTag.APS, rh.gs(R.string.pumpsuspended))
+                    rxBus.send(EventLoopSetLastRunGui(rh.gs(R.string.pumpsuspended)))
                     return
                 }
                 val closedLoopEnabled = constraintChecker.isClosedLoopAllowed()
@@ -332,18 +328,18 @@ class LoopPlugin @Inject constructor(
                                 val intentAction5m = Intent(context, CarbSuggestionReceiver::class.java)
                                 intentAction5m.putExtra("ignoreDuration", 5)
                                 val pendingIntent5m = PendingIntent.getBroadcast(context, 1, intentAction5m, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                                val actionIgnore5m = NotificationCompat.Action(R.drawable.ic_notif_aaps, resourceHelper.gs(R.string.ignore5m, "Ignore 5m"), pendingIntent5m)
+                                val actionIgnore5m = NotificationCompat.Action(R.drawable.ic_notif_aaps, rh.gs(R.string.ignore5m, "Ignore 5m"), pendingIntent5m)
                                 val intentAction15m = Intent(context, CarbSuggestionReceiver::class.java)
                                 intentAction15m.putExtra("ignoreDuration", 15)
                                 val pendingIntent15m = PendingIntent.getBroadcast(context, 1, intentAction15m, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                                val actionIgnore15m = NotificationCompat.Action(R.drawable.ic_notif_aaps, resourceHelper.gs(R.string.ignore15m, "Ignore 15m"), pendingIntent15m)
+                                val actionIgnore15m = NotificationCompat.Action(R.drawable.ic_notif_aaps, rh.gs(R.string.ignore15m, "Ignore 15m"), pendingIntent15m)
                                 val intentAction30m = Intent(context, CarbSuggestionReceiver::class.java)
                                 intentAction30m.putExtra("ignoreDuration", 30)
                                 val pendingIntent30m = PendingIntent.getBroadcast(context, 1, intentAction30m, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                                val actionIgnore30m = NotificationCompat.Action(R.drawable.ic_notif_aaps, resourceHelper.gs(R.string.ignore30m, "Ignore 30m"), pendingIntent30m)
+                                val actionIgnore30m = NotificationCompat.Action(R.drawable.ic_notif_aaps, rh.gs(R.string.ignore30m, "Ignore 30m"), pendingIntent30m)
                                 val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                                 builder.setSmallIcon(R.drawable.notif_icon)
-                                    .setContentTitle(resourceHelper.gs(R.string.carbssuggestion))
+                                    .setContentTitle(rh.gs(R.string.carbssuggestion))
                                     .setContentText(resultAfterConstraints.carbsRequiredText)
                                     .setAutoCancel(true)
                                     .setPriority(Notification.IMPORTANCE_HIGH)
@@ -357,9 +353,9 @@ class LoopPlugin @Inject constructor(
 
                                 // mId allows you to update the notification later on.
                                 mNotificationManager.notify(Constants.notificationID, builder.build())
-                                uel.log(Action.CAREPORTAL, Sources.Loop, resourceHelper.gs(R.string.carbsreq, resultAfterConstraints.carbsReq, resultAfterConstraints.carbsReqWithin),
-                                    ValueWithUnit.Gram(resultAfterConstraints.carbsReq),
-                                    ValueWithUnit.Minute(resultAfterConstraints.carbsReqWithin))
+                                uel.log(Action.CAREPORTAL, Sources.Loop, rh.gs(R.string.carbsreq, resultAfterConstraints.carbsReq, resultAfterConstraints.carbsReqWithin),
+                                        ValueWithUnit.Gram(resultAfterConstraints.carbsReq),
+                                        ValueWithUnit.Minute(resultAfterConstraints.carbsReqWithin))
                                 rxBus.send(EventNewOpenLoopNotification())
 
                                 //only send to wear if Native notifications are turned off
@@ -422,7 +418,7 @@ class LoopPlugin @Inject constructor(
                     if (resultAfterConstraints.isChangeRequested && allowNotification) {
                         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                         builder.setSmallIcon(R.drawable.notif_icon)
-                            .setContentTitle(resourceHelper.gs(R.string.openloop_newsuggestion))
+                            .setContentTitle(rh.gs(R.string.openloop_newsuggestion))
                             .setContentText(resultAfterConstraints.toString())
                             .setAutoCancel(true)
                             .setPriority(Notification.IMPORTANCE_HIGH)
@@ -443,7 +439,7 @@ class LoopPlugin @Inject constructor(
         }
     }
 
-    fun disableCarbSuggestions(durationMinutes: Int) {
+    override fun disableCarbSuggestions(durationMinutes: Int) {
         carbsSuggestionsSuspendedUntil = System.currentTimeMillis() + durationMinutes * 60 * 1000
         dismissSuggestion()
     }
@@ -479,7 +475,7 @@ class LoopPlugin @Inject constructor(
         rxBus.send(EventWearConfirmAction("cancelChangeRequest"))
     }
 
-    fun acceptChangeRequest() {
+    override fun acceptChangeRequest() {
         val profile = profileFunction.getProfile() ?: return
         lastRun?.let { lastRun ->
             lastRun.constraintsProcessed?.let { constraintsProcessed ->
@@ -516,12 +512,12 @@ class LoopPlugin @Inject constructor(
         }
         val pump = activePlugin.activePump
         if (!pump.isInitialized()) {
-            aapsLogger.debug(LTag.APS, "applyAPSRequest: " + resourceHelper.gs(R.string.pumpNotInitialized))
+            aapsLogger.debug(LTag.APS, "applyAPSRequest: " + rh.gs(R.string.pumpNotInitialized))
             callback?.result(PumpEnactResult(injector).comment(R.string.pumpNotInitialized).enacted(false).success(false))?.run()
             return
         }
         if (pump.isSuspended()) {
-            aapsLogger.debug(LTag.APS, "applyAPSRequest: " + resourceHelper.gs(R.string.pumpsuspended))
+            aapsLogger.debug(LTag.APS, "applyAPSRequest: " + rh.gs(R.string.pumpsuspended))
             callback?.result(PumpEnactResult(injector).comment(R.string.pumpsuspended).enacted(false).success(false))?.run()
             return
         }
@@ -591,12 +587,12 @@ class LoopPlugin @Inject constructor(
             return
         }
         if (!pump.isInitialized()) {
-            aapsLogger.debug(LTag.APS, "applySMBRequest: " + resourceHelper.gs(R.string.pumpNotInitialized))
+            aapsLogger.debug(LTag.APS, "applySMBRequest: " + rh.gs(R.string.pumpNotInitialized))
             callback?.result(PumpEnactResult(injector).comment(R.string.pumpNotInitialized).enacted(false).success(false))?.run()
             return
         }
         if (pump.isSuspended()) {
-            aapsLogger.debug(LTag.APS, "applySMBRequest: " + resourceHelper.gs(R.string.pumpsuspended))
+            aapsLogger.debug(LTag.APS, "applySMBRequest: " + rh.gs(R.string.pumpsuspended))
             callback?.result(PumpEnactResult(injector).comment(R.string.pumpsuspended).enacted(false).success(false))?.run()
             return
         }
@@ -616,7 +612,7 @@ class LoopPlugin @Inject constructor(
     }
 
     private fun allowPercentage(): Boolean {
-        return virtualPumpPlugin.isEnabled(PluginType.PUMP)
+        return virtualPumpPlugin.isEnabled()
     }
 
     override fun goToZeroTemp(durationInMinutes: Int, profile: Profile, reason: OfflineEvent.Reason) {
@@ -632,7 +628,7 @@ class LoopPlugin @Inject constructor(
             commandQueue.tempBasalAbsolute(0.0, durationInMinutes, true, profile, PumpSync.TemporaryBasalType.EMULATED_PUMP_SUSPEND, object : Callback() {
                 override fun run() {
                     if (!result.success) {
-                        ErrorHelperActivity.runAlarm(context, result.comment, resourceHelper.gs(R.string.tempbasaldeliveryerror), R.raw.boluserror)
+                        ErrorHelperActivity.runAlarm(context, result.comment, rh.gs(R.string.tempbasaldeliveryerror), R.raw.boluserror)
                     }
                 }
             })
@@ -640,7 +636,7 @@ class LoopPlugin @Inject constructor(
             commandQueue.tempBasalPercent(0, durationInMinutes, true, profile, PumpSync.TemporaryBasalType.EMULATED_PUMP_SUSPEND, object : Callback() {
                 override fun run() {
                     if (!result.success) {
-                        ErrorHelperActivity.runAlarm(context, result.comment, resourceHelper.gs(R.string.tempbasaldeliveryerror), R.raw.boluserror)
+                        ErrorHelperActivity.runAlarm(context, result.comment, rh.gs(R.string.tempbasaldeliveryerror), R.raw.boluserror)
                     }
                 }
             })
@@ -649,7 +645,7 @@ class LoopPlugin @Inject constructor(
             commandQueue.cancelExtended(object : Callback() {
                 override fun run() {
                     if (!result.success) {
-                        ErrorHelperActivity.runAlarm(context, result.comment, resourceHelper.gs(R.string.extendedbolusdeliveryerror), R.raw.boluserror)
+                        ErrorHelperActivity.runAlarm(context, result.comment, rh.gs(R.string.extendedbolusdeliveryerror), R.raw.boluserror)
                     }
                 }
             })
@@ -667,7 +663,7 @@ class LoopPlugin @Inject constructor(
         commandQueue.cancelTempBasal(true, object : Callback() {
             override fun run() {
                 if (!result.success) {
-                    ErrorHelperActivity.runAlarm(context, result.comment, resourceHelper.gs(R.string.tempbasaldeliveryerror), R.raw.boluserror)
+                    ErrorHelperActivity.runAlarm(context, result.comment, rh.gs(R.string.tempbasaldeliveryerror), R.raw.boluserror)
                 }
             }
         })

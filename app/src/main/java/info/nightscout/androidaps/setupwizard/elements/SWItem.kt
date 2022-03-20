@@ -8,13 +8,13 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.events.EventPreferenceChange
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.setupwizard.events.EventSWUpdate
 import info.nightscout.androidaps.utils.protection.PasswordCheck
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -24,7 +24,7 @@ open class SWItem(val injector: HasAndroidInjector, var type: Type) {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var rxBus: RxBus
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var sp: SP
     @Inject lateinit var passwordCheck: PasswordCheck
 
@@ -75,7 +75,7 @@ open class SWItem(val injector: HasAndroidInjector, var type: Type) {
 
             override fun run() {
                 aapsLogger.debug(LTag.CORE, "Firing EventPreferenceChange")
-                rxBus.send(EventPreferenceChange(resourceHelper, preferenceId))
+                rxBus.send(EventPreferenceChange(rh, preferenceId))
                 rxBus.send(EventSWUpdate(false))
                 scheduledEventPost = null
             }

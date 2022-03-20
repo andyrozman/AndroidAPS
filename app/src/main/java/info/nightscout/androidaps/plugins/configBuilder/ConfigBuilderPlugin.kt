@@ -10,14 +10,14 @@ import info.nightscout.androidaps.events.EventAppInitialized
 import info.nightscout.androidaps.events.EventConfigBuilderChange
 import info.nightscout.androidaps.events.EventRebuildTabs
 import info.nightscout.androidaps.interfaces.*
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.configBuilder.events.EventConfigBuilderUpdateGui
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,7 +26,7 @@ import javax.inject.Singleton
 class ConfigBuilderPlugin @Inject constructor(
     injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
-    resourceHelper: ResourceHelper,
+    rh: ResourceHelper,
     private val sp: SP,
     private val rxBus: RxBus,
     private val activePlugin: ActivePlugin,
@@ -42,7 +42,7 @@ class ConfigBuilderPlugin @Inject constructor(
     .pluginName(R.string.configbuilder)
     .shortName(R.string.configbuilder_shortname)
     .description(R.string.description_config_builder),
-    aapsLogger, resourceHelper, injector
+    aapsLogger, rh, injector
 ), ConfigBuilder {
 
     override fun initialize() {
@@ -56,7 +56,6 @@ class ConfigBuilderPlugin @Inject constructor(
         for (plugin in activePlugin.getPluginsList()) {
             if (plugin.pluginDescription.alwaysEnabled) plugin.setPluginEnabled(plugin.getType(), true)
         }
-        storeSettings("setAlwaysEnabledPluginsEnabled")
     }
 
     override fun storeSettings(from: String) {
@@ -68,18 +67,13 @@ class ConfigBuilderPlugin @Inject constructor(
             if (p.pluginDescription.alwaysEnabled && p.pluginDescription.alwaysVisible) continue
             if (p.pluginDescription.alwaysEnabled && p.pluginDescription.neverVisible) continue
             savePref(p, type, true)
-            if (type == PluginType.PUMP) {
-                if (p is ProfileSource) { // Store state of optional Profile interface
-                    savePref(p, PluginType.PROFILE, false)
-                }
-            }
         }
     }
 
     private fun savePref(p: PluginBase, type: PluginType, storeVisible: Boolean) {
         val settingEnabled = "ConfigBuilder_" + type.name + "_" + p.javaClass.simpleName + "_Enabled"
-        sp.putBoolean(settingEnabled, p.isEnabled(type))
-        aapsLogger.debug(LTag.CONFIGBUILDER, "Storing: " + settingEnabled + ":" + p.isEnabled(type))
+        sp.putBoolean(settingEnabled, p.isEnabled())
+        aapsLogger.debug(LTag.CONFIGBUILDER, "Storing: " + settingEnabled + ":" + p.isEnabled())
         if (storeVisible) {
             val settingVisible = "ConfigBuilder_" + type.name + "_" + p.javaClass.simpleName + "_Visible"
             sp.putBoolean(settingVisible, p.isFragmentVisible())
@@ -92,11 +86,6 @@ class ConfigBuilderPlugin @Inject constructor(
         for (p in activePlugin.getPluginsList()) {
             val type = p.getType()
             loadPref(p, type, true)
-            if (p.getType() == PluginType.PUMP) {
-                if (p is ProfileSource) {
-                    loadPref(p, PluginType.PROFILE, false)
-                }
-            }
         }
         activePlugin.verifySelectionInCategories()
     }
@@ -118,7 +107,8 @@ class ConfigBuilderPlugin @Inject constructor(
 
     fun logPluginStatus() {
         for (p in activePlugin.getPluginsList()) {
-            aapsLogger.debug(LTag.CONFIGBUILDER, p.name + ":" +
+            aapsLogger.debug(
+                LTag.CONFIGBUILDER, p.name + ":" +
                 (if (p.isEnabled(PluginType.GENERAL)) " GENERAL" else "") +
                 (if (p.isEnabled(PluginType.SENSITIVITY)) " SENSITIVITY" else "") +
                 (if (p.isEnabled(PluginType.PROFILE)) " PROFILE" else "") +
@@ -134,7 +124,7 @@ class ConfigBuilderPlugin @Inject constructor(
 
     // Ask when switching to physical pump plugin
     fun switchAllowed(changedPlugin: PluginBase, newState: Boolean, activity: FragmentActivity?, type: PluginType) {
-        if (changedPlugin.getType() == PluginType.PUMP && changedPlugin.name != resourceHelper.gs(R.string.virtualpump))
+        if (changedPlugin.getType() == PluginType.PUMP && changedPlugin.name != rh.gs(R.string.virtualpump))
             confirmPumpPluginActivation(changedPlugin, newState, activity, type)
         else if (changedPlugin.getType() == PluginType.PUMP) {
             performPluginSwitch(changedPlugin, newState, type)
@@ -148,12 +138,12 @@ class ConfigBuilderPlugin @Inject constructor(
             performPluginSwitch(changedPlugin, newState, type)
             pumpSync.connectNewPump()
         } else {
-            OKDialog.showConfirmation(activity, resourceHelper.gs(R.string.allow_hardware_pump_text), {
+            OKDialog.showConfirmation(activity, rh.gs(R.string.allow_hardware_pump_text), {
                 performPluginSwitch(changedPlugin, newState, type)
                 pumpSync.connectNewPump()
                 sp.putBoolean("allow_hardware_pump", true)
-                uel.log(Action.HW_PUMP_ALLOWED, Sources.ConfigBuilder, resourceHelper.gs(changedPlugin.pluginDescription.pluginName),
-                    ValueWithUnit.SimpleString(resourceHelper.gsNotLocalised(changedPlugin.pluginDescription.pluginName)))
+                uel.log(Action.HW_PUMP_ALLOWED, Sources.ConfigBuilder, rh.gs(changedPlugin.pluginDescription.pluginName),
+                        ValueWithUnit.SimpleString(rh.gsNotLocalised(changedPlugin.pluginDescription.pluginName)))
                 aapsLogger.debug(LTag.PUMP, "First time HW pump allowed!")
             }, {
                 rxBus.send(EventConfigBuilderUpdateGui())
@@ -164,12 +154,12 @@ class ConfigBuilderPlugin @Inject constructor(
 
     override fun performPluginSwitch(changedPlugin: PluginBase, enabled: Boolean, type: PluginType) {
         if(enabled && !changedPlugin.isEnabled()) {
-            uel.log(Action.PLUGIN_ENABLED, Sources.ConfigBuilder, resourceHelper.gs(changedPlugin.pluginDescription.pluginName),
-                ValueWithUnit.SimpleString(resourceHelper.gsNotLocalised(changedPlugin.pluginDescription.pluginName)))
+            uel.log(Action.PLUGIN_ENABLED, Sources.ConfigBuilder, rh.gs(changedPlugin.pluginDescription.pluginName),
+                    ValueWithUnit.SimpleString(rh.gsNotLocalised(changedPlugin.pluginDescription.pluginName)))
         }
         else if(!enabled) {
-            uel.log(Action.PLUGIN_DISABLED, Sources.ConfigBuilder, resourceHelper.gs(changedPlugin.pluginDescription.pluginName),
-                ValueWithUnit.SimpleString(resourceHelper.gsNotLocalised(changedPlugin.pluginDescription.pluginName)))
+            uel.log(Action.PLUGIN_DISABLED, Sources.ConfigBuilder, rh.gs(changedPlugin.pluginDescription.pluginName),
+                    ValueWithUnit.SimpleString(rh.gsNotLocalised(changedPlugin.pluginDescription.pluginName)))
         }
         changedPlugin.setPluginEnabled(type, enabled)
         changedPlugin.setFragmentVisible(type, enabled)

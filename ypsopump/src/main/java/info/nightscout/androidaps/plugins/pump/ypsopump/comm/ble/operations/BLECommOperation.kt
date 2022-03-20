@@ -2,11 +2,11 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations
 
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.GattStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
+import info.nightscout.shared.logging.AAPSLogger
 import java.util.*
 import java.util.concurrent.Semaphore
 

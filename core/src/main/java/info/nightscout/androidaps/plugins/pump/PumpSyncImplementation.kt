@@ -9,8 +9,8 @@ import info.nightscout.androidaps.database.entities.*
 import info.nightscout.androidaps.database.transactions.*
 import info.nightscout.androidaps.interfaces.ProfileFunction
 import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
@@ -19,7 +19,7 @@ import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.T
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.plusAssign
 import javax.inject.Inject
@@ -29,7 +29,7 @@ class PumpSyncImplementation @Inject constructor(
     private val dateUtil: DateUtil,
     private val sp: SP,
     private val rxBus: RxBus,
-    private val resourceHelper: ResourceHelper,
+    private val rh: ResourceHelper,
     private val profileFunction: ProfileFunction,
     private val repository: AppRepository,
     private val uel: UserEntryLogger
@@ -37,7 +37,15 @@ class PumpSyncImplementation @Inject constructor(
 
     private val disposable = CompositeDisposable()
 
-    override fun connectNewPump() {
+    override fun connectNewPump(endRunning: Boolean) {
+        if (endRunning) {
+            expectedPumpState().temporaryBasal?.let {
+                syncStopTemporaryBasalWithPumpId(dateUtil.now(), dateUtil.now(), it.pumpType, it.pumpSerial)
+            }
+            expectedPumpState().extendedBolus?.let {
+                syncStopExtendedBolusWithPumpId(dateUtil.now(), dateUtil.now(), it.pumpType, it.pumpSerial)
+            }
+        }
         sp.remove(R.string.key_active_pump_type)
         sp.remove(R.string.key_active_pump_serial_number)
         sp.remove(R.string.key_active_pump_change_timestamp)
@@ -51,7 +59,7 @@ class PumpSyncImplementation @Inject constructor(
      * @param serialNumber  serial number  of of pump
      * @return true if data is allowed
      */
-    private fun confirmActivePump(timestamp: Long, type: PumpType, serialNumber: String): Boolean {
+    private fun confirmActivePump(timestamp: Long, type: PumpType, serialNumber: String, showNotification: Boolean = true): Boolean {
         val storedType = sp.getString(R.string.key_active_pump_type, "")
         val storedSerial = sp.getString(R.string.key_active_pump_serial_number, "")
         val storedTimestamp = sp.getLong(R.string.key_active_pump_change_timestamp, 0L)
@@ -70,14 +78,14 @@ class PumpSyncImplementation @Inject constructor(
             return true
         }
 
-        if ((type.description != storedType || serialNumber != storedSerial) && timestamp >= storedTimestamp)
-            rxBus.send(EventNewNotification(Notification(Notification.WRONG_PUMP_DATA, resourceHelper.gs(R.string.wrong_pump_data), Notification.URGENT)))
+        if (showNotification && (type.description != storedType || serialNumber != storedSerial) && timestamp >= storedTimestamp)
+            rxBus.send(EventNewNotification(Notification(Notification.WRONG_PUMP_DATA, rh.gs(R.string.wrong_pump_data), Notification.URGENT)))
         aapsLogger.error(LTag.PUMP, "Ignoring pump history record  Allowed: ${dateUtil.dateAndTimeAndSecondsString(storedTimestamp)} $storedType $storedSerial Received: $timestamp ${dateUtil.dateAndTimeAndSecondsString(timestamp)} ${type.description} $serialNumber")
         return false
     }
 
     override fun expectedPumpState(): PumpSync.PumpState {
-        val bolus = repository.getLastBolusRecordWrapped().blockingGet();
+        val bolus = repository.getLastBolusRecordWrapped().blockingGet()
         val temporaryBasal = repository.getTemporaryBasalActiveAt(dateUtil.now()).blockingGet()
         val extendedBolus = repository.getExtendedBolusActiveAt(dateUtil.now()).blockingGet()
 
@@ -91,7 +99,9 @@ class PumpSyncImplementation @Inject constructor(
                     rate = temporaryBasal.value.rate,
                     isAbsolute = temporaryBasal.value.isAbsolute,
                     type = PumpSync.TemporaryBasalType.fromDbType(temporaryBasal.value.type),
-                    pumpId = temporaryBasal.value.interfaceIDs.pumpId
+                    pumpId = temporaryBasal.value.interfaceIDs.pumpId,
+                    pumpType = temporaryBasal.value.interfaceIDs.pumpType?.let { PumpType.fromDbPumpType(it)} ?: PumpType.USER,
+                    pumpSerial = temporaryBasal.value.interfaceIDs.pumpSerial ?: "",
                 )
             else null,
             extendedBolus =
@@ -100,7 +110,9 @@ class PumpSyncImplementation @Inject constructor(
                     timestamp = extendedBolus.value.timestamp,
                     duration = extendedBolus.value.duration,
                     amount = extendedBolus.value.amount,
-                    rate = extendedBolus.value.rate
+                    rate = extendedBolus.value.rate,
+                    pumpType = extendedBolus.value.interfaceIDs.pumpType?.let { PumpType.fromDbPumpType(it)} ?: PumpType.USER,
+                    pumpSerial = extendedBolus.value.interfaceIDs.pumpSerial ?: ""
                 )
             else null,
             bolus =
@@ -112,7 +124,8 @@ class PumpSyncImplementation @Inject constructor(
                     )
                 }
             else null,
-            profile = profileFunction.getProfile()
+            profile = profileFunction.getProfile(),
+            serialNumber = sp.getString(R.string.key_active_pump_serial_number, "")
         )
     }
 
@@ -397,7 +410,8 @@ class PumpSyncImplementation @Inject constructor(
     }
 
     override fun createOrUpdateTotalDailyDose(timestamp: Long, bolusAmount: Double, basalAmount: Double, totalAmount: Double, pumpId: Long?, pumpType: PumpType, pumpSerial: String): Boolean {
-        if (!confirmActivePump(timestamp, pumpType, pumpSerial)) return false
+        // there are probably old data in pump -> do not show notification, just ignore
+        if (!confirmActivePump(timestamp, pumpType, pumpSerial, showNotification = false)) return false
         val tdd = TotalDailyDose(
             timestamp = timestamp,
             bolusAmount = bolusAmount,

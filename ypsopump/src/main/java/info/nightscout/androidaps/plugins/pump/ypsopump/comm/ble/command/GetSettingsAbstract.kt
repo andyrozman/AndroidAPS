@@ -1,11 +1,11 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoSettingId
+import info.nightscout.shared.logging.LTag
 import java.util.*
 
 abstract class GetSettingsAbstract<T>(hasAndroidInjector: HasAndroidInjector) : AbstractBLECommand<T>(hasAndroidInjector) {

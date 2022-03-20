@@ -2,12 +2,12 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.EventDto
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.HistoryEntryType
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
+import info.nightscout.shared.logging.LTag
 import java.util.*
 
 class GetLastEvent(hasAndroidInjector: HasAndroidInjector?,

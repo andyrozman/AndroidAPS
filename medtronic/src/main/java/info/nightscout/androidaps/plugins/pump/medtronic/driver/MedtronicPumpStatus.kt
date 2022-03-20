@@ -13,7 +13,7 @@ import info.nightscout.androidaps.plugins.pump.medtronic.defs.BatteryType
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicDeviceType
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicConst
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,7 +22,7 @@ import javax.inject.Singleton
  * Created by andy on 4/28/18.
  */
 @Singleton
-class MedtronicPumpStatus @Inject constructor(private val resourceHelper: ResourceHelper,
+class MedtronicPumpStatus @Inject constructor(private val rh: ResourceHelper,
                                               private val sp: SP,
                                               private val rxBus: RxBus,
                                               private val rileyLinkUtil: RileyLinkUtil
@@ -34,6 +34,7 @@ class MedtronicPumpStatus @Inject constructor(private val resourceHelper: Resour
     var maxBolus: Double? = null
     var maxBasal: Double? = null
     var runningTBR: PumpDbEntryTBR? = null
+    var runningTBRWithTemp: PumpDbEntryTBR? = null
 
     // statuses
     var pumpDeviceState = PumpDeviceState.NeverContacted
@@ -57,7 +58,7 @@ class MedtronicPumpStatus @Inject constructor(private val resourceHelper: Resour
         if (medtronicDeviceTypeMap.isEmpty()) createMedtronicDeviceTypeMap()
         lastConnection = sp.getLong(MedtronicConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         lastDataTime = lastConnection
-        var serial = sp.getStringOrNull(MedtronicConst.Prefs.PumpSerial, null)
+        val serial = sp.getStringOrNull(MedtronicConst.Prefs.PumpSerial, null)
         if (serial != null) {
             serialNumber = serial
         }
@@ -104,9 +105,9 @@ class MedtronicPumpStatus @Inject constructor(private val resourceHelper: Resour
     private var batteryTypeByDescMap: MutableMap<String, BatteryType?> = HashMap()
 
     fun getBatteryTypeByDescription(batteryTypeStr: String?): BatteryType? {
-        if (batteryTypeByDescMap.size == 0) {
+        if (batteryTypeByDescMap.isEmpty()) {
             for (value in BatteryType.values()) {
-                batteryTypeByDescMap[resourceHelper.gs(value.description)] = value
+                batteryTypeByDescMap[rh.gs(value.description)] = value
             }
         }
         return if (batteryTypeByDescMap.containsKey(batteryTypeStr)) {

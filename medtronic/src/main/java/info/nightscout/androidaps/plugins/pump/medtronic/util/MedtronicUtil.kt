@@ -1,8 +1,8 @@
 package info.nightscout.androidaps.plugins.pump.medtronic.util
 
 import com.google.gson.GsonBuilder
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.overview.events.EventDismissNotification
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
@@ -93,18 +93,18 @@ class MedtronicUtil @Inject constructor(
         return ByteUtil.concat(input.size.toByte(), input)
     }
 
-    fun sendNotification(notificationType: MedtronicNotificationType, resourceHelper: ResourceHelper, rxBus: RxBus) {
+    fun sendNotification(notificationType: MedtronicNotificationType, rh: ResourceHelper, rxBus: RxBus) {
         val notification = Notification( //
             notificationType.notificationType,  //
-            resourceHelper.gs(notificationType.resourceId),  //
+            rh.gs(notificationType.resourceId),  //
             notificationType.notificationUrgency)
         rxBus.send(EventNewNotification(notification))
     }
 
-    fun sendNotification(notificationType: MedtronicNotificationType, resourceHelper: ResourceHelper, rxBus: RxBus, vararg parameters: Any?) {
+    fun sendNotification(notificationType: MedtronicNotificationType, rh: ResourceHelper, rxBus: RxBus, vararg parameters: Any?) {
         val notification = Notification( //
             notificationType.notificationType,  //
-            resourceHelper.gs(notificationType.resourceId, *parameters),  //
+            rh.gs(notificationType.resourceId, *parameters),  //
             notificationType.notificationUrgency)
         rxBus.send(EventNewNotification(notification))
     }

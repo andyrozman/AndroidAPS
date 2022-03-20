@@ -12,14 +12,14 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import dagger.android.DaggerActivity
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
 import info.nightscout.androidaps.plugins.pump.ypsopump.R
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.EventDto
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistory
 import info.nightscout.androidaps.utils.resources.ResourceHelper
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import java.util.*
 import javax.inject.Inject
 

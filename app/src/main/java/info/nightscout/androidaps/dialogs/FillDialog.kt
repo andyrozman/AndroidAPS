@@ -17,15 +17,15 @@ import info.nightscout.androidaps.database.entities.UserEntry.Sources
 import info.nightscout.androidaps.database.transactions.InsertIfNewByTimestampTherapyEventTransaction
 import info.nightscout.androidaps.databinding.DialogFillBinding
 import info.nightscout.androidaps.interfaces.ActivePlugin
-import info.nightscout.androidaps.interfaces.CommandQueueProvider
+import info.nightscout.androidaps.interfaces.CommandQueue
 import info.nightscout.androidaps.interfaces.Constraint
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.configBuilder.ConstraintChecker
 import info.nightscout.androidaps.queue.Callback
 import info.nightscout.androidaps.utils.DecimalFormatter
 import info.nightscout.androidaps.utils.HtmlHelper
-import info.nightscout.androidaps.utils.SafeParse
+import info.nightscout.shared.SafeParse
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.extensions.formatColor
 import info.nightscout.androidaps.utils.resources.ResourceHelper
@@ -38,9 +38,9 @@ import kotlin.math.abs
 class FillDialog : DialogFragmentWithDate() {
 
     @Inject lateinit var constraintChecker: ConstraintChecker
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var ctx: Context
-    @Inject lateinit var commandQueue: CommandQueueProvider
+    @Inject lateinit var commandQueue: CommandQueue
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var uel: UserEntryLogger
     @Inject lateinit var repository: AppRepository
@@ -106,34 +106,34 @@ class FillDialog : DialogFragmentWithDate() {
 
     override fun submit(): Boolean {
         if (_binding == null) return false
-        val insulin = SafeParse.stringToDouble(binding.fillInsulinamount.text ?: return false)
+        val insulin = SafeParse.stringToDouble(binding.fillInsulinamount.text)
         val actions: LinkedList<String?> = LinkedList()
 
         val insulinAfterConstraints = constraintChecker.applyBolusConstraints(Constraint(insulin)).value()
         if (insulinAfterConstraints > 0) {
-            actions.add(resourceHelper.gs(R.string.fillwarning))
+            actions.add(rh.gs(R.string.fillwarning))
             actions.add("")
-            actions.add(resourceHelper.gs(R.string.bolus) + ": " + DecimalFormatter.toPumpSupportedBolus(insulinAfterConstraints, activePlugin.activePump, resourceHelper).formatColor(resourceHelper, R.color.colorInsulinButton))
+            actions.add(rh.gs(R.string.bolus) + ": " + DecimalFormatter.toPumpSupportedBolus(insulinAfterConstraints, activePlugin.activePump, rh).formatColor(rh, R.color.colorInsulinButton))
             if (abs(insulinAfterConstraints - insulin) > 0.01)
-                actions.add(resourceHelper.gs(R.string.bolusconstraintappliedwarn, insulin, insulinAfterConstraints).formatColor(resourceHelper, R.color.warning))
+                actions.add(rh.gs(R.string.bolusconstraintappliedwarn, insulin, insulinAfterConstraints).formatColor(rh, R.color.warning))
         }
         val siteChange = binding.fillCatheterChange.isChecked
         if (siteChange)
-            actions.add(resourceHelper.gs(R.string.record_pump_site_change).formatColor(resourceHelper, R.color.actionsConfirm))
+            actions.add(rh.gs(R.string.record_pump_site_change).formatColor(rh, R.color.actionsConfirm))
         val insulinChange = binding.fillCartridgeChange.isChecked
         if (insulinChange)
-            actions.add(resourceHelper.gs(R.string.record_insulin_cartridge_change).formatColor(resourceHelper, R.color.actionsConfirm))
+            actions.add(rh.gs(R.string.record_insulin_cartridge_change).formatColor(rh, R.color.actionsConfirm))
         val notes: String = binding.notesLayout.notes.text.toString()
         if (notes.isNotEmpty())
-            actions.add(resourceHelper.gs(R.string.notes_label) + ": " + notes)
+            actions.add(rh.gs(R.string.notes_label) + ": " + notes)
         eventTime -= eventTime % 1000
 
         if (eventTimeChanged)
-            actions.add(resourceHelper.gs(R.string.time) + ": " + dateUtil.dateAndTimeString(eventTime))
+            actions.add(rh.gs(R.string.time) + ": " + dateUtil.dateAndTimeString(eventTime))
 
         if (insulinAfterConstraints > 0 || binding.fillCatheterChange.isChecked || binding.fillCartridgeChange.isChecked) {
             activity?.let { activity ->
-                OKDialog.showConfirmation(activity, resourceHelper.gs(R.string.primefill), HtmlHelper.fromHtml(Joiner.on("<br/>").join(actions)), {
+                OKDialog.showConfirmation(activity, rh.gs(R.string.primefill), HtmlHelper.fromHtml(Joiner.on("<br/>").join(actions)), {
                     if (insulinAfterConstraints > 0) {
                         uel.log(Action.PRIME_BOLUS, Sources.FillDialog,
                             notes,
@@ -175,7 +175,7 @@ class FillDialog : DialogFragmentWithDate() {
             }
         } else {
             activity?.let { activity ->
-                OKDialog.show(activity, resourceHelper.gs(R.string.primefill), resourceHelper.gs(R.string.no_action_selected))
+                OKDialog.show(activity, rh.gs(R.string.primefill), rh.gs(R.string.no_action_selected))
             }
         }
         dismiss()
@@ -191,7 +191,7 @@ class FillDialog : DialogFragmentWithDate() {
         commandQueue.bolus(detailedBolusInfo, object : Callback() {
             override fun run() {
                 if (!result.success) {
-                    ErrorHelperActivity.runAlarm(ctx, result.comment, resourceHelper.gs(R.string.treatmentdeliveryerror), R.raw.boluserror)
+                    ErrorHelperActivity.runAlarm(ctx, result.comment, rh.gs(R.string.treatmentdeliveryerror), R.raw.boluserror)
                 }
             }
         })

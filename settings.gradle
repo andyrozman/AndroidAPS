@@ -18,3 +18,4 @@ include ':diaconn'
 include ':ypsopump'
 
 include ':openhumans'
+include ':shared'

@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.general.overview.notifications
 
+import android.content.Context
 import androidx.annotation.RawRes
 import info.nightscout.androidaps.utils.T
 
@@ -13,6 +14,8 @@ open class Notification {
     @RawRes var soundId: Int? = null
     var action: Runnable? = null
     var buttonText = 0
+
+    var contextForAction: Context? = null
 
     constructor()
     constructor(id: Int, date: Long, text: String, level: Int, validTo: Long) {
@@ -55,6 +58,7 @@ open class Notification {
         const val LOW = 2
         const val INFO = 3
         const val ANNOUNCEMENT = 4
+
         const val PROFILE_SET_FAILED = 0
         const val PROFILE_SET_OK = 1
         const val EASY_MODE_ENABLED = 2
@@ -122,6 +126,10 @@ open class Notification {
         const val WRONG_PUMP_DATA = 72
         const val NSCLIENT_VERSION_DOES_NOT_MATCH = 73
         const val VERSION_EXPIRE = 74
+        const val INVALID_PROFILE_NOT_ACCEPTED = 75
+        const val MDT_INVALID_HISTORY_DATA = 76
+        const val IDENTIFICATION_NOT_SET = 77
+        const val PERMISSION_BT = 78
 
         const val PUMP_PHONE_TIME_DIFF_TOO_BIG = 100
         const val YPSOPUMP_PUMP_ALARM = 101

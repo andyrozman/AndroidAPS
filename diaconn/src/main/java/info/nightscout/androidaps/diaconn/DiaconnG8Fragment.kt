@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
-import android.os.Looper
+import android.os.HandlerThread
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,21 +19,21 @@ import info.nightscout.androidaps.events.EventInitializationChanged
 import info.nightscout.androidaps.events.EventPumpStatusChanged
 import info.nightscout.androidaps.events.EventTempBasalChange
 import info.nightscout.androidaps.interfaces.ActivePlugin
-import info.nightscout.androidaps.interfaces.CommandQueueProvider
+import info.nightscout.androidaps.interfaces.CommandQueue
 import info.nightscout.androidaps.interfaces.Pump
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.queue.events.EventQueueChanged
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.T
 import info.nightscout.androidaps.utils.WarnColors
-import io.reactivex.rxkotlin.plusAssign
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.plusAssign
 import javax.inject.Inject
 
 class DiaconnG8Fragment : DaggerFragment() {
@@ -41,17 +41,17 @@ class DiaconnG8Fragment : DaggerFragment() {
     @Inject lateinit var rxBus: RxBus
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var fabricPrivacy: FabricPrivacy
-    @Inject lateinit var commandQueue: CommandQueueProvider
+    @Inject lateinit var commandQueue: CommandQueue
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var diaconnG8Pump: DiaconnG8Pump
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var sp: SP
     @Inject lateinit var warnColors: WarnColors
     @Inject lateinit var dateUtil: DateUtil
 
     private var disposable: CompositeDisposable = CompositeDisposable()
 
-    private val loopHandler = Handler(Looper.getMainLooper())
+    private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
     private lateinit var refreshLoop: Runnable
 
     private var _binding: DiaconnG8FragmentBinding? = null
@@ -63,7 +63,7 @@ class DiaconnG8Fragment : DaggerFragment() {
     init {
         refreshLoop = Runnable {
             activity?.runOnUiThread { updateGUI() }
-            loopHandler.postDelayed(refreshLoop, T.mins(1).msecs())
+            handler.postDelayed(refreshLoop, T.mins(1).msecs())
         }
     }
 
@@ -82,14 +82,14 @@ class DiaconnG8Fragment : DaggerFragment() {
         binding.btconnection.setOnClickListener {
             aapsLogger.debug(LTag.PUMP, "Clicked connect to pump")
             diaconnG8Pump.lastConnection = 0
-            commandQueue.readStatus("Clicked connect to pump", null)
+            commandQueue.readStatus(rh.gs(R.string.clicked_connect_to_pump), null)
         }
     }
 
     @Synchronized
     override fun onResume() {
         super.onResume()
-        loopHandler.postDelayed(refreshLoop, T.mins(1).msecs())
+        handler.postDelayed(refreshLoop, T.mins(1).msecs())
         disposable += rxBus
             .toObservable(EventInitializationChanged::class.java)
             .observeOn(AndroidSchedulers.mainThread())
@@ -126,8 +126,8 @@ class DiaconnG8Fragment : DaggerFragment() {
                         binding.btconnection.text = "{fa-bluetooth-b}"
                     else                                       -> {}
                 }
-                if (it.getStatus(resourceHelper) != "") {
-                    binding.diaconnG8Pumpstatus.text = it.getStatus(resourceHelper)
+                if (it.getStatus(rh) != "") {
+                    binding.diaconnG8Pumpstatus.text = it.getStatus(rh)
                     binding.diaconnG8Pumpstatuslayout.visibility = View.VISIBLE
                 } else {
                     binding.diaconnG8Pumpstatuslayout.visibility = View.GONE
@@ -140,7 +140,7 @@ class DiaconnG8Fragment : DaggerFragment() {
     override fun onPause() {
         super.onPause()
         disposable.clear()
-        loopHandler.removeCallbacks(refreshLoop)
+        handler.removeCallbacks(refreshLoop)
     }
 
     @Synchronized
@@ -158,7 +158,7 @@ class DiaconnG8Fragment : DaggerFragment() {
         if (pump.lastConnection != 0L) {
             val agoMsec = System.currentTimeMillis() - pump.lastConnection
             val agoMin = (agoMsec.toDouble() / 60.0 / 1000.0).toInt()
-            binding.lastconnection.text = dateUtil.timeString(pump.lastConnection) + " (" + resourceHelper.gs(R.string.minago, agoMin) + ")"
+            binding.lastconnection.text = dateUtil.timeString(pump.lastConnection) + " (" + rh.gs(R.string.minago, agoMin) + ")"
             warnColors.setColor(binding.lastconnection, agoMin.toDouble(), 16.0, 31.0)
         }
         if (pump.lastBolusTime != 0L) {
@@ -166,24 +166,24 @@ class DiaconnG8Fragment : DaggerFragment() {
             val agoHours = agoMsec.toDouble() / 60.0 / 60.0 / 1000.0
             if (agoHours < 6)
             // max 6h back
-                binding.lastbolus.text = dateUtil.timeString(pump.lastBolusTime) + " " + dateUtil.sinceString(pump.lastBolusTime, resourceHelper) + " " + resourceHelper.gs(R.string.formatinsulinunits, pump.lastBolusAmount)
+                binding.lastbolus.text = dateUtil.timeString(pump.lastBolusTime) + " " + dateUtil.sinceString(pump.lastBolusTime, rh) + " " + rh.gs(R.string.formatinsulinunits, pump.lastBolusAmount)
             else
                 binding.lastbolus.text = ""
         }
 
         val todayInsulinAmount = (pump.todayBaseAmount + pump.todaySnackAmount + pump.todayMealAmount)
         val todayInsulinLimitAmount = (pump.maxBasal.toInt() * 24) + pump.maxBolusePerDay.toInt()
-        binding.dailyunits.text = resourceHelper.gs(R.string.reservoirvalue, todayInsulinAmount, todayInsulinLimitAmount)
+        binding.dailyunits.text = rh.gs(R.string.reservoirvalue, todayInsulinAmount, todayInsulinLimitAmount)
         warnColors.setColor(binding.dailyunits, todayInsulinAmount, todayInsulinLimitAmount * 0.75, todayInsulinLimitAmount * 0.9)
-        binding.basabasalrate.text = pump.baseInjAmount.toString() +" / "+ resourceHelper.gs(R.string.pump_basebasalrate, plugin.baseBasalRate)
+        binding.basabasalrate.text = pump.baseInjAmount.toString() +" / "+ rh.gs(R.string.pump_basebasalrate, plugin.baseBasalRate)
 
         binding.tempbasal.text = diaconnG8Pump.temporaryBasalToString()
         binding.extendedbolus.text = diaconnG8Pump.extendedBolusToString()
-        binding.reservoir.text = resourceHelper.gs(R.string.reservoirvalue, pump.systemRemainInsulin, 307)
+        binding.reservoir.text = rh.gs(R.string.reservoirvalue, pump.systemRemainInsulin, 307)
         warnColors.setColorInverse(binding.reservoir, pump.systemRemainInsulin , 50.0, 20.0)
         binding.battery.text = "{fa-battery-" + pump.systemRemainBattery / 25  + "}" + " ("+ pump.systemRemainBattery + " %)"
         warnColors.setColorInverse(binding.battery, pump.systemRemainBattery.toDouble(), 51.0, 26.0)
-        binding.firmware.text = resourceHelper.gs(R.string.diaconn_g8_pump) + "\nVersion: " + pump.majorVersion.toString() + "." +  pump.minorVersion.toString() + "\nCountry: "+pump.country.toString() + "\nProductType: "+ pump.productType.toString() + "\nManufacture: " + pump.makeYear + "." + pump.makeMonth + "." + pump.makeDay
+        binding.firmware.text = rh.gs(R.string.diaconn_g8_pump) + "\nVersion: " + pump.majorVersion.toString() + "." +  pump.minorVersion.toString() + "\nCountry: "+pump.country.toString() + "\nProductType: "+ pump.productType.toString() + "\nManufacture: " + pump.makeYear + "." + pump.makeMonth + "." + pump.makeDay
         binding.basalstep.text = pump.basalStep.toString()
         binding.bolusstep.text = pump.bolusStep.toString()
         binding.serialNumber.text = pump.serialNo.toString()

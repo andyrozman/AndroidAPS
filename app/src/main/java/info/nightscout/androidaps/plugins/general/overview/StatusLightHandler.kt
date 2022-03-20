@@ -3,27 +3,27 @@ package info.nightscout.androidaps.plugins.general.overview
 import android.graphics.Color
 import android.widget.TextView
 import androidx.annotation.StringRes
-import info.nightscout.androidaps.interfaces.Config
 import info.nightscout.androidaps.R
 import info.nightscout.androidaps.database.AppRepository
 import info.nightscout.androidaps.database.ValueWrapper
 import info.nightscout.androidaps.database.entities.TherapyEvent
+import info.nightscout.androidaps.extensions.age
 import info.nightscout.androidaps.interfaces.ActivePlugin
+import info.nightscout.androidaps.interfaces.Config
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.OmnipodErosPumpPlugin
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.OmnipodConstants
+import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.DecimalFormatter
 import info.nightscout.androidaps.utils.WarnColors
-import info.nightscout.androidaps.extensions.age
-import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class StatusLightHandler @Inject constructor(
-    private val resourceHelper: ResourceHelper,
+    private val rh: ResourceHelper,
     private val sp: SP,
     private val dateUtil: DateUtil,
     private val activePlugin: ActivePlugin,
@@ -59,7 +59,7 @@ class StatusLightHandler @Inject constructor(
         if (!config.NSCLIENT) {
             if (pump.model() == PumpType.OMNIPOD_DASH) {
                 // Omnipod Dash does not report its battery level
-                careportal_battery_level?.text = resourceHelper.gs(R.string.notavailable)
+                careportal_battery_level?.text = rh.gs(R.string.notavailable)
                 careportal_battery_level?.setTextColor(Color.WHITE)
             } else if (pump.model() == PumpType.OMNIPOD_EROS && pump is OmnipodErosPumpPlugin) { // instance of check is needed because at startup, pump can still be VirtualPumpPlugin and that will cause a crash because of the class cast below
                 // The Omnipod Eros does not report its battery level. However, some RileyLink alternatives do.
@@ -77,9 +77,9 @@ class StatusLightHandler @Inject constructor(
         val therapyEvent = repository.getLastTherapyRecordUpToNow(type).blockingGet()
         if (therapyEvent is ValueWrapper.Existing) {
             warnColors.setColorByAge(view, therapyEvent.value, warn, urgent)
-            view?.text = therapyEvent.value.age(resourceHelper.shortTextMode(), resourceHelper, dateUtil)
+            view?.text = therapyEvent.value.age(rh.shortTextMode(), rh, dateUtil)
         } else {
-            view?.text = if (resourceHelper.shortTextMode()) "-" else resourceHelper.gs(R.string.notavailable)
+            view?.text = if (rh.shortTextMode()) "-" else rh.gs(R.string.notavailable)
         }
     }
 
@@ -108,7 +108,7 @@ class StatusLightHandler @Inject constructor(
         if (useRileyLinkBatteryLevel) {
             handleLevel(view, criticalSetting, criticalDefaultValue, warnSetting, warnDefaultValue, level, units)
         } else {
-            view?.text = resourceHelper.gs(R.string.notavailable)
+            view?.text = rh.gs(R.string.notavailable)
             view?.setTextColor(Color.WHITE)
         }
     }

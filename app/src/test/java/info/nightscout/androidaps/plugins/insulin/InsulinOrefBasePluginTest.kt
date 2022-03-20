@@ -6,9 +6,10 @@ import info.nightscout.androidaps.Constants
 import info.nightscout.androidaps.data.Iob
 import info.nightscout.androidaps.database.entities.Bolus
 import info.nightscout.androidaps.interfaces.ActivePlugin
+import info.nightscout.androidaps.interfaces.Config
 import info.nightscout.androidaps.interfaces.Insulin
 import info.nightscout.androidaps.interfaces.ProfileFunction
-import info.nightscout.androidaps.logging.AAPSLogger
+import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.insulin.InsulinOrefBasePlugin.Companion.MIN_DIA
 import info.nightscout.androidaps.utils.DefaultValueHelper
@@ -30,12 +31,13 @@ class InsulinOrefBasePluginTest {
 
     inner class InsulinBaseTest(
         injector: HasAndroidInjector,
-        resourceHelper: ResourceHelper,
+        rh: ResourceHelper,
         profileFunction: ProfileFunction,
         rxBus: RxBus,
-        aapsLogger: AAPSLogger
+        aapsLogger: AAPSLogger,
+        config: Config
     ) : InsulinOrefBasePlugin(
-        injector, resourceHelper, profileFunction, rxBus, aapsLogger
+        injector, rh, profileFunction, rxBus, aapsLogger, config
     ) {
 
         override fun sendShortDiaNotification(dia: Double) {
@@ -61,11 +63,12 @@ class InsulinOrefBasePluginTest {
     private lateinit var sut: InsulinBaseTest
 
     @Mock lateinit var defaultValueHelper: DefaultValueHelper
-    @Mock lateinit var resourceHelper: ResourceHelper
+    @Mock lateinit var rh: ResourceHelper
     @Mock lateinit var profileFunction: ProfileFunction
     @Mock lateinit var rxBus: RxBus
     @Mock lateinit var aapsLogger: AAPSLogger
     @Mock lateinit var activePlugin: ActivePlugin
+    @Mock lateinit var config: Config
 
     private var injector: HasAndroidInjector = HasAndroidInjector {
         AndroidInjector {
@@ -74,7 +77,7 @@ class InsulinOrefBasePluginTest {
 
     @Before
     fun setUp() {
-        sut = InsulinBaseTest(injector, resourceHelper, profileFunction, rxBus, aapsLogger)
+        sut = InsulinBaseTest(injector, rh, profileFunction, rxBus, aapsLogger, config)
     }
 
     @Test

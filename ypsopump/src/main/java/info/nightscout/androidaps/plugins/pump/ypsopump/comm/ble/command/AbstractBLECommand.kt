@@ -1,8 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
@@ -11,6 +9,8 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCh
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations.BLECommOperationResult
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import javax.inject.Inject
 
 abstract class AbstractBLECommand<T>(hasAndroidInjector: HasAndroidInjector) : BLECommandInterface<T> {

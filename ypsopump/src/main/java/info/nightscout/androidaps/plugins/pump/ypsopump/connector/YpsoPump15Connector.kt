@@ -1,8 +1,8 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.connector
 
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
+import info.nightscout.shared.logging.AAPSLogger
 import javax.inject.Inject
 import javax.inject.Singleton
 

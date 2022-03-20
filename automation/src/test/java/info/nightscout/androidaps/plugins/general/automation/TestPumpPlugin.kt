@@ -9,7 +9,7 @@ import info.nightscout.androidaps.interfaces.PluginDescription
 import info.nightscout.androidaps.interfaces.PumpDescription
 import info.nightscout.androidaps.interfaces.Pump
 import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.logging.AAPSLogger
+import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.androidaps.plugins.common.ManufacturerType
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
 import info.nightscout.androidaps.utils.TimeChangeType
@@ -19,10 +19,10 @@ import org.json.JSONObject
 @Suppress("MemberVisibilityCanBePrivate")
 class TestPumpPlugin(pluginDescription: PluginDescription,
                      aapsLogger: AAPSLogger,
-                     resourceHelper: ResourceHelper,
+                     rh: ResourceHelper,
                      injector: HasAndroidInjector
 ) : PluginBase(
-    pluginDescription, aapsLogger, resourceHelper, injector
+    pluginDescription, aapsLogger, rh, injector
 ), Pump {
 
     var connected = false

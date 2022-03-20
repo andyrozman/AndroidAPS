@@ -2,7 +2,7 @@ package info.nightscout.androidaps.danars.comm
 
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.danars.R
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.overview.events.EventDismissNotification
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
@@ -18,7 +18,7 @@ class DanaRSPacketBasalGetBasalRate(
 ) : DanaRSPacket(injector) {
 
     @Inject lateinit var rxBus: RxBus
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var danaPump: DanaPump
 
     init {
@@ -48,7 +48,7 @@ class DanaRSPacketBasalGetBasalRate(
             aapsLogger.debug(LTag.PUMPCOMM, "Basal " + String.format(Locale.ENGLISH, "%02d", index) + "h: " + danaPump.pumpProfiles!![danaPump.activeProfile][index])
         if (danaPump.basalStep != 0.01) {
             failed = true
-            val notification = Notification(Notification.WRONG_BASAL_STEP, resourceHelper.gs(R.string.danar_setbasalstep001), Notification.URGENT)
+            val notification = Notification(Notification.WRONG_BASAL_STEP, rh.gs(R.string.danar_setbasalstep001), Notification.URGENT)
             rxBus.send(EventNewNotification(notification))
         } else {
             rxBus.send(EventDismissNotification(Notification.WRONG_BASAL_STEP))

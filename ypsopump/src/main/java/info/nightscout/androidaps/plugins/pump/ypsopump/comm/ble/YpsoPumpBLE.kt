@@ -4,8 +4,6 @@ import android.bluetooth.*
 import android.content.Context
 import android.os.SystemClock
 import com.google.gson.Gson
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.common.utils.ThreadUtil
@@ -21,7 +19,9 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations.Char
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpErrorType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
+import info.nightscout.shared.sharedPreferences.SP
 import org.apache.commons.lang3.StringUtils
 import java.util.*
 import java.util.concurrent.Semaphore

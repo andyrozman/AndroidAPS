@@ -1,10 +1,10 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.database
 
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import javax.inject.Inject
 
 class HistoryMapper @Inject constructor(var ypsoPumpUtil: YpsoPumpUtil, var aapsLogger: AAPSLogger) {

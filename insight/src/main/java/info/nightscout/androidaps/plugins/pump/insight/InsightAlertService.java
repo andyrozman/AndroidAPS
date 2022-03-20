@@ -18,8 +18,8 @@ import javax.inject.Inject;
 
 import dagger.android.DaggerService;
 import info.nightscout.androidaps.insight.R;
-import info.nightscout.androidaps.logging.AAPSLogger;
-import info.nightscout.androidaps.logging.LTag;
+import info.nightscout.shared.logging.AAPSLogger;
+import info.nightscout.shared.logging.LTag;
 import info.nightscout.androidaps.plugins.pump.insight.activities.InsightAlertActivity;
 import info.nightscout.androidaps.plugins.pump.insight.app_layer.remote_control.ConfirmAlertMessage;
 import info.nightscout.androidaps.plugins.pump.insight.app_layer.remote_control.SnoozeAlertMessage;
@@ -39,7 +39,7 @@ import info.nightscout.androidaps.utils.resources.ResourceHelper;
 public class InsightAlertService extends DaggerService implements InsightConnectionService.StateCallback {
 
     @Inject AAPSLogger aapsLogger;
-    @Inject ResourceHelper resourceHelper;
+    @Inject ResourceHelper rh;
     @Inject AlertUtils alertUtils;
 
     private static final int NOTIFICATION_ID = 31345;
@@ -309,11 +309,11 @@ public class InsightAlertService extends DaggerService implements InsightConnect
             case ACTIVE:
                 Intent muteIntent = new Intent(this, InsightAlertService.class).putExtra("command", "mute");
                 PendingIntent mutePendingIntent = PendingIntent.getService(this, 1, muteIntent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-                notificationBuilder.addAction(0, resourceHelper.gs(R.string.mute_alert), mutePendingIntent);
+                notificationBuilder.addAction(0, rh.gs(R.string.mute_alert), mutePendingIntent);
             case SNOOZED:
                 Intent confirmIntent = new Intent(this, InsightAlertService.class).putExtra("command", "confirm");
                 PendingIntent confirmPendingIntent = PendingIntent.getService(this, 2, confirmIntent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-                notificationBuilder.addAction(0, resourceHelper.gs(R.string.confirm), confirmPendingIntent);
+                notificationBuilder.addAction(0, rh.gs(R.string.confirm), confirmPendingIntent);
         }
 
         Notification notification = notificationBuilder.build();

@@ -9,7 +9,7 @@ import info.nightscout.androidaps.plugins.constraints.versionChecker.numericVers
 import info.nightscout.androidaps.receivers.ReceiverStatusStore
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -26,7 +26,7 @@ import org.mockito.Mockito.verify
     private lateinit var versionCheckerUtils: VersionCheckerUtils
 
     @Mock lateinit var sp: SP
-    @Mock lateinit var resourceHelper: ResourceHelper
+    @Mock lateinit var rh: ResourceHelper
     @Mock lateinit var context: Context
     @Mock lateinit var receiverStatusStore: ReceiverStatusStore
     @Mock lateinit var config: Config
@@ -34,7 +34,7 @@ import org.mockito.Mockito.verify
     @Mock lateinit var rxBus: RxBus
 
     @Before fun setup() {
-        versionCheckerUtils = VersionCheckerUtils(aapsLogger, sp, resourceHelper, rxBus, config, receiverStatusStore, dateUtil)
+        versionCheckerUtils = VersionCheckerUtils(aapsLogger, sp, rh, rxBus, config, receiverStatusStore, dateUtil)
     }
 
     @Test
@@ -376,7 +376,7 @@ import org.mockito.Mockito.verify
         `when`(dateUtil.now()).thenReturn(10000000000L)
         assertEquals(10000000000L, dateUtil.now())
 
-        `when`(resourceHelper.gs(anyInt(), anyString())).thenReturn("")
+        `when`(rh.gs(anyInt(), anyString())).thenReturn("")
     }
 
 }

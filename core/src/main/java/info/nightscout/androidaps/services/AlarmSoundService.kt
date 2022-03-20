@@ -12,10 +12,10 @@ import dagger.android.DaggerService
 import info.nightscout.androidaps.activities.ErrorHelperActivity
 import info.nightscout.androidaps.core.R
 import info.nightscout.androidaps.interfaces.NotificationHolder
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import javax.inject.Inject
 import kotlin.math.ln
 import kotlin.math.pow
@@ -23,7 +23,7 @@ import kotlin.math.pow
 class AlarmSoundService : DaggerService() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var notificationHolder: NotificationHolder
     @Inject lateinit var sp: SP
 
@@ -74,7 +74,7 @@ class AlarmSoundService : DaggerService() {
         if (intent?.hasExtra(ErrorHelperActivity.SOUND_ID) == true) resourceId = intent.getIntExtra(ErrorHelperActivity.SOUND_ID, R.raw.error)
         player = MediaPlayer()
         try {
-            val afd = resourceHelper.openRawResourceFd(resourceId) ?: return START_STICKY
+            val afd = rh.openRawResourceFd(resourceId) ?: return START_STICKY
             player?.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
             afd.close()
             player?.isLooping = true

@@ -23,7 +23,7 @@ import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.utils.locale.LocaleHelper.update
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
 import kotlin.math.max
@@ -145,13 +145,13 @@ class SetupWizardActivity : NoSplashAppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (currentWizardPage == 0) OKDialog.showConfirmation(this, resourceHelper.gs(R.string.exitwizard)) { finish() } else showPreviousPage(null)
+        if (currentWizardPage == 0) OKDialog.showConfirmation(this, rh.gs(R.string.exitwizard)) { finish() } else showPreviousPage(null)
     }
 
     @Suppress("UNUSED_PARAMETER")
     fun exitPressed(view: View?) {
         sp.putBoolean(R.string.key_setupwizard_processed, true)
-        OKDialog.showConfirmation(this, resourceHelper.gs(R.string.exitwizard)) { finish() }
+        OKDialog.showConfirmation(this, rh.gs(R.string.exitwizard)) { finish() }
     }
 
     @Suppress("UNUSED_PARAMETER")

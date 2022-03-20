@@ -5,13 +5,13 @@ import dagger.Module
 import dagger.Provides
 import dagger.Reusable
 import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.logging.AAPSLogger
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.HistoryMapper
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.HistoryRecordDao
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpDatabase
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistory
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
+import info.nightscout.shared.logging.AAPSLogger
 import javax.inject.Singleton
 
 @Module

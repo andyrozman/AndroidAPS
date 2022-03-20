@@ -8,7 +8,7 @@ import info.nightscout.androidaps.events.EventNetworkChange
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.receivers.ReceiverStatusStore
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -23,10 +23,10 @@ class NsClientReceiverDelegateTest : TestBase() {
 
     @Mock lateinit var context: Context
     @Mock lateinit var sp: SP
-    @Mock lateinit var resourceHelper: ResourceHelper
+    @Mock lateinit var rh: ResourceHelper
 
     lateinit var receiverStatusStore: ReceiverStatusStore
-    val rxBus = RxBus(aapsSchedulers)
+    val rxBus = RxBus(aapsSchedulers, aapsLogger)
 
     private var sut: NsClientReceiverDelegate? = null
 
@@ -37,7 +37,7 @@ class NsClientReceiverDelegateTest : TestBase() {
         `when`(sp.getInt(anyInt(), anyInt())).thenReturn(0)
         `when`(sp.getString(anyInt(), anyString())).thenReturn("")
 
-        sut = NsClientReceiverDelegate(rxBus, resourceHelper, sp, receiverStatusStore)
+        sut = NsClientReceiverDelegate(rxBus, rh, sp, receiverStatusStore)
     }
 
     @Test fun testCalculateStatusChargingState() {

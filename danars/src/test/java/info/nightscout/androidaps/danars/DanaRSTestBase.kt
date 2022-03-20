@@ -5,7 +5,7 @@ import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.TestBaseWithProfile
 import info.nightscout.androidaps.dana.DanaPump
 import info.nightscout.androidaps.danars.comm.DanaRSPacket
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import org.junit.Before
 import org.mockito.ArgumentMatchers
 import org.mockito.Mock
@@ -21,7 +21,7 @@ open class DanaRSTestBase : TestBaseWithProfile() {
 
     @Before
     fun prepare() {
-        Mockito.`when`(resourceHelper.gs(ArgumentMatchers.anyInt())).thenReturn("AnyString")
+        Mockito.`when`(rh.gs(ArgumentMatchers.anyInt())).thenReturn("AnyString")
     }
 
     fun createArray(length: Int, fillWith: Byte): ByteArray {

@@ -2,7 +2,7 @@ package info.nightscout.androidaps.diaconn.packet
 
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.diaconn.DiaconnG8Pump
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import javax.inject.Inject
@@ -14,7 +14,7 @@ class InjectionExtendedBolusResultReportPacket(injector: HasAndroidInjector) : D
 
     @Inject lateinit var diaconnG8Pump: DiaconnG8Pump
     @Inject lateinit var rxBus: RxBus
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
 
     init {
         msgType = 0xe5.toByte()

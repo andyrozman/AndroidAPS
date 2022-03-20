@@ -11,8 +11,6 @@ import info.nightscout.androidaps.events.EventPreferenceChange
 import info.nightscout.androidaps.events.EventRefreshOverview
 import info.nightscout.androidaps.interfaces.*
 import info.nightscout.androidaps.interfaces.PumpSync.TemporaryBasalType
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
@@ -44,7 +42,9 @@ import info.nightscout.androidaps.utils.TimeChangeType
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
+import info.nightscout.shared.sharedPreferences.SP
 import org.joda.time.DateTime
 import java.util.*
 import javax.inject.Inject
@@ -61,10 +61,10 @@ class YpsopumpPumpPlugin @Inject constructor(
     aapsLogger: AAPSLogger,
     rxBus: RxBus,
     context: Context,
-    resourceHelper: ResourceHelper,
+    rh: ResourceHelper,
     activePlugin: ActivePlugin,
     sp: SP,
-    commandQueue: CommandQueueProvider,
+    commandQueue: CommandQueue,
     fabricPrivacy: FabricPrivacy,
     val ypsopumpUtil: YpsoPumpUtil,
     val pumpStatus: YpsopumpPumpStatus,
@@ -85,7 +85,7 @@ class YpsopumpPumpPlugin @Inject constructor(
         .preferencesId(R.xml.pref_ypsopump)
         .description(R.string.description_pump_ypsopump),  //
     PumpType.YPSOPUMP,
-    injector, resourceHelper, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage
+    injector, rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage
 ), Pump, Constraints {
 
     // variables for handling statuses and history
@@ -103,9 +103,9 @@ class YpsopumpPumpPlugin @Inject constructor(
 
     override fun updatePreferenceSummary(pref: Preference) {
         super.updatePreferenceSummary(pref)
-        if (pref.key == resourceHelper.gs(R.string.key_ypsopump_address)) {
+        if (pref.key == rh.gs(R.string.key_ypsopump_address)) {
             val value: String? = sp.getStringOrNull(R.string.key_ypsopump_address, null)
-            pref.summary = value ?: resourceHelper.gs(R.string.not_set_short)
+            pref.summary = value ?: rh.gs(R.string.not_set_short)
         }
     }
 
@@ -137,11 +137,11 @@ class YpsopumpPumpPlugin @Inject constructor(
             .toObservable(EventPreferenceChange::class.java)
             .observeOn(aapsSchedulers.io)
             .subscribe({ event: EventPreferenceChange ->
-                if (event.isChanged(resourceHelper, YpsoPumpConst.Prefs.PumpSerial)) {
-                    ypsoPumpStatusHandler.switchPumpData()
-                    resetStatusState()
-                }
-            }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
+                           if (event.isChanged(rh, YpsoPumpConst.Prefs.PumpSerial)) {
+                               ypsoPumpStatusHandler.switchPumpData()
+                               resetStatusState()
+                           }
+                       }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
 
         // TODO fix me repetable start with RxJava
 //        Observable c = Observable.fromCallable(() -> {
@@ -215,14 +215,14 @@ class YpsopumpPumpPlugin @Inject constructor(
     // Constraints interface
     override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
         if (value.value()) {
-            value[aapsLogger, driverMode == YpsoDriverMode.Automatic, resourceHelper.gs(R.string.ypsopump_fol_closed_loop_not_allowed)] = this
+            value[aapsLogger, driverMode == YpsoDriverMode.Automatic, rh.gs(R.string.ypsopump_fol_closed_loop_not_allowed)] = this
         }
         return value
     }
 
     override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
         if (value.value()) {
-            value[aapsLogger, driverMode == YpsoDriverMode.Automatic, resourceHelper.gs(R.string.ypsopump_fol_smb_not_allowed)] = this
+            value[aapsLogger, driverMode == YpsoDriverMode.Automatic, rh.gs(R.string.ypsopump_fol_smb_not_allowed)] = this
         }
         return value
     }
@@ -431,18 +431,18 @@ class YpsopumpPumpPlugin @Inject constructor(
 
         Thread(Runnable {
             SystemClock.sleep(500)
-            //ErrorHelperActivity.runAlarm(context, resourceHelper.gs(R.string.medtronic_cmd_cancel_bolus_not_supported), resourceHelper.gs(R.string.medtronic_warning), R.raw.boluserror)
+            //ErrorHelperActivity.runAlarm(context, rh.gs(R.string.medtronic_cmd_cancel_bolus_not_supported), rh.gs(R.string.medtronic_warning), R.raw.boluserror)
 
             OKDialog.showConfirmation(context = context,
-                title = resourceHelper.gs(R.string.ypsopump_cmd_exec_title_set_profile),
-                message = resourceHelper.gs(R.string.ypsopump_cmd_exec_desc_set_profile, "Unknown"),
-                { _: DialogInterface?, _: Int ->
-                    //commandResponse = CommandResponse.builder().success(true).build()
-                    aapsLogger.debug(LTag.PUMP, "UI Test -> Success")
-                }, { _: DialogInterface?, _: Int ->
-                    //commandResponse = CommandResponse.builder().success(true).build()
-                    aapsLogger.debug(LTag.PUMP, "UI Test -> Cancel")
-                })
+                                      title = rh.gs(R.string.ypsopump_cmd_exec_title_set_profile),
+                                      message = rh.gs(R.string.ypsopump_cmd_exec_desc_set_profile, "Unknown"),
+                                      { _: DialogInterface?, _: Int ->
+                                          //commandResponse = CommandResponse.builder().success(true).build()
+                                          aapsLogger.debug(LTag.PUMP, "UI Test -> Success")
+                                      }, { _: DialogInterface?, _: Int ->
+                                          //commandResponse = CommandResponse.builder().success(true).build()
+                                          aapsLogger.debug(LTag.PUMP, "UI Test -> Cancel")
+                                      })
 
         }).start()
 
@@ -620,7 +620,7 @@ class YpsopumpPumpPlugin @Inject constructor(
                     aapsLogger.error(LTag.PUMP, "Time difference between phone and pump is more than 60s ($diff)")
 
                     if (!pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
-                        val notification = Notification(Notification.PUMP_PHONE_TIME_DIFF_TOO_BIG, resourceHelper.gs(R.string.time_difference_too_big, 60, diff), Notification.INFO, 60)
+                        val notification = Notification(Notification.PUMP_PHONE_TIME_DIFF_TOO_BIG, rh.gs(R.string.time_difference_too_big, 60, diff), Notification.INFO, 60)
                         rxBus.send(EventNewNotification(notification))
                     } else {
 
@@ -635,7 +635,7 @@ class YpsopumpPumpPlugin @Inject constructor(
                             if (newTimeDiff < 60) {
                                 val notification = Notification(
                                     Notification.INSIGHT_DATE_TIME_UPDATED,
-                                    resourceHelper.gs(R.string.pump_time_updated),
+                                    rh.gs(R.string.pump_time_updated),
                                     Notification.INFO, 60
                                 )
                                 rxBus.send(EventNewNotification(notification))
@@ -665,9 +665,13 @@ class YpsopumpPumpPlugin @Inject constructor(
             PumpEnactResult(injector) //
                 .success(false) //
                 .enacted(false) //
-                .comment(resourceHelper.gs(R.string.ypsopump_cmd_bolus_could_not_be_delivered_no_insulin,
-                    pumpStatus.reservoirRemainingUnits,
-                    detailedBolusInfo.insulin))
+                .comment(
+                    rh.gs(
+                        R.string.ypsopump_cmd_bolus_could_not_be_delivered_no_insulin,
+                        pumpStatus.reservoirRemainingUnits,
+                        detailedBolusInfo.insulin
+                    )
+                )
         } else try {
             setRefreshButtonEnabled(false)
 
@@ -706,7 +710,7 @@ class YpsopumpPumpPlugin @Inject constructor(
                 PumpEnactResult(injector) //
                     .success(false) //
                     .enacted(false) //
-                    .comment(resourceHelper.gs(R.string.ypsopump_cmd_bolus_could_not_be_delivered))
+                    .comment(rh.gs(R.string.ypsopump_cmd_bolus_could_not_be_delivered))
             }
         } finally {
             finishAction("Bolus")
@@ -768,8 +772,8 @@ class YpsopumpPumpPlugin @Inject constructor(
 //
 //                        Intent i = new Intent(context, ErrorHelperActivity.class);
 //                        i.putExtra("soundid", R.raw.boluserror);
-//                        i.putExtra("status", getResourceHelper().gs(R.string.medtronic_cmd_cancel_bolus_not_supported));
-//                        i.putExtra("title", getResourceHelper().gs(R.string.medtronic_warning));
+//                        i.putExtra("status", getrh().gs(R.string.medtronic_cmd_cancel_bolus_not_supported));
+//                        i.putExtra("title", getrh().gs(R.string.medtronic_warning));
 //                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 //                        context.startActivity(i);
 //
@@ -806,7 +810,7 @@ class YpsopumpPumpPlugin @Inject constructor(
 //                return new PumpEnactResult(getInjector()) //
 //                        .success(bolusDeliveryType == BolusDeliveryType.CancelDelivery) //
 //                        .enacted(false) //
-//                        .comment(getResourceHelper().gs(R.string.medtronic_cmd_bolus_could_not_be_delivered));
+//                        .comment(getrh().gs(R.string.medtronic_cmd_bolus_could_not_be_delivered));
 //            }
 //
 //        } finally {
@@ -848,7 +852,7 @@ class YpsopumpPumpPlugin @Inject constructor(
             if (tbrCurrent == null) {
                 aapsLogger.warn(LTag.PUMP, logPrefix + "setTempBasalPercent - Could not read current TBR, canceling operation.")
                 return PumpEnactResult(injector).success(false).enacted(false)
-                    .comment(resourceHelper.gs(R.string.ypsopump_cmd_cant_read_tbr))
+                    .comment(rh.gs(R.string.ypsopump_cmd_cant_read_tbr))
             } else {
                 aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent: Current Basal: duration: " + tbrCurrent.durationMinutes + " min, rate=" + tbrCurrent.insulinRate)
             }
@@ -878,7 +882,7 @@ class YpsopumpPumpPlugin @Inject constructor(
                 } else {
                     aapsLogger.error(logPrefix + "setTempBasalPercent - Cancel TBR failed.")
                     return PumpEnactResult(injector).success(false).enacted(false)
-                        .comment(resourceHelper.gs(R.string.ypsopump_cmd_cant_cancel_tbr_stop_op))
+                        .comment(rh.gs(R.string.ypsopump_cmd_cant_cancel_tbr_stop_op))
                 }
             }
 
@@ -901,7 +905,7 @@ class YpsopumpPumpPlugin @Inject constructor(
                     .percent(percent).duration(durationInMinutes)
             } else {
                 PumpEnactResult(injector).success(false).enacted(false) //
-                    .comment(resourceHelper.gs(R.string.ypsopump_cmd_tbr_could_not_be_delivered))
+                    .comment(rh.gs(R.string.ypsopump_cmd_tbr_could_not_be_delivered))
             }
         } finally {
             finishAction("TBR")
@@ -1205,7 +1209,7 @@ class YpsopumpPumpPlugin @Inject constructor(
                 aapsLogger.warn(LTag.PUMP, logPrefix + "cancelTempBasal - Could not read currect TBR, canceling operation.")
                 finishAction("TBR")
                 return PumpEnactResult(injector).success(false).enacted(false)
-                    .comment(resourceHelper.gs(R.string.ypsopump_cmd_cant_read_tbr))
+                    .comment(rh.gs(R.string.ypsopump_cmd_cant_read_tbr))
             }
             val commandResponse = pumpConnectionManager.cancelTemporaryBasal()
             if (commandResponse!!.isSuccess) {
@@ -1218,7 +1222,7 @@ class YpsopumpPumpPlugin @Inject constructor(
             } else {
                 aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - Cancel TBR failed.")
                 PumpEnactResult(injector).success(false).enacted(false) //
-                    .comment(resourceHelper.gs(R.string.ypsopump_cmd_cant_cancel_tbr))
+                    .comment(rh.gs(R.string.ypsopump_cmd_cant_cancel_tbr))
             }
         } finally {
             finishAction("TBR")
@@ -1232,7 +1236,7 @@ class YpsopumpPumpPlugin @Inject constructor(
     //    @NotNull @Override
     //    public Constraint<Boolean> isClosedLoopAllowed(@NotNull Constraint<Boolean> value) {
     ////        if(pumpStatus.ypsopumpFirmware==null) {
-    ////            return value.set(aapsLogger,false, resourceHelper.gs(R.string.some_reason), this);
+    ////            return value.set(aapsLogger,false, rh.gs(R.string.some_reason), this);
     ////        } else {
     ////            return value;
     ////        }
@@ -1252,7 +1256,7 @@ class YpsopumpPumpPlugin @Inject constructor(
     //            return new PumpEnactResult(getInjector()).success(true).enacted(true);
     //        } else {
     //            return new PumpEnactResult(getInjector()).success(false).enacted(false) //
-    //                    .comment(getResourceHelper().gs(R.string.ypsopump_cmd_basal_profile_could_not_be_set));
+    //                    .comment(getrh().gs(R.string.ypsopump_cmd_basal_profile_could_not_be_set));
     //        }
 
     override fun setNewBasalProfile(profile: Profile): PumpEnactResult {
@@ -1269,8 +1273,8 @@ class YpsopumpPumpPlugin @Inject constructor(
                 aapsLogger.error(LTag.PUMP, "Forced Open Loop: setNewBasalProfile")
                 // Looper.prepare()
                 // OKDialog.showConfirmation(context = context,
-                //     title = resourceHelper.gs(R.string.ypsopump_cmd_exec_title_set_profile),
-                //     message = resourceHelper.gs(R.string.ypsopump_cmd_exec_desc_set_profile, "Unknown"),
+                //     title = rh.gs(R.string.ypsopump_cmd_exec_title_set_profile),
+                //     message = rh.gs(R.string.ypsopump_cmd_exec_desc_set_profile, "Unknown"),
                 //     { _: DialogInterface?, _: Int ->
                 //         commandResponse = CommandResponse.builder().success(true).build()
                 //     }, null)
@@ -1290,7 +1294,7 @@ class YpsopumpPumpPlugin @Inject constructor(
 //            return new PumpEnactResult(getInjector()) //
 //                    .success(false) //
 //                    .enacted(false) //
-//                    .comment(getResourceHelper().gs(R.string.medtronic_cmd_set_profile_pattern_overflow, profileInvalid));
+//                    .comment(getrh().gs(R.string.medtronic_cmd_set_profile_pattern_overflow, profileInvalid));
 //        }
 
             // TODO setProfile 1.5 (Ui) and 1.6 send command
@@ -1300,7 +1304,7 @@ class YpsopumpPumpPlugin @Inject constructor(
                 PumpEnactResult(injector).success(true).enacted(true)
             } else {
                 PumpEnactResult(injector).success(false).enacted(false) //
-                    .comment(resourceHelper.gs(R.string.ypsopump_cmd_basal_profile_could_not_be_set))
+                    .comment(rh.gs(R.string.ypsopump_cmd_basal_profile_could_not_be_set))
             }
         } finally {
             finishAction("Set Basal Profile")

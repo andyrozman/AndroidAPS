@@ -4,7 +4,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Binder
 import android.os.IBinder
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDeviceState
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.RileyLinkConst
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.ble.RFSpy
@@ -28,8 +28,7 @@ import javax.inject.Singleton
  * RileyLinkMedtronicService is intended to stay running when the gui-app is closed.
  */
 @Singleton
-class RileyLinkMedtronicService  // This empty constructor must be kept, otherwise dagger injection might break!
-@Inject constructor() : RileyLinkService() {
+class RileyLinkMedtronicService : RileyLinkService() {
 
     @Inject lateinit var medtronicPumpPlugin: MedtronicPumpPlugin
     @Inject lateinit var medtronicUtil: MedtronicUtil
@@ -40,7 +39,7 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
 
     private val mBinder: IBinder = LocalBinder()
     private var serialChanged = false
-    lateinit var frequencies: Array<String>
+    private lateinit var frequencies: Array<String>
     private var rileyLinkAddress: String? = null
     private var rileyLinkAddressChanged = false
     private var encodingType: RileyLinkEncodingType? = null
@@ -61,18 +60,19 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
         return mBinder
     }
 
-    override fun getEncoding(): RileyLinkEncodingType {
-        return RileyLinkEncodingType.FourByteSixByteLocal
-    }
+    override val encoding: RileyLinkEncodingType
+        get() = RileyLinkEncodingType.FourByteSixByteLocal
 
     /**
      * If you have customized RileyLinkServiceData you need to override this
      */
     override fun initRileyLinkServiceData() {
-        frequencies = arrayOf(resourceHelper.gs(R.string.key_medtronic_pump_frequency_us_ca),
-            resourceHelper.gs(R.string.key_medtronic_pump_frequency_worldwide))
-        // frequencies[0] = resourceHelper.gs(R.string.key_medtronic_pump_frequency_us_ca)
-        // frequencies[1] = resourceHelper.gs(R.string.key_medtronic_pump_frequency_worldwide)
+        frequencies = arrayOf(
+            rh.gs(R.string.key_medtronic_pump_frequency_us_ca),
+            rh.gs(R.string.key_medtronic_pump_frequency_worldwide)
+        )
+        // frequencies[0] = rh.gs(R.string.key_medtronic_pump_frequency_us_ca)
+        // frequencies[1] = rh.gs(R.string.key_medtronic_pump_frequency_worldwide)
         rileyLinkServiceData.targetDevice = RileyLinkTargetDevice.MedtronicPump
         setPumpIDString(sp.getString(MedtronicConst.Prefs.PumpSerial, "000000"))
 
@@ -83,15 +83,14 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
         aapsLogger.debug(LTag.PUMPCOMM, "RileyLinkMedtronicService newly constructed")
     }
 
-    override fun getDeviceCommunicationManager(): MedtronicCommunicationManager {
-        return medtronicCommunicationManager
-    }
+    override val deviceCommunicationManager
+        get() = medtronicCommunicationManager
 
     override fun setPumpDeviceState(pumpDeviceState: PumpDeviceState) {
         medtronicPumpStatus.pumpDeviceState = pumpDeviceState
     }
 
-    fun setPumpIDString(pumpID: String) {
+    private fun setPumpIDString(pumpID: String) {
         if (pumpID.length != 6) {
             aapsLogger.error("setPumpIDString: invalid pump id string: $pumpID")
             return
@@ -138,11 +137,11 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
             medtronicPumpStatus.errorDescription = "-"
             val serialNr = sp.getStringOrNull(MedtronicConst.Prefs.PumpSerial, null)
             if (serialNr == null) {
-                medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_serial_not_set)
+                medtronicPumpStatus.errorDescription = rh.gs(R.string.medtronic_error_serial_not_set)
                 return false
             } else {
                 if (!serialNr.matches(regexSN.toRegex())) {
-                    medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_serial_invalid)
+                    medtronicPumpStatus.errorDescription = rh.gs(R.string.medtronic_error_serial_invalid)
                     return false
                 } else {
                     if (serialNr != medtronicPumpStatus.serialNumber) {
@@ -153,12 +152,12 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
             }
             val pumpTypePref = sp.getStringOrNull(MedtronicConst.Prefs.PumpType, null)
             if (pumpTypePref == null) {
-                medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_pump_type_not_set)
+                medtronicPumpStatus.errorDescription = rh.gs(R.string.medtronic_error_pump_type_not_set)
                 return false
             } else {
                 val pumpTypePart = pumpTypePref.substring(0, 3)
                 if (!pumpTypePart.matches("[0-9]{3}".toRegex())) {
-                    medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_pump_type_invalid)
+                    medtronicPumpStatus.errorDescription = rh.gs(R.string.medtronic_error_pump_type_invalid)
                     return false
                 } else {
                     val pumpType = medtronicPumpStatus.medtronicPumpMap[pumpTypePart]!!
@@ -170,11 +169,11 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
             }
             val pumpFrequency = sp.getStringOrNull(MedtronicConst.Prefs.PumpFrequency, null)
             if (pumpFrequency == null) {
-                medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_pump_frequency_not_set)
+                medtronicPumpStatus.errorDescription = rh.gs(R.string.medtronic_error_pump_frequency_not_set)
                 return false
             } else {
                 if (pumpFrequency != frequencies[0] && pumpFrequency != frequencies[1]) {
-                    medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_pump_frequency_invalid)
+                    medtronicPumpStatus.errorDescription = rh.gs(R.string.medtronic_error_pump_frequency_invalid)
                     return false
                 } else {
                     medtronicPumpStatus.pumpFrequency = pumpFrequency
@@ -189,11 +188,11 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
             val rileyLinkAddress = sp.getStringOrNull(RileyLinkConst.Prefs.RileyLinkAddress, null)
             if (rileyLinkAddress == null) {
                 aapsLogger.debug(LTag.PUMP, "RileyLink address invalid: null")
-                medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_rileylink_address_invalid)
+                medtronicPumpStatus.errorDescription = rh.gs(R.string.medtronic_error_rileylink_address_invalid)
                 return false
             } else {
                 if (!rileyLinkAddress.matches(regexMac.toRegex())) {
-                    medtronicPumpStatus.errorDescription = resourceHelper.gs(R.string.medtronic_error_rileylink_address_invalid)
+                    medtronicPumpStatus.errorDescription = rh.gs(R.string.medtronic_error_rileylink_address_invalid)
                     aapsLogger.debug(LTag.PUMP, "RileyLink address invalid: %s", rileyLinkAddress)
                 } else {
                     if (rileyLinkAddress != this.rileyLinkAddress) {
@@ -216,7 +215,7 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
             }
             val encodingTypeStr = sp.getStringOrNull(MedtronicConst.Prefs.Encoding, null)
                 ?: return false
-            val newEncodingType = RileyLinkEncodingType.getByDescription(encodingTypeStr, resourceHelper)
+            val newEncodingType = RileyLinkEncodingType.getByDescription(encodingTypeStr, rh)
             if (encodingType == null) {
                 encodingType = newEncodingType
             } else if (encodingType != newEncodingType) {
@@ -231,7 +230,7 @@ class RileyLinkMedtronicService  // This empty constructor must be kept, otherwi
             }
 
             //String bolusDebugEnabled = sp.getStringOrNull(MedtronicConst.Prefs.BolusDebugEnabled, null);
-            //boolean bolusDebug = bolusDebugEnabled != null && bolusDebugEnabled.equals(resourceHelper.gs(R.string.common_on));
+            //boolean bolusDebug = bolusDebugEnabled != null && bolusDebugEnabled.equals(rh.gs(R.string.common_on));
             //MedtronicHistoryData.doubleBolusDebug = bolusDebug;
             rileyLinkServiceData.showBatteryLevel = sp.getBoolean(RileyLinkConst.Prefs.ShowBatteryLevel, false)
             reconfigureService(forceRileyLinkAddressRenewal)

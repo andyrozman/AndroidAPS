@@ -11,16 +11,19 @@ import info.nightscout.androidaps.database.entities.ValueWithUnit
 import info.nightscout.androidaps.database.transactions.InsertIfNewByTimestampTherapyEventTransaction
 import info.nightscout.androidaps.extensions.fromConstant
 import info.nightscout.androidaps.interfaces.ProfileFunction
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.logging.UserEntryLogger
-import info.nightscout.androidaps.plugins.general.automation.elements.*
+import info.nightscout.androidaps.plugins.general.automation.elements.InputCarePortalMenu
+import info.nightscout.androidaps.plugins.general.automation.elements.InputDuration
+import info.nightscout.androidaps.plugins.general.automation.elements.InputString
+import info.nightscout.androidaps.plugins.general.automation.elements.LabelWithElement
+import info.nightscout.androidaps.plugins.general.automation.elements.LayoutBuilder
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.GlucoseStatusProvider
 import info.nightscout.androidaps.queue.Callback
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.JsonHelper
 import info.nightscout.androidaps.utils.T
-import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.plusAssign
 import org.json.JSONObject
@@ -28,7 +31,6 @@ import javax.inject.Inject
 
 class ActionCarePortalEvent(injector: HasAndroidInjector) : Action(injector) {
 
-    @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var repository: AppRepository
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var dateUtil: DateUtil
@@ -41,15 +43,15 @@ class ActionCarePortalEvent(injector: HasAndroidInjector) : Action(injector) {
 
     var note = InputString()
     var duration = InputDuration(0, InputDuration.TimeUnit.MINUTES)
-    var cpEvent = InputCarePortalMenu(resourceHelper)
+    var cpEvent = InputCarePortalMenu(rh)
     private var valuesWithUnit = mutableListOf<ValueWithUnit?>()
 
     private constructor(injector: HasAndroidInjector, actionCPEvent: ActionCarePortalEvent) : this(injector) {
-        cpEvent = InputCarePortalMenu(resourceHelper, actionCPEvent.cpEvent.value)
+        cpEvent = InputCarePortalMenu(rh, actionCPEvent.cpEvent.value)
     }
 
     override fun friendlyName(): Int = R.string.careportal
-    override fun shortDescription(): String = resourceHelper.gs(cpEvent.value.stringResWithValue, note.value)
+    override fun shortDescription(): String = rh.gs(cpEvent.value.stringResWithValue, note.value)
 
     @DrawableRes override fun icon(): Int = cpEvent.value.drawableRes
 
@@ -69,7 +71,7 @@ class ActionCarePortalEvent(injector: HasAndroidInjector) : Action(injector) {
             if (glucoseStatus != null) {
                 therapyEvent.glucose = glucoseStatus.glucose
                 therapyEvent.glucoseType = TherapyEvent.MeterType.SENSOR
-                valuesWithUnit.add(ValueWithUnit.fromGlucoseUnit(glucoseStatus.glucose, profileFunction.getUnits().asText))
+                valuesWithUnit.add(ValueWithUnit.Mgdl(glucoseStatus.glucose))
                 valuesWithUnit.add(ValueWithUnit.TherapyEventMeterType(TherapyEvent.MeterType.SENSOR))
             }
         } else {
@@ -110,8 +112,8 @@ class ActionCarePortalEvent(injector: HasAndroidInjector) : Action(injector) {
     override fun generateDialog(root: LinearLayout) {
         LayoutBuilder()
             .add(cpEvent)
-            .add(LabelWithElement(resourceHelper, resourceHelper.gs(R.string.duration_min_label), "", duration))
-            .add(LabelWithElement(resourceHelper, resourceHelper.gs(R.string.notes_label), "", note))
+            .add(LabelWithElement(rh, rh.gs(R.string.duration_min_label), "", duration))
+            .add(LabelWithElement(rh, rh.gs(R.string.notes_label), "", note))
             .build(root)
     }
 

@@ -10,7 +10,7 @@ import info.nightscout.androidaps.interfaces.IobCobCalculator
 import info.nightscout.androidaps.plugins.configBuilder.ConstraintChecker
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
 import info.nightscout.androidaps.utils.JsonHelper.safeGetDouble
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -40,7 +40,7 @@ class APSResultTest : TestBaseWithProfile() {
                 it.activePlugin = activePluginProvider
                 it.iobCobCalculator = iobCobCalculator
                 it.profileFunction = profileFunction
-                it.resourceHelper = resourceHelper
+                it.rh = rh
             }
 
         // BASAL RATE IN TEST PROFILE IS 1U/h
@@ -161,7 +161,7 @@ class APSResultTest : TestBaseWithProfile() {
                 it.activePlugin = activePluginProvider
                 it.iobCobCalculator = iobCobCalculator
                 it.profileFunction = profileFunction
-                it.resourceHelper = resourceHelper
+                it.rh = rh
             }
         apsResult.rate(10.0)
         val apsResult2 = apsResult.newAndClone(injector)
@@ -178,7 +178,7 @@ class APSResultTest : TestBaseWithProfile() {
                 it.activePlugin = activePluginProvider
                 it.iobCobCalculator = iobCobCalculator
                 it.profileFunction = profileFunction
-                it.resourceHelper = resourceHelper
+                it.rh = rh
             }
         apsResult.rate(20.0).tempBasalRequested(true)
         Assert.assertEquals(20.0, safeGetDouble(apsResult.json(), "rate"), 0.0)

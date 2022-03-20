@@ -23,12 +23,10 @@ import info.nightscout.androidaps.events.EventInitializationChanged
 import info.nightscout.androidaps.events.EventProfileSwitchChanged
 import info.nightscout.androidaps.events.EventPumpStatusChanged
 import info.nightscout.androidaps.interfaces.ActivePlugin
-import info.nightscout.androidaps.interfaces.CommandQueueProvider
+import info.nightscout.androidaps.interfaces.CommandQueue
 import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.interfaces.ProfileFunction
 import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.configBuilder.ConstraintChecker
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
@@ -40,9 +38,10 @@ import info.nightscout.androidaps.queue.Callback
 import info.nightscout.androidaps.queue.commands.Command
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.FabricPrivacy
-import info.nightscout.androidaps.utils.StringUtils
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
+import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import org.joda.time.DateTime
@@ -54,15 +53,16 @@ import kotlin.math.ceil
 import kotlin.math.min
 
 class DiaconnG8Service : DaggerService() {
+
     @Inject lateinit var injector: HasAndroidInjector
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var rxBus: RxBus
     @Inject lateinit var sp: SP
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var profileFunction: ProfileFunction
-    @Inject lateinit var commandQueue: CommandQueueProvider
+    @Inject lateinit var commandQueue: CommandQueue
     @Inject lateinit var context: Context
-    @Inject lateinit var diaconnG8Plugin : DiaconnG8Plugin
+    @Inject lateinit var diaconnG8Plugin: DiaconnG8Plugin
     @Inject lateinit var diaconnG8Pump: DiaconnG8Pump
     @Inject lateinit var diaconnG8ResponseMessageHashTable: DiaconnG8ResponseMessageHashTable
     @Inject lateinit var activePlugin: ActivePlugin
@@ -80,13 +80,14 @@ class DiaconnG8Service : DaggerService() {
     override fun onCreate() {
         super.onCreate()
         disposable.add(rxBus
-            .toObservable(EventAppExit::class.java)
-            .observeOn(Schedulers.io())
-            .subscribe({ stopSelf() }) { fabricPrivacy.logException(it) }
+                           .toObservable(EventAppExit::class.java)
+                           .observeOn(Schedulers.io())
+                           .subscribe({ stopSelf() }) { fabricPrivacy.logException(it) }
         )
     }
 
     inner class LocalBinder : Binder() {
+
         val serviceInstance: DiaconnG8Service
             get() = this@DiaconnG8Service
     }
@@ -133,11 +134,11 @@ class DiaconnG8Service : DaggerService() {
     fun readPumpStatus() {
         try {
             val pump = activePlugin.activePump
-            rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.gettingpumpsettings)))
+            rxBus.send(EventPumpStatusChanged(rh.gs(R.string.gettingpumpsettings)))
 
-            val pumpFirmwareVersion = sp.getString(resourceHelper.gs(R.string.pumpversion),"")
+            val pumpFirmwareVersion = sp.getString(rh.gs(R.string.pumpversion), "")
 
-            if(!StringUtils.emptyString(pumpFirmwareVersion) && PumplogUtil.isPumpVersionGe(pumpFirmwareVersion, 3, 0)) {
+            if (pumpFirmwareVersion.isNotEmpty() && PumplogUtil.isPumpVersionGe(pumpFirmwareVersion, 3, 0)) {
                 sendMessage(BigAPSMainInfoInquirePacket(injector)) // APS Pump Main Info
             } else {
                 sendMessage(BasalLimitInquirePacket(injector)) // basal Limit
@@ -152,7 +153,7 @@ class DiaconnG8Service : DaggerService() {
 
             val profile = profileFunction.getProfile()
             if (profile != null && abs(diaconnG8Pump.baseAmount - profile.getBasal()) >= pump.pumpDescription.basalStep) {
-                rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.gettingpumpsettings)))
+                rxBus.send(EventPumpStatusChanged(rh.gs(R.string.gettingpumpsettings)))
 
                 if (!pump.isThisProfileSet(profile) && !commandQueue.isRunning(Command.CommandType.BASAL_PROFILE)) {
                     rxBus.send(EventProfileSwitchChanged())
@@ -160,18 +161,18 @@ class DiaconnG8Service : DaggerService() {
             }
 
             // 시간 설정
-            rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.gettingpumptime)))
+            rxBus.send(EventPumpStatusChanged(rh.gs(R.string.gettingpumptime)))
             var timeDiff = (diaconnG8Pump.getPumpTime() - System.currentTimeMillis()) / 1000L
             if (diaconnG8Pump.getPumpTime() == 0L) {
-                 // initial handshake was not successful
-                 // de-initialize pump
-                 diaconnG8Pump.reset()
-                 rxBus.send(EventDiaconnG8NewStatus())
-                 rxBus.send(EventInitializationChanged())
-                 return
+                // initial handshake was not successful
+                // de-initialize pump
+                diaconnG8Pump.reset()
+                rxBus.send(EventDiaconnG8NewStatus())
+                rxBus.send(EventInitializationChanged())
+                return
             }
             aapsLogger.debug(LTag.PUMPCOMM, "Pump time difference: $timeDiff seconds")
-             // phone timezone
+            // phone timezone
             val tz = DateTimeZone.getDefault()
             val instant = DateTime.now().millis
             val offsetInMilliseconds = tz.getOffset(instant).toLong()
@@ -180,8 +181,7 @@ class DiaconnG8Service : DaggerService() {
                 if (abs(timeDiff) > 60 * 60 * 1.5) {
                     aapsLogger.debug(LTag.PUMPCOMM, "Pump time difference: $timeDiff seconds - large difference")
                     //If time-diff is very large, warn user until we can synchronize history readings properly
-                    ErrorHelperActivity.runAlarm(context, resourceHelper.gs(R.string.largetimediff), resourceHelper.gs(R.string.largetimedifftitle), R.raw.error)
-
+                    ErrorHelperActivity.runAlarm(context, rh.gs(R.string.largetimediff), rh.gs(R.string.largetimedifftitle), R.raw.error)
 
                     //de-initialize pump
                     diaconnG8Pump.reset()
@@ -190,12 +190,12 @@ class DiaconnG8Service : DaggerService() {
                     return
                 } else {
 
-                    if(!diaconnG8Pump.isTempBasalInProgress) {
+                    if (!diaconnG8Pump.isTempBasalInProgress) {
                         val msgPacket = TimeSettingPacket(injector, dateUtil.now(), offset)
                         sendMessage(msgPacket)
 
                         // otp process
-                        if(!processConfirm(msgPacket.msgType)) return
+                        if (!processConfirm(msgPacket.msgType)) return
 
                         timeDiff = (diaconnG8Pump.getPumpTime() - System.currentTimeMillis()) / 1000L
                         aapsLogger.debug(LTag.PUMPCOMM, "Pump time difference: $timeDiff seconds")
@@ -213,9 +213,14 @@ class DiaconnG8Service : DaggerService() {
             if (diaconnG8Pump.dailyTotalUnits > diaconnG8Pump.maxDailyTotalUnits * Constants.dailyLimitWarning) {
                 aapsLogger.debug(LTag.PUMPCOMM, "Approaching daily limit: " + diaconnG8Pump.dailyTotalUnits + "/" + diaconnG8Pump.maxDailyTotalUnits)
                 if (System.currentTimeMillis() > lastApproachingDailyLimit + 30 * 60 * 1000) {
-                    val reportFail = Notification(Notification.APPROACHING_DAILY_LIMIT, resourceHelper.gs(R.string.approachingdailylimit), Notification.URGENT)
+                    val reportFail = Notification(Notification.APPROACHING_DAILY_LIMIT, rh.gs(R.string.approachingdailylimit), Notification.URGENT)
                     rxBus.send(EventNewNotification(reportFail))
-                    pumpSync.insertAnnouncement(resourceHelper.gs(R.string.approachingdailylimit) + ": " + diaconnG8Pump.dailyTotalUnits + "/" + diaconnG8Pump.maxDailyTotalUnits + "U", null, PumpType.DIACONN_G8, diaconnG8Pump.serialNo.toString())
+                    pumpSync.insertAnnouncement(
+                        rh.gs(R.string.approachingdailylimit) + ": " + diaconnG8Pump.dailyTotalUnits + "/" + diaconnG8Pump.maxDailyTotalUnits + "U",
+                        null,
+                        PumpType.DIACONN_G8,
+                        diaconnG8Pump.serialNo.toString()
+                    )
                     lastApproachingDailyLimit = System.currentTimeMillis()
                 }
             }
@@ -234,7 +239,7 @@ class DiaconnG8Service : DaggerService() {
         sendMessage(LogStatusInquirePacket(injector))
 
         // pump version check
-        if(diaconnG8Pump.isPumpVersionGe2_63) {
+        if (diaconnG8Pump.isPumpVersionGe2_63) {
             sendMessage(IncarnationInquirePacket(injector))
         }
 
@@ -243,36 +248,39 @@ class DiaconnG8Service : DaggerService() {
         // pump log status
         val pumpLastNum = diaconnG8Pump.pumpLastLogNum
         val pumpWrappingCount = diaconnG8Pump.pumpWrappingCount
-        val apsIncarnationNum = sp.getInt(resourceHelper.gs(R.string.apsIncarnationNo), 65536)
+        val apsIncarnationNum = sp.getInt(rh.gs(R.string.apsIncarnationNo), 65536)
         // aps last log num
-        val pumpSerialNo      = sp.getInt(resourceHelper.gs(R.string.pumpserialno), 0)
-        val apsWrappingCount  = sp.getInt(resourceHelper.gs(R.string.apsWrappingCount), 0)
-        val apsLastLogNum     = sp.getInt(resourceHelper.gs(R.string.apslastLogNum), 0)
+        val pumpSerialNo = sp.getInt(rh.gs(R.string.pumpserialno), 0)
+        var apsWrappingCount = sp.getInt(rh.gs(R.string.apsWrappingCount), 0)
+        var apsLastLogNum = sp.getInt(rh.gs(R.string.apslastLogNum), 0)
 
         // if first install app
-        if(apsWrappingCount == 0 && apsLastLogNum == 0 ) {
+        if (apsWrappingCount == 0 && apsLastLogNum == 0) {
             pumpLogDefaultSetting()
         }
 
         // if pump reset
-        if(apsIncarnationNum != diaconnG8Pump.pumpIncarnationNum) {
+        if (apsIncarnationNum != diaconnG8Pump.pumpIncarnationNum) {
             pumpLogDefaultSetting()
-            sp.putInt(resourceHelper.gs(R.string.apsIncarnationNo), diaconnG8Pump.pumpIncarnationNum)
+            sp.putInt(rh.gs(R.string.apsIncarnationNo), diaconnG8Pump.pumpIncarnationNum)
         }
 
         // if another pump
-        if(pumpSerialNo != diaconnG8Pump.serialNo) {
+        if (pumpSerialNo != diaconnG8Pump.serialNo) {
             pumpLogDefaultSetting()
-            sp.putInt(resourceHelper.gs(R.string.pumpserialno), diaconnG8Pump.serialNo)
+            sp.putInt(rh.gs(R.string.pumpserialno), diaconnG8Pump.serialNo)
         }
+
+        apsWrappingCount = sp.getInt(rh.gs(R.string.apsWrappingCount), 0)
+        apsLastLogNum = sp.getInt(rh.gs(R.string.apslastLogNum), 0)
 
         val apsLastNum = apsWrappingCount * 10000 + apsLastLogNum
-        if((pumpWrappingCount * 10000 + pumpLastNum) < apsLastLogNum ) {
+        if ((pumpWrappingCount * 10000 + pumpLastNum) < apsLastLogNum) {
             pumpLogDefaultSetting()
         }
 
-        val start:Int? // log sync startNo
-        val end:Int? // log sync endNo
+        val start: Int? // log sync startNo
+        val end: Int? // log sync endNo
         if (((pumpWrappingCount * 10000 + pumpLastNum) - apsLastNum) > 10000) {
             start = pumpLastNum
             end = 10000
@@ -289,7 +297,7 @@ class DiaconnG8Service : DaggerService() {
 
         // pump log loop size
         val pumpLogPageSize = 11
-        val loopCount: Int = ceil (((end - start) / 11.0)).toInt()
+        val loopCount: Int = ceil(((end - start) / 11.0)).toInt()
 
         // log sync start!
         if (loopCount > 0) {
@@ -314,7 +322,7 @@ class DiaconnG8Service : DaggerService() {
     fun setUserSettings(): PumpEnactResult {
         val result = PumpEnactResult(injector)
 
-        val msg: DiaconnG8Packet = when(diaconnG8Pump.setUserOptionType) {
+        val msg: DiaconnG8Packet = when (diaconnG8Pump.setUserOptionType) {
             DiaconnG8Pump.ALARM -> SoundSettingPacket(injector, diaconnG8Pump.beepAndAlarm, diaconnG8Pump.alarmIntesity)
             DiaconnG8Pump.LCD -> DisplayTimeoutSettingPacket(injector, diaconnG8Pump.lcdOnTimeSec)
             DiaconnG8Pump.LANG -> LanguageSettingPacket(injector, diaconnG8Pump.selectedLanguage)
@@ -322,9 +330,9 @@ class DiaconnG8Service : DaggerService() {
             else -> null
         } ?: return result.success(false)
 
-        sendMessage(msg )
+        sendMessage(msg)
         // pump confirm
-        if(diaconnG8Pump.otpNumber == 0) {
+        if (diaconnG8Pump.otpNumber == 0) {
             aapsLogger.error(LTag.PUMPCOMM, "otp is not received yet")
             result.success(false)
             result.comment("펌프와 연결 상태를 확인해주세요.")
@@ -339,14 +347,14 @@ class DiaconnG8Service : DaggerService() {
     fun bolus(insulin: Double, carbs: Int, carbTime: Long, t: EventOverviewBolusProgress.Treatment): Boolean {
         if (!isConnected) return false
         if (BolusProgressDialog.stopPressed) return false
-        rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.startingbolus)))
+        rxBus.send(EventPumpStatusChanged(rh.gs(R.string.startingbolus)))
 
         // bolus speed setting
         val apsPrefBolusSpeed = sp.getInt("g8_bolusspeed", 5)
         val isSpeedSyncToPump = sp.getBoolean("diaconn_g8_isbolusspeedsync", false)
 
         // aps speed check
-        if(!isSpeedSyncToPump) {
+        if (!isSpeedSyncToPump) {
             val msg = BolusSpeedSettingPacket(injector, apsPrefBolusSpeed)
             sendMessage(msg)
             sendMessage(AppConfirmSettingPacket(injector, msg.msgType, diaconnG8Pump.otpNumber))
@@ -370,7 +378,7 @@ class DiaconnG8Service : DaggerService() {
             if (!diaconnG8Pump.bolusStopped) {
                 sendMessage(start)
                 // otp process
-                if(!processConfirm(start.msgType)) return false
+                if (!processConfirm(start.msgType)) return false
             } else {
                 t.insulin = 0.0
                 return false
@@ -394,12 +402,12 @@ class DiaconnG8Service : DaggerService() {
 
         val bolusDurationInMSec = (insulin * speed * 1000).toLong()
         val expectedEnd = bolusStart + bolusDurationInMSec + 7500L
-        val totalwaitTime = (expectedEnd - System.currentTimeMillis()) /1000
+        val totalwaitTime = (expectedEnd - System.currentTimeMillis()) / 1000
         while (!diaconnG8Pump.bolusDone) {
             val waitTime = (expectedEnd - System.currentTimeMillis()) / 1000
-            bolusingEvent.status = String.format(resourceHelper.gs(R.string.waitingforestimatedbolusend), if(waitTime < 0) 0 else waitTime)
+            bolusingEvent.status = String.format(rh.gs(R.string.waitingforestimatedbolusend), if (waitTime < 0) 0 else waitTime)
             var progressPecent = 0
-            if(totalwaitTime > waitTime) {
+            if (totalwaitTime > waitTime) {
                 progressPecent = ((totalwaitTime - waitTime) * 100 / totalwaitTime).toInt()
             }
             bolusingEvent.percent = min(progressPecent, 100)
@@ -411,14 +419,14 @@ class DiaconnG8Service : DaggerService() {
         commandQueue.loadEvents(object : Callback() {
             override fun run() {
                 // reread bolus status
-                rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.gettingbolusstatus)))
+                rxBus.send(EventPumpStatusChanged(rh.gs(R.string.gettingbolusstatus)))
                 sendMessage(InjectionSnackInquirePacket(injector), 1000) // last bolus
                 // 볼러스 결과 보고패킷에서 처리함.
                 bolusingEvent.percent = 100
-                rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.disconnecting)))
+                rxBus.send(EventPumpStatusChanged(rh.gs(R.string.disconnecting)))
             }
         })
-       return !start.failed
+        return !start.failed
     }
 
     fun bolusStop() {
@@ -427,7 +435,7 @@ class DiaconnG8Service : DaggerService() {
         if (isConnected) {
             sendMessage(stop)
             // otp process
-            if(!processConfirm(stop.msgType)) return
+            if (!processConfirm(stop.msgType)) return
             while (!diaconnG8Pump.bolusStopped) {
                 SystemClock.sleep(200)
             }
@@ -442,21 +450,21 @@ class DiaconnG8Service : DaggerService() {
         // temp state check
         sendMessage(TempBasalInquirePacket(injector))
 
-        if (diaconnG8Pump.tbStatus ==1 ) {
-            rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.stoppingtempbasal)))
+        if (diaconnG8Pump.tbStatus == 1) {
+            rxBus.send(EventPumpStatusChanged(rh.gs(R.string.stoppingtempbasal)))
             val msgPacket = TempBasalSettingPacket(injector, 2, diaconnG8Pump.tbTime, diaconnG8Pump.tbInjectRateRatio)
             // tempbasal stop
             sendMessage(msgPacket)
             // otp process
-            if(!processConfirm(msgPacket.msgType)) return false
-            diaconnG8Pump.tempBasalStart= dateUtil.now()
+            if (!processConfirm(msgPacket.msgType)) return false
+            diaconnG8Pump.tempBasalStart = dateUtil.now()
         }
-        rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.settingtempbasal)))
-        val tbInjectRate = ((absoluteRate*100) + 1000).toInt()
+        rxBus.send(EventPumpStatusChanged(rh.gs(R.string.settingtempbasal)))
+        val tbInjectRate = ((absoluteRate * 100) + 1000).toInt()
         val msgTBR = TempBasalSettingPacket(injector, 1, ((durationInHours * 60) / 15).toInt(), tbInjectRate)
         sendMessage(msgTBR)
         // otp process
-        if(!processConfirm(msgTBR.msgType)) return false
+        if (!processConfirm(msgTBR.msgType)) return false
         // pump tempbasal status inquire
         sendMessage(TempBasalInquirePacket(injector))
         loadHistory()
@@ -474,21 +482,21 @@ class DiaconnG8Service : DaggerService() {
 
         // temp state check
         sendMessage(TempBasalInquirePacket(injector))
-        if (diaconnG8Pump.tbStatus ==1 ) {
-            rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.stoppingtempbasal)))
+        if (diaconnG8Pump.tbStatus == 1) {
+            rxBus.send(EventPumpStatusChanged(rh.gs(R.string.stoppingtempbasal)))
             val msgPacket = TempBasalSettingPacket(injector, 2, diaconnG8Pump.tbTime, diaconnG8Pump.tbInjectRateRatio)
             // tempbasal stop
             sendMessage(msgPacket)
             // otp process
-            if(!processConfirm(msgPacket.msgType)) return false
+            if (!processConfirm(msgPacket.msgType)) return false
             SystemClock.sleep(500)
         }
-        rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.settingtempbasal)))
+        rxBus.send(EventPumpStatusChanged(rh.gs(R.string.settingtempbasal)))
         val tbInjectRate = absoluteRate * 100 + 1000
         val msgTBR = TempBasalSettingPacket(injector, 1, 2, tbInjectRate.toInt())
         sendMessage(msgTBR)
         // otp process
-        if(!processConfirm(msgTBR.msgType)) return false
+        if (!processConfirm(msgTBR.msgType)) return false
         sendMessage(TempBasalInquirePacket(injector))
         loadHistory()
         val tbr = pumpSync.expectedPumpState().temporaryBasal
@@ -499,10 +507,10 @@ class DiaconnG8Service : DaggerService() {
 
     fun tempBasalStop(): Boolean {
         if (!isConnected) return false
-        rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.stoppingtempbasal)))
+        rxBus.send(EventPumpStatusChanged(rh.gs(R.string.stoppingtempbasal)))
         // temp state check
         sendMessage(TempBasalInquirePacket(injector))
-        if(diaconnG8Pump.tbStatus == 1) {
+        if (diaconnG8Pump.tbStatus == 1) {
             val msgPacket = TempBasalSettingPacket(
                 injector,
                 2,
@@ -525,13 +533,13 @@ class DiaconnG8Service : DaggerService() {
 
     fun extendedBolus(insulin: Double, durationInMinutes: Int): Boolean {
         if (!isConnected) return false
-        rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.settingextendedbolus)))
+        rxBus.send(EventPumpStatusChanged(rh.gs(R.string.settingextendedbolus)))
         aapsLogger.error(LTag.PUMPCOMM, "insulin: $insulin durationInMinutes: $durationInMinutes")
 
         val msgExtended = InjectionExtendedBolusSettingPacket(injector, (insulin * 100).toInt(), durationInMinutes, dateUtil.now())
         sendMessage(msgExtended)
         // otp process
-        if(!processConfirm(msgExtended.msgType)) return false
+        if (!processConfirm(msgExtended.msgType)) return false
         //diaconnG8Pump.isExtendedInProgress = true
         loadHistory()
         val eb = pumpSync.expectedPumpState().extendedBolus
@@ -542,35 +550,67 @@ class DiaconnG8Service : DaggerService() {
 
     fun extendedBolusStop(): Boolean {
         if (!isConnected) return false
-        rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.stoppingextendedbolus)))
-        val msgType  = if(diaconnG8Pump.dualStatus == 1) 0x09.toByte() else 0x08.toByte()
+        rxBus.send(EventPumpStatusChanged(rh.gs(R.string.stoppingextendedbolus)))
+        val msgType = if (diaconnG8Pump.dualStatus == 1) 0x09.toByte() else 0x08.toByte()
         val msgStop = InjectionCancelSettingPacket(injector, msgType)
         sendMessage(msgStop)
         // otp process
-        if(!processConfirm(msgStop.msgType)) return false
+        if (!processConfirm(msgStop.msgType)) return false
         loadHistory() // pump log sync( db update)
         val eb = pumpSync.expectedPumpState().extendedBolus
         diaconnG8Pump.fromExtendedBolus(eb)
         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTING))
-        return  msgStop.success()
+        return msgStop.success()
     }
 
     fun updateBasalsInPump(profile: Profile): Boolean {
         if (!isConnected) return false
-        rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.updatingbasalrates)))
+        rxBus.send(EventPumpStatusChanged(rh.gs(R.string.updatingbasalrates)))
         val basalList = diaconnG8Pump.buildDiaconnG8ProfileRecord(profile)
 
         val requestReqPacket1 = BasalSettingPacket(
-            injector, 1, 1, (basalList[0] * 100).toInt(), (basalList[1] * 100).toInt(), (basalList[2] * 100).toInt(), (basalList[3] * 100).toInt(), (basalList[4] * 100).toInt(), (basalList[5] * 100).toInt()
+            injector,
+            1,
+            1,
+            (basalList[0] * 100).toInt(),
+            (basalList[1] * 100).toInt(),
+            (basalList[2] * 100).toInt(),
+            (basalList[3] * 100).toInt(),
+            (basalList[4] * 100).toInt(),
+            (basalList[5] * 100).toInt()
         )
-        val requestReqPacket2= BasalSettingPacket(
-            injector, 1, 2, (basalList[6] * 100).toInt(), (basalList[7] * 100).toInt(), (basalList[8] * 100).toInt(), (basalList[9] * 100).toInt(), (basalList[10] * 100).toInt(), (basalList[11] * 100).toInt()
+        val requestReqPacket2 = BasalSettingPacket(
+            injector,
+            1,
+            2,
+            (basalList[6] * 100).toInt(),
+            (basalList[7] * 100).toInt(),
+            (basalList[8] * 100).toInt(),
+            (basalList[9] * 100).toInt(),
+            (basalList[10] * 100).toInt(),
+            (basalList[11] * 100).toInt()
         )
-        val requestReqPacket3= BasalSettingPacket(
-            injector, 1, 3, (basalList[12] * 100).toInt(), (basalList[13] * 100).toInt(), (basalList[14] * 100).toInt(), (basalList[15] * 100).toInt(), (basalList[16] * 100).toInt(), (basalList[17] * 100).toInt()
+        val requestReqPacket3 = BasalSettingPacket(
+            injector,
+            1,
+            3,
+            (basalList[12] * 100).toInt(),
+            (basalList[13] * 100).toInt(),
+            (basalList[14] * 100).toInt(),
+            (basalList[15] * 100).toInt(),
+            (basalList[16] * 100).toInt(),
+            (basalList[17] * 100).toInt()
         )
-        val requestReqPacket4= BasalSettingPacket(
-            injector, 1, 4, (basalList[18] * 100).toInt(), (basalList[19] * 100).toInt(), (basalList[20] * 100).toInt(), (basalList[21] * 100).toInt(), (basalList[22] * 100).toInt(), (basalList[23] * 100).toInt()
+        val requestReqPacket4 = BasalSettingPacket(
+            injector,
+            1,
+            4,
+            (basalList[18] * 100).toInt(),
+            (basalList[19] * 100).toInt(),
+            (basalList[20] * 100).toInt(),
+            (basalList[21] * 100).toInt(),
+            (basalList[22] * 100).toInt(),
+            (basalList[23] * 100).toInt()
         )
         // setting basal pattern 1,2,3,4
         sendMessage(requestReqPacket1)
@@ -579,7 +619,7 @@ class DiaconnG8Service : DaggerService() {
         sendMessage(requestReqPacket4)
 
         // otp process
-        if(!processConfirm(requestReqPacket4.msgType)) return false
+        if (!processConfirm(requestReqPacket4.msgType)) return false
         // pump saving time about 30 second
         aapsLogger.debug(LTag.PUMPCOMM, "30 seconds Waiting!!")
         SystemClock.sleep(30000)
@@ -587,7 +627,7 @@ class DiaconnG8Service : DaggerService() {
         val msgPacket = InjectionBasalSettingPacket(injector, 1)
         sendMessage(msgPacket)
         // otp process
-        if(!processConfirm(msgPacket.msgType)) return false
+        if (!processConfirm(msgPacket.msgType)) return false
         readPumpStatus()
         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTING))
         return requestReqPacket4.success()
@@ -595,22 +635,22 @@ class DiaconnG8Service : DaggerService() {
 
     private fun pumpLogDefaultSetting() {
         val apsWrappingCount = diaconnG8Pump.pumpWrappingCount
-        val apsLastLogNum = if(diaconnG8Pump.pumpLastLogNum - 1 < 0 ) 0 else  diaconnG8Pump.pumpLastLogNum - 1
-        sp.putInt(resourceHelper.gs(R.string.apslastLogNum), apsLastLogNum)
-        sp.putInt(resourceHelper.gs(R.string.apsWrappingCount), apsWrappingCount)
+        val apsLastLogNum = if (diaconnG8Pump.pumpLastLogNum - 1 < 0) 0 else diaconnG8Pump.pumpLastLogNum - 1
+        sp.putInt(rh.gs(R.string.apslastLogNum), apsLastLogNum)
+        sp.putInt(rh.gs(R.string.apsWrappingCount), apsWrappingCount)
     }
 
-    private fun processConfirm(msgType:Byte) : Boolean {
+    private fun processConfirm(msgType: Byte): Boolean {
         // pump confirm
-        if(diaconnG8Pump.otpNumber == 0) {
+        if (diaconnG8Pump.otpNumber == 0) {
             aapsLogger.error(LTag.PUMPCOMM, "otp is not received yet")
 
             // Comments are made as dialogs are exposed twice each in the event of an error.
             // Thread {
             //     val i = Intent(context, ErrorHelperActivity::class.java)
             //     i.putExtra("soundid", R.raw.boluserror)
-            //     i.putExtra("status", resourceHelper.gs(R.string.diaconn_g8_errotpreceivedyet))
-            //     i.putExtra("title", resourceHelper.gs(R.string.pumperror))
+            //     i.putExtra("status", rh.gs(R.string.diaconn_g8_errotpreceivedyet))
+            //     i.putExtra("title", rh.gs(R.string.pumperror))
             //     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             //     context.startActivity(i)
             // }.start()

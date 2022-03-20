@@ -13,12 +13,12 @@ import info.nightscout.androidaps.extensions.foodFromJson
 import info.nightscout.androidaps.interfaces.PluginBase
 import info.nightscout.androidaps.interfaces.PluginDescription
 import info.nightscout.androidaps.interfaces.PluginType
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.receivers.DataWorker
 import info.nightscout.androidaps.utils.JsonHelper
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,7 +27,7 @@ import javax.inject.Singleton
 class FoodPlugin @Inject constructor(
     injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
-    resourceHelper: ResourceHelper
+    rh: ResourceHelper
 ) : PluginBase(PluginDescription()
     .mainType(PluginType.GENERAL)
     .fragmentClass(FoodFragment::class.java.name)
@@ -35,7 +35,7 @@ class FoodPlugin @Inject constructor(
     .pluginName(R.string.food)
     .shortName(R.string.food_short)
     .description(R.string.description_food),
-    aapsLogger, resourceHelper, injector
+    aapsLogger, rh, injector
 ) {
 
     // cannot be inner class because of needed injection

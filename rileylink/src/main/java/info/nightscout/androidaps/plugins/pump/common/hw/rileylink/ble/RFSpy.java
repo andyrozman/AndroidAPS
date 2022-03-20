@@ -13,8 +13,8 @@ import javax.inject.Singleton;
 
 import dagger.android.HasAndroidInjector;
 import info.nightscout.androidaps.events.EventRefreshOverview;
-import info.nightscout.androidaps.logging.AAPSLogger;
-import info.nightscout.androidaps.logging.LTag;
+import info.nightscout.shared.logging.AAPSLogger;
+import info.nightscout.shared.logging.LTag;
 import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.R;
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.RileyLinkConst;
@@ -39,7 +39,7 @@ import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil;
 import info.nightscout.androidaps.plugins.pump.common.utils.StringUtil;
 import info.nightscout.androidaps.plugins.pump.common.utils.ThreadUtil;
 import info.nightscout.androidaps.utils.resources.ResourceHelper;
-import info.nightscout.androidaps.utils.sharedPreferences.SP;
+import info.nightscout.shared.sharedPreferences.SP;
 
 /**
  * Created by geoff on 5/26/16.
@@ -51,7 +51,7 @@ public class RFSpy {
     private static final int LOW_BATTERY_PERCENTAGE_THRESHOLD = 20;
 
     @Inject AAPSLogger aapsLogger;
-    @Inject ResourceHelper resourceHelper;
+    @Inject ResourceHelper rh;
     @Inject SP sp;
     @Inject RileyLinkServiceData rileyLinkServiceData;
     @Inject RileyLinkUtil rileyLinkUtil;
@@ -116,7 +116,7 @@ public class RFSpy {
     }
 
     public Integer retrieveBatteryLevel() {
-        BLECommOperationResult result = rileyLinkBle.readCharacteristic_blocking(batteryServiceUUID, batteryLevelUUID);
+        BLECommOperationResult result = rileyLinkBle.readCharacteristicBlocking(batteryServiceUUID, batteryLevelUUID);
         if (result.resultCode == BLECommOperationResult.RESULT_SUCCESS) {
             if (ArrayUtils.isNotEmpty(result.value)) {
                 int value = result.value[0];
@@ -134,7 +134,7 @@ public class RFSpy {
     // This gets the version from the BLE113, not from the CC1110.
     // I.e., this gets the version from the BLE interface, not from the radio.
     public String getVersion() {
-        BLECommOperationResult result = rileyLinkBle.readCharacteristic_blocking(radioServiceUUID, radioVersionUUID);
+        BLECommOperationResult result = rileyLinkBle.readCharacteristicBlocking(radioServiceUUID, radioVersionUUID);
         if (result.resultCode == BLECommOperationResult.RESULT_SUCCESS) {
             String version = StringUtil.fromBytes(result.value);
             aapsLogger.debug(LTag.PUMPBTCOMM, "BLE Version: " + version);
@@ -208,7 +208,7 @@ public class RFSpy {
 
         aapsLogger.debug(LTag.PUMPBTCOMM, String.format(Locale.ENGLISH, "writeToData (raw=%s)", ByteUtil.shortHexString(prepended)));
 
-        BLECommOperationResult writeCheck = rileyLinkBle.writeCharacteristic_blocking(radioServiceUUID, radioDataUUID,
+        BLECommOperationResult writeCheck = rileyLinkBle.writeCharacteristicBlocking(radioServiceUUID, radioDataUUID,
                 prepended);
         if (writeCheck.resultCode != BLECommOperationResult.RESULT_SUCCESS) {
             aapsLogger.error(LTag.PUMPBTCOMM, "BLE Write operation failed, code=" + writeCheck.resultCode);
@@ -367,7 +367,7 @@ public class RFSpy {
         if (rileyLinkServiceData.firmwareVersion != null &&
                 rileyLinkServiceData.firmwareVersion.isSameVersion(RileyLinkFirmwareVersion.Version2AndHigher)) {
             if (sp.getString(RileyLinkConst.Prefs.Encoding, "None")
-                    .equals(resourceHelper.gs(R.string.key_medtronic_pump_encoding_4b6b_rileylink))) {
+                    .equals(rh.gs(R.string.key_medtronic_pump_encoding_4b6b_rileylink))) {
                 encoding = RileyLinkEncodingType.FourByteSixByteRileyLink;
             }
         }

@@ -12,8 +12,8 @@ import info.nightscout.androidaps.diaconn.packet.*
 import info.nightscout.androidaps.events.EventPumpStatusChanged
 import info.nightscout.androidaps.extensions.notify
 import info.nightscout.androidaps.extensions.waitMillis
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import java.util.*
@@ -25,7 +25,7 @@ import javax.inject.Singleton
 class BLECommonService @Inject internal constructor(
     private val injector: HasAndroidInjector,
     private val aapsLogger: AAPSLogger,
-    private val resourceHelper: ResourceHelper,
+    private val rh: ResourceHelper,
     private val context: Context,
     private val rxBus: RxBus,
     private val diaconnG8ResponseMessageHashTable: DiaconnG8ResponseMessageHashTable,
@@ -44,8 +44,7 @@ class BLECommonService @Inject internal constructor(
     private var processedMessage: DiaconnG8Packet? = null
     private var processedMessageByte: ByteArray? = null
     private val mSendQueue = ArrayList<ByteArray>()
-    private var bluetoothManager: BluetoothManager? = null
-    private var bluetoothAdapter: BluetoothAdapter? = null
+    private val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
     private var connectDeviceName: String? = null
     private var bluetoothGatt: BluetoothGatt? = null
 
@@ -69,14 +68,6 @@ class BLECommonService @Inject internal constructor(
     @Synchronized
     fun connect(from: String, address: String?): Boolean {
         aapsLogger.debug(LTag.PUMPBTCOMM, "Initializing Bluetooth ")
-        if (bluetoothManager == null) {
-            bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-            if (bluetoothManager == null) {
-                aapsLogger.error("Unable to initialize BluetoothManager.")
-                return false
-            }
-        }
-        bluetoothAdapter = bluetoothManager?.adapter
         if (bluetoothAdapter == null) {
             aapsLogger.error("Unable to obtain a BluetoothAdapter.")
             return false
@@ -167,16 +158,18 @@ class BLECommonService @Inject internal constructor(
     @Synchronized
     private fun writeCharacteristicNoResponse(characteristic: BluetoothGattCharacteristic, data: ByteArray) {
         Thread(Runnable {
-            SystemClock.sleep(WRITE_DELAY_MILLIS)
-            if (bluetoothAdapter == null || bluetoothGatt == null) {
-                aapsLogger.error("BluetoothAdapter not initialized_ERROR")
-                isConnecting = false
-                isConnected = false
-                return@Runnable
+            synchronized(this) {
+                SystemClock.sleep(WRITE_DELAY_MILLIS)
+                if (bluetoothAdapter == null || bluetoothGatt == null) {
+                    aapsLogger.error("BluetoothAdapter not initialized_ERROR")
+                    isConnecting = false
+                    isConnected = false
+                    return@Runnable
+                }
+                characteristic.value = data
+                characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                bluetoothGatt?.writeCharacteristic(characteristic)
             }
-            characteristic.value = data
-            characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-            bluetoothGatt?.writeCharacteristic(characteristic)
         }).start()
         SystemClock.sleep(50)
     }
@@ -200,6 +193,7 @@ class BLECommonService @Inject internal constructor(
         return bluetoothGatt?.services
     }
 
+    @Synchronized
     private fun findCharacteristic() {
         val gattServices = getSupportedGattServices() ?: return
         var uuid: String
@@ -214,7 +208,7 @@ class BLECommonService @Inject internal constructor(
                     // nRF Connect 참고하여 추가함
                     val descriptor: BluetoothGattDescriptor = uartIndicate!!.getDescriptor(UUID.fromString(CHARACTERISTIC_CONFIG_UUID))
                     descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                    bluetoothGatt!!.writeDescriptor(descriptor)
+                    bluetoothGatt?.writeDescriptor(descriptor)
                 }
                 if (WRITE_UUID == uuid) {
                     uartWrite = gattCharacteristic
@@ -297,8 +291,8 @@ class BLECommonService @Inject internal constructor(
                 diaconnG8Pump.bolusBlocked = true
                 val i = Intent(context, ErrorHelperActivity::class.java)
                 i.putExtra("soundid", R.raw.boluserror)
-                i.putExtra("status", resourceHelper.gs(R.string.injectionblocked))
-                i.putExtra("title", resourceHelper.gs(R.string.injectionblocked))
+                i.putExtra("status", rh.gs(R.string.injectionblocked))
+                i.putExtra("title", rh.gs(R.string.injectionblocked))
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(i)
                 return
@@ -308,8 +302,8 @@ class BLECommonService @Inject internal constructor(
                 message.handleMessage(data)
                 val i = Intent(context, ErrorHelperActivity::class.java)
                 i.putExtra("soundid", R.raw.boluserror)
-                i.putExtra("status", resourceHelper.gs(R.string.needbatteryreplace))
-                i.putExtra("title", resourceHelper.gs(R.string.batterywarning))
+                i.putExtra("status", rh.gs(R.string.needbatteryreplace))
+                i.putExtra("title", rh.gs(R.string.batterywarning))
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(i)
                 return
@@ -320,8 +314,8 @@ class BLECommonService @Inject internal constructor(
                 message.handleMessage(data)
                 val i = Intent(context, ErrorHelperActivity::class.java)
                 i.putExtra("soundid", R.raw.boluserror)
-                i.putExtra("status", resourceHelper.gs(R.string.needinsullinreplace))
-                i.putExtra("title", resourceHelper.gs(R.string.insulinlackwarning))
+                i.putExtra("status", rh.gs(R.string.needinsullinreplace))
+                i.putExtra("title", rh.gs(R.string.insulinlackwarning))
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(i)
                 return

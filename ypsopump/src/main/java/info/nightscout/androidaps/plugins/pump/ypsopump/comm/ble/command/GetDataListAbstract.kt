@@ -1,9 +1,9 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command
 
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.YpsoGattCharacteristic
+import info.nightscout.shared.logging.LTag
 
 abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector,
                                       var targetDate: Long?,

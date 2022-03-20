@@ -1,8 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.comm
 
 import android.util.Log
-import info.nightscout.androidaps.logging.AAPSLoggerTest
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.HistoryEntryType
@@ -10,6 +9,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpFirmware
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
+import info.nightscout.shared.logging.AAPSLoggerTest
 import org.joda.time.DateTime
 import org.joda.time.LocalDateTime
 import org.junit.Assert

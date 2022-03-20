@@ -4,7 +4,7 @@ import androidx.collection.ArrayMap
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.PureProfile
 import info.nightscout.androidaps.extensions.pureProfileFromJson
-import info.nightscout.androidaps.logging.AAPSLogger
+import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.JsonHelper
 import org.json.JSONException
@@ -21,6 +21,8 @@ class ProfileStore(val injector: HasAndroidInjector, val data: JSONObject, val d
     }
 
     private val cachedObjects = ArrayMap<String, PureProfile>()
+
+    private fun storeUnits() : String? = JsonHelper.safeGetStringAllowNull(data, "units", null)
 
     private fun getStore(): JSONObject? {
         try {
@@ -61,14 +63,14 @@ class ProfileStore(val injector: HasAndroidInjector, val data: JSONObject, val d
 
     fun getSpecificProfile(profileName: String): PureProfile? {
         var profile: PureProfile? = null
-        val defaultUnits = JsonHelper.safeGetStringAllowNull(data, "units", null)
+        val units = JsonHelper.safeGetStringAllowNull(data, "units", storeUnits())
         getStore()?.let { store ->
             if (store.has(profileName)) {
                 profile = cachedObjects[profileName]
                 if (profile == null) {
                     JsonHelper.safeGetJSONObject(store, profileName, null)?.let { profileObject ->
-                        profile = pureProfileFromJson(profileObject, dateUtil, defaultUnits)
-                        cachedObjects[profileName] = profile
+                        profile = pureProfileFromJson(profileObject, dateUtil, units)
+                        profile?.let { cachedObjects[profileName] = profile }
                     }
                 }
             }

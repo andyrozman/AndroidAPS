@@ -5,7 +5,7 @@ import com.google.common.base.Optional
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.automation.R
 import info.nightscout.androidaps.interfaces.Profile
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.general.automation.elements.InputTime
 import info.nightscout.androidaps.plugins.general.automation.elements.InputWeekDay
 import info.nightscout.androidaps.plugins.general.automation.elements.LayoutBuilder
@@ -18,7 +18,7 @@ import java.util.*
 class TriggerRecurringTime(injector: HasAndroidInjector) : Trigger(injector) {
 
     val days = InputWeekDay()
-    val time = InputTime(resourceHelper, dateUtil)
+    val time = InputTime(rh, dateUtil)
 
     constructor(injector: HasAndroidInjector, triggerRecurringTime: TriggerRecurringTime) : this(injector) {
         this.time.value = triggerRecurringTime.time.value
@@ -72,16 +72,16 @@ class TriggerRecurringTime(injector: HasAndroidInjector) : Trigger(injector) {
 
     override fun friendlyDescription(): String {
         val sb = StringBuilder()
-        sb.append(resourceHelper.gs(R.string.every))
+        sb.append(rh.gs(R.string.every))
         sb.append(" ")
         var counter = 0
         for (i in days.getSelectedDays()) {
             if (counter++ > 0) sb.append(",")
-            sb.append(resourceHelper.gs(Objects.requireNonNull(InputWeekDay.DayOfWeek.fromCalendarInt(i)).shortName))
+            sb.append(rh.gs(Objects.requireNonNull(InputWeekDay.DayOfWeek.fromCalendarInt(i)).shortName))
         }
         sb.append(" ")
         sb.append(dateUtil.timeString(toMills(time.value)))
-        return if (counter == 0) resourceHelper.gs(R.string.never) else sb.toString()
+        return if (counter == 0) rh.gs(R.string.never) else sb.toString()
     }
 
     override fun icon(): Optional<Int?> = Optional.of(R.drawable.ic_access_alarm_24dp)
@@ -94,7 +94,7 @@ class TriggerRecurringTime(injector: HasAndroidInjector) : Trigger(injector) {
 
     override fun generateDialog(root: LinearLayout) {
         LayoutBuilder()
-            .add(StaticLabel(resourceHelper, R.string.recurringTime, this))
+            .add(StaticLabel(rh, R.string.recurringTime, this))
             .add(days)
             .add(time)
             .build(root)

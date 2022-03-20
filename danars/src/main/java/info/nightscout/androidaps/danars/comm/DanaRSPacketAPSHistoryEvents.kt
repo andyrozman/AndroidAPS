@@ -7,13 +7,13 @@ import info.nightscout.androidaps.danars.encryption.BleEncryption
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.events.EventPumpStatusChanged
 import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.bolusInfo.DetailedBolusInfoStorage
 import info.nightscout.androidaps.plugins.pump.common.bolusInfo.TemporaryBasalStorage
 import info.nightscout.androidaps.utils.T
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import javax.inject.Inject
@@ -24,7 +24,7 @@ open class DanaRSPacketAPSHistoryEvents(
 ) : DanaRSPacket(injector) {
 
     @Inject lateinit var rxBus: RxBus
-    @Inject lateinit var resourceHelper: ResourceHelper
+    @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var danaPump: DanaPump
     @Inject lateinit var detailedBolusInfoStorage: DetailedBolusInfoStorage
     @Inject lateinit var temporaryBasalStorage: TemporaryBasalStorage
@@ -361,7 +361,7 @@ open class DanaRSPacketAPSHistoryEvents(
             }
         }
         if (datetime > danaPump.lastEventTimeLoaded) danaPump.lastEventTimeLoaded = datetime
-        rxBus.send(EventPumpStatusChanged(resourceHelper.gs(R.string.processinghistory) + ": " + status))
+        rxBus.send(EventPumpStatusChanged(rh.gs(R.string.processinghistory) + ": " + status))
     }
 
     override val friendlyName: String = "APS_HISTORY_EVENTS"

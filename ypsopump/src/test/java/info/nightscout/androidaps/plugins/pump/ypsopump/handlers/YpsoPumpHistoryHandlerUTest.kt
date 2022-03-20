@@ -3,8 +3,6 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.handlers
 import android.util.Log
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.logging.AAPSLoggerTest
-import info.nightscout.androidaps.logging.LTag
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
@@ -14,6 +12,8 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.database.HistoryMapper
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistory
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
+import info.nightscout.shared.logging.AAPSLoggerTest
+import info.nightscout.shared.logging.LTag
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test

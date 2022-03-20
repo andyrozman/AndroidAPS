@@ -109,7 +109,7 @@ android {
     defaultConfig {
         multiDexEnabled true
         versionCode 1500
-        version "2.8.2.7-dev-ypso_andy"
+        version "2.8.2.18-dev-ypso_andy"
         buildConfigField "String", "VERSION", '"' + version + '"'
         buildConfigField "String", "BUILDVERSION", '"' + generateGitBuild() + '-' + generateDate() + '"'
         buildConfigField "String", "REMOTE", '"' + generateGitRemote() + '"'
@@ -129,7 +129,6 @@ android {
                     appIcon     : "@mipmap/ic_launcher",
                     appIconRound: "@mipmap/ic_launcher_round"
             ]
-            resValue("string", "PORT_NUMBER", "8084")
         }
         pumpcontrol {
             applicationId "info.nightscout.aapspumpcontrol"
@@ -163,7 +162,6 @@ android {
         }
     }
 
-
     useLibrary "org.apache.http.legacy"
 }
 
@@ -175,10 +173,10 @@ allprojects {
     }
 }
 
-
 dependencies {
     wearApp project(':wear')
 
+    implementation project(':shared')
     implementation project(':core')
     implementation project(':automation')
     implementation project(':combo')

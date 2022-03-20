@@ -13,13 +13,13 @@ import info.nightscout.androidaps.interfaces.BgSource
 import info.nightscout.androidaps.interfaces.PluginBase
 import info.nightscout.androidaps.interfaces.PluginDescription
 import info.nightscout.androidaps.interfaces.PluginType
-import info.nightscout.androidaps.logging.AAPSLogger
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.receivers.DataWorker
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.XDripBroadcast
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import org.json.JSONArray
 import org.json.JSONException
 import javax.inject.Inject
@@ -28,7 +28,7 @@ import javax.inject.Singleton
 @Singleton
 class MM640gPlugin @Inject constructor(
     injector: HasAndroidInjector,
-    resourceHelper: ResourceHelper,
+    rh: ResourceHelper,
     aapsLogger: AAPSLogger,
     private val sp: SP
 ) : PluginBase(PluginDescription()
@@ -37,7 +37,7 @@ class MM640gPlugin @Inject constructor(
     .pluginIcon(R.drawable.ic_generic_cgm)
     .pluginName(R.string.MM640g)
     .description(R.string.description_source_mm640g),
-    aapsLogger, resourceHelper, injector
+    aapsLogger, rh, injector
 ), BgSource {
 
     // cannot be inner class because of needed injection
@@ -52,7 +52,7 @@ class MM640gPlugin @Inject constructor(
         @Inject lateinit var dateUtil: DateUtil
         @Inject lateinit var dataWorker: DataWorker
         @Inject lateinit var repository: AppRepository
-        @Inject lateinit var broadcastToXDrip: XDripBroadcast
+        @Inject lateinit var xDripBroadcast: XDripBroadcast
 
         init {
             (context.applicationContext as HasAndroidInjector).androidInjector().inject(this)
@@ -61,7 +61,7 @@ class MM640gPlugin @Inject constructor(
         override fun doWork(): Result {
             var ret = Result.success()
 
-            if (!mM640gPlugin.isEnabled(PluginType.BGSOURCE)) return Result.success()
+            if (!mM640gPlugin.isEnabled()) return Result.success()
             val collection = inputData.getString("collection") ?: return Result.failure(workDataOf("Error" to "missing collection"))
             if (collection == "entries") {
                 val data = inputData.getString("data")
@@ -93,7 +93,7 @@ class MM640gPlugin @Inject constructor(
                             .blockingGet()
                             .also { savedValues ->
                                 savedValues.all().forEach {
-                                    broadcastToXDrip(it)
+                                    xDripBroadcast.send(it)
                                     aapsLogger.debug(LTag.DATABASE, "Inserted bg $it")
                                 }
                             }

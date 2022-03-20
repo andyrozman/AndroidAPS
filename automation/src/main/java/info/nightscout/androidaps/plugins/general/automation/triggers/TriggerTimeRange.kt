@@ -5,7 +5,7 @@ import com.google.common.base.Optional
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.automation.R
 import info.nightscout.androidaps.interfaces.Profile
-import info.nightscout.androidaps.logging.LTag
+import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.general.automation.elements.InputTimeRange
 import info.nightscout.androidaps.plugins.general.automation.elements.LayoutBuilder
 import info.nightscout.androidaps.plugins.general.automation.elements.StaticLabel
@@ -17,7 +17,7 @@ import org.json.JSONObject
 class TriggerTimeRange(injector: HasAndroidInjector) : Trigger(injector) {
 
     // in minutes since midnight 60 means 1AM
-    var range = InputTimeRange(resourceHelper, dateUtil)
+    var range = InputTimeRange(rh, dateUtil)
 
     constructor(injector: HasAndroidInjector, start: Int, end: Int) : this(injector) {
         range.start = start
@@ -64,7 +64,7 @@ class TriggerTimeRange(injector: HasAndroidInjector) : Trigger(injector) {
     override fun friendlyName(): Int = R.string.time_range
 
     override fun friendlyDescription(): String =
-        resourceHelper.gs(R.string.timerange_value, dateUtil.timeString(toMills(range.start)), dateUtil.timeString(toMills(range.end)))
+        rh.gs(R.string.timerange_value, dateUtil.timeString(toMills(range.start)), dateUtil.timeString(toMills(range.end)))
 
     override fun icon(): Optional<Int?> = Optional.of(R.drawable.ic_access_alarm_24dp)
 
@@ -76,7 +76,7 @@ class TriggerTimeRange(injector: HasAndroidInjector) : Trigger(injector) {
 
     override fun generateDialog(root: LinearLayout) {
         LayoutBuilder()
-            .add(StaticLabel(resourceHelper, R.string.time_range, this))
+            .add(StaticLabel(rh, R.string.time_range, this))
             .add(range)
             .build(root)
     }

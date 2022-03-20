@@ -7,44 +7,48 @@ import info.nightscout.androidaps.automation.R
 import info.nightscout.androidaps.data.PumpEnactResult
 import info.nightscout.androidaps.database.entities.OfflineEvent
 import info.nightscout.androidaps.interfaces.*
-import info.nightscout.androidaps.logging.AAPSLogger
+import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.general.automation.TestBaseWithProfile
 import info.nightscout.androidaps.plugins.general.automation.triggers.Trigger
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import info.nightscout.androidaps.utils.sharedPreferences.SP
+import info.nightscout.shared.sharedPreferences.SP
 import org.junit.Before
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
 
-open class ActionsTestBase : TestBaseWithProfile() {
+open class
+ActionsTestBase : TestBaseWithProfile() {
 
     open class TestLoopPlugin(
         aapsLogger: AAPSLogger,
-        resourceHelper: ResourceHelper,
+        rh: ResourceHelper,
         injector: HasAndroidInjector,
         pluginDescription: PluginDescription
     ) : PluginBase(
-        pluginDescription, aapsLogger, resourceHelper, injector
+        pluginDescription, aapsLogger, rh, injector
     ), Loop {
 
         private var suspended = false
         override var lastRun: Loop.LastRun? = Loop.LastRun()
         override val isSuspended: Boolean = suspended
+        override val isLGS: Boolean = false
+        override val isSuperBolus: Boolean = false
+        override val isDisconnected: Boolean = false
         override var enabled: Boolean
             get() = true
             set(_) {}
 
+        override fun invoke(initiator: String, allowNotification: Boolean, tempBasalFallback: Boolean) {}
+        override fun acceptChangeRequest() {}
         override fun minutesToEndOfSuspend(): Int = 0
-
-        override fun goToZeroTemp(durationInMinutes: Int, profile: Profile, reason: OfflineEvent.Reason) {
-        }
-
+        override fun goToZeroTemp(durationInMinutes: Int, profile: Profile, reason: OfflineEvent.Reason) {}
         override fun suspendLoop(durationInMinutes: Int) {}
+        override fun disableCarbSuggestions(durationMinutes: Int) {}
     }
 
     @Mock lateinit var sp: SP
-    @Mock lateinit var commandQueue: CommandQueueProvider
+    @Mock lateinit var commandQueue: CommandQueue
     @Mock lateinit var configBuilder: ConfigBuilder
     @Mock lateinit var activePlugin: ActivePlugin
     @Mock lateinit var profilePlugin: ProfileSource
@@ -59,14 +63,14 @@ open class ActionsTestBase : TestBaseWithProfile() {
         AndroidInjector {
             if (it is ActionStopTempTarget) {
                 it.aapsLogger = aapsLogger
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.dateUtil = dateUtil
                 it.repository = repository
                 it.uel = uel
             }
             if (it is ActionStartTempTarget) {
                 it.aapsLogger = aapsLogger
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.activePlugin = activePlugin
                 it.repository = repository
                 it.profileFunction = profileFunction
@@ -75,12 +79,12 @@ open class ActionsTestBase : TestBaseWithProfile() {
             }
             if (it is ActionSendSMS) {
                 it.aapsLogger = aapsLogger
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.smsCommunicatorPlugin = smsCommunicatorPlugin
             }
             if (it is ActionProfileSwitch) {
                 it.aapsLogger = aapsLogger
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.activePlugin = activePlugin
                 it.profileFunction = profileFunction
                 it.uel = uel
@@ -88,26 +92,26 @@ open class ActionsTestBase : TestBaseWithProfile() {
             }
             if (it is ActionProfileSwitchPercent) {
                 it.aapsLogger = aapsLogger
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.profileFunction = profileFunction
                 it.uel = uel
             }
             if (it is ActionNotification) {
                 it.aapsLogger = aapsLogger
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.rxBus = rxBus
             }
             if (it is ActionLoopSuspend) {
                 it.aapsLogger = aapsLogger
-                it.loopPlugin = loopPlugin
-                it.resourceHelper = resourceHelper
+                it.loop = loopPlugin
+                it.rh = rh
                 it.rxBus = rxBus
                 it.uel = uel
             }
             if (it is ActionLoopResume) {
                 it.aapsLogger = aapsLogger
                 it.loopPlugin = loopPlugin
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.configBuilder = configBuilder
                 it.rxBus = rxBus
                 it.repository = repository
@@ -117,7 +121,7 @@ open class ActionsTestBase : TestBaseWithProfile() {
             if (it is ActionLoopEnable) {
                 it.aapsLogger = aapsLogger
                 it.loopPlugin = loopPlugin
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.configBuilder = configBuilder
                 it.rxBus = rxBus
                 it.uel = uel
@@ -125,14 +129,14 @@ open class ActionsTestBase : TestBaseWithProfile() {
             if (it is ActionLoopDisable) {
                 it.aapsLogger = aapsLogger
                 it.loopPlugin = loopPlugin
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.configBuilder = configBuilder
                 it.commandQueue = commandQueue
                 it.rxBus = rxBus
                 it.uel = uel
             }
             if (it is ActionCarePortalEvent) {
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.repository = repository
                 it.sp = sp
                 it.dateUtil = dateUtil
@@ -140,10 +144,10 @@ open class ActionsTestBase : TestBaseWithProfile() {
                 it.uel = uel
             }
             if (it is PumpEnactResult) {
-                it.resourceHelper = resourceHelper
+                it.rh = rh
             }
             if (it is Trigger) {
-                it.resourceHelper = resourceHelper
+                it.rh = rh
                 it.profileFunction = profileFunction
             }
         }
@@ -151,13 +155,13 @@ open class ActionsTestBase : TestBaseWithProfile() {
 
     @Before
     fun mock() {
-        testPumpPlugin = TestPumpPlugin(pluginDescription, aapsLogger, resourceHelper, injector)
+        testPumpPlugin = TestPumpPlugin(pluginDescription, aapsLogger, rh, injector)
         `when`(activePlugin.activePump).thenReturn(testPumpPlugin)
         `when`(profileFunction.getUnits()).thenReturn(GlucoseUnit.MGDL)
         `when`(activePlugin.activeProfileSource).thenReturn(profilePlugin)
         `when`(profilePlugin.profile).thenReturn(getValidProfileStore())
 
-        `when`(resourceHelper.gs(R.string.ok)).thenReturn("OK")
-        `when`(resourceHelper.gs(R.string.error)).thenReturn("Error")
+        `when`(rh.gs(R.string.ok)).thenReturn("OK")
+        `when`(rh.gs(R.string.error)).thenReturn("Error")
     }
 }
