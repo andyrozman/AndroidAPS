@@ -31,7 +31,7 @@ import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
-import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxjava3.disposables.CompositeDisposable
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -92,7 +92,7 @@ abstract class PumpPluginAbstract protected constructor(
             disposable.add(rxBus
                                .toObservable(EventAppExit::class.java)
                                .observeOn(aapsSchedulers.io)
-                               .subscribe({ event: EventAppExit? -> context.unbindService(serviceConnection!!) }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) }
+                               .subscribe({ _ -> context.unbindService(serviceConnection!!) }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) }
             )
         }
         serviceRunning = true

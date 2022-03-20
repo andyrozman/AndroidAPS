@@ -24,8 +24,8 @@ import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.sharedPreferences.SP
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.rxkotlin.plusAssign
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -213,6 +213,7 @@ class OverviewPlugin @Inject constructor(
             .putDouble(R.string.key_statuslights_res_critical, sp, rh)
             .putDouble(R.string.key_statuslights_bat_warning, sp, rh)
             .putDouble(R.string.key_statuslights_bat_critical, sp, rh)
+            .putInt(R.string.key_boluswizard_percentage, sp, rh)
 
     override fun applyConfiguration(configuration: JSONObject) {
         configuration
@@ -240,6 +241,7 @@ class OverviewPlugin @Inject constructor(
             .storeDouble(R.string.key_statuslights_res_critical, sp, rh)
             .storeDouble(R.string.key_statuslights_bat_warning, sp, rh)
             .storeDouble(R.string.key_statuslights_bat_critical, sp, rh)
+            .storeInt(R.string.key_boluswizard_percentage, sp, rh)
     }
 
     @Volatile
@@ -255,7 +257,6 @@ class OverviewPlugin @Inject constructor(
         overviewBus.send(EventUpdateOverviewTemporaryBasal(from))
         overviewBus.send(EventUpdateOverviewExtendedBolus(from))
         overviewBus.send(EventUpdateOverviewTemporaryTarget(from))
-        overviewBus.send(EventUpdateOverviewSensitivity(from))
         loadAsData(from)
         overviewData.preparePredictions(from)
         overviewData.prepareBasalData(from)

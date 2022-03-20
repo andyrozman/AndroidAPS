@@ -31,7 +31,7 @@ class GetEvents(hasAndroidInjector: HasAndroidInjector?,
     }
 
     override fun isEntryInRange(event: EventDto): Boolean {
-        var inRange: Boolean = false
+        var inRange: Boolean
 
         if (targetDate != null) {
             inRange = event.dateTime.toATechDate() >= targetDate!!

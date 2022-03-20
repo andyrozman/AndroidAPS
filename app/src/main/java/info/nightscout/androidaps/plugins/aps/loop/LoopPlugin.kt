@@ -59,8 +59,8 @@ import info.nightscout.androidaps.plugins.aps.events.EventLoopInvoked
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.sharedPreferences.SP
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.rxkotlin.plusAssign
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
@@ -524,7 +524,17 @@ class LoopPlugin @Inject constructor(
         aapsLogger.debug(LTag.APS, "applyAPSRequest: $request")
         val now = System.currentTimeMillis()
         val activeTemp = iobCobCalculator.getTempBasalIncludingConvertedExtended(now)
-        if (request.usePercent && allowPercentage()) {
+        if (request.rate == 0.0 && request.duration == 0 || abs(request.rate - pump.baseBasalRate) < pump.pumpDescription.basalStep) {
+            if (activeTemp != null) {
+                aapsLogger.debug(LTag.APS, "applyAPSRequest: cancelTempBasal()")
+                uel.log(Action.CANCEL_TEMP_BASAL, Sources.Loop)
+                commandQueue.cancelTempBasal(false, callback)
+            } else {
+                aapsLogger.debug(LTag.APS, "applyAPSRequest: Basal set correctly")
+                callback?.result(PumpEnactResult(injector).absolute(request.rate).duration(0)
+                                     .enacted(false).success(true).comment(R.string.basal_set_correctly))?.run()
+            }
+        } else if (request.usePercent && allowPercentage()) {
             if (request.percent == 100 && request.duration == 0) {
                 if (activeTemp != null) {
                     aapsLogger.debug(LTag.APS, "applyAPSRequest: cancelTempBasal()")
@@ -548,17 +558,7 @@ class LoopPlugin @Inject constructor(
                 commandQueue.tempBasalPercent(request.percent, request.duration, false, profile, PumpSync.TemporaryBasalType.NORMAL, callback)
             }
         } else {
-            if (request.rate == 0.0 && request.duration == 0 || abs(request.rate - pump.baseBasalRate) < pump.pumpDescription.basalStep) {
-                if (activeTemp != null) {
-                    aapsLogger.debug(LTag.APS, "applyAPSRequest: cancelTempBasal()")
-                    uel.log(Action.CANCEL_TEMP_BASAL, Sources.Loop)
-                    commandQueue.cancelTempBasal(false, callback)
-                } else {
-                    aapsLogger.debug(LTag.APS, "applyAPSRequest: Basal set correctly")
-                    callback?.result(PumpEnactResult(injector).absolute(request.rate).duration(0)
-                        .enacted(false).success(true).comment(R.string.basal_set_correctly))?.run()
-                }
-            } else if (activeTemp != null && activeTemp.plannedRemainingMinutes > 5 && request.duration - activeTemp.plannedRemainingMinutes < 30 && abs(request.rate - activeTemp.convertedToAbsolute(now, profile)) < pump.pumpDescription.basalStep) {
+            if (activeTemp != null && activeTemp.plannedRemainingMinutes > 5 && request.duration - activeTemp.plannedRemainingMinutes < 30 && abs(request.rate - activeTemp.convertedToAbsolute(now, profile)) < pump.pumpDescription.basalStep) {
                 aapsLogger.debug(LTag.APS, "applyAPSRequest: Temp basal set correctly")
                 callback?.result(PumpEnactResult(injector).absolute(activeTemp.convertedToAbsolute(now, profile))
                     .enacted(false).success(true).duration(activeTemp.plannedRemainingMinutes)

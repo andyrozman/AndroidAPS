@@ -20,7 +20,9 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.GravityCompat
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayoutMediator
 import com.google.firebase.crashlytics.FirebaseCrashlytics
@@ -55,8 +57,8 @@ import info.nightscout.androidaps.utils.tabs.TabPageAdapter
 import info.nightscout.androidaps.utils.ui.UIRunnable
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.rxkotlin.plusAssign
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
 import java.util.*
 import javax.inject.Inject
 import kotlin.system.exitProcess
@@ -87,7 +89,8 @@ class MainActivity : NoSplashAppCompatActivity() {
     private lateinit var actionBarDrawerToggle: ActionBarDrawerToggle
     private var pluginPreferencesMenuItem: MenuItem? = null
     private var menu: Menu? = null
-
+    private var menuOpen = false
+    private var isProtectionCheckActive = false
     private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -166,10 +169,13 @@ class MainActivity : NoSplashAppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        protectionCheck.queryProtection(this, ProtectionCheck.Protection.APPLICATION, null,
-                                        UIRunnable { OKDialog.show(this, "", rh.gs(R.string.authorizationfailed)) { finish() } },
-                                        UIRunnable { OKDialog.show(this, "", rh.gs(R.string.authorizationfailed)) { finish() } }
-        )
+        if (!isProtectionCheckActive) {
+            isProtectionCheckActive = true
+            protectionCheck.queryProtection(this, ProtectionCheck.Protection.APPLICATION, UIRunnable { isProtectionCheckActive = false },
+                                            UIRunnable { OKDialog.show(this, "", rh.gs(R.string.authorizationfailed)) { isProtectionCheckActive = false; finish() } },
+                                            UIRunnable { OKDialog.show(this, "", rh.gs(R.string.authorizationfailed)) { isProtectionCheckActive = false; finish() } }
+            )
+        }
     }
 
     private fun setWakeLock() {
@@ -258,9 +264,18 @@ class MainActivity : NoSplashAppCompatActivity() {
     }
 
     override fun onMenuOpened(featureId: Int, menu: Menu): Boolean {
+        menuOpen = true
+        if (binding.mainDrawerLayout.isDrawerOpen(GravityCompat.START)) {
+            binding.mainDrawerLayout.closeDrawers()
+        }
         val result = super.onMenuOpened(featureId, menu)
         menu.findItem(R.id.nav_treatments)?.isEnabled = profileFunction.getProfile() != null
         return result
+    }
+
+    override fun onPanelClosed(featureId: Int, menu: Menu) {
+        menuOpen = false;
+        super.onPanelClosed(featureId, menu)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -309,7 +324,7 @@ class MainActivity : NoSplashAppCompatActivity() {
                 message += rh.gs(R.string.about_link_urls)
                 val messageSpanned = SpannableString(message)
                 Linkify.addLinks(messageSpanned, Linkify.WEB_URLS)
-                AlertDialog.Builder(this)
+                AlertDialog.Builder(this, R.style.DialogTheme)
                     .setTitle(rh.gs(R.string.app_name) + " " + BuildConfig.VERSION)
                     .setIcon(iconsProvider.getIcon())
                     .setMessage(messageSpanned)
@@ -359,6 +374,22 @@ class MainActivity : NoSplashAppCompatActivity() {
         return actionBarDrawerToggle.onOptionsItemSelected(item)
     }
 
+    override fun onBackPressed() {
+        if (binding.mainDrawerLayout.isDrawerOpen(GravityCompat.START)) {
+            binding.mainDrawerLayout.closeDrawers()
+            return
+        }
+        if (menuOpen) {
+            this.menu?.close()
+            return
+        }
+        if (binding.mainPager.currentItem != 0) {
+            binding.mainPager.currentItem = 0
+            return
+        }
+        super.onBackPressed()
+    }
+
     // Correct place for calling setUserStats() would be probably MainApp
     // but we need to have it called at least once a day. Thus this location
 
@@ -390,6 +421,8 @@ class MainActivity : NoSplashAppCompatActivity() {
         // Add to crash log too
         FirebaseCrashlytics.getInstance().setCustomKey("HEAD", BuildConfig.HEAD)
         FirebaseCrashlytics.getInstance().setCustomKey("Version", BuildConfig.VERSION)
+        FirebaseCrashlytics.getInstance().setCustomKey("BuildType", BuildConfig.BUILD_TYPE)
+        FirebaseCrashlytics.getInstance().setCustomKey("BuildFlavor", BuildConfig.FLAVOR)
         FirebaseCrashlytics.getInstance().setCustomKey("Remote", remote)
         FirebaseCrashlytics.getInstance().setCustomKey("Committed", BuildConfig.COMMITTED)
         FirebaseCrashlytics.getInstance().setCustomKey("Hash", hashes[0])

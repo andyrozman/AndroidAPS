@@ -1,7 +1,6 @@
 package info.nightscout.androidaps.plugins.general.food
 
 import android.annotation.SuppressLint
-import android.graphics.Paint
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -22,25 +21,27 @@ import info.nightscout.androidaps.database.entities.ValueWithUnit
 import info.nightscout.androidaps.database.transactions.InvalidateFoodTransaction
 import info.nightscout.androidaps.databinding.FoodFragmentBinding
 import info.nightscout.androidaps.databinding.FoodItemBinding
+import info.nightscout.androidaps.dialogs.WizardDialog
 import info.nightscout.androidaps.events.EventFoodDatabaseChanged
-import info.nightscout.shared.logging.AAPSLogger
-import info.nightscout.shared.logging.LTag
+import info.nightscout.androidaps.extensions.toVisibility
 import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.general.nsclient.events.EventNSClientRestart
 import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
-import info.nightscout.androidaps.extensions.toVisibility
+import info.nightscout.androidaps.utils.protection.ProtectionCheck
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
-import io.reactivex.Completable
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.rxkotlin.plusAssign
-import io.reactivex.rxkotlin.subscribeBy
+import info.nightscout.androidaps.utils.ui.UIRunnable
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
+import io.reactivex.rxjava3.kotlin.subscribeBy
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import kotlin.collections.ArrayList
 
 class FoodFragment : DaggerFragment() {
 
@@ -51,6 +52,7 @@ class FoodFragment : DaggerFragment() {
     @Inject lateinit var fabricPrivacy: FabricPrivacy
     @Inject lateinit var repository: AppRepository
     @Inject lateinit var uel: UserEntryLogger
+    @Inject lateinit var protectionCheck: ProtectionCheck
 
     private val disposable = CompositeDisposable()
     private var unfiltered: List<Food> = arrayListOf()
@@ -62,10 +64,8 @@ class FoodFragment : DaggerFragment() {
     // onDestroyView.
     private val binding get() = _binding!!
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        _binding = FoodFragmentBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+        FoodFragmentBinding.inflate(inflater, container, false).also { _binding = it }.root
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -76,8 +76,10 @@ class FoodFragment : DaggerFragment() {
         binding.refreshFromNightscout.setOnClickListener {
             context?.let { context ->
                 OKDialog.showConfirmation(context, rh.gs(R.string.refresheventsfromnightscout) + " ?", {
-                    uel.log(Action.FOOD, Sources.Food, rh.gs(R.string.refresheventsfromnightscout),
-                        ValueWithUnit.SimpleString(rh.gsNotLocalised(R.string.refresheventsfromnightscout)))
+                    uel.log(
+                        Action.FOOD, Sources.Food, rh.gs(R.string.refresheventsfromnightscout),
+                        ValueWithUnit.SimpleString(rh.gsNotLocalised(R.string.refresheventsfromnightscout))
+                    )
                     disposable += Completable.fromAction { repository.deleteAllFoods() }
                         .subscribeOn(aapsSchedulers.io)
                         .observeOn(aapsSchedulers.main)
@@ -93,30 +95,12 @@ class FoodFragment : DaggerFragment() {
 
         binding.clearfilter.setOnClickListener {
             binding.filter.setText("")
-            binding.category.setSelection(0)
-            binding.subcategory.setSelection(0)
+            binding.categoryList.setText(rh.gs(R.string.none), false)
+            binding.subcategoryList.setText(rh.gs(R.string.none), false)
             filterData()
         }
-        binding.category.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                fillSubcategories()
-                filterData()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                fillSubcategories()
-                filterData()
-            }
-        }
-        binding.subcategory.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                filterData()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                filterData()
-            }
-        }
+        binding.categoryList.onItemClickListener = AdapterView.OnItemClickListener { _, _, _, _ -> fillSubcategories(); filterData() }
+        binding.subcategoryList.onItemClickListener = AdapterView.OnItemClickListener { _, _, _, _ -> filterData() }
         binding.filter.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
@@ -130,12 +114,11 @@ class FoodFragment : DaggerFragment() {
     @Synchronized
     override fun onResume() {
         super.onResume()
-        disposable.add(rxBus
+        disposable += rxBus
             .toObservable(EventFoodDatabaseChanged::class.java)
             .observeOn(aapsSchedulers.main)
             .debounce(1L, TimeUnit.SECONDS)
             .subscribe({ swapAdapter() }, fabricPrivacy::logException)
-        )
         swapAdapter()
     }
 
@@ -174,13 +157,13 @@ class FoodFragment : DaggerFragment() {
         val categories = ArrayList(catSet)
         categories.add(0, rh.gs(R.string.none))
         context?.let { context ->
-            val adapterCategories = ArrayAdapter(context, R.layout.spinner_centered, categories)
-            binding.category.adapter = adapterCategories
+            binding.categoryList.setAdapter(ArrayAdapter(context, R.layout.spinner_centered, categories))
+            binding.categoryList.setText(rh.gs(R.string.none), false)
         }
     }
 
     private fun fillSubcategories() {
-        val categoryFilter = binding.category.selectedItem.toString()
+        val categoryFilter = binding.categoryList.text.toString()
         val subCatSet: MutableSet<CharSequence> = HashSet()
         if (categoryFilter != rh.gs(R.string.none)) {
             for (f in unfiltered) {
@@ -194,17 +177,15 @@ class FoodFragment : DaggerFragment() {
         val subcategories = ArrayList(subCatSet)
         subcategories.add(0, rh.gs(R.string.none))
         context?.let { context ->
-            val adapterSubcategories = ArrayAdapter(context, R.layout.spinner_centered, subcategories)
-            binding.subcategory.adapter = adapterSubcategories
+            binding.subcategoryList.setAdapter(ArrayAdapter(context, R.layout.spinner_centered, subcategories))
+            binding.subcategoryList.setText(rh.gs(R.string.none), false)
         }
     }
 
     private fun filterData() {
         val textFilter = binding.filter.text.toString()
-        val categoryFilter = binding.category.selectedItem?.toString()
-            ?: rh.gs(R.string.none)
-        val subcategoryFilter = binding.subcategory.selectedItem?.toString()
-            ?: rh.gs(R.string.none)
+        val categoryFilter = binding.categoryList.text.toString()
+        val subcategoryFilter = binding.subcategoryList.text.toString()
         val newFiltered = ArrayList<Food>()
         for (f in unfiltered) {
             if (f.category == null || f.subCategory == null) continue
@@ -229,7 +210,6 @@ class FoodFragment : DaggerFragment() {
         @SuppressLint("SetTextI18n")
         override fun onBindViewHolder(holder: FoodsViewHolder, position: Int) {
             val food = foodList[position]
-            holder.binding.nsSign.visibility = (food.interfaceIDs.nightscoutId != null).toVisibility()
             holder.binding.name.text = food.name
             holder.binding.portion.text = food.portion.toString() + food.unit
             holder.binding.carbs.text = food.carbs.toString() + rh.gs(R.string.shortgramm)
@@ -239,7 +219,9 @@ class FoodFragment : DaggerFragment() {
             holder.binding.protein.visibility = food.protein.isNotZero().toVisibility()
             holder.binding.energy.text = rh.gs(R.string.shortenergy) + ": " + food.energy + rh.gs(R.string.shortkilojoul)
             holder.binding.energy.visibility = food.energy.isNotZero().toVisibility()
-            holder.binding.remove.tag = food
+            holder.binding.icRemove.tag = food
+            holder.binding.foodItem.tag = food
+            holder.binding.icCalculator.tag = food
         }
 
         override fun getItemCount(): Int = foodList.size
@@ -249,7 +231,7 @@ class FoodFragment : DaggerFragment() {
             val binding = FoodItemBinding.bind(itemView)
 
             init {
-                binding.remove.setOnClickListener { v: View ->
+                binding.icRemove.setOnClickListener { v: View ->
                     val food = v.tag as Food
                     activity?.let { activity ->
                         OKDialog.showConfirmation(activity, rh.gs(R.string.removerecord) + "\n" + food.name, {
@@ -262,7 +244,20 @@ class FoodFragment : DaggerFragment() {
                         }, null)
                     }
                 }
-                binding.remove.paintFlags = binding.remove.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+                binding.icCalculator.setOnClickListener { v: View ->
+                    val food = v.tag as Food
+                    activity?.let { activity ->
+                        protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable {
+                            if (isAdded)
+                                WizardDialog().also { dialog ->
+                                    dialog.arguments = Bundle().also { bundle ->
+                                        bundle.putDouble("carbs_input", food.carbs.toDouble())
+                                        bundle.putString("notes_input", " ${food.name} - ${food.carbs}g")
+                                    }
+                                }.show(childFragmentManager, "Food Item")
+                        })
+                    }
+                }
             }
         }
     }

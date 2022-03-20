@@ -22,6 +22,7 @@ import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.configBuilder.ConstraintChecker
 import info.nightscout.androidaps.plugins.general.maintenance.PrefFileListProvider
 import info.nightscout.androidaps.queue.commands.*
+import info.nightscout.androidaps.utils.AndroidPermission
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.buildHelper.BuildHelper
@@ -29,7 +30,7 @@ import info.nightscout.androidaps.utils.buildHelper.BuildHelperImpl
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.sharedPreferences.SP
-import io.reactivex.Single
+import io.reactivex.rxjava3.core.Single
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -46,6 +47,7 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
     @Mock lateinit var powerManager: PowerManager
     @Mock lateinit var repository: AppRepository
     @Mock lateinit var fileListProvider: PrefFileListProvider
+    @Mock lateinit var androidPermission: AndroidPermission
 
     class CommandQueueMocked(
         injector: HasAndroidInjector,
@@ -62,9 +64,10 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         dateUtil: DateUtil,
         repository: AppRepository,
         fabricPrivacy: FabricPrivacy,
-        config: Config
+        config: Config,
+        androidPermission: AndroidPermission
     ) : CommandQueueImplementation(injector, aapsLogger, rxBus, aapsSchedulers, rh, constraintChecker, profileFunction,
-                                   activePlugin, context, sp, buildHelper, dateUtil, repository, fabricPrivacy, config) {
+                                   activePlugin, context, sp, buildHelper, dateUtil, repository, fabricPrivacy, config, androidPermission) {
 
         override fun notifyAboutNewCommand() {}
 
@@ -107,7 +110,7 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
                                           constraintChecker, profileFunction, activePlugin, context, sp,
                                          BuildHelperImpl(config, fileListProvider), dateUtil,
                                           repository,
-                                          fabricPrivacy, config)
+                                          fabricPrivacy, config, androidPermission)
         testPumpPlugin = TestPumpPlugin(injector)
 
         testPumpPlugin.pumpDescription.basalMinimumRate = 0.1
@@ -134,6 +137,7 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         val percentageConstraint = Constraint(0)
         `when`(constraintChecker.applyBasalPercentConstraints(anyObject(), anyObject())).thenReturn(percentageConstraint)
         `when`(rh.gs(R.string.connectiontimedout)).thenReturn("Connection timed out")
+        `when`(rh.gs(R.string.formatinsulinunits)).thenReturn("%1\$.2f U")
     }
 
     @Test
@@ -142,7 +146,7 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
                                                       constraintChecker, profileFunction, activePlugin, context, sp,
                                                       BuildHelperImpl(config, fileListProvider),
                                                       dateUtil, repository,
-                                                      fabricPrivacy, config)
+                                                      fabricPrivacy, config, androidPermission)
         // start with empty queue
         Assert.assertEquals(0, commandQueue.size())
 

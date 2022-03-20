@@ -9,8 +9,6 @@ import info.nightscout.androidaps.annotations.OpenForTesting
 import info.nightscout.androidaps.automation.R
 import info.nightscout.androidaps.events.*
 import info.nightscout.androidaps.interfaces.*
-import info.nightscout.shared.logging.AAPSLogger
-import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.configBuilder.ConstraintChecker
 import info.nightscout.androidaps.plugins.general.automation.actions.*
@@ -24,9 +22,11 @@ import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.T
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.rxkotlin.plusAssign
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -115,11 +115,9 @@ class AutomationPlugin @Inject constructor(
         disposable += rxBus
             .toObservable(EventLocationChange::class.java)
             .observeOn(aapsSchedulers.io)
-            .subscribe({ e ->
-                           e?.let {
-                               aapsLogger.debug(LTag.AUTOMATION, "Grabbed location: $it.location.latitude $it.location.longitude Provider: $it.location.provider")
-                               processActions()
-                           }
+            .subscribe({
+                           aapsLogger.debug(LTag.AUTOMATION, "Grabbed location: ${it.location.latitude} ${it.location.longitude} Provider: ${it.location.provider}")
+                           processActions()
                        }, fabricPrivacy::logException)
         disposable += rxBus
             .toObservable(EventChargingState::class.java)
@@ -171,14 +169,14 @@ class AutomationPlugin @Inject constructor(
                 val array = JSONArray(data)
                 for (i in 0 until array.length()) {
                     val o = array.getJSONObject(i)
-                    val event = AutomationEvent(injector).fromJSON(o.toString())
+                    val event = AutomationEvent(injector).fromJSON(o.toString(), i)
                     automationEvents.add(event)
                 }
             } catch (e: JSONException) {
                 e.printStackTrace()
             }
         else
-            automationEvents.add(AutomationEvent(injector).fromJSON(event))
+            automationEvents.add(AutomationEvent(injector).fromJSON(event, 0))
     }
 
     @Synchronized
@@ -230,7 +228,7 @@ class AutomationPlugin @Inject constructor(
             val actions = event.actions
             for (action in actions) {
                 action.title = event.title
-                if (action.isValid())
+                if (action.isValid()) {
                     action.doAction(object : Callback() {
                         override fun run() {
                             val sb = StringBuilder()
@@ -248,7 +246,8 @@ class AutomationPlugin @Inject constructor(
                             rxBus.send(EventAutomationUpdateGui())
                         }
                     })
-                else {
+                    SystemClock.sleep(3000)
+                } else {
                     executionLog.add("Invalid action: ${action.shortDescription()}")
                     aapsLogger.debug(LTag.AUTOMATION, "Invalid action: ${action.shortDescription()}")
                     rxBus.send(EventAutomationUpdateGui())
@@ -277,7 +276,7 @@ class AutomationPlugin @Inject constructor(
 
     @Synchronized
     fun removeIfExists(event: AutomationEvent) {
-        for (e in automationEvents) {
+        for (e in automationEvents.reversed()) {
             if (event.title == e.title) {
                 automationEvents.remove(e)
                 rxBus.send(EventAutomationDataChanged())
@@ -300,14 +299,15 @@ class AutomationPlugin @Inject constructor(
     @Synchronized
     fun at(index: Int) = automationEvents[index]
 
+    @Synchronized
     fun size() = automationEvents.size
 
     @Synchronized
     fun swap(fromPosition: Int, toPosition: Int) {
         Collections.swap(automationEvents, fromPosition, toPosition)
-        rxBus.send(EventAutomationDataChanged())
     }
 
+    @Synchronized
     fun userEvents(): List<AutomationEvent> {
         val list = mutableListOf<AutomationEvent>()
         val iterator: MutableIterator<AutomationEvent> = automationEvents.iterator()

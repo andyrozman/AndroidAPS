@@ -57,6 +57,7 @@
     <string name="treatments_wizard_tt_label">AT</string>
     <string name="treatments_wizard_carbs_label">Hidratos</string>
     <string name="treatments_wizard_correction_label">Corr</string>
+    <string name="bolus_iob_label">Bólus - IA</string>
     <string name="openapsma_run">Executar agora</string>
     <string name="vitualpump_label">BOMBA VIRTUAL</string>
     <string name="openapsma_lastrun_label">Última execução</string>
@@ -95,6 +96,7 @@
     <string name="safety">Segurança</string>
     <string name="openapsma_disabled">Plugin está desativado</string>
     <string name="constraints_violation">Violação das restrições</string>
+    <string name="treatmentdeliveryerror">Ocorreu um erro de bólus. Verifique manualmente a quantidade administrada</string>
     <string name="setbasalquestion">Aceitar nova basal temporária:</string>
     <string name="overview_treatment_label">Tratamento</string>
     <string name="overview_calculator_label">Calculadora</string>
@@ -120,7 +122,9 @@
     <string name="careportal_newnstreatment_other">Outro</string>
     <string name="careportal_newnstreatment_meter">Medidor</string>
     <string name="careportal_newnstreatment_sensor">Sensor</string>
+    <string name="carb_time_label">Hora dos Hidratos</string>
     <string name="careportal_newnstreatment_duration_label">Duração</string>
+    <string name="profile_label">Perfil</string>
     <string name="careportal_newnstreatment_glucosetype">Tipo de Glicose</string>
     <string name="overview_tempbasal_button">Basal Temporária</string>
     <string name="overview_extendedbolus_button">Bólus Prolongado</string>
@@ -157,7 +161,6 @@
     <string name="end_user_license_agreement">Condições de Utilização</string>
     <string name="end_user_license_agreement_text">NÃO DEVE SER USADO PARA FAZER DECISÕES MÉDICAS. NÃO HÁ NENHUMA GARANTIA PARA O PROGRAMA, NA EXTENSÃO PERMITIDA PELA LEGISLAÇÃO APLICÁVEL. EXCEPTO QUANDO DE OUTRA FORMA, POR ESCRITO, OS TITULARES DOS DIREITOS DE AUTOR E / OU OUTRAS PARTES FORNECEM O PROGRAMA “TAL COMO ESTÁ”, SEM GARANTIA DE QUALQUER TIPO, EXPRESSA OU IMPLÍCITA, INCLUINDO, MAS NÃO SE LIMITANDO, ÀS GARANTIAS IMPLÍCITAS DE COMERCIALIZAÇÃO E ADEQUAÇÃO A UMA FINALIDADE ESPECÍFICA. TODO O RISCO QUANTO À QUALIDADE E DESEMPENHO DO PROGRAMA É CONSIGO. CASO O PROGRAMA SEJA DEFEITUOSO, ASSUME O CUSTO DE TODOS OS SERVIÇOS, REPAROS OU CORREÇÕES NECESSÁRIOS.</string>
     <string name="end_user_license_agreement_i_understand">EU ENTENDO E CONCORDO</string>
-    <string name="save">Guardar</string>
     <string name="reloadprofile">Recarregar perfil</string>
     <string name="smscommunicator">Comunicador SMS</string>
     <string name="smscommunicator_allowednumbers">Número de telefones permitidos</string>
@@ -242,7 +245,6 @@
     <string name="wear">Wear</string>
     <string name="resend_all_data">Reenviar Todos os Dados</string>
     <string name="open_settings_on_wear">Abrir Definições no Relógio</string>
-    <string name="basal_rate">Taxa da Basal:</string>
     <string name="basalvaluebelowminimum">Valor da basal abaixo do mínimo. Perfil não definido!</string>
     <string name="sms_actualbg">Glicose:</string>
     <string name="sms_lastbg">Ultima Gli:</string>
@@ -251,6 +253,7 @@
     <string name="ongoingnotificaction">Notificação em curso</string>
     <string name="old_data">DADOS ANTIGOS</string>
     <string name="sms_minago">%1$dmin atrás</string>
+    <string name="localprofile">Perfil</string>
     <string name="openapsama">OpenAPS AMA</string>
     <string name="array_of_elements">Array de %1$d elementos.\nValor actual:</string>
     <string name="openapsma_autosensdata_label">Dados Autosens</string>
@@ -350,6 +353,7 @@
     <string name="smscommunicator_wrongduration">Duração errada</string>
     <string name="smscommunicator_loopsuspended">Loop suspenso</string>
     <string name="smscommunicator_loopresumed">Loop retomado</string>
+    <string name="bg_trend_label">Tendência 15 min</string>
     <string name="treatments_wizard_cob_label">HCA</string>
     <string name="superbolus">Superbólus</string>
     <string name="ns_logappstartedevent">Registar inicio da app no NS</string>
@@ -421,8 +425,6 @@
     <string name="keep_screen_on_summary">Impedir Android de desligar o ecrã. Isto irá consumir muita bateria quando não ligado ao carregador.</string>
     <string name="sensitivity_warning">Ao activar a função Autosense lembre-se de introduzir todos os hidratos de carbono (HC) que comeu. Caso contrário os desvios de hidratos serão erroneamente identificados como uma variação da sensibilidade !!</string>
     <string name="sensitivityweightedaverage">Média ponderada da Sensibilidade</string>
-    <string name="mdtp_ok">OK</string>
-    <string name="mdtp_cancel">Cancelar</string>
     <string name="notloadedplugins">Nem todos perfis foram carregados!</string>
     <string name="valuesnotstored">Valores não guardados!</string>
     <string name="ns_localbroadcasts">Activar transmissões para outras aplicações (como xDrip+). Não habilite se tiver mais de uma instância de AAPS ou ClienteNS instalado!</string>
@@ -486,6 +488,7 @@
     <string name="dexcomg5_xdripupload_title">Enviar dados Glicose para xDrip+</string>
     <string name="dexcomg5_xdripupload_summary">Seleccionar 640g/Eversense como fonte no xDrip+</string>
     <string name="nsclientbg">Glicose ClienteNS</string>
+    <string name="nsclientbgshort">Glicemia do NS</string>
     <string name="overview_editquickwizard_usebg">Cálculos Glicose</string>
     <string name="overview_editquickwizard_usebolusiob">Cálculo de Bólus IA</string>
     <string name="overview_editquickwizard_usebasaliob">Cálculo de Basal IA</string>
@@ -514,6 +517,8 @@
     <string name="enablesmbwithhightemptarget_summary">Activar SMB quando há alvo temporário elevado activo (exercício, acima de 100 mg/dl ou 5,5 mmol/l)</string>
     <string name="overview_insulin_label">Bólus</string>
     <string name="overview_buttons_selection">Botões</string>
+    <string name="show_calibration_button_summary">Envia a calibração para o xDrip+ ou abre o diálogo de calibração do BYODA</string>
+    <string name="show_cgm_button_summary">Abre xDrip+ ou BYODA, botão voltar retorna à AAPS</string>
     <string name="carb_increment_button_message">Número de hidratos de carbono a adicionar quando o botão é premido</string>
     <string name="insulin_increment_button_message">Unidades de insulina a adicionar quando o botão é premido</string>
     <string name="error_starting_cgm">Não foi possível lançar aplicação de monitorização contínua. Por favor verifique que está instalada.</string>
@@ -619,6 +624,7 @@
     <string name="exitwizard">Saltar assistente de configuração</string>
     <string name="setupwizard_loop_description">Pressione o botão abaixo para permitir que a AndroidAPS sugira/faça alterações nas basais</string>
     <string name="setupwizard_sensitivity_description">Plugin de Sensibilidade é usado para deteção de sensibilidade e cálculos HCA. Para mais info visite:</string>
+    <string name="setupwizard_sensitivity_url">https://androidaps.readthedocs.io/en/latest/Configuration/Sensitivity-detection-and-COB.html</string>
     <string name="nsclientinfotext">ClienteNS gere a ligação ao Nightscout. Pode saltar esta parte mas não será possível passar os objectivos até que o configure.</string>
     <string name="diawarning">Lembre-se: novos perfis de insulina requerem diâmetro de pelo menos 5h. DIA 5–6h no novo perfil é igual ao diâmetro 3h nos antigos perfis de insulina.</string>
     <string name="setupwizard_aps_description">Seleccione um dos algoritmos disponíveis. Eles são classificados do mais antigo para o mais recente. Algoritmo mais recente é geralmente mais forte e mais agressivo. Assim, se é novo looper, poderá provavelmente começar com AMA e não com a versão mais recente. Não se esqueça de ler a documentação de OpenAPS e configurá-lo antes de utilizar.</string>
@@ -630,6 +636,7 @@
     <string name="needsystemwindowpermission">Aplicação precisa de permissão de janela do sistema para notificações</string>
     <string name="needlocationpermission">Aplicação necessita de permissão de localização para pesquisa Bluetooth e identificação Wi-Fi</string>
     <string name="needstoragepermission">A aplicação precisa da permissão de armazenamento para poder armazenar ficheiros de registo e exportar definições</string>
+    <string name="needconnectpermission">Aplicação precisa de permissão Bluetooth</string>
     <string name="request">Pedido</string>
     <string name="open_navigation">Abrir a navegação</string>
     <string name="close_navigation">Fechar a navegação</string>
@@ -639,6 +646,8 @@
     <string name="time_elapsed">Tempo decorrido</string>
     <string name="poctech">Poctech</string>
     <string name="description_source_poctech">Receber valores Glucose da app Poctech</string>
+    <string name="glunovo">Glunovo</string>
+    <string name="description_source_glunovo">Receber valores do aplicativo Glunovo</string>
     <string name="description_source_tomato">Receber valores de Glicose da app Tomato (dispositivo MiaoMiao)</string>
     <string name="high_temptarget_raises_sensitivity_title">Alto alvotempo aumenta sensibilidade</string>
     <string name="high_temptarget_raises_sensitivity_summary"><![CDATA[Aumentar sensibilidade para alvostemp >= 100]]></string>
@@ -667,6 +676,7 @@
     <string name="resettodefaults">Repor definições por defeito</string>
     <string name="nsmalfunction">Erro de funcionamento do ClienteNS. Pondere reiniciar o NS e ClienteNS.</string>
     <string name="time_offset">Fuso horário</string>
+    <string name="bolus_reminder">Lembrete para bólus mais tarde</string>
     <string name="setupwizard_preferred_aps_mode">Modo APS preferido</string>
     <string name="treatments_wizard_total_label">Total</string>
     <string name="calculation_short">Calc</string>
@@ -705,8 +715,12 @@
     <string name="versionChecker">Verificador de Versão</string>
     <string name="old_version">versão antiga</string>
     <string name="very_old_version">versão muito antiga</string>
+    <string name="application_expired">A aplicação expirou</string>
     <string name="new_version_warning">Nova versão para pelo menos %1$d dias disponíveis! Retorno a SGB após %2$d dias, o loop será desactivado após %3$d dias</string>
     <string name="twohours">2h</string>
+    <string name="dexcom_app_patched">BYODA</string>
+    <string name="dexcom_short">BYODA</string>
+    <string name="description_source_dexcom">Receber valores de glicemia do aplicativo BYODA.</string>
     <string name="cobvsiob">HCA vs IA</string>
     <string name="bolusconstraintappliedwarn">Restrição de bólus aplicada: %1$.2f U a %2$.2f U</string>
     <string name="slowabsorptiondetected"><![CDATA[<font color=\'%1$s\'>!!!!! Absorção lenta de hidratos detetada: %2$d%% do tempo. Verifique o seu cálculo. HCA podem estar sobrestimados, assim mais insulina pode ser dada !!!</font>]]></string>
@@ -735,11 +749,10 @@
     <string name="clone_label">Clone</string>
     <string name="saveorresetchangesfirst">Guardar ou repor as alterações actuais primeiro</string>
     <string name="deletecurrentprofile">Eliminar perfil actual?</string>
+    <string name="copytolocalprofile">Criar novo perfil local a partir deste perfil?</string>
     <string name="profilenamecontainsdot">Nome do perfil contém pontos.\nIsso não é suportado pelo NS.\nPerfil não é enviado para o NS.</string>
     <string name="low_mark_comment">Valor mais baixo da área de intervalo (apenas exibição)</string>
     <string name="high_mark_comment">Valor mais alto da área de intervalo (apenas exibição)</string>
-    <string name="age">Idade:</string>
-    <string name="weight_label">Peso:</string>
     <string name="id">ID:</string>
     <string name="submit">Enviar</string>
     <string name="mostcommonprofile">Perfil mais comum:</string>
@@ -758,6 +771,7 @@
     <string name="randombg_short">Glicose</string>
     <string name="tools">Ferramentas</string>
     <string name="show_calculation">Mostrar Localização</string>
+    <string name="show_removed">Exibir removidos</string>
     <string name="clearqueueconfirm">Limpar fila? Todos os dados na fila serão perdidos!</string>
     <string name="ebstopsloop">O uso do Bólus Prolongado irá parar o modo Loop Fechado durante o tempo do bólus prolongado. Quer realmente isso?</string>
     <string name="closed_loop_disabled_with_eb">Loop Fechado desativado por causa da execução do Bólus Prolongado</string>
@@ -815,6 +829,7 @@
     <string name="dpvdefaultprofile">Perfil Padrão DPV</string>
     <string name="setupwizard_pump_riley_link_status">Estado RileyLink:</string>
     <string name="filter">Filtro</string>
+    <string name="copytolocalprofile_invalid">Não é possível criar o perfil. O perfil é inválido.</string>
     <string name="cta_dont_kill_my_app_info">Não encerre minha app?</string>
     <string name="smscommunicator_report_pump_ureachable_summary">Enviar SMS se evento de bomba inacessível for acionado</string>
     <string name="smscommunicator_pump_ureachable">Reportar bomba inacessível</string>
@@ -826,6 +841,11 @@
     <string name="enablebolusadvisor_summary">Use lembrete para começar a comer mais tarde em vez di resultado do assistente durante a glicemia alta (\"pré-bolus\")</string>
     <string name="time_to_eat">Hora de comer!\nExecutar assistente de Bólus e fazer cálculo novamente.</string>
     <string name="timetoeat">Hora de comer</string>
+    <string name="bolusreminder">Lembrete de bólus</string>
+    <string name="enablebolusreminder">Ativar lembrete de bólus</string>
+    <string name="enablebolusreminder_summary">Usar lembrete para bólus mais tarde com o assistente
+        (\"pós-bólus\")</string>
+    <string name="time_to_bolus">Hora de fazer o bólus!\nExecute o assistente de bólus e faça o cálculo novamente.</string>
     <string name="fabric_upload_disabled">Envio de registos de erro desativado!</string>
     <string name="graph_menu_divider_header">Gráfico</string>
     <string name="chart_menu">Menu do Gráfico</string>
@@ -834,7 +854,50 @@
     <string name="cannula">Cânula</string>
     <string name="userentry">Entrada de Utilizador</string>
     <string name="common_values">Utilize valores da sua maior refeição que normalmente come\n</string>
+    <string name="summary_email_for_crash_report">Esta identificação será anexada aos relatórios de erro para que possamos contatá-lo em casos urgentes. É opcional.</string>
     <string name="email_address">Endereço de email</string>
     <string name="privacy_settings">Definições de privacidade</string>
     <string name="privacy_summary">Opcionalmente pode fornecer um endereço de e-mail se quiser ser notificado sobre os erros da app. Este não é um serviço automatizado. Será contactado por desenvolvedores em situações perigosas.</string>
+    <string name="full_sync">Sincronização completa</string>
+    <string name="full_sync_comment">Sincronização completa? Pode levar muitas horas até terminar e não irá ver dados novos no NS.</string>
+    <string name="prime">Purgar</string>
+    <string name="ns_sync_options">Sincronização</string>
+    <string name="ns_upload_summary">Perfil, bolus, hidratos de carbono e basais temporárias são enviados para o NS</string>
+    <string name="ns_upload">Enviar dados para o NS</string>
+    <string name="ns_receive_profile_store">Receber armazenamento de perfil</string>
+    <string name="ns_receive_profile_store_summary">Sincronizar perfis a partir do editor de perfis do NS</string>
+    <string name="ns_receive_temp_target">Receber alvos temporários</string>
+    <string name="ns_receive_temp_target_summary">Aceitar alvos temporários inseridos através do NS ou NSCliente</string>
+    <string name="ns_receive_profile_switch">Receber mudança de perfil</string>
+    <string name="ns_receive_profile_switch_summary">Aceitar mudanças de perfil inseridos através de NS ou NSCliente</string>
+    <string name="ns_receive_offline_event">Receber eventos da APS offline</string>
+    <string name="ns_receive_offline_event_summary">Aceitar eventos APS inseridos através de NS ou NSClient</string>
+    <string name="ns_receive_insulin">Receber insulina</string>
+    <string name="ns_receive_insulin_summary">Aceitar insulina inserida através do NS ou NSClient (não é administrada, apenas utilizada no cálculo da IA)</string>
+    <string name="ns_receive_carbs">Receber hidratos de carbono</string>
+    <string name="ns_receive_carbs_summary">Aceitar hidratos de carbono inseridos através do NS ou NSCliente</string>
+    <string name="ns_receive_therapy_events">Receber tratamentos</string>
+    <string name="ns_receive_therapy_events_summary">Aceitar tratamentos (catéter, insulina, mudança de bateria etc) inseridos através do NS ou NSCliente</string>
+    <string name="ns_receive_cgm">Receber/preencher dados do MCG</string>
+    <string name="ns_receive_cgm_summary">Aceitar dados do MCG provenientes do NS</string>
+    <string name="sms_timeout_while_wating">Tempo limite de espera para conclusão da comunicação com a bomba</string>
+    <string name="smscommunicator_another_bolus_in_queue">Existe outro bólus em espera. Tente novamente mais tarde.</string>
+    <string name="calculation_in_progress">Cálculo em curso</string>
+    <string name="missing_profile_name">Nome do perfil ausente</string>
+    <string name="error_in_ic_values">Erro nos valores de IHC</string>
+    <string name="error_in_basal_values">Erro nos valores da basal</string>
+    <string name="error_in_target_values">Erros no valor alvo</string>
+    <string name="error_in_isf_values">Erro nos valores do FSI</string>
+    <string name="run_question">Executar %s?</string>
+    <string name="invalid_profile_not_accepted">Perfil inválido %1$s não aceite do NS</string>
+    <string name="view">Ver</string>
+    <string name="errors">Erros</string>
+    <string name="ns_sync_slow">Reduzir velocidade de transferência</string>
+    <string name="data_status">Estado dos dados da Glicemia</string>
+    <string name="recalculated_data_used">Dados utilizados foram recalculados</string>
+    <string name="bg_too_close">Glicemia demasiado próxima:\n%1$s\n%2$s</string>
+    <string name="identification">Identificação (e-mail, nick FB ou Discord, etc)</string>
+    <string name="identification_not_set">Identificação não definida no modo desenvolvimento</string>
+    <string name="not_available_full">Indisponível</string>
+    <!-- WEAR OS-->
 </resources>

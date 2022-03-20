@@ -8,6 +8,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.drawable.AnimationDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -33,6 +34,7 @@ import info.nightscout.androidaps.database.entities.UserEntry.Action
 import info.nightscout.androidaps.database.entities.UserEntry.Sources
 import info.nightscout.androidaps.database.interfaces.end
 import info.nightscout.androidaps.databinding.OverviewFragmentBinding
+import info.nightscout.androidaps.diaconn.DiaconnG8Plugin
 import info.nightscout.androidaps.dialogs.*
 import info.nightscout.androidaps.events.EventAcceptOpenLoopChange
 import info.nightscout.androidaps.events.EventInitializationChanged
@@ -47,6 +49,7 @@ import info.nightscout.androidaps.interfaces.*
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.androidaps.logging.UserEntryLogger
 import info.nightscout.androidaps.plugins.aps.loop.events.EventNewOpenLoopNotification
+import info.nightscout.androidaps.plugins.aps.openAPSSMB.DetermineBasalResultSMB
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.configBuilder.ConstraintChecker
 import info.nightscout.androidaps.plugins.constraints.bgQualityCheck.BgQualityCheckPlugin
@@ -59,6 +62,7 @@ import info.nightscout.androidaps.plugins.general.overview.notifications.Notific
 import info.nightscout.androidaps.plugins.general.wear.events.EventWearInitiateAction
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.GlucoseStatusProvider
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
+import info.nightscout.androidaps.plugins.pump.omnipod.eros.OmnipodErosPumpPlugin
 import info.nightscout.androidaps.plugins.source.DexcomPlugin
 import info.nightscout.androidaps.plugins.source.XdripPlugin
 import info.nightscout.androidaps.skins.SkinProvider
@@ -76,8 +80,8 @@ import info.nightscout.shared.sharedPreferences.SP
 import info.nightscout.androidaps.utils.ui.SingleClickButton
 import info.nightscout.androidaps.utils.ui.UIRunnable
 import info.nightscout.androidaps.utils.wizard.QuickWizard
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.rxkotlin.plusAssign
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -148,7 +152,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             _binding = it
             //check screen width
             dm = DisplayMetrics()
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
                 activity?.display?.getRealMetrics(dm)
             else
                 @Suppress("DEPRECATION") activity?.windowManager?.defaultDisplay?.getMetrics(dm)
@@ -164,7 +168,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         smallHeight = screenHeight <= Constants.SMALL_HEIGHT
         val landscape = screenHeight < screenWidth
 
-        skinProvider.activeSkin().preProcessLandscapeOverviewLayout(dm, view, landscape, rh.gb(R.bool.isTablet), smallHeight)
+        skinProvider.activeSkin().preProcessLandscapeOverviewLayout(dm, binding, landscape, rh.gb(R.bool.isTablet), smallHeight)
         binding.nsclientLayout.visibility = config.NSCLIENT.toVisibility()
 
         binding.notifications.setHasFixedSize(false)
@@ -416,10 +420,10 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                                     OKDialog.showConfirmation(activity, rh.gs(R.string.tempbasal_label), lastRun.constraintsProcessed?.toSpanned()
                                         ?: "".toSpanned(), {
                                                                   uel.log(Action.ACCEPTS_TEMP_BASAL, Sources.Overview)
-                                                                  binding.buttonsLayout.acceptTempButton.visibility = View.GONE
-                                                                  (context?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(Constants.notificationID)
+                                                                  (context?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.cancel(Constants.notificationID)
                                                                   rxBus.send(EventWearInitiateAction("cancelChangeRequest"))
                                                                   Thread { loop.acceptChangeRequest() }.run()
+                                                                  binding.buttonsLayout.acceptTempButton.visibility = View.GONE
                                                               })
                                 })
                             }
@@ -553,7 +557,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         // **** Calibration & CGM buttons ****
         val xDripIsBgSource = xdripPlugin.isEnabled()
         val dexcomIsSource = dexcomPlugin.isEnabled()
-        binding.buttonsLayout.calibrationButton.visibility = ((xDripIsBgSource || dexcomIsSource) && actualBG != null && sp.getBoolean(R.string.key_show_calibration_button, true)).toVisibility()
+        binding.buttonsLayout.calibrationButton.visibility = (xDripIsBgSource && actualBG != null && sp.getBoolean(R.string.key_show_calibration_button, true)).toVisibility()
         if (dexcomIsSource) {
             binding.buttonsLayout.cgmButton.setCompoundDrawablesWithIntrinsicBounds(null, rh.gd(R.drawable.ic_byoda), null, null)
             binding.buttonsLayout.cgmButton.setTextColor(rh.gc(R.color.colorLightGray))
@@ -597,24 +601,36 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
 
         // aps mode
         val closedLoopEnabled = constraintChecker.isClosedLoopAllowed()
+
+        fun apsModeSetA11yLabel(stringRes: Int) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                binding.infoLayout.apsMode.stateDescription = rh.gs(stringRes)
+            } else {
+                binding.infoLayout.apsMode.contentDescription = rh.gs(R.string.apsmode_title) + " " + rh.gs(stringRes)
+            }
+        }
+
         if (config.APS && pump.pumpDescription.isTempBasalCapable) {
             binding.infoLayout.apsMode.visibility = View.VISIBLE
             binding.infoLayout.timeLayout.visibility = View.GONE
             when {
                 (loop as PluginBase).isEnabled() && loop.isSuperBolus                       -> {
                     binding.infoLayout.apsMode.setImageResource(R.drawable.ic_loop_superbolus)
+                    apsModeSetA11yLabel(R.string.superbolus)
                     binding.infoLayout.apsModeText.text = dateUtil.age(loop.minutesToEndOfSuspend() * 60000L, true, rh)
                     binding.infoLayout.apsModeText.visibility = View.VISIBLE
                 }
 
                 loop.isDisconnected                                                         -> {
                     binding.infoLayout.apsMode.setImageResource(R.drawable.ic_loop_disconnected)
+                    apsModeSetA11yLabel(R.string.disconnected)
                     binding.infoLayout.apsModeText.text = dateUtil.age(loop.minutesToEndOfSuspend() * 60000L, true, rh)
                     binding.infoLayout.apsModeText.visibility = View.VISIBLE
                 }
 
                 (loop as PluginBase).isEnabled() && loop.isSuspended                        -> {
                     binding.infoLayout.apsMode.setImageResource(R.drawable.ic_loop_paused)
+                    apsModeSetA11yLabel(R.string.suspendloop_label)
                     binding.infoLayout.apsModeText.text = dateUtil.age(loop.minutesToEndOfSuspend() * 60000L, true, rh)
                     binding.infoLayout.apsModeText.visibility = View.VISIBLE
                 }
@@ -624,8 +640,10 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                         if (pump.model() == PumpType.OMNIPOD_EROS || pump.model() == PumpType.OMNIPOD_DASH) {
                             // For Omnipod, indicate the pump as disconnected when it's suspended.
                             // The only way to 'reconnect' it, is through the Omnipod tab
+                            apsModeSetA11yLabel(R.string.disconnected)
                             R.drawable.ic_loop_disconnected
                         } else {
+                            apsModeSetA11yLabel(R.string.pump_paused)
                             R.drawable.ic_loop_paused
                         }
                     )
@@ -634,24 +652,43 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
 
                 (loop as PluginBase).isEnabled() && closedLoopEnabled.value() && loop.isLGS -> {
                     binding.infoLayout.apsMode.setImageResource(R.drawable.ic_loop_lgs)
+                    apsModeSetA11yLabel(R.string.uel_lgs_loop_mode)
                     binding.infoLayout.apsModeText.visibility = View.GONE
                 }
 
                 (loop as PluginBase).isEnabled() && closedLoopEnabled.value()               -> {
                     binding.infoLayout.apsMode.setImageResource(R.drawable.ic_loop_closed)
+                    apsModeSetA11yLabel(R.string.closedloop)
                     binding.infoLayout.apsModeText.visibility = View.GONE
                 }
 
                 (loop as PluginBase).isEnabled() && !closedLoopEnabled.value()              -> {
                     binding.infoLayout.apsMode.setImageResource(R.drawable.ic_loop_open)
+                    apsModeSetA11yLabel(R.string.openloop)
                     binding.infoLayout.apsModeText.visibility = View.GONE
                 }
 
                 else                                                                        -> {
                     binding.infoLayout.apsMode.setImageResource(R.drawable.ic_loop_disabled)
+                    apsModeSetA11yLabel(R.string.disabledloop)
                     binding.infoLayout.apsModeText.visibility = View.GONE
                 }
             }
+            // Show variable sensitivity
+            val request = loop.lastRun?.request
+            if (request is DetermineBasalResultSMB) {
+                val isfMgdl = profileFunction.getProfile()?.getIsfMgdl()
+                val variableSens = request.variableSens
+                if (variableSens != isfMgdl && variableSens != null && isfMgdl != null) {
+                    binding.infoLayout.variableSensitivity.text =
+                        String.format(
+                            Locale.getDefault(), "%1$.1f→%2$.1f",
+                            Profile.toUnits(isfMgdl, isfMgdl * Constants.MGDL_TO_MMOLL, profileFunction.getUnits()),
+                            Profile.toUnits(variableSens, variableSens * Constants.MGDL_TO_MMOLL, profileFunction.getUnits())
+                        )
+                    binding.infoLayout.variableSensitivity.visibility = View.VISIBLE
+                } else binding.infoLayout.variableSensitivity.visibility = View.GONE
+            } else binding.infoLayout.variableSensitivity.visibility = View.GONE
         } else {
             //nsclient
             binding.infoLayout.apsMode.visibility = View.GONE
@@ -732,6 +769,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         binding.infoLayout.bg.setTextColor(overviewData.lastBgColor)
         binding.infoLayout.arrow.setImageResource(trendCalculator.getTrendArrow(overviewData.lastBg).directionToIcon())
         binding.infoLayout.arrow.setColorFilter(overviewData.lastBgColor)
+        binding.infoLayout.arrow.contentDescription = overviewData.lastBgDescription + " " + rh.gs(R.string.and) + " " + trendCalculator.getTrendDescription(overviewData.lastBg)
 
         val glucoseStatus = glucoseStatusProvider.glucoseStatusData
         if (glucoseStatus != null) {
@@ -751,13 +789,20 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         binding.infoLayout.bg.paintFlags =
             if (!overviewData.isActualBg) binding.infoLayout.bg.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             else binding.infoLayout.bg.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+
+        val outDate = (if (!overviewData.isActualBg) rh.gs(R.string.a11y_bg_outdated) else "")
+        binding.infoLayout.bg.contentDescription =
+            rh.gs(R.string.a11y_blood_glucose) + " " + binding.infoLayout.bg.text.toString() + " " + overviewData.lastBgDescription + " " + outDate
+
         binding.infoLayout.timeAgo.text = dateUtil.minAgo(rh, overviewData.lastBg?.timestamp)
+        binding.infoLayout.timeAgo.contentDescription = dateUtil.minAgoLong(rh, overviewData.lastBg?.timestamp)
         binding.infoLayout.timeAgoShort.text = "(" + dateUtil.minAgoShort(overviewData.lastBg?.timestamp) + ")"
 
         val qualityIcon = bgQualityCheckPlugin.icon()
         if (qualityIcon != 0) {
             binding.infoLayout.bgQuality.visibility = View.VISIBLE
             binding.infoLayout.bgQuality.setImageResource(qualityIcon)
+            binding.infoLayout.bgQuality.contentDescription = rh.gs(R.string.a11y_bg_quality) + " " + bgQualityCheckPlugin.stateDescription()
             binding.infoLayout.bgQuality.setOnClickListener {
                 context?.let { context -> OKDialog.show(context, rh.gs(R.string.data_status), bgQualityCheckPlugin.message) }
             }
@@ -823,7 +868,21 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
     fun updateTime(from: String) {
         binding.infoLayout.time.text = dateUtil.timeString(dateUtil.now())
         // Status lights
-        binding.statusLightsLayout.statusLights.visibility = (sp.getBoolean(R.string.key_show_statuslights, true) || config.NSCLIENT).toVisibility()
+        val pump = activePlugin.activePump
+        val isPatchPump = pump.pumpDescription.isPatchPump
+        binding.statusLightsLayout.apply {
+            cannulaOrPatch.setImageResource(if (isPatchPump) R.drawable.ic_patch_pump_outline else R.drawable.ic_cp_age_cannula)
+            cannulaOrPatch.contentDescription = rh.gs(if (isPatchPump) R.string.statuslights_patch_pump_age else R.string.statuslights_cannula_age)
+            cannulaOrPatch.scaleX = if (isPatchPump) 1.4f else 2f
+            cannulaOrPatch.scaleY = cannulaOrPatch.scaleX
+            insulinAge.visibility = isPatchPump.not().toVisibility()
+            batteryLayout.visibility = (!isPatchPump || pump.pumpDescription.useHardwareLink).toVisibility()
+            pbAge.visibility = (pump.pumpDescription.isBatteryReplaceable || pump.isBatteryChangeLoggingEnabled()).toVisibility()
+            val useBatteryLevel = (pump.model() == PumpType.OMNIPOD_EROS && pump is OmnipodErosPumpPlugin)
+                || (pump.model() != PumpType.ACCU_CHEK_COMBO && pump.model() != PumpType.OMNIPOD_DASH)
+            batteryLevel.visibility = useBatteryLevel.toVisibility()
+            statusLights.visibility = (sp.getBoolean(R.string.key_show_statuslights, true) || config.NSCLIENT).toVisibility()
+        }
         statusLightHandler.updateStatusLights(
             binding.statusLightsLayout.cannulaAge,
             binding.statusLightsLayout.insulinAge,

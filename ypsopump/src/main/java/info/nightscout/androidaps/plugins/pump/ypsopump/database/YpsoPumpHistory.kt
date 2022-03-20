@@ -8,7 +8,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatu
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
-import io.reactivex.Single
+import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
 import java.util.*
 import javax.inject.Inject

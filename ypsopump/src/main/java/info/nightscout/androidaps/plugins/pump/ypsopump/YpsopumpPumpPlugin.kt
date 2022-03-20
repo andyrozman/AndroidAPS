@@ -215,14 +215,24 @@ class YpsopumpPumpPlugin @Inject constructor(
     // Constraints interface
     override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
         if (value.value()) {
-            value[aapsLogger, driverMode == YpsoDriverMode.Automatic, rh.gs(R.string.ypsopump_fol_closed_loop_not_allowed)] = this
+            value.set(
+                aapsLogger,
+                driverMode == YpsoDriverMode.Automatic,
+                rh.gs(R.string.ypsopump_fol_closed_loop_not_allowed),
+                this
+            )
         }
         return value
     }
 
     override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
         if (value.value()) {
-            value[aapsLogger, driverMode == YpsoDriverMode.Automatic, rh.gs(R.string.ypsopump_fol_smb_not_allowed)] = this
+            value.set(
+                aapsLogger,
+                driverMode == YpsoDriverMode.Automatic,
+                rh.gs(R.string.ypsopump_fol_smb_not_allowed),
+                this
+            )
         }
         return value
     }
