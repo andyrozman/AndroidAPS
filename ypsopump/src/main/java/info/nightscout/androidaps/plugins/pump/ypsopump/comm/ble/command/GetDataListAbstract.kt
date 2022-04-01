@@ -24,8 +24,8 @@ abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector,
             return false
         }
 
-        var lastCount = getResultAsInt(data)
-        var lastCountGLB: Int = ypsoPumpUtil.getValueFromeGLB_SAFE_VAR(data)
+        val lastCount = getResultAsInt(data)
+        val lastCountGLB: Int = ypsoPumpUtil.getValueFromeGLB_SAFE_VAR(data)
 
         aapsLogger.debug(LTag.PUMPCOMM, "Count: " + lastCount + ", lastCountGLB: " + lastCountGLB)
 
@@ -85,7 +85,7 @@ abstract class GetDataListAbstract<T>(hasAndroidInjector: HasAndroidInjector,
         return true
     } // for
 
-    abstract fun isEntryInRange(decodedObject: T): Boolean
+    abstract fun isEntryInRange(event: T): Boolean
 
     abstract fun getIndexUuid(): YpsoGattCharacteristic
 

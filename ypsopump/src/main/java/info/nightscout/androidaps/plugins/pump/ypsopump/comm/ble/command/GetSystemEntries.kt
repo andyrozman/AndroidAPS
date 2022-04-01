@@ -27,11 +27,11 @@ class GetSystemEntries(hasAndroidInjector: HasAndroidInjector?, targetDate: Long
         return "System Entry"
     }
 
-    override fun isEntryInRange(decodedObject: EventDto): Boolean {
+    override fun isEntryInRange(event: EventDto): Boolean {
         return if (targetDate != null) {
-            decodedObject.dateTime.toATechDate() >= targetDate!!
+            event.dateTime.toATechDate() >= targetDate!!
         } else if (eventSequenceNumber != null) {
-            decodedObject.eventSequenceNumber > eventSequenceNumber!!
+            event.eventSequenceNumber > eventSequenceNumber!!
         } else
             true
     }
