@@ -6,7 +6,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.YpsoPumpFragment
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpConnectionManager
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.*
-import info.nightscout.androidaps.plugins.pump.ypsopump.dialog.YpsoPumpBLEConfigActivity
+import info.nightscout.androidaps.plugins.pump.ypsopump.dialog.YpsoPumpBLEConfigActivity2
 import info.nightscout.androidaps.plugins.pump.ypsopump.dialog.YpsoPumpHistoryActivity
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.handlers.YpsoPumpHistoryHandler
@@ -43,7 +43,7 @@ abstract class YpsoPumpModule {
     @ContributesAndroidInjector abstract fun contributeGetLastEvent(): GetLastEvent
 
     // Activites and Fragments
-    @ContributesAndroidInjector abstract fun contributesYpsoPumpBLEConfigActivity(): YpsoPumpBLEConfigActivity
+    @ContributesAndroidInjector abstract fun contributesYpsoPumpBLEConfigActivity(): YpsoPumpBLEConfigActivity2
     @ContributesAndroidInjector abstract fun contributesYpsoPumpFragment(): YpsoPumpFragment
     @ContributesAndroidInjector abstract fun contributesYpsoPumpHistoryActivity(): YpsoPumpHistoryActivity
 

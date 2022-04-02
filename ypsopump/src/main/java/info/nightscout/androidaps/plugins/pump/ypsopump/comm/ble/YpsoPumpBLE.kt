@@ -373,10 +373,14 @@ class YpsoPumpBLE @Inject constructor(
     private fun encryptCommunication(): Boolean {
         ypsoPumpUtil.driverStatus = PumpDriverState.EncryptCommunication
         //pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_ENCRYPTION
+        aapsLogger.info(LTag.PUMPBTCOMM, "Encrypt Communication.")
         val pwd = ypsoPumpUtil.computeUserLevelPassword(deviceMac)
+        aapsLogger.info(LTag.PUMPBTCOMM, "Encrypt Communication. with pwd $pwd")
+
         val bleCommOperationResult = writeCharacteristicBlocking(
             YpsoGattCharacteristic.AUTHORIZATION_PASSWORD,
-            pwd)
+            pwd
+        )
         if (bleCommOperationResult.isSuccessful) {
             ypsoPumpUtil.driverStatus = PumpDriverState.Ready
             //pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_READY
@@ -384,6 +388,9 @@ class YpsoPumpBLE @Inject constructor(
             ypsoPumpUtil.errorType = YpsoPumpErrorType.EncryptionFailed
             //pumpStatus.connectionStatus = YpsoConnectionStatus.PUMP_ENCRYPTION_ERROR
         }
+
+        aapsLogger.info(LTag.PUMPBTCOMM, "Encrypt Communication. Result $bleCommOperationResult")
+
         // TODO remove
         aapsLogger.debug("Connection Status: " + ypsoPumpUtil.driverStatus.name)
 
