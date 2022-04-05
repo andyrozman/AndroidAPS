@@ -73,5 +73,5 @@ abstract class PumpBLESelectorAbstract constructor(
     override fun getScanFilters(): MutableList<ScanFilter>? {
         return null
     }
-
+    
 }

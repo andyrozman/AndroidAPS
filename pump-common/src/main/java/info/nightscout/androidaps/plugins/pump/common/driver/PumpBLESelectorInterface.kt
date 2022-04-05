@@ -7,7 +7,14 @@ import android.content.Context
 
 interface PumpBLESelectorInterface {
 
+    /**
+     * Called on resume
+     */
     fun onResume()
+
+    /**
+     * Called on destory
+     */
     fun onDestroy()
 
     /**
@@ -37,6 +44,19 @@ interface PumpBLESelectorInterface {
     /**
      * get Address of Currently selected pump, empty string if none
      */
-    fun currentlySelectedAddress(): String
+    fun currentlySelectedPumpAddress(): String
 
+    fun currentlySelectedPumpName(): String
+
+    fun getText(key: PumpBLESelectorText): String
+
+}
+
+enum class PumpBLESelectorText {
+    SCAN_TITLE,
+    SELECTED_PUMP_TITLE,
+    REMOVE_TITLE,
+    REMOVE_TEXT,
+    NO_SELECTED_PUMP,
+    PUMP_CONFIGURATION
 }

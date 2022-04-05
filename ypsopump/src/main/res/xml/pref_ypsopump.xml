@@ -12,6 +12,8 @@
             android:key="@string/key_ypsopump_serial"
             android:selectAllOnFocus="true"
             android:singleLine="false"
+            android:enabled="false"
+            android:shouldDisableView="false"
             android:title="@string/pump_serial_number"
             validate:customRegexp="@string/eightdigitnumber"
             validate:testErrorString="@string/error_mustbe8digitnumber"

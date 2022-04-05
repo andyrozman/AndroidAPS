@@ -11,6 +11,7 @@ import androidx.annotation.StringRes
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.ble.BondStateReceiver
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorInterface
+import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorText
 import info.nightscout.androidaps.plugins.pump.common.events.EventBondChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpChanged
 import info.nightscout.androidaps.plugins.pump.ypsopump.R
@@ -176,8 +177,27 @@ class YpsoPumpBLESelector @Inject constructor(
         return "YpsoPump (?)"
     }
 
-    override fun currentlySelectedAddress(): String {
+    override fun currentlySelectedPumpAddress(): String {
         return sp.getString(YpsoPumpConst.Prefs.PumpAddress, "")
+    }
+
+    override fun currentlySelectedPumpName(): String {
+        return sp.getString(YpsoPumpConst.Prefs.PumpName, getUnknownPumpName())
+    }
+
+    override fun getText(key: PumpBLESelectorText): String {
+        var stringId: Int = R.string.ypsopump_ble_config_scan_title
+
+        when (key) {
+            PumpBLESelectorText.SCAN_TITLE          -> stringId = R.string.ypsopump_ble_config_scan_title
+            PumpBLESelectorText.SELECTED_PUMP_TITLE -> stringId = R.string.ypsopump_ble_config_selected_pump_title
+            PumpBLESelectorText.REMOVE_TITLE        -> stringId = R.string.ypsopump_ble_config_remove_pump_title
+            PumpBLESelectorText.REMOVE_TEXT         -> stringId = R.string.ypsopump_ble_config_remove_pump_confirmation
+            PumpBLESelectorText.NO_SELECTED_PUMP    -> stringId = R.string.ypsopump_ble_config_no_pump_selected
+            PumpBLESelectorText.PUMP_CONFIGURATION  -> stringId = R.string.ypsopump_configuration
+        }
+
+        return resourceHelper.gs(stringId)
     }
 
 }

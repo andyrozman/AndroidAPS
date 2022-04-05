@@ -34,6 +34,7 @@ import info.nightscout.androidaps.interfaces.Pump;
 import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.pump.common.ble.BlePreCheck;
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorInterface;
+import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorText;
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable;
 import info.nightscout.androidaps.plugins.pump.ypsopump.R;
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst;
@@ -152,7 +153,7 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
             @Override public void onClick(View v) {
 
                 OKDialog.INSTANCE.showConfirmation(YpsoPumpBLEConfigActivity.this,
-                        getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation),
+                        bleSelector.getText(PumpBLESelectorText.REMOVE_TEXT),
                         new Runnable() {
                             @Override public void run() {
                                 String device = currentlySelectedBTDeviceAddress.getText().toString();
@@ -212,7 +213,7 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
     private void updateCurrentlySelectedBTDevice() {
         String address = sp.getString(YpsoPumpConst.Prefs.PumpAddress, "");
         if (StringUtils.isEmpty(address)) {
-            currentlySelectedBTDeviceName.setText(R.string.ypsopump_ble_config_no_ypsopump_selected);
+            currentlySelectedBTDeviceName.setText(bleSelector.getText(PumpBLESelectorText.NO_SELECTED_PUMP));
             currentlySelectedBTDeviceAddress.setVisibility(View.GONE);
             buttonRemoveBTDevice.setVisibility(View.GONE);
         } else {
@@ -435,7 +436,7 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
 
             deviceName += " [" + rileyLinkDevices.get(device) + "]";
 
-            String currentlySelectedAddress = bleSelector.currentlySelectedAddress();
+            String currentlySelectedAddress = bleSelector.currentlySelectedPumpAddress();
 
             if (currentlySelectedAddress.equals(device.getAddress())) {
                 deviceName += " (" + getResources().getString(R.string.ble_config_scan_selected) + ")";

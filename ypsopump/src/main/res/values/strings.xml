@@ -46,10 +46,10 @@
 
     <!-- YpsoPump BLE Config -->
     <string name="ypsopump_ble_config_scan_title">YpsoPump Scan</string>
-    <string name="ypsopump_ble_config_scan_currently_selected_riley_link">Selected YpsoPump</string>
-    <string name="ypsopump_ble_config_remove_riley_link_confirmation">Are you sure that you want to remove your YpsoPump?</string>
-    <string name="ypsopump_ble_config_remove_riley_link_confirmation_title">Remove YpsoPump</string>
-    <string name="ypsopump_ble_config_no_ypsopump_selected">No YpsoPump selected</string>
+    <string name="ypsopump_ble_config_selected_pump_title">Selected YpsoPump</string>
+    <string name="ypsopump_ble_config_remove_pump_confirmation">Are you sure that you want to remove your YpsoPump?</string>
+    <string name="ypsopump_ble_config_remove_pump_title">Remove YpsoPump</string>
+    <string name="ypsopump_ble_config_no_pump_selected">No YpsoPump selected</string>
 
     <!-- YpsoPump History -->
     <string name="ypsopump_pump_history">YpsoPump Pump History</string>
