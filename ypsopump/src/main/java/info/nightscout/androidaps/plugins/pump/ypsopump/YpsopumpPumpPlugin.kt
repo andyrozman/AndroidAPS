@@ -22,6 +22,8 @@ import info.nightscout.androidaps.plugins.pump.common.defs.PumpRunningState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpUpdateFragmentType
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
+import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfiguration
+import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentValuesChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
 import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
@@ -31,6 +33,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.Co
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoDriverMode
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpStatusRefreshType
+import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.handlers.YpsoPumpHistoryHandler
 import info.nightscout.androidaps.plugins.pump.ypsopump.handlers.YpsoPumpStatusHandler
@@ -74,7 +77,8 @@ class YpsopumpPumpPlugin @Inject constructor(
     pumpSync: PumpSync,
     pumpSyncStorage: PumpSyncStorage,
     var ypsoPumpStatusHandler: YpsoPumpStatusHandler,
-    var ypsoPumpHistoryHandler: YpsoPumpHistoryHandler
+    var ypsoPumpHistoryHandler: YpsoPumpHistoryHandler,
+    var pumpDriverConfiguration: YpsopumpPumpDriverConfiguration
 ) : PumpPluginAbstract(
     PluginDescription() //
         .mainType(PluginType.PUMP) //
@@ -86,7 +90,7 @@ class YpsopumpPumpPlugin @Inject constructor(
         .description(R.string.description_pump_ypsopump),  //
     PumpType.YPSOPUMP,
     injector, rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage
-), Pump, Constraints {
+), Pump, Constraints, PumpDriverConfigurationCapable {
 
     // variables for handling statuses and history
     private var firstRun = true
@@ -106,7 +110,11 @@ class YpsopumpPumpPlugin @Inject constructor(
         if (pref.key == rh.gs(R.string.key_ypsopump_address)) {
             val value: String? = sp.getStringOrNull(R.string.key_ypsopump_address, null)
             pref.summary = value ?: rh.gs(R.string.not_set_short)
+        } else if (pref.key == rh.gs(R.string.key_ypsopump_serial)) {
+            val value: String? = sp.getStringOrNull(R.string.key_ypsopump_serial, null)
+            pref.summary = value ?: rh.gs(R.string.not_set_short)
         }
+        aapsLogger.info(LTag.PUMP, "Preference: $pref")
     }
 
     private val logPrefix: String
@@ -203,6 +211,9 @@ class YpsopumpPumpPlugin @Inject constructor(
         //     sp.putString(YpsoPumpConst.Prefs.PumpSerial, "" + serialNumber)
         // }
 
+        //sp.remove(YpsoPumpConst.Prefs.PumpSerial)
+        //sp.putString(YpsoPumpConst.Prefs.PumpSerial, "" + serialNumber)
+
         ypsoPumpStatusHandler.loadYpsoPumpStatusList()
     }
 
@@ -223,6 +234,10 @@ class YpsopumpPumpPlugin @Inject constructor(
             )
         }
         return value
+    }
+
+    override fun getPumpDriverConfiguration(): PumpDriverConfiguration {
+        return pumpDriverConfiguration
     }
 
     override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {

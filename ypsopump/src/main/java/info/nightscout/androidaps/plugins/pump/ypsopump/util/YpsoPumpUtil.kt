@@ -33,6 +33,8 @@ class YpsoPumpUtil @Inject constructor(
     val ypsopumpPumpStatus: YpsopumpPumpStatus
 ) {
 
+    var preventConnect: Boolean = false
+
     //private var driverStatusInternal: PumpDriverState
     private var pumpCommandType: YpsoPumpCommandType? = null
     var gson = GsonBuilder().setPrettyPrinting().create()

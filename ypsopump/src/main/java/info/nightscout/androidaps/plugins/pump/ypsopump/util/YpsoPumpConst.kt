@@ -13,6 +13,7 @@ object YpsoPumpConst {
         @JvmField val PumpSerial = R.string.key_ypsopump_serial
         @JvmField val PumpAddress = R.string.key_ypsopump_address
         @JvmField val PumpName = R.string.key_ypsopump_name
+        @JvmField val PumpBonded = R.string.key_ypsopump_bonded
         @JvmField val PumpStatusList = R.string.key_ypsopump_status_list
         @JvmField val BolusSize = R.string.key_ypsopump_bolus_size
     }

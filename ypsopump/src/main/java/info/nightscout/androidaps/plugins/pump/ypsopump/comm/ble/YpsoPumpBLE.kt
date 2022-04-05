@@ -231,6 +231,10 @@ class YpsoPumpBLE @Inject constructor(
     }
 
     fun startConnectToYpsoPump(btAddress: String) {
+        if (ypsoPumpUtil.preventConnect) {
+            return;
+        }
+
         ypsoPumpUtil.driverStatus = PumpDriverState.Connecting
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (bluetoothAdapter == null) {

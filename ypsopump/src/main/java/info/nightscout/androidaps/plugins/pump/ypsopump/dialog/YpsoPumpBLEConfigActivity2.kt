@@ -1,36 +1,38 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.dialog
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
-import android.content.DialogInterface
 import android.os.Bundle
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
-import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.BaseAdapter
 import android.widget.TextView
-import android.widget.Toast
-import androidx.annotation.StringRes
-import info.nightscout.androidaps.activities.NoSplashAppCompatActivity
+import dagger.android.support.DaggerAppCompatActivity
 import info.nightscout.androidaps.interfaces.ActivePlugin
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.ble.BlePreCheck
-import info.nightscout.androidaps.plugins.pump.common.events.EventPumpChanged
+import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorInterface
+import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
 import info.nightscout.androidaps.plugins.pump.ypsopump.R
 import info.nightscout.androidaps.plugins.pump.ypsopump.databinding.YpsopumpBleConfigActivityBinding
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst
+import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.utils.resources.ResourceHelper
+import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
 import org.apache.commons.lang3.StringUtils
@@ -38,30 +40,40 @@ import javax.inject.Inject
 
 // IMPORTANT: This activity needs to be called from RileyLinkSelectPreference (see pref_medtronic.xml as example)
 @SuppressLint("MissingPermission")
-class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
+class YpsoPumpBLEConfigActivity2 : DaggerAppCompatActivity() {
 
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var sp: SP
     @Inject lateinit var blePreCheck: BlePreCheck
     @Inject lateinit var context: Context
-    //@Inject lateinit var rxBus: RxBus
+    @Inject lateinit var aapsLogger: AAPSLogger
+    @Inject lateinit var rxBus: RxBus
 
     private lateinit var binding: YpsopumpBleConfigActivityBinding
 
     private var settings: ScanSettings? = null
-    private val filters: List<ScanFilter>? = null
+    private var filters: List<ScanFilter>? = null
 
     //private var currentlySelectedBTDeviceName: TextView? = null
     //private var currentlySelectedBTDeviceAddress: TextView? = null
     //private var buttonRemoveBTDevice: Button? = null
     //private var buttonStartScan: Button? = null
     //private var buttonStopScan: Button? = null
-    private var bluetoothAdapter: BluetoothAdapter? = null
+    //private var bluetoothAdapter: BluetoothAdapter? = null
     private var bleScanner: BluetoothLeScanner? = null
-    private var deviceListAdapter: LeDeviceListAdapter? = null
-    private var handler: Handler? = null
+
+    //private var deviceListAdapter: LeDeviceListAdapter? = null
+    private var deviceListAdapter = LeDeviceListAdapter()
+
+    //private var handler: Handler? = null
+    private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
+    private val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
+
     var scanning = false
+
+    private lateinit var bleSelector: PumpBLESelectorInterface
+
     private val devicesMap: MutableMap<String, BluetoothDevice> = HashMap()
     private val stopScanAfterTimeoutRunnable = Runnable {
         if (scanning) {
@@ -77,21 +89,35 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
 
         if (!blePreCheck.prerequisitesCheck(this)) {
             aapsLogger.error(TAG, "prerequisitesCheck failed.")
-            return;
+            return
         }
 
+        // Configuration
+        // Configuration
+        val activePump = activePlugin.activePump
+
+        if (activePump is PumpDriverConfigurationCapable) {
+            bleSelector = activePump.getPumpDriverConfiguration().getPumpBLESelector()
+        } else {
+            throw RuntimeException("YpsoPumpBLEConfigActivity can be used only with PumpDriverConfigurationCapable pump driver.")
+        }
+
+        title = resourceHelper.gs(R.string.ypsopump_configuration)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+
         // Initializes Bluetooth adapter.
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        deviceListAdapter = LeDeviceListAdapter()
-        handler = Handler()
+        //bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        binding.ypsopumpBleConfigScanDeviceList.adapter = deviceListAdapter
+        //handler = Handler()
         // currentlySelectedBTDeviceName = findViewById(R.id.ypsopump_ble_config_currently_selected_pump_name)
         // currentlySelectedBTDeviceAddress = findViewById(R.id.ypsopump_ble_config_currently_selected_pump_address)
         // buttonRemoveBTDevice = findViewById(R.id.ypsopump_ble_config_button_remove)
         // buttonStartScan = findViewById(R.id.ypsopump_ble_config_scan_start)
         // buttonStopScan = findViewById(R.id.ypsopump_ble_config_button_scan_stop)
-        val deviceList = binding.ypsopumpBleConfigScanDeviceList //   findViewById<ListView>(R.id.ypsopump_ble_config_scan_device_list)
-        deviceList.adapter = deviceListAdapter
-        deviceList.onItemClickListener = OnItemClickListener { parent: AdapterView<*>?, view: View, position: Int, id: Long ->
+        //val deviceList = binding.ypsopumpBleConfigScanDeviceList //   findViewById<ListView>(R.id.ypsopump_ble_config_scan_device_list)
+        //deviceList.adapter = deviceListAdapter
+        binding.ypsopumpBleConfigScanDeviceList.onItemClickListener = OnItemClickListener { _: AdapterView<*>?, view: View, _: Int, _: Long ->
             // stop scanning if still active
             if (scanning) {
                 stopLeDeviceScan()
@@ -99,98 +125,65 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
             val bleAddress = (view.findViewById<View>(R.id.ypsopump_ble_config_scan_item_device_address) as TextView).text.toString()
             val deviceName = (view.findViewById<View>(R.id.ypsopump_ble_config_scan_item_device_name) as TextView).text.toString()
 
-//            sp.putString(YpsoPumpConst.Prefs.PumpAddress, bleAddress);
-//            sp.putString(YpsoPumpConst.Prefs.PumpName, deviceName);
-            aapsLogger!!.debug(TAG, "Device selected: $bleAddress")
             if (devicesMap.containsKey(bleAddress)) {
-                aapsLogger!!.debug(TAG, "Device FOUND in deviceMap: $bleAddress")
+                aapsLogger.debug(TAG, "Device FOUND in deviceMap: $bleAddress")
                 val bluetoothDevice = devicesMap[bleAddress]
-                val bondState = bluetoothDevice!!.bondState
-                aapsLogger!!.debug(TAG, "Device bonding status: " + bluetoothDevice.bondState + " desc: " + getBondingStatusDescription(bluetoothDevice.bondState))
-
-                // if we are not bonded, bonding is started
-                if (bondState != 12) {
-                    // TODO create bond
-                    bluetoothDevice.createBond()
-                }
-                var addressChanged = false
-
-                // set pump address
-                if (setSystemParameterForBT(YpsoPumpConst.Prefs.PumpAddress, bleAddress)) {
-                    addressChanged = true
-                }
-                setSystemParameterForBT(YpsoPumpConst.Prefs.PumpName, deviceName)
-                var name = bluetoothDevice.name
-                if (name.contains("_")) {
-                    name = name.substring(name.indexOf("_") + 1)
-                    setSystemParameterForBT(YpsoPumpConst.Prefs.PumpSerial, name)
-                }
-                if (addressChanged) {
-                    // TODO send notification to pumpSync
-                    rxBus.send(EventPumpChanged(name, bleAddress, null))
-                }
+                bleSelector.onDeviceSelected(bluetoothDevice!!, bleAddress, deviceName)
             } else {
                 aapsLogger.debug(TAG, "Device NOT found in deviceMap: $bleAddress")
             }
+
             finish()
         }
-        binding.ypsopumpBleConfigScanStart.setOnClickListener({ view: View? -> startLeDeviceScan() })
-        binding.ypsopumpBleConfigButtonScanStop.setOnClickListener { view: View? ->
+        binding.ypsopumpBleConfigScanStart.setOnClickListener { startLeDeviceScan() }
+        binding.ypsopumpBleConfigButtonScanStop.setOnClickListener {
             if (scanning) {
                 stopLeDeviceScan()
             }
         }
 
-        binding.ypsopumpBleConfigButtonRemove.setOnClickListener(View.OnClickListener { view: View? ->
-            AlertDialog.Builder(this)
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .setTitle(getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation_title))
-                .setMessage(getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation))
-                .setPositiveButton(getString(R.string.yes)) { dialog: DialogInterface?, which: Int ->
-                    val device = binding.ypsopumpBleConfigCurrentlySelectedPumpAddress.text.toString()
-                    aapsLogger!!.debug(TAG, "Removing device as selected: $device")
+        binding.ypsopumpBleConfigButtonRemove.setOnClickListener {
+            OKDialog.showConfirmation(
+                this@YpsoPumpBLEConfigActivity2,
+                getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation_title),
+                getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation),
+                Runnable {
+                    val device: String = binding.ypsopumpBleConfigCurrentlySelectedPumpAddress.text.toString()
+                    aapsLogger.debug(TAG, "Removing device as selected: $device")
                     if (devicesMap.containsKey(device)) {
                         val bluetoothDevice = devicesMap[device]
-                        aapsLogger!!.debug(TAG, "Device can be detected near, so trying to remove bond if possible.")
-                        if (bluetoothDevice!!.bondState == 12) {
-                            // TODO remove bond
-                            //bluetoothDevice.removeBond();
-                        }
+                        aapsLogger.debug(TAG, "Device can be detected near, so trying to remove bond if possible.")
+                        bleSelector.removeDevice(bluetoothDevice!!)
                     }
-                    sp!!.remove(YpsoPumpConst.Prefs.PumpAddress)
-                    sp!!.remove(YpsoPumpConst.Prefs.PumpName)
+
+                    bleSelector.cleanupAfterDeviceRemoved()
                     updateCurrentlySelectedBTDevice()
-                }
-                .setNegativeButton(getString(R.string.no), null)
-                .show()
-        })
-    }
-
-    private fun setSystemParameterForBT(@StringRes parameter: Int, newValue: String): Boolean {
-        if (sp.contains(parameter)) {
-            val current = sp.getStringOrNull(parameter, null)
-            if (current == null) {
-                sp.putString(parameter, newValue)
-            } else if (current != newValue) {
-                sp.putString(parameter, newValue)
-                return true
-            }
-        } else {
-            sp!!.putString(parameter, newValue)
+                })
         }
-        return false
-    }
 
-    private fun getBondingStatusDescription(state: Int): String {
-        return if (state == 10) {
-            "BOND_NONE"
-        } else if (state == 11) {
-            "BOND_BONDING"
-        } else if (state == 12) {
-            "BOND_BONDED"
-        } else {
-            "UNKNOWN BOND STATUS ($state)"
-        }
+        // binding.ypsopumpBleConfigButtonRemove.setOnClickListener(View.OnClickListener { view: View? ->
+        //     AlertDialog.Builder(this)
+        //         .setIcon(android.R.drawable.ic_dialog_alert)
+        //         .setTitle(getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation_title))
+        //         .setMessage(getString(R.string.ypsopump_ble_config_remove_riley_link_confirmation))
+        //         .setPositiveButton(getString(R.string.yes)) { dialog: DialogInterface?, which: Int ->
+        //             val device = binding.ypsopumpBleConfigCurrentlySelectedPumpAddress.text.toString()
+        //             aapsLogger!!.debug(TAG, "Removing device as selected: $device")
+        //             if (devicesMap.containsKey(device)) {
+        //                 val bluetoothDevice = devicesMap[device]
+        //                 aapsLogger!!.debug(TAG, "Device can be detected near, so trying to remove bond if possible.")
+        //                 if (bluetoothDevice!!.bondState == 12) {
+        //                     // TODO remove bond
+        //                     //bluetoothDevice.removeBond();
+        //                 }
+        //             }
+        //             sp!!.remove(YpsoPumpConst.Prefs.PumpAddress)
+        //             sp!!.remove(YpsoPumpConst.Prefs.PumpName)
+        //             updateCurrentlySelectedBTDevice()
+        //         }
+        //         .setNegativeButton(getString(R.string.no), null)
+        //         .show()
+        // })
     }
 
     private fun updateCurrentlySelectedBTDevice() {
@@ -202,13 +195,14 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
         } else {
             binding.ypsopumpBleConfigCurrentlySelectedPumpAddress.visibility = View.VISIBLE
             binding.ypsopumpBleConfigButtonRemove.visibility = View.VISIBLE
-            binding.ypsopumpBleConfigCurrentlySelectedPumpName.text = sp.getString(YpsoPumpConst.Prefs.PumpName, "YpsoPump (?)")
+            binding.ypsopumpBleConfigCurrentlySelectedPumpName.text = sp.getString(YpsoPumpConst.Prefs.PumpName, bleSelector.getUnknownPumpName()) // TODO
             binding.ypsopumpBleConfigCurrentlySelectedPumpAddress.text = address
         }
     }
 
     override fun onResume() {
         super.onResume()
+        bleSelector.onResume()
         prepareForScanning()
         updateCurrentlySelectedBTDevice()
     }
@@ -218,13 +212,16 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
         if (scanning) {
             stopLeDeviceScan()
         }
+        bleSelector.onDestroy()
     }
 
     private fun prepareForScanning() {
         //val checkOK = blePrecheck!!.prerequisitesCheck(this)
         //if (checkOK) {
         bleScanner = bluetoothAdapter!!.bluetoothLeScanner
-        settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
+        settings = bleSelector.getScanSettings()
+        filters = bleSelector.getScanFilters()
+//        settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
         //            filters = Collections.singletonList(new ScanFilter.Builder().setServiceUuid(
 //                    ParcelUuid.fromString(YpsoGattService.SERVICE_YPSO_1.getUuid())).build());
         //}
@@ -232,7 +229,7 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
 
     private val bleScanCallback: ScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, scanRecord: ScanResult) {
-            aapsLogger!!.debug(TAG, scanRecord.toString())
+            aapsLogger.debug(TAG, scanRecord.toString())
             //runOnUiThread { if (addDevice(scanRecord)) deviceListAdapter!!.notifyDataSetChanged() }
             if (addDevice(scanRecord)) {
                 Handler(Looper.getMainLooper()).post { deviceListAdapter?.notifyDataSetChanged() }
@@ -243,7 +240,7 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
             runOnUiThread {
                 var added = false
                 for (result in results) {
-                    aapsLogger!!.debug(TAG, "SCAN: " + result.advertisingSid + " name=" + result.device.address)
+                    aapsLogger.debug(TAG, "SCAN: " + result.advertisingSid + " name=" + result.device.address)
                     if (addDevice(result)) added = true
                 }
                 if (added) deviceListAdapter!!.notifyDataSetChanged()
@@ -251,13 +248,19 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
         }
 
         private fun addDevice(result: ScanResult): Boolean {
-            val device = result.device
+            var device = result.device
 
             // we can either check with beggining MAC address or by name, which would be something like YpsoPump_10000001
             if (!device.address.startsWith("EC:2A:F0")) {
                 return false
             }
             aapsLogger.info(TAG, "Found YpsoPump with address: " + device.address)
+
+            device = bleSelector.filterDevice(device)
+
+            if (device == null) {
+                return false
+            }
 
 //            List<ParcelUuid> serviceUuids = result.getScanRecord().getServiceUuids();
 //
@@ -285,11 +288,12 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
         }
 
         override fun onScanFailed(errorCode: Int) {
-            Log.e("Scan Failed", "Error Code: $errorCode")
-            Toast.makeText(
-                this@YpsoPumpBLEConfigActivity2, resourceHelper!!.gs(R.string.ble_config_scan_error, errorCode),
-                Toast.LENGTH_LONG
-            ).show()
+            aapsLogger.error(TAG, "Scan Failed - Error Code: $errorCode")
+            bleSelector.onScanFailed(this@YpsoPumpBLEConfigActivity2, errorCode)
+            // Toast.makeText(
+            //     this@YpsoPumpBLEConfigActivity2, resourceHelper!!.gs(R.string.ble_config_scan_error, errorCode),
+            //     Toast.LENGTH_LONG
+            // ).show()
         }
     }
 
@@ -305,16 +309,18 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
         binding.ypsopumpBleConfigButtonScanStop.visibility = View.VISIBLE
         scanning = true
         bleScanner!!.startScan(filters, settings, bleScanCallback)
-        aapsLogger!!.debug(LTag.PUMPBTCOMM, "startLeDeviceScan: Scanning Start")
-        Toast.makeText(this@YpsoPumpBLEConfigActivity2, R.string.ble_config_scan_scanning, Toast.LENGTH_SHORT).show()
+        aapsLogger.debug(LTag.PUMPBTCOMM, "startLeDeviceScan: Scanning Start")
+        //Toast.makeText(this@YpsoPumpBLEConfigActivity2, R.string.ble_config_scan_scanning, Toast.LENGTH_SHORT).show()
+        bleSelector.onStartLeDeviceScan(this@YpsoPumpBLEConfigActivity2)
     }
 
     private fun stopLeDeviceScan() {
         if (scanning) {
             scanning = false
             bleScanner!!.stopScan(bleScanCallback)
-            aapsLogger!!.debug(LTag.PUMPBTCOMM, "stopLeDeviceScan: Scanning Stop")
-            Toast.makeText(this, R.string.ble_config_scan_finished, Toast.LENGTH_SHORT).show()
+            aapsLogger.debug(LTag.PUMPBTCOMM, "stopLeDeviceScan: Scanning Stop")
+            bleSelector.onStopLeDeviceScan(this@YpsoPumpBLEConfigActivity2)
+            //Toast.makeText(this, R.string.ble_config_scan_finished, Toast.LENGTH_SHORT).show()
             handler!!.removeCallbacks(stopScanAfterTimeoutRunnable)
         }
         binding.ypsopumpBleConfigScanStart.isEnabled = true
@@ -326,7 +332,8 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
         private var mLeDevices: ArrayList<BluetoothDevice> = arrayListOf()
         private var rileyLinkDevices: MutableMap<BluetoothDevice, Int> = mutableMapOf()
 
-        //private val mInflator: LayoutInflater
+        private var mInflator: LayoutInflater? = null
+
         fun addDevice(result: ScanResult) {
             if (!mLeDevices.contains(result.device)) {
                 mLeDevices.add(result.device)
@@ -390,10 +397,10 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
             val device = mLeDevices[i]
             var deviceName = device.name
             if (StringUtils.isBlank(deviceName)) {
-                deviceName = "Ypsopump (?)"
+                deviceName = bleSelector.getUnknownPumpName()
             }
             deviceName += " [" + rileyLinkDevices[device] + "]"
-            val currentlySelectedAddress = sp.getString(YpsoPumpConst.Prefs.PumpAddress, "")
+            val currentlySelectedAddress = bleSelector.currentlySelectedAddress() // TODO
             if (currentlySelectedAddress == device.address) {
                 deviceName += " (" + resources.getString(R.string.ble_config_scan_selected) + ")"
             }
@@ -435,7 +442,7 @@ class YpsoPumpBLEConfigActivity2 : NoSplashAppCompatActivity() {
         init {
             mLeDevices = ArrayList()
             rileyLinkDevices = HashMap()
-            //mInflator = this@YpsoPumpBLEConfigActivity.layoutInflater
+            mInflator = this@YpsoPumpBLEConfigActivity2.layoutInflater
         }
     }
 

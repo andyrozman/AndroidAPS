@@ -7,9 +7,16 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <application>
-        <activity android:name=".dialog.YpsoPumpBLEConfigActivity2">
+        <activity android:name=".dialog.YpsoPumpBLEConfigActivity">
             <intent-filter>
                 <action android:name="info.nightscout.androidaps.plugins.pump.ypsopump.config.YpsoPumpBLEConfigActivity" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".dialog.YpsoPumpBLEConfigActivity2">
+            <intent-filter>
+                <action android:name="info.nightscout.androidaps.plugins.pump.ypsopump.config.YpsoPumpBLEConfigActivity2" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

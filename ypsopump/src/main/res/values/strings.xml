@@ -38,6 +38,7 @@
     <string name="key_ypsopump_address" translatable="false">pref_ypsopump_address</string>
     <string name="key_ypsopump_serial" translatable="false">pref_ypsopump_serial</string>
     <string name="key_ypsopump_name" translatable="false">pref_ypsopump_name</string>
+    <string name="key_ypsopump_bonded" translatable="false">pref_ypsopump_bonded</string>
     <string name="key_ypsopump_status_list" translatable="false">pref_ypsopump_status_list</string>
     <string name="key_ypsopump_bolus_size" translatable="false">pref_ypsopump_bolus_size</string>
     <string name="ypsopump_bolus_size">Bolus size</string>
@@ -74,6 +75,9 @@
 
     <!-- Configuration -->
     <string name="eightdigitnumber" translatable="false">^\\d{8}</string>
+
+
+    <string name="ypsopump_configuration">YpsoPump Configuration</string>
 
 
     <!-- ddd -->
