@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Default theme color -->
     <!-- This section describes the main theme colors -->
-    <color name="colorPrimary">#212121</color>
+    <color name="colorPrimary">#96CAF2</color>
     <color name="colorPrimaryDark">#000000</color>
     <color name="colorAccent">#40bbaa</color>
-    <color name="mdtp_white">#ffffff</color>
     <color name="mdtp_line_dark">#808080</color>
     <color name="colorLightGray">#d8d8d8</color>
     <color name="cardColorBackground">#212121</color>
@@ -63,6 +62,9 @@
     <color name="examinedProfile">#FFFF5555</color>
     <color name="defaulttext">#BBBBBB</color>
 
+    <!--    Datepicker-->
+    <color name="dateTimePickerBackground">@color/buttonBackground</color>
+
     <!--    Treatment-->
     <color name="tempbasal">#C803A9F4</color>
     <color name="list_delimiter">#505050</color>
@@ -88,6 +90,8 @@
     <color name="uam">#c9bd60</color>
     <color name="zt">#00d2d2</color>
     <color name="calibration">#E83258</color>
+    <color name="bolusDataPointColor">#00FFFF</color>
+    <color name="profileSwitch">#00FFFF</color>
 
     <color name="ribbonDefault">#5a595b</color>
     <color name="daySelected">#D000FF00</color>
@@ -161,7 +165,6 @@
     <color name="devslopepos">#FFFFFF00</color>
     <color name="devslopeneg">#FFFF00FF</color>
     <color name="actionsConfirm">#FFFF00</color>
-    <color name="tabBgColorSelected">#FF666666</color>
     <color name="deviations">#FF0000</color>
     <color name="cobAlert">#7484E2</color>
     <color name="inrangebackground">#2800FF00</color>
@@ -213,6 +216,7 @@
     <color name="announcement">#CF8BFE</color>
     <color name="question">#FEAF05</color>
     <color name="pumpHistory">#67DFE8</color>
+    <color name="userOption">#6AE86D</color>
 
     <!-- Gray colors -->
     <color name="darkgray">#323232</color>
@@ -228,6 +232,9 @@
     <color name="mdtp_button_selected">#33969696</color>
     <color name="plastic">#EBEBEA</color>
 
+    <color name="textAppearancemediumLight">#000000</color>
+    <color name="textAppearancemediumDark">#B3FFFFFF</color>
+
     <!-- dash and eros colors -->
     <color name="omni_yellow">#FFFF00</color>
     <color name="omni_cyan">#00FFFF</color>
@@ -235,6 +242,8 @@
 
     <!-- Button icons - general -->
     <color name="pod_icon_outline">#9E9E9E</color>
+
+    <color name="mtrl_textinput_default_box_stroke_color" tools:override="true" >#9E9E9E</color>
 
     <!-- Omnipod Wizard -->
     <color name="omnipod_wizard_progress_bar">#0099CC</color>

@@ -1,16 +1,12 @@
 <resources>
     <!---bolus color -->
     <attr name="bolusColor" format="reference|color" />
-    <!---Number Picker text color -->
-    <attr name="numPickerText" format="reference|color" />
     <!---NS Client action text color -->
     <attr name="actionButton" format="reference|color" />
     <!---Text color for Quickwizard and more -->
     <attr name="cardObjectiveText" format="reference|color" />
     <!---Text color for misc buttons and texts -->
     <attr name="alarmColor" format="reference|color" />
-    <!-- Number picker and more -->
-    <attr name="totalBackground" format="reference|color" />
     <!-- BG source temp button -->
     <attr name="setTempButton" format="reference|color" />
     <!-- Card Item-->
@@ -44,6 +40,7 @@
     <!-- Pump -->
     <attr name="pumpStatusBackground" format="reference|color" />
     <!-- Objectives -->
+    <attr name="objectivescardItemBackgroundColor" format="reference|color" />
     <attr name="objectivesBackgroundColor" format="reference|color" />
     <attr name="objectivesDisabledTextColor" format="reference|color" />
     <!---Import List -->
@@ -73,10 +70,6 @@
     <attr name="toastBaseTextColor" format="reference|color" />
     <!---Input  -->
     <attr name="boxStrokeColor" format="reference|color" />
-    <!---Profile Helper  -->
-    <attr name="tabBgColorSelected" format="reference|color" />
-    <!-- Fragment background for some themes default transparent  -->
-    <attr name="fragmentbackground" format="reference|color" />
     <declare-styleable name="NumberPicker">
         <attr name="customContentDescription" format="string" />
     </declare-styleable>
@@ -179,4 +172,31 @@
     <attr name="announcementColor" format="reference|color" />
     <attr name="questionColor" format="reference|color" />
     <attr name="pumpHistoryColor" format="reference|color" />
+    <attr name="userOptionColor" format="reference|color" />
+    <!---Glucose Value Color-->
+    <attr name="cobColor" format="reference|color" />
+    <attr name="uamColor" format="reference|color" />
+    <attr name="ztColor" format="reference|color" />
+    <attr name="smbColor" format="reference|color" />
+    <attr name="bolusDataPointColor" format="reference|color" />
+    <attr name="profileSwitchColor" format="reference|color" />
+    <attr name="inMemoryColor" format="reference|color" />
+    <attr name="therapyEvent_NS_MBG" format="reference|color" />
+    <attr name="therapyEvent_FINGER_STICK_BG_VALUE" format="reference|color" />
+    <attr name="therapyEvent_EXERCISE" format="reference|color" />
+    <attr name="therapyEvent_APS_OFFLINE" format="reference|color" />
+    <attr name="therapyEvent_Default" format="reference|color" />
+    <!-- Graph specific colors  -->
+    <attr name="graphHorizontalLabelText" format="reference|color" />
+    <attr name="graphVerticalLabelText" format="reference|color" />
+    <attr name="inrangeBackground" format="reference|color" />
+    <attr name="graphGrid" format="reference|color" />
+    <attr name="devslopeposColor" format="reference|color" />
+    <attr name="predictionColor" format="reference|color" />
+    <attr name="bgiColor" format="reference|color" />
+    <attr name="ratioColor" format="reference|color" />
+    <attr name="activityColor" format="reference|color" />
+    <!-- CardView specific colors  -->
+    <attr name="strokeColor" format="reference|color" />
+    <attr name="textAppearancemediumColor" format="reference|color" />
 </resources>

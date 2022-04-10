@@ -6,6 +6,8 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -39,6 +41,7 @@ import info.nightscout.androidaps.utils.LocalAlertUtils
 import info.nightscout.androidaps.utils.ProcessLifecycleListener
 import info.nightscout.androidaps.utils.buildHelper.BuildHelper
 import info.nightscout.androidaps.utils.locale.LocaleHelper
+import info.nightscout.androidaps.widget.updateWidget
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
@@ -76,6 +79,9 @@ class MainApp : DaggerApplication() {
     @Inject lateinit var profileSwitchPlugin: ThemeSwitcherPlugin
     @Inject lateinit var localAlertUtils: LocalAlertUtils
 
+    private var handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
+    private lateinit var refreshWidget: Runnable
+
     override fun onCreate() {
         super.onCreate()
         aapsLogger.debug("onCreate")
@@ -90,18 +96,6 @@ class MainApp : DaggerApplication() {
             gitRemote = null
             commitHash = null
         }
-        disposable += repository.runTransaction(VersionChangeTransaction(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, gitRemote, commitHash)).subscribe()
-        if (sp.getBoolean(R.string.key_ns_logappstartedevent, config.APS))
-            disposable += repository
-                .runTransaction(
-                    InsertIfNewByTimestampTherapyEventTransaction(
-                        timestamp = dateUtil.now(),
-                        type = TherapyEvent.Type.NOTE,
-                        note = getString(info.nightscout.androidaps.core.R.string.androidaps_start) + " - " + Build.MANUFACTURER + " " + Build.MODEL,
-                        glucoseUnit = TherapyEvent.GlucoseUnit.MGDL
-                    )
-                )
-                .subscribe()
         disposable += compatDBHelper.dbChangeDisposable()
         registerActivityLifecycleCallbacks(activityMonitor)
         JodaTimeAndroid.init(this)
@@ -121,6 +115,18 @@ class MainApp : DaggerApplication() {
         pluginStore.plugins = plugins
         configBuilder.initialize()
 
+        disposable += repository.runTransaction(VersionChangeTransaction(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, gitRemote, commitHash)).subscribe()
+        if (sp.getBoolean(R.string.key_ns_logappstartedevent, config.APS))
+            disposable += repository
+                .runTransaction(
+                    InsertIfNewByTimestampTherapyEventTransaction(
+                        timestamp = dateUtil.now(),
+                        type = TherapyEvent.Type.NOTE,
+                        note = getString(info.nightscout.androidaps.core.R.string.androidaps_start) + " - " + Build.MANUFACTURER + " " + Build.MODEL,
+                        glucoseUnit = TherapyEvent.GlucoseUnit.MGDL
+                    )
+                )
+                .subscribe()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "KeepAlive",
             ExistingPeriodicWorkPolicy.REPLACE,
@@ -133,6 +139,13 @@ class MainApp : DaggerApplication() {
         localAlertUtils.preSnoozeAlarms()
         doMigrations()
         uel.log(UserEntry.Action.START_AAPS, UserEntry.Sources.Aaps)
+
+        //  schedule widget update
+        refreshWidget = Runnable {
+            handler.postDelayed(refreshWidget, 60000)
+            updateWidget(this)
+        }
+        handler.postDelayed(refreshWidget, 60000)
     }
 
     private fun setRxErrorHandler() {
