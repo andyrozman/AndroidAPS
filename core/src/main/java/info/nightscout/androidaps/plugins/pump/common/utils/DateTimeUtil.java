@@ -104,7 +104,7 @@ public class DateTimeUtil {
         int second = (int) atechDateTime;
 
         try {
-            return new DateTime(year, month - 1, dayOfMonth, hourOfDay, minute, second);
+            return new DateTime(year, month, dayOfMonth, hourOfDay, minute, second);
         } catch (Exception ex) {
             //LOG.error("DateTimeUtil", String.format("Error creating GregorianCalendar from values [atechDateTime=%d, year=%d, month=%d, day=%d, hour=%d, minute=%d, second=%d]", atechDateTime, year, month, dayOfMonth, hourOfDay, minute, second));
             //return null;

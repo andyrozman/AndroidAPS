@@ -82,13 +82,13 @@ object ProfileUtil {
         if (data == null) {
             return " null "
         }
-        
+
         val stringBuilder = StringBuilder()
         for (value in data) {
             stringBuilder.append(String.format("%.3f", value))
             stringBuilder.append(" ")
         }
-        return stringBuilder.toString()
+        return stringBuilder.trim().toString()
     }
 
 }

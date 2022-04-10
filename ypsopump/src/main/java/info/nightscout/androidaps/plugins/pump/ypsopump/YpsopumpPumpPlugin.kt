@@ -527,7 +527,6 @@ class YpsopumpPumpPlugin @Inject constructor(
 
     var profile: Profile? = null
 
-    // TODO not implemented
     override fun isThisProfileSet(profile: Profile): Boolean {
         aapsLogger.debug(LTag.PUMP, "isThisProfileSet ")
 
@@ -537,78 +536,25 @@ class YpsopumpPumpPlugin @Inject constructor(
             aapsLogger.debug(LTag.PUMP, "  Faked mode: returning true")
             return true
         } else {
-            if (pumpStatus.basalsByHour == null) {
+
+            if (pumpStatus.basalProfilePump == null) {
                 aapsLogger.debug(LTag.PUMP, "  Pump Profile:     null, returning true")
                 return true
             } else {
                 val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArray(profile, PumpType.YPSOPUMP)
-                val profileDriver = ProfileUtil.getProfilesByHourToString(pumpStatus.basalsByHour)
+                val profileDriver = ProfileUtil.getProfilesByHourToString(pumpStatus.basalProfilePump!!.basalPatterns)
 
                 aapsLogger.debug(LTag.PUMP, "AAPS Profile:     $profileAsString")
                 aapsLogger.debug(LTag.PUMP, "Pump Profile:     $profileDriver")
 
-                return profileAsString.equals(profileDriver)
+                val areTheySame = profileAsString.equals(profileDriver)
+
+                aapsLogger.debug(LTag.PUMP, "Pump Profile is the same: $areTheySame")
+
+                return areTheySame
             }
         }
-
-//        if (this.profile!=null && this.profile.equals(profile))
-//        this.profile = profile;
-
-//        aapsLogger.debug(LTag.PUMP, "isThisProfileSet: basalInitalized=" + pumpStatus.basalProfileStatus);
-//
-//        if (!isInitialized)
-//            return true;
-//
-//        if (pumpStatus.basalProfileStatus == BasalProfileStatus.NotInitialized) {
-//            // this shouldn't happen, but if there was problem we try again
-//            getBasalProfiles();
-//            return isProfileSame(profile);
-//        } else if (pumpStatus.basalProfileStatus == BasalProfileStatus.ProfileChanged) {
-//            return false;
-//        }
-//
-//        return (pumpStatus.basalProfileStatus != BasalProfileStatus.ProfileOK) || isProfileSame(profile);
     }
-
-    //    private boolean isProfileSame(Profile profile) {
-    //
-    //        boolean invalid = false;
-    //        Double[] basalsByHour = medtronicPumpStatus.basalsByHour;
-    //
-    //        aapsLogger.debug(LTag.PUMP, "Current Basals (h):   "
-    //                + (basalsByHour == null ? "null" : BasalProfile.getProfilesByHourToString(basalsByHour)));
-    //
-    //        // int index = 0;
-    //
-    //        if (basalsByHour == null)
-    //            return true; // we don't want to set profile again, unless we are sure
-    //
-    //        StringBuilder stringBuilder = new StringBuilder("Requested Basals (h): ");
-    //
-    //        for (Profile.ProfileValue basalValue : profile.getBasalValues()) {
-    //
-    //            double basalValueValue = pumpDescription.pumpType.determineCorrectBasalSize(basalValue.value);
-    //
-    //            int hour = basalValue.timeAsSeconds / (60 * 60);
-    //
-    //            if (!MedtronicUtil.isSame(basalsByHour[hour], basalValueValue)) {
-    //                invalid = true;
-    //            }
-    //
-    //            stringBuilder.append(String.format(Locale.ENGLISH, "%.3f", basalValueValue));
-    //            stringBuilder.append(" ");
-    //        }
-    //
-    //        aapsLogger.debug(LTag.PUMP, stringBuilder.toString());
-    //
-    //        if (!invalid) {
-    //            aapsLogger.debug(LTag.PUMP, "Basal profile is same as AAPS one.");
-    //        } else {
-    //            aapsLogger.debug(LTag.PUMP, "Basal profile on Pump is different than the AAPS one.");
-    //        }
-    //
-    //        return (!invalid);
-    //    }
 
     override fun lastDataTime(): Long {
         return if (pumpStatus.lastConnection != 0L) {
@@ -616,9 +562,7 @@ class YpsopumpPumpPlugin @Inject constructor(
         } else System.currentTimeMillis()
     }
 
-    // TODO fix this
 
-    //return pumpStatus.getBasalProfileForHour();
     override val baseBasalRate: Double
         get() =// TODO fix this
             if (profile == null) {
@@ -633,8 +577,6 @@ class YpsopumpPumpPlugin @Inject constructor(
                 pumpStatus.baseBasalRate = basal
                 basal
             }
-
-    //return pumpStatus.getBasalProfileForHour();
 
     override val reservoirLevel: Double
         get() = pumpStatus.reservoirRemainingUnits

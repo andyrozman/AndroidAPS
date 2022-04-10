@@ -361,8 +361,12 @@ class YpsoPumpConnectionManager @Inject constructor(
         if (command.isSuccessful) {
             val basalProfile: BasalProfileDto? = command.commandResponse
 
+            aapsLogger.info(LTag.PUMPCOMM, "Basal Profile: $basalProfile")
+
             if (basalProfile != null) {
-                pumpStatus.basalsByHour = basalProfile.basalPatterns
+                pumpStatus.basalsByHour = basalProfile.basalPatterns // TODO remove
+                pumpStatus.basalProfilePump = basalProfile
+                pumpStatus.forceRefreshBasalProfile = false
                 return true
             } else {
                 aapsLogger.error(LTag.PUMPCOMM, "Null basal profile.")

@@ -1,9 +1,9 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.driver.config
 
 import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.plugins.pump.common.driver.history.HistoryDialogText
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryDataProviderAbstract
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryEntry
+import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryText
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import info.nightscout.androidaps.utils.resources.ResourceHelper
@@ -18,7 +18,7 @@ class YpsopumpPumpHistoryDataProvider @Inject constructor(
     var pumpSync: PumpSync
 ) : PumpHistoryDataProviderAbstract() {
 
-    fun getData(): List<PumpHistoryEntry> {
+    override fun getData(): List<PumpHistoryEntry> {
         return arrayListOf()
     }
 
@@ -26,7 +26,7 @@ class YpsopumpPumpHistoryDataProvider @Inject constructor(
         return arrayListOf()
     }
 
-    override fun getText(key: HistoryDialogText): String {
+    override fun getText(key: PumpHistoryText): String {
         TODO("Not yet implemented")
     }
 

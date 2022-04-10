@@ -9,6 +9,7 @@ import info.nightscout.androidaps.plugins.pump.common.defs.PumpDeviceState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.YpsoPumpStatusEntry
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.data.YpsoPumpStatusList
+import info.nightscout.androidaps.plugins.pump.ypsopump.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpFirmware
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst
 import info.nightscout.androidaps.utils.resources.ResourceHelper
@@ -47,6 +48,7 @@ class YpsopumpPumpStatus @Inject constructor(private val resourceHelper: Resourc
     @JvmField var tempBasalDuration = 0
 
     //var tempBasalEnd = 0L
+    // TODO determine if this is needed
     var basalProfileStatus = BasalProfileStatus.NotInitialized
     var basalProfile: Profile? = null
 
@@ -58,6 +60,9 @@ class YpsopumpPumpStatus @Inject constructor(private val resourceHelper: Resourc
     var bolusStep: Double = 0.1
     var maxBolus: Double? = null
     var maxBasal: Double? = null
+
+    var forceRefreshBasalProfile: Boolean = true
+    var basalProfilePump: BasalProfileDto? = null
 
     override fun initSettings() {
         activeProfileName = "A"
