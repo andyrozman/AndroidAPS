@@ -1,4 +1,4 @@
-package info.nightscout.androidaps.plugins.pump.ypsopump.driver.ble
+package info.nightscout.androidaps.plugins.pump.ypsopump.driver.config
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
@@ -6,14 +6,14 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.IntentFilter
-import android.widget.Toast
 import androidx.annotation.StringRes
+import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.ble.BondStateReceiver
-import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorInterface
+import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelector
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorText
-import info.nightscout.androidaps.plugins.pump.common.events.EventBondChanged
-import info.nightscout.androidaps.plugins.pump.common.events.EventPumpChanged
+import info.nightscout.androidaps.plugins.pump.common.driver.ble.PumpBLESelectorAbstract
+import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
 import info.nightscout.androidaps.plugins.pump.ypsopump.R
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
@@ -29,47 +29,39 @@ class YpsoPumpBLESelector @Inject constructor(
     sp: SP,
     rxBus: RxBus,
     context: Context,
-    var ypsoPumpUtil: YpsoPumpUtil
-) : PumpBLESelectorAbstract(resourceHelper, aapsLogger, sp, rxBus, context), PumpBLESelectorInterface {
+    var ypsoPumpUtil: YpsoPumpUtil,
+    var pumpSync: PumpSync
+) : PumpBLESelectorAbstract(resourceHelper, aapsLogger, sp, rxBus, context), PumpBLESelector {
 
-    //@Inject lateinit var ypsoPumpUtil: YpsoPumpUtil
+    var startingAddress: String? = null
 
     override fun onResume() {
         ypsoPumpUtil.preventConnect = true
+        rxBus.send(EventPumpConnectionParametersChanged())
+        startingAddress = currentlySelectedPumpAddress();
     }
 
     override fun onDestroy() {
         ypsoPumpUtil.preventConnect = false
-    }
+        rxBus.send(EventPumpConnectionParametersChanged())
 
-    override fun onScanFailed(context: Context, errorCode: Int) {
-        Toast.makeText(
-            context, resourceHelper.gs(R.string.ble_config_scan_error, errorCode),
-            Toast.LENGTH_LONG
-        ).show()
-    }
+        val selectedAddress = currentlySelectedPumpAddress()
 
-    override fun onStartLeDeviceScan(context: Context) {
-        Toast.makeText(context, R.string.ble_config_scan_scanning, Toast.LENGTH_SHORT).show()
-    }
-
-    override fun onStopLeDeviceScan(context: Context) {
-        Toast.makeText(context, R.string.ble_config_scan_finished, Toast.LENGTH_SHORT).show()
+        if (!startingAddress.equals(selectedAddress) &&
+            selectedAddress.length > 0
+        ) {
+            pumpSync.connectNewPump()
+        }
     }
 
     override fun removeDevice(device: BluetoothDevice) {
         if (device.getBondState() == 12) {
-            // TODO remove bond
-            //bluetoothDevice.removeBond();
             removeBond(device)
         }
     }
 
     override fun getScanSettings(): ScanSettings? {
-        //return ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
         val scanSettingBuilder = ScanSettings.Builder()
-            //.setLegacy(true)
-            //.setCallbackType(DEFAULT_KEYS_SEARCH_GLOBAL)
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
             .setReportDelay(0)
@@ -77,25 +69,12 @@ class YpsoPumpBLESelector @Inject constructor(
         return scanSettingBuilder.build();
     }
 
-    override fun getScanFilters(): MutableList<ScanFilter>? {
-
-        // val scanFilterList: MutableList<ScanFilter> = mutableListOf()
-        // val scanFilterBuilder = ScanFilter.Builder()
-        // //val fromString = ParcelUuid.fromString(YpsoGattService.SERVICE_YPSO_1.uuid)
-        // scanFilterBuilder.setServiceUuid(ParcelUuid.fromString(YpsoGattService.SERVICE_YPSO_1.uuid))
-        //
-        // scanFilterBuilder.se
-        // scanFilterList.add(scanFilterBuilder.build())
-        // return scanFilterList
-
-        return null
-
-        // TODO Ypso only
-        //return null
-    }
+    override fun getScanFilters(): MutableList<ScanFilter>? = null
 
     override fun filterDevice(device: BluetoothDevice): BluetoothDevice? {
+        //aapsLogger.debug(TAG, "filter device: name=" + (if (device.name == null) "null" else device.name))
         if (device.name != null && device.name.contains("Ypso")) {
+            aapsLogger.info(TAG, "   Found YpsoPump with address: ${device.address}")
             return device
         }
 
@@ -106,6 +85,7 @@ class YpsoPumpBLESelector @Inject constructor(
         sp.remove(YpsoPumpConst.Prefs.PumpAddress)
         sp.remove(YpsoPumpConst.Prefs.PumpName)
         sp.putBoolean(YpsoPumpConst.Prefs.PumpBonded, false)
+        rxBus.send(EventPumpConnectionParametersChanged())
     }
 
     override fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String) {
@@ -115,8 +95,6 @@ class YpsoPumpBLESelector @Inject constructor(
         aapsLogger.debug(TAG, "Device bonding status: " + bluetoothDevice.getBondState() + " desc: " + getBondingStatusDescription(bluetoothDevice.getBondState()))
 
         val bonded = bondState != 12
-
-        // if we are not bonded, bonding is started
 
         // if we are not bonded, bonding is started
         if (bondState != 12) {
@@ -133,7 +111,7 @@ class YpsoPumpBLESelector @Inject constructor(
         }
 
         sp.putBoolean(YpsoPumpConst.Prefs.PumpBonded, bonded)
-        rxBus.send(EventBondChanged(bleAddress, bonded))
+        rxBus.send(EventPumpConnectionParametersChanged())
 
         var addressChanged = false
 
@@ -152,10 +130,8 @@ class YpsoPumpBLESelector @Inject constructor(
         }
 
         if (addressChanged) {
-            // TODO send notification to pumpSync
-            rxBus.send(EventPumpChanged(name, bleAddress, null))
+            rxBus.send(EventPumpConnectionParametersChanged())
         }
-
     }
 
     private fun setSystemParameterForBT(@StringRes parameter: Int, newValue: String): Boolean {
@@ -173,17 +149,11 @@ class YpsoPumpBLESelector @Inject constructor(
         return false
     }
 
-    override fun getUnknownPumpName(): String {
-        return "YpsoPump (?)"
-    }
+    override fun getUnknownPumpName(): String = "YpsoPump (?)"
 
-    override fun currentlySelectedPumpAddress(): String {
-        return sp.getString(YpsoPumpConst.Prefs.PumpAddress, "")
-    }
+    override fun currentlySelectedPumpAddress(): String = sp.getString(YpsoPumpConst.Prefs.PumpAddress, "")
 
-    override fun currentlySelectedPumpName(): String {
-        return sp.getString(YpsoPumpConst.Prefs.PumpName, getUnknownPumpName())
-    }
+    override fun currentlySelectedPumpName(): String = sp.getString(YpsoPumpConst.Prefs.PumpName, getUnknownPumpName())
 
     override fun getText(key: PumpBLESelectorText): String {
         var stringId: Int = R.string.ypsopump_ble_config_scan_title

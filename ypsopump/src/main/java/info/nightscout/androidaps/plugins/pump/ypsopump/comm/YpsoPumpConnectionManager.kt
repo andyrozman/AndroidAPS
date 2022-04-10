@@ -62,10 +62,10 @@ class YpsoPumpConnectionManager @Inject constructor(
     var inConnectMode = false
     var inDisconnectMode = false
 
-    var deviceMac: String? = null
-    var deviceBonded: Boolean = false
+    // var deviceMac: String? = null
+    // var deviceBonded: Boolean = false
 
-    fun connectToPump(): Boolean {
+    fun connectToPump(deviceMac: String, deviceBonded: Boolean): Boolean {
 
         if (pumpUtil.driverStatus === PumpDriverState.Ready) {
             return true
@@ -85,7 +85,10 @@ class YpsoPumpConnectionManager @Inject constructor(
 
         //sp.getString()
 
-        ypsoPumpBLE.startConnectToYpsoPump(deviceMac!!)
+        if (!ypsoPumpBLE.startConnectToYpsoPump(deviceMac!!)) {
+            inConnectMode = false
+            return false
+        }
 
         val timeoutTime = System.currentTimeMillis() + (120 * 1000)
         var timeouted = true

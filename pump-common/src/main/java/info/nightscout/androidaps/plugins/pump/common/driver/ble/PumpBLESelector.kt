@@ -5,7 +5,7 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 
-interface PumpBLESelectorInterface {
+interface PumpBLESelector {
 
     /**
      * Called on resume
@@ -28,12 +28,49 @@ interface PumpBLESelectorInterface {
      */
     fun cleanupAfterDeviceRemoved()
 
+    /**
+     * operations when scan failed
+     */
     fun onScanFailed(context: Context, errorCode: Int)
+
+    /**
+     * operations when scan starts
+     */
     fun onStartLeDeviceScan(context: Context)
+
+    /**
+     * operations when scan stops
+     */
     fun onStopLeDeviceScan(context: Context)
+
+    /**
+     * operations when scan was stopped manualy (press on button)
+     */
+    fun onManualStopLeDeviceScan(context: Context)
+
+    /**
+     * operations when on non manual stop of scan (on timeout)
+     */
+    fun onNonManualStopLeDeviceScan(context: Context)
+
+    /**
+     * get Scan Filters
+     */
     fun getScanFilters(): List<ScanFilter>?
+
+    /**
+     * get Scan Settings
+     */
     fun getScanSettings(): ScanSettings?
+
+    /**
+     * filter device on search (for cases where we can't do it with Scan Filters
+     */
     fun filterDevice(device: BluetoothDevice): BluetoothDevice?
+
+    /**
+     * operations when device selected
+     */
     fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String)
 
     /**
@@ -46,8 +83,14 @@ interface PumpBLESelectorInterface {
      */
     fun currentlySelectedPumpAddress(): String
 
+    /**
+     * get Name of Currently selected pump, getUnknownPumpName() string if none
+     */
     fun currentlySelectedPumpName(): String
 
+    /**
+     * Get Translation Text
+     */
     fun getText(key: PumpBLESelectorText): String
 
 }

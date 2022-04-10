@@ -474,6 +474,7 @@ class YpsoPumpFragment : DaggerFragment() {
     private fun updatePumpStatus(pumpDriverState: PumpDriverState?) {
         when (pumpDriverState) {
             null,
+            PumpDriverState.Ready,
             PumpDriverState.Sleeping                   -> binding.pumpStatus.text = "{fa-bed}   "
             PumpDriverState.Connecting,
             PumpDriverState.Disconnecting              -> binding.pumpStatus.text = "{fa-bluetooth-b spin}   " + resourceHelper.gs(pumpDriverState.resourceId)
@@ -489,8 +490,12 @@ class YpsoPumpFragment : DaggerFragment() {
             }
 
             PumpDriverState.ExecutingCommand           -> {
-                var commandType: YpsoPumpCommandType = pumpUtil.currentCommand
-                binding.pumpStatus.text = "{fa-bluetooth-b}   " + resourceHelper.gs(commandType.resourceId)
+                var commandType: YpsoPumpCommandType? = pumpUtil.currentCommand
+                if (commandType == null) {
+                    binding.pumpStatus.text = "{fa-bed}   "
+                } else {
+                    binding.pumpStatus.text = "{fa-bluetooth-b}   " + resourceHelper.gs(commandType.resourceId)
+                }
             }
 
             else                                       -> {

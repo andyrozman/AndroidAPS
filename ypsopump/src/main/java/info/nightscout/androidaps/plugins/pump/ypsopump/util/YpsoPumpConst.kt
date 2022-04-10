@@ -3,7 +3,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.util
 import info.nightscout.androidaps.plugins.pump.ypsopump.R
 
 /**
- * Created by andy on 5/12/18.
+ * Created by andy on 5/12/21.
  */
 object YpsoPumpConst {
 

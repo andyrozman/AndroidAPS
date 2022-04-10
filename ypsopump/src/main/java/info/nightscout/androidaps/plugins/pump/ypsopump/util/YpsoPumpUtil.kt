@@ -38,6 +38,7 @@ class YpsoPumpUtil @Inject constructor(
     //private var driverStatusInternal: PumpDriverState
     private var pumpCommandType: YpsoPumpCommandType? = null
     var gson = GsonBuilder().setPrettyPrinting().create()
+    var gsonRegular = GsonBuilder().create()
 
 
 
@@ -62,10 +63,20 @@ class YpsoPumpUtil @Inject constructor(
             workWithStatusAndCommand(StatusChange.SetStatus, status, null)
         }
 
-    var currentCommand: YpsoPumpCommandType
-        get() = workWithStatusAndCommand(StatusChange.GetCommand, null, null) as YpsoPumpCommandType
+    var currentCommand: YpsoPumpCommandType?
+        get() {
+            val returnValue = workWithStatusAndCommand(StatusChange.GetCommand, null, null)
+            if (returnValue == null)
+                return null
+            else
+                return returnValue as YpsoPumpCommandType
+        }
         set(currentCommand) {
-            aapsLogger.debug(LTag.PUMP, "Set current command: " + currentCommand.name)
+            if (currentCommand == null) {
+                aapsLogger.debug(LTag.PUMP, "Set current command: to null")
+            } else {
+                aapsLogger.debug(LTag.PUMP, "Set current command: " + currentCommand.name)
+            }
             workWithStatusAndCommand(StatusChange.SetCommand, PumpDriverState.ExecutingCommand, currentCommand)
         }
 
@@ -96,17 +107,20 @@ class YpsoPumpUtil @Inject constructor(
     // }
 
     @Synchronized
-    fun workWithStatusAndCommand(type: StatusChange,
-                                 driverStatusIn: PumpDriverState?,
-                                 pumpCommandType: YpsoPumpCommandType?,
-                                 ypsoPumpErrorType: YpsoPumpErrorType? = null): Any? {
+    fun workWithStatusAndCommand(
+        type: StatusChange,
+        driverStatusIn: PumpDriverState?,
+        pumpCommandType: YpsoPumpCommandType?,
+        ypsoPumpErrorType: YpsoPumpErrorType? = null
+    ): Any? {
 
         //aapsLogger.debug(LTag.PUMP, "Status change type: " + type.name() + ", DriverStatus: " + (driverStatus != null ? driverStatus.name() : ""));
         when (type) {
-            StatusChange.GetStatus  ->  {
+            StatusChange.GetStatus  -> {
                 aapsLogger.debug(LTag.PUMP, "GetStatus: DriverStatus: " + driverStatusInternal);
                 return driverStatusInternal
             }
+
             StatusChange.SetStatus  -> {
                 aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus Before: " + driverStatusInternal + ", Incoming: " + driverStatusIn);
                 driverStatusInternal = driverStatusIn!!
@@ -114,13 +128,17 @@ class YpsoPumpUtil @Inject constructor(
                 aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus: " + driverStatusInternal);
                 rxBus.send(EventPumpStatusChanged(driverStatusInternal))
             }
+
             StatusChange.GetCommand -> return this.pumpCommandType
+
             StatusChange.SetCommand -> {
                 driverStatusInternal = driverStatusIn!!
                 this.pumpCommandType = pumpCommandType
                 rxBus.send(EventPumpStatusChanged(driverStatusInternal))
             }
+
             StatusChange.GetError   -> return errorTypeInternal
+
             StatusChange.SetError   -> {
                 errorTypeInternal = ypsoPumpErrorType!!
                 this.pumpCommandType = null
@@ -218,8 +236,6 @@ class YpsoPumpUtil @Inject constructor(
         return hex.toInt(16).toByte()
     }
 
-
-
     fun getBytesFromInt16(value: Int): ByteArray {
         val array = getBytesFromInt(value)
         Log.d("HHH", ByteUtil.getHex(array))
@@ -229,7 +245,6 @@ class YpsoPumpUtil @Inject constructor(
     fun getBytesFromInt(value: Int): ByteArray {
         return ByteBuffer.allocate(4).putInt(value).array()
     }
-
 
     fun byteToInt(data: ByteArray, start: Int, length: Int): Int {
         return if (length == 1) {
@@ -267,7 +282,8 @@ class YpsoPumpUtil @Inject constructor(
         if (paBuffer[7].inv() and 0xFF.toByte() != paBuffer[3] and 0xFF.toByte() ||
             paBuffer[6].inv() and 0xFF.toByte() != paBuffer[2] and 0xFF.toByte() ||
             paBuffer[5].inv() and 0xFF.toByte() != paBuffer[1] and 0xFF.toByte() ||
-            paBuffer[4].inv() and 0xFF.toByte() != paBuffer[0] and 0xFF.toByte()) {
+            paBuffer[4].inv() and 0xFF.toByte() != paBuffer[0] and 0xFF.toByte()
+        ) {
             throw InvalidParameterException("Invalid GLB_SAFE_VAR byte array:$paBuffer")
         }
         return byteToInt(paBuffer, 0, 4)
@@ -282,7 +298,8 @@ class YpsoPumpUtil @Inject constructor(
         val notification = Notification( //
             notificationType.notificationType,  //
             resourceHelper.gs(notificationType.resourceId),  //
-            notificationType.notificationUrgency)
+            notificationType.notificationUrgency
+        )
         rxBus.send(EventNewNotification(notification))
     }
 
@@ -290,7 +307,8 @@ class YpsoPumpUtil @Inject constructor(
         val notification = Notification( //
             notificationType.notificationType,  //
             resourceHelper.gs(notificationType.resourceId, *parameters),  //
-            notificationType.notificationUrgency)
+            notificationType.notificationUrgency
+        )
         rxBus.send(EventNewNotification(notification))
     }
 

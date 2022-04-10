@@ -14,12 +14,12 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity">
-            <intent-filter>
-                <action android:name="info.nightscout.androidaps.plugins.pump.ypsopump.config.YpsoPumpBLEConfigActivity2" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
+        <!--        <activity android:name="info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity">-->
+        <!--            <intent-filter>-->
+        <!--                <action android:name="info.nightscout.androidaps.plugins.pump.ypsopump.config.YpsoPumpBLEConfigActivity2" />-->
+        <!--                <category android:name="android.intent.category.DEFAULT" />-->
+        <!--            </intent-filter>-->
+        <!--        </activity>-->
 
         <activity android:name=".dialog.YpsoPumpHistoryActivity" />
 

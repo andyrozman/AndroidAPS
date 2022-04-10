@@ -24,6 +24,7 @@ import info.nightscout.androidaps.plugins.pump.common.defs.PumpUpdateFragmentTyp
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
+import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentValuesChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
 import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
@@ -33,8 +34,8 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.command.response.Co
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoDriverMode
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpStatusRefreshType
-import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
+import info.nightscout.androidaps.plugins.pump.ypsopump.driver.config.YpsopumpPumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.ypsopump.handlers.YpsoPumpHistoryHandler
 import info.nightscout.androidaps.plugins.pump.ypsopump.handlers.YpsoPumpStatusHandler
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst
@@ -100,6 +101,10 @@ class YpsopumpPumpPlugin @Inject constructor(
     private var hasTimeDateOrTimeZoneChanged = false
     private var driverMode = YpsoDriverMode.Faked // TODO when implementation fully done, default should be automatic
 
+    private var driverInitialized = false
+    private var pumpAddress: String = ""
+    private var pumpBonded: Boolean = false
+
     override fun onStart() {
         aapsLogger.debug(LTag.PUMP, model().model + " started.")
         super.onStart()
@@ -142,14 +147,24 @@ class YpsopumpPumpPlugin @Inject constructor(
     override fun onStartScheduledPumpActions() {
 
         disposable.add(rxBus
-            .toObservable(EventPreferenceChange::class.java)
-            .observeOn(aapsSchedulers.io)
-            .subscribe({ event: EventPreferenceChange ->
-                           if (event.isChanged(rh, YpsoPumpConst.Prefs.PumpSerial)) {
-                               ypsoPumpStatusHandler.switchPumpData()
-                               resetStatusState()
-                           }
-                       }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
+                           .toObservable(EventPreferenceChange::class.java)
+                           .observeOn(aapsSchedulers.io)
+                           .subscribe({ event: EventPreferenceChange ->
+                                          if (event.isChanged(rh, YpsoPumpConst.Prefs.PumpSerial)) {
+                                              ypsoPumpStatusHandler.switchPumpData()
+                                              resetStatusState()
+                                          }
+                                      }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
+
+        rxBus.send(EventPumpConnectionParametersChanged())
+
+
+        disposable.add(rxBus
+                           .toObservable(EventPumpConnectionParametersChanged::class.java)
+                           .observeOn(aapsSchedulers.io)
+                           .subscribe({ _ ->
+                                          checkInitializationState()
+                                      }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
 
         // TODO fix me repetable start with RxJava
 //        Observable c = Observable.fromCallable(() -> {
@@ -215,6 +230,17 @@ class YpsopumpPumpPlugin @Inject constructor(
         //sp.putString(YpsoPumpConst.Prefs.PumpSerial, "" + serialNumber)
 
         ypsoPumpStatusHandler.loadYpsoPumpStatusList()
+
+        checkInitializationState()
+
+    }
+
+    private fun checkInitializationState() {
+
+        pumpAddress = sp.getString(YpsoPumpConst.Prefs.PumpAddress, "")
+        pumpBonded = sp.getBoolean(YpsoPumpConst.Prefs.PumpBonded, false)
+
+        driverInitialized = (!pumpAddress.isEmpty() && pumpBonded)
     }
 
     override val serviceClass: Class<*>?
@@ -254,14 +280,15 @@ class YpsopumpPumpPlugin @Inject constructor(
 
     // Pump Interface
     override fun isInitialized(): Boolean {
-        aapsLogger.debug(LTag.PUMP, "isInitialized - true (always)")
-        return true
+        aapsLogger.debug(LTag.PUMP, "isInitialized - driverInit=$driverInitialized, preventConnect=${ypsopumpUtil.preventConnect}")
+        return driverInitialized && !ypsopumpUtil.preventConnect
         //return pumpStatus.ypsopumpFirmware != null;
     }
 
     override fun isSuspended(): Boolean {
-        aapsLogger.debug(LTag.PUMP, "isSuspended - false (always)")
-        return pumpStatus.pumpRunningState == PumpRunningState.Suspended
+        val suspended = (pumpStatus.pumpRunningState == PumpRunningState.Suspended)
+        aapsLogger.debug(LTag.PUMP, "isSuspended - $suspended")
+        return suspended
     }
 
     override fun isConnected(): Boolean {
@@ -279,7 +306,7 @@ class YpsopumpPumpPlugin @Inject constructor(
 
     override fun connect(reason: String) {
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "connect (reason=$reason).")
-        pumpConnectionManager.connectToPump()
+        pumpConnectionManager.connectToPump(deviceMac = pumpAddress, deviceBonded = pumpBonded)
     }
 
     override fun disconnect(reason: String) {
@@ -288,16 +315,19 @@ class YpsopumpPumpPlugin @Inject constructor(
     }
 
     override fun stopConnecting() {
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "stopConnecting [PumpPluginAbstract] - default (empty) implementation.")
+        if (displayConnectionMessages)
+            aapsLogger.debug(LTag.PUMP, "stopConnecting [PumpPluginAbstract] - default (empty) implementation.")
     }
 
     override fun isHandshakeInProgress(): Boolean {
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isHandshakeInProgress - " + ypsopumpUtil.driverStatus.name)
+        if (displayConnectionMessages)
+            aapsLogger.debug(LTag.PUMP, "isHandshakeInProgress - " + ypsopumpUtil.driverStatus.name)
         return ypsopumpUtil.driverStatus === PumpDriverState.Connecting
     }
 
     override fun finishHandshaking() {
-        if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "finishHandshaking [PumpPluginAbstract] - default (empty) implementation.")
+        if (displayConnectionMessages)
+            aapsLogger.debug(LTag.PUMP, "finishHandshaking [PumpPluginAbstract] - default (empty) implementation.")
     }
 
     override val isFakingTempsByExtendedBoluses: Boolean
@@ -1132,13 +1162,14 @@ class YpsopumpPumpPlugin @Inject constructor(
                                            tempBasalInfo: TempBasalPair? = null,
                                            profile: Profile? = null) {
         // TODO
-        if (true)
-            return
+        // if (true)
+        //     return
         aapsLogger.warn(LTag.PUMP, logPrefix + "readPumpHistoryAfterAction N/A.")
         ypsoPumpHistoryHandler.getLastEventAndSendItToPumpSync(
             bolusInfo = bolusInfo,
             tempBasalInfo = tempBasalInfo,
-            profile = profile)
+            profile = profile
+        )
     }
 
     private fun scheduleNextRefresh(refreshType: YpsoPumpStatusRefreshType?, additionalTimeInMinutes: Int = 0) {

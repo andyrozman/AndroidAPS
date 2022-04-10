@@ -33,7 +33,7 @@ import info.nightscout.androidaps.interfaces.ActivePlugin;
 import info.nightscout.androidaps.interfaces.Pump;
 import info.nightscout.androidaps.plugins.bus.RxBus;
 import info.nightscout.androidaps.plugins.pump.common.ble.BlePreCheck;
-import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorInterface;
+import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelector;
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorText;
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable;
 import info.nightscout.androidaps.plugins.pump.ypsopump.R;
@@ -45,6 +45,7 @@ import info.nightscout.shared.logging.LTag;
 import info.nightscout.shared.sharedPreferences.SP;
 
 // IMPORTANT: This activity needs to be called from RileyLinkSelectPreference (see pref_medtronic.xml as example)
+@Deprecated
 @SuppressLint("MissingPermission")
 public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
 
@@ -76,7 +77,7 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
     private Handler handler;
     public boolean scanning;
 
-    PumpBLESelectorInterface bleSelector;
+    PumpBLESelector bleSelector;
 
     private Map<String,BluetoothDevice> devicesMap = new HashMap<>();
 
@@ -156,12 +157,26 @@ public class YpsoPumpBLEConfigActivity extends NoSplashAppCompatActivity {
                         bleSelector.getText(PumpBLESelectorText.REMOVE_TEXT),
                         new Runnable() {
                             @Override public void run() {
-                                String device = currentlySelectedBTDeviceAddress.getText().toString();
-                                aapsLogger.debug(TAG, "Removing device as selected: " + device);
-                                if (devicesMap.containsKey(device)) {
-                                    BluetoothDevice bluetoothDevice = devicesMap.get(device);
+                                String deviceAddress = currentlySelectedBTDeviceAddress.getText().toString();
+                                aapsLogger.debug(TAG, "Removing device as selected: " + deviceAddress);
+                                if (devicesMap.containsKey(deviceAddress)) {
+                                    BluetoothDevice bluetoothDevice = devicesMap.get(deviceAddress);
                                     aapsLogger.debug(TAG, "Device can be detected near, so trying to remove bond if possible.");
                                     bleSelector.removeDevice(bluetoothDevice);
+                                } else {
+                                    BluetoothDevice remoteDevice = bluetoothAdapter.getRemoteDevice(deviceAddress);
+
+                                    if (remoteDevice != null) {
+                                        bleSelector.removeDevice(remoteDevice);
+                                    }
+
+//                                    Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
+//                                    for (BluetoothDevice bondedDevice : bondedDevices) {
+//                                        if (bondedDevice.getAddress().equals(deviceAddress)) {
+//                                            bleSelector.removeDevice(bondedDevice);
+//                                            break;
+//                                        }
+//                                    }
                                 }
 
                                 bleSelector.cleanupAfterDeviceRemoved();

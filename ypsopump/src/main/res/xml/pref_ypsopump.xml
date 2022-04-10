@@ -24,7 +24,7 @@
             android:key="@string/key_ypsopump_address"
             android:summary=""
             android:title="YpsoPump Configuration">
-            <intent android:action="info.nightscout.androidaps.plugins.pump.ypsopump.config.YpsoPumpBLEConfigActivity" />
+            <intent android:action="info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity" />
         </Preference>
 
         <ListPreference

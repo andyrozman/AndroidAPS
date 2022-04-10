@@ -32,15 +32,21 @@ abstract class HistoryRecordDao {
     @Update(onConflict = OnConflictStrategy.REPLACE)
     abstract fun update(historyRecordEntity: HistoryRecordEntity): Completable
 
+    @Update(onConflict = OnConflictStrategy.REPLACE)
+    abstract fun updateBlocking(historyRecordEntity: HistoryRecordEntity)
+
     @Delete
     abstract fun delete(historyRecordEntity: HistoryRecordEntity): Completable
 
-    @Query("SELECT * from history_records where serial = :serialNumber and historyRecordType= :entryType " +
-        " and id= (select max(id) from history_records where serial = :serialNumber " +
-        " and historyRecordType= :entryType) ")
+    @Query(
+        "SELECT * from history_records where serial = :serialNumber and historyRecordType= :entryType " +
+            " and id= (select max(id) from history_records where serial = :serialNumber " +
+            " and historyRecordType= :entryType) "
+    )
     abstract fun getLatestHistoryEntry(serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity?
 
-    @Query("SELECT * from history_records where serial = :serialNumber and historyRecordType='Event' " +
+    @Query(
+        "SELECT * from history_records where serial = :serialNumber and historyRecordType='Event' " +
         " and id= ( select max(id) from history_records where serial = :serialNumber " +
         "           and historyRecordType='Event' " +
         "           and (entryType='PUMP_MODE_CHANGED' or entryType='DELIVERY_STATUS_CHANGED')) ")

@@ -1,10 +1,13 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble
 
+import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.content.Context
 import android.os.SystemClock
 import com.google.gson.Gson
+import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
+import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.common.utils.ThreadUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.defs.BLECommOperationResultType
@@ -18,6 +21,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations.Char
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.operations.CharacteristicWriteOperation
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpErrorType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
+import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
@@ -28,16 +32,20 @@ import java.util.concurrent.Semaphore
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@SuppressLint("MissingPermission")
 @Singleton
 class YpsoPumpBLE @Inject constructor(
     var aapsLogger: AAPSLogger,
     var sp: SP,
     var context: Context,
     var pumpStatus: YpsopumpPumpStatus,
-    var ypsoPumpUtil: YpsoPumpUtil) {
+    var rxBus: RxBus,
+    var ypsoPumpUtil: YpsoPumpUtil
+) {
 
     var gson = Gson()
-    var bluetoothAdapter: BluetoothAdapter? = null
+
+    //var bluetoothAdapter: BluetoothAdapter? = null
     var ypsopumpDevice: BluetoothDevice? = null
     var bluetoothGattCallback: BluetoothGattCallback
 
@@ -48,18 +56,27 @@ class YpsoPumpBLE @Inject constructor(
     private var mCurrentOperation: BLECommOperation? = null
     private val gattOperationSema = Semaphore(1, true)
 
-    var deviceMac = "EC:2A:F0:00:8B:8E"
+    private var bluetoothAdapter: BluetoothAdapter? = null
+//        get() = BluetoothAdapter.getDefaultAdapter()
+    //(context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
+    //BluetoothAdapter.getDefaultAdapter ()  //context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
+
+    var deviceMac: String = ""// = "EC:2A:F0:00:8B:8E"
 
     init {
         bluetoothGattCallback = object : BluetoothGattCallback() {
 
-            override fun onCharacteristicChanged(gatt: BluetoothGatt,
-                                                 characteristic: BluetoothGattCharacteristic) {
+            override fun onCharacteristicChanged(
+                gatt: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic
+            ) {
                 super.onCharacteristicChanged(gatt, characteristic)
                 if (gattDebugEnabled) {
-                    aapsLogger.debug(LTag.PUMPBTCOMM, "onCharacteristicChanged "
-                        + YpsoGattCharacteristic.lookup(characteristic.uuid) + " "
-                        + ByteUtil.getHex(characteristic.value))
+                    aapsLogger.debug(
+                        LTag.PUMPBTCOMM, "onCharacteristicChanged "
+                            + YpsoGattCharacteristic.lookup(characteristic.uuid) + " "
+                            + ByteUtil.getHex(characteristic.value)
+                    )
 //                    if (characteristic.getUuid().equals(UUID.fromString(YpsoGattAttributes.CHARA_RADIO_RESPONSE_COUNT))) {
 //                        aapsLogger.debug(LTag.PUMPBTCOMM, "Response Count is " + ByteUtil.shortHexString(characteristic.getValue()));
 //                    }
@@ -230,23 +247,38 @@ class YpsoPumpBLE @Inject constructor(
         }
     }
 
-    fun startConnectToYpsoPump(btAddress: String) {
+    fun startConnectToYpsoPump(btAddress: String): Boolean {
         if (ypsoPumpUtil.preventConnect) {
-            return;
+            return false;
         }
+
+        deviceMac = btAddress
 
         ypsoPumpUtil.driverStatus = PumpDriverState.Connecting
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        //bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+
         if (bluetoothAdapter == null) {
-            // device doesn't support bluetooth
-            ypsoPumpUtil.errorType = YpsoPumpErrorType.NoBluetoothAdapter
-            return;
+            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+            if (bluetoothManager != null) {
+                bluetoothAdapter = bluetoothManager.adapter
+                aapsLogger.info(LTag.PUMPBTCOMM, "BluetoothAdapter = $bluetoothAdapter")
+            } else {
+                aapsLogger.debug(LTag.PUMPBTCOMM, "BlueToothManager is null")
+            }
+
+            if (bluetoothAdapter == null) {
+                // device doesn't support bluetooth
+                ypsoPumpUtil.errorType = YpsoPumpErrorType.NoBluetoothAdapter
+                return false;
+            }
         }
 
-        // if (bluetoothAdapter!!.isEnabled) {
-        //     ypsoPumpUtil.errorType = YpsoPumpErrorType.BluetoothDisabled
-        //     return;
-        // }
+        aapsLogger.debug(LTag.PUMPBTCOMM, "BT BluetoothAdapter = $bluetoothAdapter")
+
+        if (!bluetoothAdapter!!.isEnabled) {
+            ypsoPumpUtil.errorType = YpsoPumpErrorType.BluetoothDisabled
+            return false
+        }
 
         aapsLogger.debug(LTag.PUMPBTCOMM, "State: " + bluetoothAdapter!!.state + ", enabled: " + bluetoothAdapter!!.isEnabled)
 
@@ -258,11 +290,21 @@ class YpsoPumpBLE @Inject constructor(
         aapsLogger.debug(LTag.PUMPBTCOMM, "State: " + bluetoothAdapter!!.state + ", enabled: " + bluetoothAdapter!!.isEnabled)
 
         if (ypsopumpDevice != null) {
-            connectGatt()
+            if (ypsopumpDevice!!.bondState != 12) {
+                sp.putBoolean(YpsoPumpConst.Prefs.PumpBonded, false)
+                rxBus.send(EventPumpConnectionParametersChanged())
+                aapsLogger.warn(LTag.PUMPBTCOMM, "Pump found, but its not Bonded.")
+                ypsoPumpUtil.errorType = YpsoPumpErrorType.PumpFoundUnbonded
+                //return false
+            } else {
+                connectGatt()
+                return true;
+            }
         } else {
             ypsoPumpUtil.errorType = YpsoPumpErrorType.ConfiguredPumpNotFound
             aapsLogger.error(LTag.PUMPBTCOMM, "YpsoPump device not found with address: $btAddress")
         }
+        return false
     }
 
     fun connectGatt() {
@@ -281,12 +323,12 @@ class YpsoPumpBLE @Inject constructor(
             }
             val deviceName = bluetoothConnectionGatt!!.device.name
             aapsLogger.debug(LTag.PUMPBTCOMM, "Device connected: $deviceName")
-            if (StringUtils.isNotEmpty(deviceName)) {
-                // Update stored name upon connecting (also for backwards compatibility for device where a name was not yet stored)
-                //sp.putString(RileyLinkConst.Prefs.RileyLinkName, deviceName);
-            } else {
-                //sp.remove(RileyLinkConst.Prefs.RileyLinkName);
-            }
+            // if (StringUtils.isNotEmpty(deviceName)) {
+            //     // Update stored name upon connecting (also for backwards compatibility for device where a name was not yet stored)
+            //     //sp.putString(RileyLinkConst.Prefs.RileyLinkName, deviceName);
+            // } else {
+            //     //sp.remove(RileyLinkConst.Prefs.RileyLinkName);
+            // }
 
 //            rileyLinkServiceData.rileyLinkName = deviceName;
 //            rileyLinkServiceData.rileyLinkAddress = bluetoothConnectionGatt.getDevice().getAddress();
@@ -426,6 +468,9 @@ class YpsoPumpBLE @Inject constructor(
                     aapsLogger.error(LTag.PUMPBTCOMM, "BT Device not supported")
                     // TODO: 11/07/2016 UI update for user
                     // xyz rileyLinkServiceData.setServiceState(RileyLinkServiceState.BluetoothError, RileyLinkError.NoBluetoothAdapter);
+                } else if (bluetoothConnectionGatt == null) {
+                    aapsLogger.warn(LTag.PUMPBTCOMM, "BT bluetoothConnectionGatt is null")
+                    rval.operationResultType = BLECommOperationResultType.RESULT_NONE
                 } else {
                     mCurrentOperation = CharacteristicWriteOperation(aapsLogger, bluetoothConnectionGatt!!, chara, value)
                     mCurrentOperation!!.execute(this)

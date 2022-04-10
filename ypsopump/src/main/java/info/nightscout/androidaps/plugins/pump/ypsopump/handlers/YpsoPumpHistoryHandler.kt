@@ -10,6 +10,7 @@ import info.nightscout.androidaps.plugins.pump.common.defs.PumpRunningState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
+import info.nightscout.androidaps.plugins.pump.common.utils.StringUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.YpsoPumpBLE
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.GetAlarms
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.GetEvents
@@ -23,6 +24,7 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.database.HistoryRecordEn
 import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistory
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
+import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpConst
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
@@ -57,6 +59,9 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
 
     var gson: Gson = GsonBuilder().setPrettyPrinting().create()
 
+    //var gsonNotPretty: Gson = GsonBuilder().setPrettyPrinting().create()
+    var prefix: String = "DB: "
+
     fun getPumpHistory() {
 
         Thread {
@@ -64,7 +69,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
             val pumpStatusValues = pumpStatus.getPumpStatusValuesForSelectedPump()
 
             if (pumpStatusValues == null) {
-                aapsLogger.debug(LTag.PUMP, "PumpStatusValues could not be loaded, skipping history reading.")
+                aapsLogger.debug(LTag.PUMP, prefix + "PumpStatusValues could not be loaded, skipping history reading.")
                 return@Thread
             }
 
@@ -94,7 +99,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                 }
             }
 
-            aapsLogger.warn(LTag.PUMPCOMM, "DD: GetEvents")
+            aapsLogger.warn(LTag.PUMPCOMM, "DB: GetEvents")
 
             val commandEvents = GetEvents(
                 hasAndroidInjector = hasAndroidInjector,
@@ -104,7 +109,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
 
             val result = commandEvents.execute(ypsoPumpBLE)
 
-            aapsLogger.warn(LTag.PUMPCOMM, "DD: commandEvents.execute ${result}")
+            aapsLogger.warn(LTag.PUMPCOMM, prefix + "commandEvents.execute ${result}")
 
             if (result) {
                 val dataEvents = commandEvents.commandResponse
@@ -125,12 +130,12 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                     pumpStatusValues.lastEventSequenceNumber = newLastEvent
                     pumpStatusValues.runningEventsSequences = runningSet
 
-                    aapsLogger.warn(LTag.PUMPCOMM, "DD: Data Events size=${dataEvents.size}")
+                    aapsLogger.warn(LTag.PUMPCOMM, prefix + "Data Events size=${dataEvents.size}")
                     //aapsLogger.warn(LTag.PUMPCOMM, "DD: Data Events " + gson.toJson(dataEvents))
 
                     val events = preProcessHistory(dataEvents)
 
-                    aapsLogger.warn(LTag.PUMPCOMM, "DD: Preprocessed Events size=${events.size}")
+                    aapsLogger.warn(LTag.PUMPCOMM, prefix + "Preprocessed Events size=${events.size}")
                     //aapsLogger.warn(LTag.PUMPCOMM, "DD: Events, after preprocess: " + gson.toJson(events))
 
                     // // TODO
@@ -196,9 +201,22 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
         // TODO basal profile changed put together...
         // TODO preprocess TBRs for STOP/START of pump
 
+        //dataDump("DB DATA DUMP", pumpUtil.gsonRegular.toJson(dataEventsInput))
+        //aapsLogger.warn(LTag.PUMPCOMM, "DB DATA DUMP:\n${gson.toJson(dataEventsInput)}")
+
+        aapsLogger.warn(LTag.PUMPCOMM, prefix + "Process - Before size=${dataEventsInput.size}")
+
         var dataEvents = preProcessBasalProfiles(dataEventsInput)
+
+        aapsLogger.warn(LTag.PUMPCOMM, prefix + "Process - After Basal Profiles [size=${dataEventsInput.size}]")
+
         dataEvents = preProcessConfigurationItems(dataEvents)
+
+        aapsLogger.warn(LTag.PUMPCOMM, prefix + "Process - After Configuration [size=${dataEventsInput.size}]")
+
         dataEvents = preProcessDeliverySuspendItems(dataEvents)
+
+        aapsLogger.warn(LTag.PUMPCOMM, prefix + "Process - After Delivery Suspend [size=${dataEventsInput.size}]")
 
         // if (medtronicHistoryData.hasRelevantConfigurationChanged()) {
         //     scheduleNextRefresh(MedtronicStatusRefreshType.Configuration, -1)
@@ -244,11 +262,21 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
 
     }
 
+    private fun dataDump(prefix: String, data: String) {
+        val splitStringList = StringUtil.splitString(data, 3900)
+
+        var i = 1
+        for (entry in splitStringList) {
+            aapsLogger.warn(LTag.PUMPBTCOMM, "$prefix $i\n $entry")
+            i++
+        }
+    }
+
     private fun preProcessBasalProfiles(dataEvents: MutableList<EventDto>): MutableList<EventDto> {
-        // TODO
+        // TODO DB - check if profiles correct
         //val dataEvents = dataEventsInput
 
-        aapsLogger.debug(LTag.PUMPCOMM, "Full Events before: ${dataEvents.size}")
+        aapsLogger.debug(LTag.PUMPCOMM, prefix + "Full Events before: ${dataEvents.size}")
 
         var listBasalProfiles = dataEvents.stream()
             .filter { pre ->
@@ -257,7 +285,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
             }
             .collect(Collectors.toList())
 
-        aapsLogger.debug(LTag.PUMPCOMM, "Basal Items found: ${listBasalProfiles.size}")
+        aapsLogger.debug(LTag.PUMPCOMM, prefix + "Basal Items found: ${listBasalProfiles.size}")
 
         //var basals: MutableMap<Long, MutableList<EventDto>> = mutableMapOf()
 
@@ -274,7 +302,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
             }
         }
 
-        aapsLogger.debug(LTag.PUMPCOMM, "Basal first Items found: ${listFirstItems.size}")
+        aapsLogger.debug(LTag.PUMPCOMM, prefix + "Basal first Items found: ${listFirstItems.size}")
 
         //var listProfiles: MutableList<BasalProfilePatternDto> = mutableListOf()
 
@@ -289,7 +317,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                 }
             }
 
-            aapsLogger.debug(LTag.PUMPCOMM, "Basal Profile Items found: ${profile.mapOfProfilePattens.size}")
+            aapsLogger.debug(LTag.PUMPCOMM, prefix + "Basal Profile Items found: ${profile.mapOfProfilePattens.size}")
 
             if (profile.mapOfProfilePattens.size == 24) {
                 val lastPattern = profile.mapOfProfilePattens[23]!!
@@ -322,24 +350,26 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
 
                 newProfile.subObject = profileSub
 
+                aapsLogger.debug(LTag.PUMPCOMM, prefix + "New Basal Profile: ${gson.to(newProfile)}")
+
                 basalProfilesNew.add(newProfile)
 
             } else {
-                aapsLogger.warn(LTag.PUMPCOMM, "Basal Profile incomplete, invalid. Ignoring.")
+                aapsLogger.warn(LTag.PUMPCOMM, prefix + "Basal Profile incomplete, invalid. Ignoring.")
             }
         }
 
         //aapsLogger.debug(LTag.PUMPCOMM, "Basal first Items found: ${listFirstItems.size}")
 
-        aapsLogger.debug(LTag.PUMPCOMM, "Basal Profiles found: ${basalProfilesNew.size}")
+        aapsLogger.debug(LTag.PUMPCOMM, prefix + "Basal Profiles found: ${basalProfilesNew.size}")
 
         dataEvents.removeAll(listBasalProfiles)
 
-        aapsLogger.debug(LTag.PUMPCOMM, "Full Events after remove: ${dataEvents.size}")
+        aapsLogger.debug(LTag.PUMPCOMM, prefix + "Full Events after remove: ${dataEvents.size}")
 
         dataEvents.addAll(basalProfilesNew)
 
-        aapsLogger.debug(LTag.PUMPCOMM, "Full Events after addng new profiles: ${dataEvents.size}")
+        aapsLogger.debug(LTag.PUMPCOMM, prefix + "Full Events after addng new profiles: ${dataEvents.size}")
 
         // 1. we check if basal has changed, if yes, we need:
         //   a.) combine records into one
@@ -373,6 +403,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                     YpsoPumpEventType.BOLUS_STEP_CHANGED       -> {
                         pumpStatus.bolusStep = eventDto.value1 / 100.0
                         pumpStatus.pumpDescription.bolusStep = pumpStatus.bolusStep
+                        YpsoPumpConst.Prefs.BolusSize
                     }
 
                     YpsoPumpEventType.BASAL_PROFILE_SWITCHED   -> {
@@ -489,6 +520,9 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
     fun addHistoryToDatabase(entityList: List<EventDto>,
                              pumpStatusEntry: YpsoPumpStatusEntry? = null,
                              sendToPumpSync: Boolean = false) {
+
+        aapsLogger.warn(LTag.PUMPCOMM, prefix + "addHistoryToDatabase [${entityList.size}]")
+
         var first = true
         var counter: Int = 0
         for (historyRecordEntity in entityList) {
@@ -497,7 +531,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                 first = false
             }
 
-            aapsLogger.debug(LTag.PUMP, "DD: Add history to Database: ${counter}\n ${gson.toJson(historyRecordEntity)}")
+            aapsLogger.debug(LTag.PUMP, prefix + "Add history to Database: ${counter}\n ${gson.toJson(historyRecordEntity)}")
 
             val changedItem = ypsoPumpHistory.insertOrUpdate(event = historyRecordEntity)
 

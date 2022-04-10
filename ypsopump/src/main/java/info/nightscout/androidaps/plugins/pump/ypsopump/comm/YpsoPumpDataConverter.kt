@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.comm
 
+import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.ypsopump.data.*
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
@@ -17,9 +18,11 @@ import javax.inject.Singleton
 import kotlin.experimental.and
 
 @Singleton
-class YpsoPumpDataConverter @Inject constructor(var pumpStatus: YpsopumpPumpStatus,
-                                                var ypsoPumpUtil: YpsoPumpUtil,
-                                                var aapsLogger: AAPSLogger) {
+class YpsoPumpDataConverter @Inject constructor(
+    var pumpStatus: YpsopumpPumpStatus,
+    var ypsoPumpUtil: YpsoPumpUtil,
+    var aapsLogger: AAPSLogger
+) : PumpDataConverter {
 
     private val YPSOPUMP_10_MASTER_VERSIONS = Regex("^[a-zA-Z]?01\\.0[01]\\.[0-9][0-9]$")
 

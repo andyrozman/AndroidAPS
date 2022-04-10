@@ -1,11 +1,13 @@
-package info.nightscout.androidaps.plugins.pump.ypsopump.driver.ble
+package info.nightscout.androidaps.plugins.pump.common.driver.ble
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.widget.Toast
 import info.nightscout.androidaps.plugins.bus.RxBus
-import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorInterface
+import info.nightscout.androidaps.plugins.pump.common.R
+import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelector
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
@@ -17,13 +19,7 @@ abstract class PumpBLESelectorAbstract constructor(
     var sp: SP,
     var rxBus: RxBus,
     var context: Context
-) : PumpBLESelectorInterface {
-
-    // @Inject protected lateinit var resourceHelper: ResourceHelper
-    // @Inject protected lateinit var aapsLogger: AAPSLogger
-    // @Inject protected lateinit var sp: SP
-    // @Inject protected lateinit var rxBus: RxBus
-    // @Inject protected lateinit var context: Context
+) : PumpBLESelector {
 
     protected val TAG = LTag.PUMPBTCOMM
 
@@ -31,14 +27,53 @@ abstract class PumpBLESelectorAbstract constructor(
         return ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
     }
 
+    override fun getScanFilters(): MutableList<ScanFilter>? {
+        return null
+    }
+
     override fun filterDevice(device: BluetoothDevice): BluetoothDevice? {
         return device
     }
 
+    override fun onResume() {
+    }
+
+    override fun onDestroy() {
+    }
+
+    override fun removeDevice(device: BluetoothDevice) {
+    }
+
+    override fun cleanupAfterDeviceRemoved() {
+    }
+
+    override fun onManualStopLeDeviceScan(context: Context) {
+    }
+
+    override fun onNonManualStopLeDeviceScan(context: Context) {
+    }
+
+    //fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String)
+
+    override fun onScanFailed(context: Context, errorCode: Int) {
+        Toast.makeText(
+            context, resourceHelper.gs(R.string.ble_config_scan_error, errorCode),
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
+    override fun onStartLeDeviceScan(context: Context) {
+        Toast.makeText(context, R.string.ble_config_scan_scanning, Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onStopLeDeviceScan(context: Context) {
+        Toast.makeText(context, R.string.ble_config_scan_finished, Toast.LENGTH_SHORT).show()
+    }
+
     protected fun removeBond(bluetoothDevice: BluetoothDevice): Boolean {
         return try {
-            val method = bluetoothDevice.javaClass.getMethod("removeBond", null)
-            val resultObject = method.invoke(bluetoothDevice, null as Array<Any?>?)
+            val method = bluetoothDevice.javaClass.getMethod("removeBond")
+            val resultObject = method.invoke(bluetoothDevice)
             if (resultObject == null) {
                 aapsLogger.error(TAG, "ERROR: result object is null")
                 false
@@ -70,8 +105,4 @@ abstract class PumpBLESelectorAbstract constructor(
         }
     }
 
-    override fun getScanFilters(): MutableList<ScanFilter>? {
-        return null
-    }
-    
 }

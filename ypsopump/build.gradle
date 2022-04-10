@@ -58,6 +58,8 @@ dependencies {
     api "androidx.room:room-rxjava3:$room_version"
     kapt "androidx.room:room-compiler:$room_version"
 
+    api "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+
     //implementation 'com.github.guepardoapps:kulid:1.1.2.0'
     testImplementation 'org.mockito:mockito-inline:2.13.0'
 

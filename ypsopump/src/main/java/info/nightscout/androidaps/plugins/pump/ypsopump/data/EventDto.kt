@@ -1,6 +1,9 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.data
 
 import info.nightscout.androidaps.interfaces.PumpSync
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
+import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
+import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryEntry
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.utils.resources.ResourceHelper
@@ -22,7 +25,11 @@ data class EventDto(var id: Int?,
                     var subObject: EventObject? = null,
                     var subObject2: EventObject? = null, // this is used only for fake TBR that emulates Pump Start/Stop for now
                     var created: Long? = null,
-                    var updated: Long? = null) : Comparable<EventDto> {
+                    var updated: Long? = null
+) : Comparable<EventDto>, PumpHistoryEntry {
+
+    lateinit var resolvedType: String
+    lateinit var resolvedValue: String
 
     val dateTimeString: String
         get() = "${dateTime.day}.${dateTime.month}.${dateTime.year} ${dateTime.hour}:${dateTime.minute}:${dateTime.second}"
@@ -34,6 +41,21 @@ data class EventDto(var id: Int?,
             return "???"
         }
     }
+
+    override fun prepareEntryData(resourceHelper: ResourceHelper, pumpDataConverter: PumpDataConverter) {
+        val ypsoPumpDataConverter = pumpDataConverter as YpsoPumpDataConverter
+
+        resolvedType = entryType.name
+        resolvedValue = getDisplayableValue(resourceHelper, ypsoPumpDataConverter)
+    }
+
+    override fun getEntryDateTime(): String = dateTimeString
+
+    override fun getEntryType(): String = resolvedType
+
+    override fun getEntryValue(): String = resolvedValue
+
+    override fun getEntryTypeGroup(): PumpHistoryEntryGroup = entryType.group
 
     override fun toString(): String {
 

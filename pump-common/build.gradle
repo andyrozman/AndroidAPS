@@ -17,4 +17,7 @@ dependencies {
     implementation('com.thoughtworks.xstream:xstream:1.4.19') {
         exclude group: 'xmlpull', module: 'xmlpull'
     }
+
+    api "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+
 }
