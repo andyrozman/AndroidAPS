@@ -2,7 +2,6 @@ package info.nightscout.androidaps.plugins.pump.common.defs
 
 import info.nightscout.androidaps.plugins.pump.common.R
 import info.nightscout.androidaps.utils.resources.ResourceHelper
-import java.util.*
 
 /**
  * This file was taken from GGC - GNU Gluco Control (ggc.sourceforge.net), application for diabetes
@@ -35,9 +34,10 @@ enum class PumpHistoryEntryGroup(val resourceId: Int) {
 
     companion object {
 
-        private var translatedList: MutableList<PumpHistoryEntryGroup>? = null
+        @JvmStatic private var translatedList: MutableList<PumpHistoryEntryGroup>? = null
 
-        private fun doTranslation(rh: ResourceHelper) {
+        fun doTranslation(rh: ResourceHelper) {
+            if (translatedList != null) return
             translatedList = ArrayList()
             for (pumpHistoryEntryGroup in values()) {
                 pumpHistoryEntryGroup.translated = rh.gs(pumpHistoryEntryGroup.resourceId)

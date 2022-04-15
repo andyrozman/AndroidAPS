@@ -6,9 +6,6 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.YpsoPumpFragment
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpConnectionManager
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.ble.command.*
-import info.nightscout.androidaps.plugins.pump.ypsopump.dialog.PumpHistoryActivity
-import info.nightscout.androidaps.plugins.pump.ypsopump.dialog.YpsoPumpBLEConfigActivity
-import info.nightscout.androidaps.plugins.pump.ypsopump.dialog.YpsoPumpHistoryActivity
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.config.YpsoPumpBLESelector
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.config.YpsopumpPumpDriverConfiguration
@@ -47,10 +44,10 @@ abstract class YpsoPumpModule {
     @ContributesAndroidInjector abstract fun contributeGetLastEvent(): GetLastEvent
 
     // Activites and Fragments
-    @ContributesAndroidInjector abstract fun contributesYpsoPumpBLEConfigActivity(): YpsoPumpBLEConfigActivity
+    //@ContributesAndroidInjector abstract fun contributesYpsoPumpBLEConfigActivity(): YpsoPumpBLEConfigActivity
     @ContributesAndroidInjector abstract fun contributesYpsoPumpFragment(): YpsoPumpFragment
-    @ContributesAndroidInjector abstract fun contributesYpsoPumpHistoryActivity(): YpsoPumpHistoryActivity
-    @ContributesAndroidInjector abstract fun contributesPumpHistoryActivity(): PumpHistoryActivity  // TODO move to common
+
+    //@ContributesAndroidInjector abstract fun contributesYpsoPumpHistoryActivity(): YpsoPumpHistoryActivity
 
     // Configuration
     @ContributesAndroidInjector abstract fun contributesYpsoPumpBLESelector(): YpsoPumpBLESelector

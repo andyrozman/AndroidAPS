@@ -9,7 +9,7 @@
     <string name="pump_serial_number">Pump Serial Number</string>
 
 
-    <!-- PumoCommon - Pump Status -->
+    <!-- PumpCommon - Pump Status -->
     <string name="pump_status_never_contacted">Never contacted</string>
     <string name="pump_status_waking_up">Waking up</string>
     <string name="pump_status_error_comm">Error with communication</string>
@@ -40,6 +40,16 @@
     <string name="history_group_base">Base</string>
     <string name="history_group_other">Other</string>
 
+    <!-- Time -->
+    <string name="time_today">Today</string>
+    <string name="time_last_hour">Last Hour</string>
+    <string name="time_last_3_hours">Last 3 hours</string>
+    <string name="time_last_6_hours">Last 6 hours</string>
+    <string name="time_last_12_hours">Last 12 hours</string>
+    <string name="time_last_2_days">Last 2 days</string>
+    <string name="time_last_4_days">Last 4 days</string>
+    <string name="time_last_week">Last week</string>
+    <string name="time_last_month">Last month</string>
 
     <!-- BLE Config -->
     <string name="ble_config_button_scan_start">Scan</string>
@@ -77,5 +87,12 @@
         <item quantity="one">%1$d hour</item>
         <item quantity="other">%1$d hours</item>
     </plurals>
-
+    <plurals name="hoursago">
+        <item quantity="one">%1$d hour ago</item>
+        <item quantity="other">%1$d hours ago</item>
+    </plurals>
+    <plurals name="daysago">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
 </resources>

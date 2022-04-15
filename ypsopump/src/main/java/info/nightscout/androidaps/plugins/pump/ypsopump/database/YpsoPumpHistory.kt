@@ -119,7 +119,6 @@ class YpsoPumpHistory @Inject constructor(
         return pumpHistoryDao.allSince(atdTime).blockingGet()
     }
 
-    // TODO main database method we will use
     fun insertOrUpdate(event: EventDto): HistoryRecordEntity? {
         aapsLogger.debug(LTag.PUMP, prefix + "EventDto to convert = ${gson.toJson(event)}")
         val entity = historyMapper.domainToEntity(event)

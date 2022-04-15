@@ -52,8 +52,44 @@
     <string name="ypsopump_ble_config_no_pump_selected">No YpsoPump selected</string>
 
     <!-- YpsoPump History -->
-    <string name="ypsopump_pump_history">YpsoPump Pump History</string>
+    <string name="ypsopump_pump_history">YpsoPump History</string>
     <string name="ypsopump_pump_history_type">Type:</string>
+    <string name="ypsopump_history_date">%d.%d.%d %02d:%02d:%02d</string>
+    <string name="ypsopump_history_alarm">Alarm: %s</string>
+    <string name="ypsopump_history_configuration_changed">%s: %s</string>
+    <string name="ypsopump_history_date_changed">Date Changed: %s</string>
+    <string name="ypsopump_history_time_changed">Time Changed: %s</string>
+    <string name="ypsopump_history_tbr">Rate: %d %%, Duration: %d minutes</string>
+
+    <string name="ypsopump_history_bolus_normal">Normal Bolus, Amount: %.2f U</string>
+    <string name="ypsopump_history_bolus_extended">Extended Bolus, Amount: %.2f U, Duration: %d min</string>
+    <string name="ypsopump_history_bolus_combined">Combined Bolus, Immediate: %.2f U, Extended: %.2f U, Duration: %d min</string>
+    <string name="ypsopump_history_bolus_smb">SMB Bolus, Amount: %.2f U</string>
+    <string name="ypsopump_history_bolus_prime">Prime Bolus, Amount: %.2f U</string>
+
+    <string name="ypsopump_history_tdd_total_insulin">Total insulin: %.2f (U)</string>
+    <string name="ypsopump_history_tdd_parts_insulin">Basal: %.2f, Bolus: %.2f, Total: %.2f (U)</string>
+
+    <string name="ypsopump_alarm_battery_removed">Battery Removed</string>
+    <string name="ypsopump_alarm_battery_empty">Battery Empty</string>
+    <string name="ypsopump_alarm_reusable_error">Reusable Error</string>
+    <string name="ypsopump_alarm_no_cartridge">No Cartridge</string>
+    <string name="ypsopump_alarm_cartridge_empty">Cartridge Empty</string>
+    <string name="ypsopump_alarm_occlusion">Occlusion</string>
+    <string name="ypsopump_alarm_auto_stop">Auto Stop</string>
+    <string name="ypsopump_alarm_lipo_discharged">Lipo Discharged</string>
+    <string name="ypsopump_alarm_battery_rejected">Battery Rejected</string>
+
+    <string name="ypsopump_config_bolus_step_changed">Bolus Step Changed</string>
+    <string name="ypsopump_config_bolus_amount_cap_changed">Bolus Amount Cap Changed</string>
+    <string name="ypsopump_config_basal_amount_cap_changed">Basal Amount Cap Changed</string>
+    <string name="ypsopump_config_basal_profile_changed">Basal Profile Changed</string>
+
+    <string name="ypsopump_pump_status_type_pump_running">Pump Running</string>
+    <string name="ypsopump_pump_status_type_pump_suspended">Pump Suspended</string>
+    <string name="ypsopump_pump_status_type_priming">Priming (%s U)</string>
+    <string name="ypsopump_pump_status_type_rewind">Rewind</string>
+    <string name="ypsopump_pump_status_type_battery_removed">Battery Removed</string>
 
     <!-- YpsoPump Error -->
     <string name="ypsopump_error_not_correct_pump">Not YpsoPump device</string>

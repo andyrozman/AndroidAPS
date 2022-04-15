@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.util
 
+import android.content.Context
 import android.util.Log
 import com.google.gson.GsonBuilder
 import info.nightscout.androidaps.plugins.bus.RxBus
@@ -29,6 +30,7 @@ import kotlin.experimental.inv
 class YpsoPumpUtil @Inject constructor(
     val aapsLogger: AAPSLogger,
     val rxBus: RxBus,
+    val context: Context,
     val resourceHelper: ResourceHelper,
     val ypsopumpPumpStatus: YpsopumpPumpStatus
 ) {
@@ -117,15 +119,15 @@ class YpsoPumpUtil @Inject constructor(
         //aapsLogger.debug(LTag.PUMP, "Status change type: " + type.name() + ", DriverStatus: " + (driverStatus != null ? driverStatus.name() : ""));
         when (type) {
             StatusChange.GetStatus  -> {
-                aapsLogger.debug(LTag.PUMP, "GetStatus: DriverStatus: " + driverStatusInternal);
+                //aapsLogger.debug(LTag.PUMP, "GetStatus: DriverStatus: " + driverStatusInternal);
                 return driverStatusInternal
             }
 
             StatusChange.SetStatus  -> {
-                aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus Before: " + driverStatusInternal + ", Incoming: " + driverStatusIn);
+                //aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus Before: " + driverStatusInternal + ", Incoming: " + driverStatusIn);
                 driverStatusInternal = driverStatusIn!!
                 this.pumpCommandType = null
-                aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus: " + driverStatusInternal);
+                //aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus: " + driverStatusInternal);
                 rxBus.send(EventPumpStatusChanged(driverStatusInternal))
             }
 
@@ -179,6 +181,12 @@ class YpsoPumpUtil @Inject constructor(
         atechDateTime -= minute * 100L
         val second = atechDateTime.toInt()
         return DateTimeDto(year, month, dayOfMonth, hourOfDay, minute, second)
+    }
+
+    fun fromDpToSize(dpSize: Int): Int {
+        val scale = context.resources.displayMetrics.density
+        val pixelsFl = ((dpSize * scale) + 0.5f)
+        return pixelsFl.toInt()
     }
 
     enum class StatusChange {

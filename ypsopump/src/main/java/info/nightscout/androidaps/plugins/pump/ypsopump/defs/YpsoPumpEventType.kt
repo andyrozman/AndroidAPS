@@ -2,7 +2,7 @@ package info.nightscout.androidaps.plugins.pump.ypsopump.defs
 
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
 
-enum class YpsoPumpEventType(val code: Int, val group: PumpHistoryEntryGroup) {
+enum class YpsoPumpEventType(val code: Int, val group: PumpHistoryEntryGroup, val resourceId: Int? = null) {
     UNDEFINED(-1, PumpHistoryEntryGroup.Unknown),
     BOLUS_EXTENDED_RUNNING(1, PumpHistoryEntryGroup.Bolus),
     BOLUS_NORMAL(2, PumpHistoryEntryGroup.Bolus),
@@ -50,6 +50,13 @@ enum class YpsoPumpEventType(val code: Int, val group: PumpHistoryEntryGroup) {
     BASAL_PROFILE_B_CHANGED(4001, PumpHistoryEntryGroup.Basal),
     ;
 
+    fun getDescriptionResourceId(): Int {
+        return if (resourceId == null)
+            this.group.resourceId
+        else
+            resourceId
+    }
+
     companion object {
 
         private var mapByEventId: MutableMap<Int, YpsoPumpEventType> = mutableMapOf()
@@ -65,14 +72,11 @@ enum class YpsoPumpEventType(val code: Int, val group: PumpHistoryEntryGroup) {
 
         @JvmStatic
         fun isRunningEvent(entryType: YpsoPumpEventType): Boolean {
-            if ((entryType == BOLUS_EXTENDED_RUNNING) ||
+            return (entryType == BOLUS_EXTENDED_RUNNING) ||
                 (entryType == TEMPORARY_BASAL_RUNNING) ||
                 (entryType == BOLUS_COMBINED_RUNNING) ||
                 (entryType == BOLUS_NORMAL_RUNNING) ||
-                (entryType == BOLUS_BLIND_RUNNING))
-                return true
-            else
-                return false
+                (entryType == BOLUS_BLIND_RUNNING)
         }
 
         init {

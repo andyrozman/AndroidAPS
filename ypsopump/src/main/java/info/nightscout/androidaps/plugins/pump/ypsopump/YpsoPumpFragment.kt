@@ -20,9 +20,9 @@ import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpUpdateFragmentType
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentValuesChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
+import info.nightscout.androidaps.plugins.pump.common.ui.PumpHistoryActivity
 import info.nightscout.androidaps.plugins.pump.ypsopump.databinding.YpsopumpFragmentBinding
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpCommandType
-import info.nightscout.androidaps.plugins.pump.ypsopump.dialog.YpsoPumpHistoryActivity
 import info.nightscout.androidaps.plugins.pump.ypsopump.driver.YpsopumpPumpStatus
 import info.nightscout.androidaps.plugins.pump.ypsopump.event.EventPumpStatusChanged
 import info.nightscout.androidaps.plugins.pump.ypsopump.util.YpsoPumpUtil
@@ -110,51 +110,13 @@ class YpsoPumpFragment : DaggerFragment() {
         }
 
         binding.pumpHistory.setOnClickListener {
-            startActivity(Intent(context, YpsoPumpHistoryActivity::class.java))
+            startActivity(Intent(context, PumpHistoryActivity::class.java))
         }
 
-        // TODO fix
-        // medtronic_pumpstatus.setBackgroundColor(resourceHelper.gc(R.color.colorInitializingBorder))
-        //
-        // medtronic_rl_status.text = resourceHelper.gs(RileyLinkServiceState.NotStarted.resourceId)
-        //
-        // medtronic_pump_status.setTextColor(Color.WHITE)
-        // medtronic_pump_status.text = "{fa-bed}"
-        //
-        // medtronic_history.setOnClickListener {
-        //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true) {
-        //         startActivity(Intent(context, MedtronicHistoryActivity::class.java))
-        //     } else {
-        //         displayNotConfiguredDialog()
-        //     }
-        // }
-        //
-        // medtronic_refresh.setOnClickListener {
-        //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() != true) {
-        //         displayNotConfiguredDialog()
-        //     } else {
-        //         medtronic_refresh.isEnabled = false
-        //         medtronicPumpPlugin.resetStatusState()
-        //         commandQueue.readStatus("Clicked refresh", object : Callback() {
-        //             override fun run() {
-        //                 activity?.runOnUiThread { medtronic_refresh?.isEnabled = true }
-        //             }
-        //         })
-        //     }
-        // }
-
-        // medtronic_stats.setOnClickListener {
-        //     if (medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true) {
-        //         startActivity(Intent(context, RileyLinkStatusActivity::class.java))
-        //     } else {
-        //         displayNotConfiguredDialog()
-        //     }
-        // }
     }
 
     @Synchronized
     override fun onResume() {
-        // TODO fix
         super.onResume()
 
         loopHandler.postDelayed(refreshLoop, T.mins(1).msecs())
@@ -182,14 +144,6 @@ class YpsoPumpFragment : DaggerFragment() {
             .toObservable(EventQueueChanged::class.java)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ updateGUI(PumpUpdateFragmentType.Queue) }, { fabricPrivacy.logException(it) })
-        // disposable += rxBus
-        //     .toObservable(EventOtherPumpValuesChanged::class.java)  // ?
-        //     .observeOn(AndroidSchedulers.mainThread())
-        //     .subscribe({ updateGUI(UpdateGui.OtherValues) }, { fabricPrivacy.logException(it) })
-        // disposable += rxBus
-        //     .toObservable(EventPumpValuesChanged::class.java)
-        //     .observeOn(AndroidSchedulers.mainThread())
-        //     .subscribe({ updateGUI(UpdateGui.Full) }, { fabricPrivacy.logException(it) })
 
         updateGUI(PumpUpdateFragmentType.Full)
     }
@@ -201,153 +155,11 @@ class YpsoPumpFragment : DaggerFragment() {
         loopHandler.removeCallbacks(refreshLoop)
     }
 
-    @Synchronized
-    private fun setDeviceStatus() {
-        // TODO
-        // val resourceId = rileyLinkServiceData.rileyLinkServiceState.resourceId
-        // val rileyLinkError = medtronicPumpPlugin.rileyLinkService?.error
-        // medtronic_rl_status.text =
-        //     when {
-        //         rileyLinkServiceData.rileyLinkServiceState == RileyLinkServiceState.NotStarted   -> resourceHelper.gs(resourceId)
-        //         rileyLinkServiceData.rileyLinkServiceState.isConnecting                          -> "{fa-bluetooth-b spin}   " + resourceHelper.gs(resourceId)
-        //         rileyLinkServiceData.rileyLinkServiceState.isError && rileyLinkError == null     -> "{fa-bluetooth-b}   " + resourceHelper.gs(resourceId)
-        //         rileyLinkServiceData.rileyLinkServiceState.isError && rileyLinkError != null     -> "{fa-bluetooth-b}   " + resourceHelper.gs(rileyLinkError.getResourceId(RileyLinkTargetDevice.MedtronicPump))
-        //         else                                                                             -> "{fa-bluetooth-b}   " + resourceHelper.gs(resourceId)
-        //     }
-        // medtronic_rl_status.setTextColor(if (rileyLinkError != null) Color.RED else Color.WHITE)
-        //
-        // medtronic_errors.text =
-        //     rileyLinkServiceData.rileyLinkError?.let {
-        //         resourceHelper.gs(it.getResourceId(RileyLinkTargetDevice.MedtronicPump))
-        //     } ?: "-"
-        //
-        // when (medtronicPumpStatus.pumpDeviceState) {
-        //     null,
-        //     PumpDeviceState.Sleeping             -> medtronic_pump_status.text = "{fa-bed}   " // + pumpStatus.pumpDeviceState.name());
-        //     PumpDeviceState.NeverContacted,
-        //     PumpDeviceState.WakingUp,
-        //     PumpDeviceState.PumpUnreachable,
-        //     PumpDeviceState.ErrorWhenCommunicating,
-        //     PumpDeviceState.TimeoutWhenCommunicating,
-        //     PumpDeviceState.InvalidConfiguration -> medtronic_pump_status.text = " " + resourceHelper.gs(medtronicPumpStatus.pumpDeviceState.resourceId)
-        //
-        //     PumpDeviceState.Active               -> {
-        //         val cmd = medtronicUtil.currentCommand
-        //         if (cmd == null)
-        //             medtronic_pump_status.text = " " + resourceHelper.gs(medtronicPumpStatus.pumpDeviceState.resourceId)
-        //         else {
-        //             aapsLogger.debug(LTag.PUMP, "Command: " + cmd)
-        //             val cmdResourceId = cmd.resourceId
-        //             if (cmd == MedtronicCommandType.GetHistoryData) {
-        //                 medtronic_pump_status.text = medtronicUtil.frameNumber?.let {
-        //                     resourceHelper.gs(cmdResourceId, medtronicUtil.pageNumber, medtronicUtil.frameNumber)
-        //                 }
-        //                     ?: resourceHelper.gs(R.string.medtronic_cmd_desc_get_history_request, medtronicUtil.pageNumber)
-        //             } else {
-        //                 medtronic_pump_status.text = " " + (cmdResourceId?.let { resourceHelper.gs(it) }
-        //                     ?: cmd.getCommandDescription())
-        //             }
-        //         }
-        //     }
-        //
-        //     else   -> aapsLogger.warn(LTag.PUMP, "Unknown pump state: " + medtronicPumpStatus.pumpDeviceState)
-        // }
-        //
-        // val status = commandQueue.spannedStatus()
-        // if (status.toString() == "") {
-        //     medtronic_queue.visibility = View.GONE
-        // } else {
-        //     medtronic_queue.visibility = View.VISIBLE
-        //     medtronic_queue.text = status
-        // }
-    }
-
     private fun displayNotConfiguredDialog() {
         context?.let {
             OKDialog.show(it, resourceHelper.gs(R.string.medtronic_warning),
                 resourceHelper.gs(R.string.medtronic_error_operation_not_possible_no_configuration), null)
         }
-    }
-
-    // GUI functions
-    @Synchronized
-    fun updateGUI_() {
-
-        // TODO fix
-        // if (medtronic_rl_status == null) return
-        //
-        // setDeviceStatus()
-        //
-        // // last connection
-        // if (medtronicPumpStatus.lastConnection != 0L) {
-        //     val minAgo = DateUtil.minAgo(resourceHelper, medtronicPumpStatus.lastConnection)
-        //     val min = (System.currentTimeMillis() - medtronicPumpStatus.lastConnection) / 1000 / 60
-        //     if (medtronicPumpStatus.lastConnection + 60 * 1000 > System.currentTimeMillis()) {
-        //         medtronic_lastconnection.setText(R.string.medtronic_pump_connected_now)
-        //         medtronic_lastconnection.setTextColor(Color.WHITE)
-        //     } else if (medtronicPumpStatus.lastConnection + 30 * 60 * 1000 < System.currentTimeMillis()) {
-        //
-        //         if (min < 60) {
-        //             medtronic_lastconnection.text = resourceHelper.gs(R.string.minago, min)
-        //         } else if (min < 1440) {
-        //             val h = (min / 60).toInt()
-        //             medtronic_lastconnection.text = (resourceHelper.gq(R.plurals.duration_hours, h, h) + " "
-        //                 + resourceHelper.gs(R.string.ago))
-        //         } else {
-        //             val h = (min / 60).toInt()
-        //             val d = h / 24
-        //             // h = h - (d * 24);
-        //             medtronic_lastconnection.text = (resourceHelper.gq(R.plurals.duration_days, d, d) + " "
-        //                 + resourceHelper.gs(R.string.ago))
-        //         }
-        //         medtronic_lastconnection.setTextColor(Color.RED)
-        //     } else {
-        //         medtronic_lastconnection.text = minAgo
-        //         medtronic_lastconnection.setTextColor(Color.WHITE)
-        //     }
-        // }
-        //
-        // // last bolus
-        // val bolus = medtronicPumpStatus.lastBolusAmount
-        // val bolusTime = medtronicPumpStatus.lastBolusTime
-        // if (bolus != null && bolusTime != null) {
-        //     val agoMsc = System.currentTimeMillis() - medtronicPumpStatus.lastBolusTime.time
-        //     val bolusMinAgo = agoMsc.toDouble() / 60.0 / 1000.0
-        //     val unit = resourceHelper.gs(R.string.insulin_unit_shortname)
-        //     val ago: String
-        //     if (agoMsc < 60 * 1000) {
-        //         ago = resourceHelper.gs(R.string.medtronic_pump_connected_now)
-        //     } else if (bolusMinAgo < 60) {
-        //         ago = DateUtil.minAgo(resourceHelper, medtronicPumpStatus.lastBolusTime.time)
-        //     } else {
-        //         ago = DateUtil.hourAgo(medtronicPumpStatus.lastBolusTime.time, resourceHelper)
-        //     }
-        //     medtronic_lastbolus.text = resourceHelper.gs(R.string.mdt_last_bolus, bolus, unit, ago)
-        // } else {
-        //     medtronic_lastbolus.text = ""
-        // }
-        //
-        // // base basal rate
-        // medtronic_basabasalrate.text = ("(" + medtronicPumpStatus.activeProfileName + ")  "
-        //     + resourceHelper.gs(R.string.pump_basebasalrate, medtronicPumpPlugin.baseBasalRate))
-        //
-        // medtronic_tempbasal.text = activePlugin.activeTreatments.getTempBasalFromHistory(System.currentTimeMillis())?.toStringFull()
-        //     ?: ""
-        //
-        // // battery
-        // if (medtronicPumpStatus.batteryType == BatteryType.None || medtronicPumpStatus.batteryVoltage == null) {
-        //     medtronic_pumpstate_battery.text = "{fa-battery-" + medtronicPumpStatus.batteryRemaining / 25 + "}  "
-        // } else {
-        //     medtronic_pumpstate_battery.text = "{fa-battery-" + medtronicPumpStatus.batteryRemaining / 25 + "}  " + medtronicPumpStatus.batteryRemaining + "%" + String.format("  (%.2f V)", medtronicPumpStatus.batteryVoltage)
-        // }
-        // warnColors.setColorInverse(medtronic_pumpstate_battery, medtronicPumpStatus.batteryRemaining.toDouble(), 25.0, 10.0)
-        //
-        // // reservoir
-        // medtronic_reservoir.text = resourceHelper.gs(R.string.reservoirvalue, medtronicPumpStatus.reservoirRemainingUnits, medtronicPumpStatus.reservoirFullUnits)
-        // warnColors.setColorInverse(medtronic_reservoir, medtronicPumpStatus.reservoirRemainingUnits, 50.0, 20.0)
-        //
-        // medtronicPumpPlugin.rileyLinkService?.verifyConfiguration()
-        // medtronic_errors.text = medtronicPumpStatus.errorInfo
     }
 
     @Synchronized
@@ -368,14 +180,12 @@ class YpsoPumpFragment : DaggerFragment() {
                     binding.pumpLastConnection.text = resourceHelper.gs(R.string.minago, min)
                 } else if (min < 1440) {
                     val h = (min / 60).toInt()
-                    binding.pumpLastConnection.text = (resourceHelper.gq(R.plurals.duration_hours, h, h) + " "
-                        + resourceHelper.gs(R.string.ago))
+                    binding.pumpLastConnection.text = resourceHelper.gq(R.plurals.hoursago, h, h)
                 } else {
                     val h = (min / 60).toInt()
                     val d = h / 24
                     // h = h - (d * 24);
-                    binding.pumpLastConnection.text = (resourceHelper.gq(R.plurals.duration_days, d, d) + " "
-                        + resourceHelper.gs(R.string.ago))
+                    binding.pumpLastConnection.text = resourceHelper.gq(R.plurals.daysago, d, d)
                 }
                 binding.pumpLastConnection.setTextColor(Color.RED)
             } else {
@@ -386,11 +196,7 @@ class YpsoPumpFragment : DaggerFragment() {
 
         if (updateType == PumpUpdateFragmentType.PumpStatus || updateType == PumpUpdateFragmentType.Full) {
             // Pump Status (Error)
-
-            //if (pumpUtil.driverStatus
-            // TODO error handling
-
-            var pumpDriverState: PumpDriverState? = pumpUtil.driverStatus
+            val pumpDriverState: PumpDriverState = pumpUtil.driverStatus
 
             updatePumpStatus(pumpDriverState)
 

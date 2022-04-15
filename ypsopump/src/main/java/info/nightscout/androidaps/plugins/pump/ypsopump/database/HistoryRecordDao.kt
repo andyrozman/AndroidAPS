@@ -11,14 +11,14 @@ abstract class HistoryRecordDao {
     @Query("SELECT * from history_records")
     abstract fun all(): Single<List<HistoryRecordEntity>>
 
-    @Query("SELECT * from history_records")
+    @Query("SELECT * from history_records order by eventSequenceNumber desc")
     abstract fun allBlocking(): List<HistoryRecordEntity>
 
     @Query("SELECT * from history_records WHERE date >= :since")
     abstract fun allSince(since: Long): Single<List<HistoryRecordEntity>>
 
-    // @Query("SELECT * from history_records WHERE date >= :since")
-    // abstract fun allSinceBlocking(since: Long): List<HistoryRecordEntity>
+    @Query("SELECT * from history_records WHERE date >= :since order by eventSequenceNumber desc")
+    abstract fun allSinceBlocking(since: Long): List<HistoryRecordEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun saveBlocking(historyRecordEntity: HistoryRecordEntity)

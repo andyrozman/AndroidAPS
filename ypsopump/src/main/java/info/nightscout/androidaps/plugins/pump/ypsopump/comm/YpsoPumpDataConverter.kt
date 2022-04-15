@@ -261,7 +261,8 @@ class YpsoPumpDataConverter @Inject constructor(
             PRIMING,
             CANNULA_PRIMING                 -> {
                 val priming = String.format(Locale.ROOT, "AMOUNT=%.2f;MOTION_STATUS=%d", eventDto.value1 / 100.0, eventDto.value2)
-                eventDto.subObject = PumpStatusChanged(PumpStatusType.Priming, priming)
+                val priming2 = String.format(Locale.ROOT, "%.2f", eventDto.value1 / 100.0)
+                eventDto.subObject = PumpStatusChanged(PumpStatusType.Priming, priming2)
 //                val piEventTypeId2 = if (ypsoPumpVersion == eYpsoPumpVersion.YpsoPump_15 &&
 //                        ypsoPumpEventType == eYpsoPumpEventType.PRIMING_FINISHED) 23 else if (ypsoPumpVersion != eYpsoPumpVersion.YpsoPump_15 ||
 //                        ypsoPumpEventType != eYpsoPumpEventType.CANNULA_PRIMING_FINISHED) 20 else 24

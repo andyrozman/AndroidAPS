@@ -20,9 +20,10 @@ import info.nightscout.androidaps.plugins.pump.ypsopump.database.YpsoPumpHistory
 import info.nightscout.androidaps.utils.resources.ResourceHelper
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
-import java.util.*
+import java.lang.Deprecated
 import javax.inject.Inject
 
+@Deprecated
 class YpsoPumpHistoryActivity : DaggerActivity() {
 
     // TODO database inject
@@ -153,6 +154,7 @@ class YpsoPumpHistoryActivity : DaggerActivity() {
     }
 
     class TypeList internal constructor(var entryGroup: PumpHistoryEntryGroup) {
+
         var name: String
         override fun toString(): String {
             return name
@@ -165,7 +167,6 @@ class YpsoPumpHistoryActivity : DaggerActivity() {
 
     class RecyclerViewAdapter internal constructor(var historyList: List<EventDto>, var resourceHelper: ResourceHelper, var ypsoPumpDataConverter: YpsoPumpDataConverter) : RecyclerView.Adapter<RecyclerViewAdapter.HistoryViewHolder>() {
 
-
         fun setHistoryListInternal(historyList: List<EventDto>) {
             // this.historyList.clear();
             // this.historyList.addAll(historyList);
@@ -176,16 +177,16 @@ class YpsoPumpHistoryActivity : DaggerActivity() {
 
         override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): HistoryViewHolder {
             val v = LayoutInflater.from(viewGroup.context).inflate(R.layout.ypsopump_history_item,  //
-                viewGroup, false)
+                                                                   viewGroup, false)
             return HistoryViewHolder(v)
         }
 
         override fun onBindViewHolder(holder: HistoryViewHolder, position: Int) {
             val record = historyList[position]
             //if (record != null) {
-                holder.timeView.text = record.dateTimeString
-                holder.typeView.text = record.entryType.name
-                holder.valueView.text = record.getDisplayableValue(resourceHelper, ypsoPumpDataConverter)
+            holder.timeView.text = record.dateTimeString
+            holder.typeView.text = record.entryType.name
+            holder.valueView.text = record.getDisplayableValue(resourceHelper, ypsoPumpDataConverter)
             //}
         }
 
@@ -198,6 +199,7 @@ class YpsoPumpHistoryActivity : DaggerActivity() {
         // }
 
         class HistoryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+
             var timeView: TextView
             var typeView: TextView
             var valueView: TextView
@@ -213,6 +215,7 @@ class YpsoPumpHistoryActivity : DaggerActivity() {
     }
 
     companion object {
+
         var showingType: TypeList? = null
         var selectedGroup = PumpHistoryEntryGroup.All
     }

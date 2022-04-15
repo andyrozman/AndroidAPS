@@ -1,9 +1,11 @@
 package info.nightscout.androidaps.plugins.pump.ypsopump.data
 
+import androidx.annotation.StringRes
 import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryEntry
+import info.nightscout.androidaps.plugins.pump.ypsopump.R
 import info.nightscout.androidaps.plugins.pump.ypsopump.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.ypsopump.defs.YpsoPumpEventType
 import info.nightscout.androidaps.utils.resources.ResourceHelper
@@ -28,6 +30,7 @@ data class EventDto(var id: Int?,
                     var updated: Long? = null
 ) : Comparable<EventDto>, PumpHistoryEntry {
 
+    lateinit var resolvedDate: String
     lateinit var resolvedType: String
     lateinit var resolvedValue: String
 
@@ -45,11 +48,12 @@ data class EventDto(var id: Int?,
     override fun prepareEntryData(resourceHelper: ResourceHelper, pumpDataConverter: PumpDataConverter) {
         val ypsoPumpDataConverter = pumpDataConverter as YpsoPumpDataConverter
 
-        resolvedType = entryType.name
+        resolvedDate = resourceHelper.gs(R.string.ypsopump_history_date, dateTime.day, dateTime.month, dateTime.year, dateTime.hour, dateTime.minute, dateTime.second)
+        resolvedType = resourceHelper.gs(entryType.getDescriptionResourceId())
         resolvedValue = getDisplayableValue(resourceHelper, ypsoPumpDataConverter)
     }
 
-    override fun getEntryDateTime(): String = dateTimeString
+    override fun getEntryDateTime(): String = resolvedDate
 
     override fun getEntryType(): String = resolvedType
 
@@ -120,23 +124,22 @@ data class TotalDailyInsulin(var bolus: Double,
 
     constructor(bolus: Double, basal: Double) : this(bolus, basal, basal + bolus, false)
 
-    // TODO i18n
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
         if (isTotalOnly) {
-            return "Basal & Bolus: " + total
+            return resourceHelper.gs(R.string.ypsopump_history_tdd_total_insulin, total)
         } else {
-            return "Basal: $basal, Bolus: $bolus, Total: $total"
+            return resourceHelper.gs(R.string.ypsopump_history_tdd_parts_insulin, basal, bolus, total)
         }
     }
 
 }
 
-enum class BolusType {
-    Normal,
-    Extended,
-    Combined,
-    SMB,
-    Priming
+enum class BolusType(@StringRes var stringId: Int) {
+    Normal(R.string.ypsopump_history_bolus_normal),
+    Extended(R.string.ypsopump_history_bolus_extended),
+    Combined(R.string.ypsopump_history_bolus_combined),
+    SMB(R.string.ypsopump_history_bolus_smb),
+    Priming(R.string.ypsopump_history_bolus_prime)
 }
 
 
@@ -166,93 +169,86 @@ data class Bolus(var bolusType: BolusType,
                 isCancelled: Boolean,
                 isRunning: Boolean) : this(BolusType.Combined, immediateAmount, extendedAmount, durationMin, isCalculated, isCancelled, isRunning)
 
-    // TODO i18n
-    // TODO show values
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
         return when (bolusType) {
-            BolusType.Normal   -> "Bolus: Normal, Amount: $immediateAmount"
-            BolusType.Extended -> "Bolus: Extended, Amount: $extendedAmount, Duration: $durationMin min"
-            BolusType.Combined -> "Bolus: Combined, Immediate Amount: $immediateAmount, Extended Amount: $extendedAmount, Duration: $durationMin min"
-            BolusType.SMB      -> "Bolus: SMB, Amount: $immediateAmount"
-            BolusType.Priming  -> "Bolus: Priming, Amount: $immediateAmount"
+            BolusType.Normal   -> resourceHelper.gs(bolusType.stringId, immediateAmount)
+            BolusType.Extended -> resourceHelper.gs(bolusType.stringId, extendedAmount, durationMin)
+            BolusType.Combined -> resourceHelper.gs(bolusType.stringId, immediateAmount, extendedAmount, durationMin)
+            BolusType.SMB      -> resourceHelper.gs(bolusType.stringId, immediateAmount)
+            BolusType.Priming  -> resourceHelper.gs(bolusType.stringId, immediateAmount)
         }
     }
-
 }
 
-data class TemporaryBasal(var percent: Int,
-                          var minutes: Int,
-                          var isRunning: Boolean,
-                          var temporaryBasalType: PumpSync.TemporaryBasalType = PumpSync.TemporaryBasalType.NORMAL) : EventObject() {
+data class TemporaryBasal(
+    var percent: Int,
+    var minutes: Int,
+    var isRunning: Boolean,
+    var temporaryBasalType: PumpSync.TemporaryBasalType = PumpSync.TemporaryBasalType.NORMAL
+) : EventObject() {
 
-    // TODO i18n
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
-        return "Rate: " + percent + "%, " + minutes + " min"
+        return resourceHelper.gs(R.string.ypsopump_history_tbr, percent, minutes)
     }
-
 }
 
-enum class AlarmType(var parameterCount: Int = 0) {
-    BatteryRemoved,
-    BatteryEmpty(1),
-    ReusableError(3),
-    NoCartridge,
-    CartridgeEmpty,
-    Occlusion(1),
-    AutoStop,
-    LipoDischarged(1),
-    BatteryRejected(1)
+enum class AlarmType(@StringRes var stringId: Int, var parameterCount: Int = 0) {
+    BatteryRemoved(R.string.ypsopump_alarm_battery_removed),
+    BatteryEmpty(R.string.ypsopump_alarm_battery_empty, 1),
+    ReusableError(R.string.ypsopump_alarm_reusable_error, 3),
+    NoCartridge(R.string.ypsopump_alarm_no_cartridge),
+    CartridgeEmpty(R.string.ypsopump_alarm_cartridge_empty),
+    Occlusion(R.string.ypsopump_alarm_occlusion, 1),
+    AutoStop(R.string.ypsopump_alarm_auto_stop),
+    LipoDischarged(R.string.ypsopump_alarm_lipo_discharged, 1),
+    BatteryRejected(R.string.ypsopump_alarm_battery_rejected, 1)
 }
 
+data class Alarm(
+    var alarmType: AlarmType,
+    var value1: Int? = null,
+    var value2: Int? = null,
+    var value3: Int? = null
+) : EventObject() {
 
-data class Alarm(var alarmType: AlarmType,
-                 var value1: Int? = null,
-                 var value2: Int? = null,
-                 var value3: Int? = null): EventObject() {
-
-    // TODO i18n
-    // TODO show values
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
-        return "Alarm: " + alarmType.name
+        return resourceHelper.gs(R.string.ypsopump_history_alarm, resourceHelper.gs(alarmType.stringId))
     }
-
 }
 
-enum class ConfigurationType {
-    BolusStepChanged,
-    BolusAmountCapChanged,
-    BasalAmountCapChanged,
-    BasalProfileChanged
+enum class ConfigurationType(@StringRes var stringId: Int) {
+    BolusStepChanged(R.string.ypsopump_config_bolus_step_changed),
+    BolusAmountCapChanged(R.string.ypsopump_config_bolus_amount_cap_changed),
+    BasalAmountCapChanged(R.string.ypsopump_config_basal_amount_cap_changed),
+    BasalProfileChanged(R.string.ypsopump_config_basal_profile_changed)
 }
-
 
 data class ConfigurationChanged(var configurationType: ConfigurationType,
                                 var value: String) : EventObject() {
-    // TODO i18n
-    // TODO show values
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
-        return configurationType.name + ": " + value
+        return resourceHelper.gs(R.string.ypsopump_history_configuration_changed, resourceHelper.gs(configurationType.stringId), value)
     }
 }
 
-enum class PumpStatusType {
-    PumpRunning,
-    PumpSuspended,
-    Priming,
-    Rewind,
-    BatteryRemoved
+enum class PumpStatusType(@StringRes var stringId: Int) {
+    PumpRunning(R.string.ypsopump_pump_status_type_pump_running),
+    PumpSuspended(R.string.ypsopump_pump_status_type_pump_suspended),
+    Priming(R.string.ypsopump_pump_status_type_priming),
+    Rewind(R.string.ypsopump_pump_status_type_rewind),
+    BatteryRemoved(R.string.ypsopump_pump_status_type_battery_removed)
 }
 
 
 data class PumpStatusChanged(var pumpStatusType: PumpStatusType,
                              var additonalData: String? = null): EventObject() {
 
-    // TODO i18n
-    // TODO show values
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
-        return pumpStatusType.name + " " + (if (additonalData!=null) additonalData else "")
+        return if (pumpStatusType == PumpStatusType.Priming) {
+            resourceHelper.gs(pumpStatusType.stringId, additonalData)
+        } else {
+            resourceHelper.gs(pumpStatusType.stringId)
+        }
     }
-
 }
 
 data class DateTimeChanged(var year: Int? = 0,
@@ -264,9 +260,12 @@ data class DateTimeChanged(var year: Int? = 0,
                        var timeChanged: Boolean
 ): EventObject() {
 
-    // TODO i18n
-    // TODO show values
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
-        return "New Date/Time: $day.$month.$year $hour:$minute:$second"
+        val dt = resourceHelper.gs(R.string.ypsopump_history_date, day, month, year, hour, minute, second)
+        return if (timeChanged) {
+            resourceHelper.gs(R.string.ypsopump_history_time_changed, dt)
+        } else {
+            resourceHelper.gs(R.string.ypsopump_history_date_changed, dt)
+        }
     }
 }
