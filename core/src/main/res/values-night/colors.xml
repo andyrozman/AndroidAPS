@@ -92,6 +92,7 @@
     <color name="calibration">#E83258</color>
     <color name="bolusDataPointColor">#00FFFF</color>
     <color name="profileSwitch">#00FFFF</color>
+    <color name="sens">#008585</color>
 
     <color name="ribbonDefault">#5a595b</color>
     <color name="daySelected">#D000FF00</color>
@@ -167,7 +168,7 @@
     <color name="actionsConfirm">#FFFF00</color>
     <color name="deviations">#FF0000</color>
     <color name="cobAlert">#7484E2</color>
-    <color name="inrangebackground">#2800FF00</color>
+    <color name="inrangebackground">#4000FF00</color>
     <color name="basebasal">#C83F51B5</color>
     <color name="graphgrid">#757575</color>
     <color name="warning">#ff1a1a</color>
@@ -217,6 +218,7 @@
     <color name="question">#FEAF05</color>
     <color name="pumpHistory">#67DFE8</color>
     <color name="userOption">#6AE86D</color>
+    <color name="stats">#FEAF05</color>
 
     <!-- Gray colors -->
     <color name="darkgray">#323232</color>
