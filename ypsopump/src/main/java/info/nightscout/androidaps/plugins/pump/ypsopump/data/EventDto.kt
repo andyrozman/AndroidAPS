@@ -96,9 +96,11 @@ enum class HistoryEntryType {
 
 data class BasalProfile(var profile: HashMap<Int, BasalProfileEntry>) : EventObject() {
 
-    // TODO i18n
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
-        return ypsoPumpDataConverter.convertBasalProfileToString(profile, ", ")
+        return resourceHelper.gs(
+            R.string.ypsopump_history_basal_profile,
+            ypsoPumpDataConverter.convertBasalProfileToString(profile, ", ")
+        )
     }
 
 }
@@ -106,12 +108,8 @@ data class BasalProfile(var profile: HashMap<Int, BasalProfileEntry>) : EventObj
 data class BasalProfileEntry(var hour: Int,
                              var rate: Double) : EventObject() {
 
-    // TODO i18n
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
-        if (hour<10)
-            return "0" + hour + "=" + String.format("%.2f", rate)
-        else
-            return "" + hour + "=" + String.format("%d=%.2f", hour, rate)
+        return String.format("%02d=%.2f", hour, rate)
     }
 
 }

@@ -62,7 +62,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
     //var gsonNotPretty: Gson = GsonBuilder().setPrettyPrinting().create()
     var prefix: String = "DB: "
 
-    fun getPumpHistory() {
+    fun getFullPumpHistory() {
 
         Thread {
 
@@ -73,126 +73,142 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                 return@Thread
             }
 
-            // if (true)
-            //     return@Thread
+            if (!getPumpEvents(pumpStatusValues))
+                return@Thread
 
-            // events
-            var lastSequenceNumber: Int? = pumpStatusValues.lastEventSequenceNumber
-            var targetSequenceNumber: Int? = lastSequenceNumber
-
-            if (lastSequenceNumber == null) { // this would be null only on first time
-                lastSequenceNumber = 0
-                targetSequenceNumber = 0
-            }
-
-            var runningSequences = pumpStatusValues.runningEventsSequences
-
-            if (runningSequences == null) {
-                pumpStatusValues.runningEventsSequences = mutableSetOf()
-            } else {
-                if (lastSequenceNumber != 0) {
-                    for (sequence in runningSequences) {
-                        if (targetSequenceNumber!! > sequence) {
-                            targetSequenceNumber = sequence
-                        }
-                    }
-                }
-            }
-
-            aapsLogger.warn(LTag.PUMPCOMM, "DB: GetEvents")
-
-            val commandEvents = GetEvents(
-                hasAndroidInjector = hasAndroidInjector,
-                eventSequenceNumber = if (targetSequenceNumber == 0) null else targetSequenceNumber,
-                includeEventSequence = true
-            )
-
-            val result = commandEvents.execute(ypsoPumpBLE)
-
-            aapsLogger.warn(LTag.PUMPCOMM, prefix + "commandEvents.execute ${result}")
-
-            if (result) {
-                val dataEvents = commandEvents.commandResponse
-                var newLastEvent = 0
-                var runningSet: MutableSet<Int> = mutableSetOf()
-
-                if (dataEvents != null && dataEvents.size != 0) {
-                    for (dataEvent in dataEvents) {
-                        if (dataEvent.eventSequenceNumber > newLastEvent) {
-                            newLastEvent = dataEvent.eventSequenceNumber
-                        }
-
-                        if (YpsoPumpEventType.isRunningEvent(dataEvent.entryType)) {
-                            runningSet.add(dataEvent.eventSequenceNumber)
-                        }
-                    }
-
-                    pumpStatusValues.lastEventSequenceNumber = newLastEvent
-                    pumpStatusValues.runningEventsSequences = runningSet
-
-                    aapsLogger.warn(LTag.PUMPCOMM, prefix + "Data Events size=${dataEvents.size}")
-                    //aapsLogger.warn(LTag.PUMPCOMM, "DD: Data Events " + gson.toJson(dataEvents))
-
-                    val events = preProcessHistory(dataEvents)
-
-                    aapsLogger.warn(LTag.PUMPCOMM, prefix + "Preprocessed Events size=${events.size}")
-                    //aapsLogger.warn(LTag.PUMPCOMM, "DD: Events, after preprocess: " + gson.toJson(events))
-
-                    // // TODO
-                    // if (true)
-                    //     return@Thread
-
-                    addHistoryToDatabase(
-                        entityList = events,
-                        sendToPumpSync = true,
-                        pumpStatusEntry = pumpStatusValues
-                    )
-
-                }
-
-            } else {
-                return@Thread  // if any of commands fails we stop execution
-            }
+            // TODO save
 
             // TODO
             if (true)
                 return@Thread
 
-            // alarms
+            if (!getPumpAlarms(pumpStatusValues))
+                return@Thread
 
-            val commandAlarms = GetAlarms(
-                hasAndroidInjector = hasAndroidInjector,
-                eventSequenceNumber = if (pumpStatusValues.lastAlarmSequenceNumber == 0) null else pumpStatusValues.lastAlarmSequenceNumber
-            )
-
-            val resultAlarms = commandAlarms.execute(ypsoPumpBLE)
-
-            if (resultAlarms) {
-                val dataEvents = commandAlarms.commandResponse
-                var newLastEvent = 0
-
-                if (dataEvents != null && dataEvents.size != 0) {
-                    for (dataEvent in dataEvents) {
-                        if (dataEvent.eventSequenceNumber > newLastEvent) {
-                            newLastEvent = dataEvent.eventSequenceNumber
-                        }
-                    }
-
-                    pumpStatusValues.lastAlarmSequenceNumber = newLastEvent
-
-                    addHistoryToDatabase(entityList = dataEvents,
-                        sendToPumpSync = false,
-                        pumpStatusEntry = pumpStatusValues)
-                }
-            } else {
-                return@Thread  // if any of commands fails we stop execution
-            }
-
+            // TODO save
             // TODO systemEntry we are ignoring this for now
 
             pumpStatus.setPumpStatusValues(pumpStatusValues)
 
         }.start()
+    }
+
+    private fun getPumpEvents(pumpStatusValues: YpsoPumpStatusEntry): Boolean {
+        // events
+        val lastSequenceNumber: Int? = pumpStatusValues.lastEventSequenceNumber
+        var targetSequenceNumber: Int? = lastSequenceNumber
+
+        // if (lastSequenceNumber == null) { // this would be null only on first time
+        //     lastSequenceNumber = 0
+        //     targetSequenceNumber = 0
+        // }
+
+        var runningSequences = pumpStatusValues.runningEventsSequences
+
+        if (runningSequences == null) {
+            pumpStatusValues.runningEventsSequences = mutableSetOf()
+        } else {
+            if (lastSequenceNumber != null && lastSequenceNumber != 0) {
+                for (sequence in runningSequences) {
+                    if (targetSequenceNumber!! > sequence) {
+                        targetSequenceNumber = sequence
+                    }
+                }
+            }
+        }
+
+        aapsLogger.warn(LTag.PUMPCOMM, "DB: GetEvents")
+
+        val commandEvents = GetEvents(
+            hasAndroidInjector = hasAndroidInjector,
+            eventSequenceNumber = if (targetSequenceNumber == null || targetSequenceNumber == 0) null else targetSequenceNumber,
+            includeEventSequence = true
+        )
+
+        val result = commandEvents.execute(ypsoPumpBLE)
+
+        aapsLogger.warn(LTag.PUMPCOMM, prefix + "commandEvents.execute ${result}")
+
+        if (result) {
+            val dataEvents = commandEvents.commandResponse
+            var newLastEvent = 0
+            var runningSet: MutableSet<Int> = mutableSetOf()
+
+            if (dataEvents != null && dataEvents.size != 0) {
+                for (dataEvent in dataEvents) {
+                    if (dataEvent.eventSequenceNumber > newLastEvent) {
+                        newLastEvent = dataEvent.eventSequenceNumber
+                    }
+
+                    if (YpsoPumpEventType.isRunningEvent(dataEvent.entryType)) {
+                        runningSet.add(dataEvent.eventSequenceNumber)
+                    }
+                }
+
+                pumpStatusValues.lastEventSequenceNumber = newLastEvent
+                pumpStatusValues.runningEventsSequences = runningSet
+
+                aapsLogger.warn(LTag.PUMPCOMM, prefix + "Data Events size=${dataEvents.size}")
+                //aapsLogger.warn(LTag.PUMPCOMM, "DD: Data Events " + gson.toJson(dataEvents))
+
+                val events = preProcessHistory(dataEvents)
+
+                aapsLogger.warn(LTag.PUMPCOMM, prefix + "Preprocessed Events size=${events.size}")
+                //aapsLogger.warn(LTag.PUMPCOMM, "DD: Events, after preprocess: " + gson.toJson(events))
+
+                // // TODO
+                // if (true)
+                //     return@Thread
+
+                addHistoryToDatabase(
+                    entityList = events,
+                    sendToPumpSync = true,
+                    pumpStatusEntry = pumpStatusValues
+                )
+
+            }
+            return true
+
+        } else {
+            return false  // if any of commands fails we stop execution
+        }
+    }
+
+    private fun getPumpAlarms(pumpStatusValues: YpsoPumpStatusEntry): Boolean {
+        // alarms
+
+        val commandAlarms = GetAlarms(
+            hasAndroidInjector = hasAndroidInjector,
+            eventSequenceNumber = if (pumpStatusValues.lastAlarmSequenceNumber == 0) null else pumpStatusValues.lastAlarmSequenceNumber
+        )
+
+        val resultAlarms = commandAlarms.execute(ypsoPumpBLE)
+
+        if (resultAlarms) {
+            val dataEvents = commandAlarms.commandResponse
+            var newLastEvent = 0
+
+            if (dataEvents != null && dataEvents.size != 0) {
+                for (dataEvent in dataEvents) {
+                    if (dataEvent.eventSequenceNumber > newLastEvent) {
+                        newLastEvent = dataEvent.eventSequenceNumber
+                    }
+                }
+
+                pumpStatusValues.lastAlarmSequenceNumber = newLastEvent
+
+                addHistoryToDatabase(
+                    entityList = dataEvents,
+                    sendToPumpSync = false,
+                    pumpStatusEntry = pumpStatusValues
+                )
+            }
+
+            return true
+
+        } else {
+            return false  // if any of commands fails we stop execution
+        }
     }
 
     private fun preProcessHistory(dataEventsInput: MutableList<EventDto>): MutableList<EventDto> {
@@ -201,8 +217,10 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
         // TODO basal profile changed put together...
         // TODO preprocess TBRs for STOP/START of pump
 
-        //dataDump("DB DATA DUMP", pumpUtil.gsonRegular.toJson(dataEventsInput))
-        //aapsLogger.warn(LTag.PUMPCOMM, "DB DATA DUMP:\n${gson.toJson(dataEventsInput)}")
+        dataDump("DB DATA DUMP - EVENTS", pumpUtil.gsonRegular.toJson(dataEventsInput))
+
+        var historyProcessingDto: HistoryProcessingDto = HistoryProcessingDto(dataEventsInput)
+
 
         aapsLogger.warn(LTag.PUMPCOMM, prefix + "Process - Before size=${dataEventsInput.size}")
 
@@ -270,6 +288,10 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
             aapsLogger.warn(LTag.PUMPBTCOMM, "$prefix $i\n $entry")
             i++
         }
+    }
+
+    private fun preProcessBasalProfiles(historyProcessingDto: HistoryProcessingDto) {
+
     }
 
     private fun preProcessBasalProfiles(dataEvents: MutableList<EventDto>): MutableList<EventDto> {
@@ -469,7 +491,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                                         tempBasalInfo: TempBasalPair? = null,
                                         profile: Profile? = null) {
         Thread {
-
+            // TODO test this and maybe extend
             // events
             val commandEvents = GetLastEvent(
                 hasAndroidInjector = hasAndroidInjector,
@@ -481,7 +503,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
             if (result) {
                 val dataEvents = commandEvents.commandResponse
 
-                if (dataEvents != null && dataEvents.size != 0) {
+                if (!dataEvents.isNullOrEmpty()) {
 
                     aapsLogger.debug(LTag.PUMP, "Got ${dataEvents.size} items.")
 

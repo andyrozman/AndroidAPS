@@ -66,6 +66,7 @@
     <string name="ypsopump_history_bolus_combined">Combined Bolus, Immediate: %.2f U, Extended: %.2f U, Duration: %d min</string>
     <string name="ypsopump_history_bolus_smb">SMB Bolus, Amount: %.2f U</string>
     <string name="ypsopump_history_bolus_prime">Prime Bolus, Amount: %.2f U</string>
+    <string name="ypsopump_history_basal_profile">Basal Profile (A): %s</string>
 
     <string name="ypsopump_history_tdd_total_insulin">Total insulin: %.2f (U)</string>
     <string name="ypsopump_history_tdd_parts_insulin">Basal: %.2f, Bolus: %.2f, Total: %.2f (U)</string>

@@ -929,7 +929,7 @@ class YpsopumpPumpPlugin @Inject constructor(
     private fun readPumpHistory() {
         aapsLogger.warn(LTag.PUMP, logPrefix + "readPumpHistory N/A WIP.")
 
-        ypsoPumpHistoryHandler.getPumpHistory()
+        ypsoPumpHistoryHandler.getFullPumpHistory()
 
         //        pumpConnectionManager.getPumpHistory()
 
