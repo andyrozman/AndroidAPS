@@ -2,6 +2,7 @@ package info.nightscout.androidaps.plugins.pump.common.defs
 
 import info.nightscout.androidaps.plugins.pump.common.R
 import info.nightscout.androidaps.utils.resources.ResourceHelper
+import kotlin.streams.toList
 
 /**
  * This file was taken from GGC - GNU Gluco Control (ggc.sourceforge.net), application for diabetes
@@ -10,7 +11,7 @@ import info.nightscout.androidaps.utils.resources.ResourceHelper
  *
  * Author: Andy {andy.rozman@gmail.com}
  */
-enum class PumpHistoryEntryGroup(val resourceId: Int) {
+enum class PumpHistoryEntryGroup(val resourceId: Int, val pumpTypeGroupConfig: PumpTypeGroupConfig = PumpTypeGroupConfig.All) {
 
     All(R.string.history_group_all),
     Base(R.string.history_group_base),
@@ -23,7 +24,13 @@ enum class PumpHistoryEntryGroup(val resourceId: Int) {
     Notification(R.string.history_group_notification),
     Statistic(R.string.history_group_statistic),
     Other(R.string.history_group_other),
-    Unknown(R.string.history_group_unknown);
+    Unknown(R.string.history_group_unknown),
+
+    // Ypso
+    EventsOnly(R.string.history_group_events),
+    EventsNoStat(R.string.history_group_events_no_stat)
+
+    ;
 
     var translated: String? = null
         private set
@@ -45,9 +52,27 @@ enum class PumpHistoryEntryGroup(val resourceId: Int) {
             }
         }
 
+        // FIXME this is just for Java compatibility reasons (can be removed when all drivers using it are in Kotlin - OmnipodEros still in java)
         fun getTranslatedList(rh: ResourceHelper): List<PumpHistoryEntryGroup> {
+            return getTranslatedList(rh, PumpTypeGroupConfig.All)
+        }
+
+        fun getTranslatedList(rh: ResourceHelper, pumpTypeGroupConfig: PumpTypeGroupConfig = PumpTypeGroupConfig.All): List<PumpHistoryEntryGroup> {
             if (translatedList == null) doTranslation(rh)
-            return translatedList!!
+
+            val outList: List<PumpHistoryEntryGroup>
+
+            if (pumpTypeGroupConfig == PumpTypeGroupConfig.All) {
+                outList = translatedList!!.stream()
+                    .filter { pre -> pre.pumpTypeGroupConfig == PumpTypeGroupConfig.All }
+                    .toList();
+            } else {
+                outList = translatedList!!.stream()
+                    .filter { pre -> (pre.pumpTypeGroupConfig == PumpTypeGroupConfig.All || pre.pumpTypeGroupConfig == pumpTypeGroupConfig) }
+                    .toList();
+            }
+
+            return outList
         }
     }
 

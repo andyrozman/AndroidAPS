@@ -50,7 +50,7 @@ class YpsopumpPumpHistoryDataProvider @Inject constructor(
     }
 
     override fun getSpinnerWidthInPixels(): Int {
-        return 150
+        return 180
     }
 
     override fun getAllowedPumpHistoryGroups(): List<PumpHistoryEntryGroup> {
@@ -63,6 +63,8 @@ class YpsopumpPumpHistoryDataProvider @Inject constructor(
         val groupListInternal: MutableList<PumpHistoryEntryGroup> = mutableListOf()
 
         groupListInternal.add(PumpHistoryEntryGroup.All)
+        groupListInternal.add(PumpHistoryEntryGroup.EventsOnly)
+        groupListInternal.add(PumpHistoryEntryGroup.EventsNoStat)
         groupListInternal.add(PumpHistoryEntryGroup.Bolus)
         groupListInternal.add(PumpHistoryEntryGroup.Basal)
         groupListInternal.add(PumpHistoryEntryGroup.Base)
@@ -87,6 +89,19 @@ class YpsopumpPumpHistoryDataProvider @Inject constructor(
         }
 
         return resourceHelper.gs(stringId)
+
+    }
+
+    override fun isItemInSelection(itemGroup: PumpHistoryEntryGroup, targetGroup: PumpHistoryEntryGroup): Boolean {
+        if (targetGroup == PumpHistoryEntryGroup.EventsNoStat || targetGroup == PumpHistoryEntryGroup.EventsOnly) {
+            if (targetGroup == PumpHistoryEntryGroup.EventsOnly) {
+                return itemGroup != PumpHistoryEntryGroup.Alarm
+            } else {
+                return (itemGroup != PumpHistoryEntryGroup.Alarm && itemGroup != PumpHistoryEntryGroup.Statistic)
+            }
+        } else {
+            return itemGroup === targetGroup
+        }
 
     }
 

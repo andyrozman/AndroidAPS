@@ -39,6 +39,8 @@
     <string name="history_group_glucose">Glucose</string>
     <string name="history_group_base">Base</string>
     <string name="history_group_other">Other</string>
+    <string name="history_group_events">All Events</string>
+    <string name="history_group_events_no_stat">Events (no Stat)</string>
 
     <!-- Time -->
     <string name="time_today">Today</string>
@@ -77,6 +79,9 @@
     <string name="pump_settings_error_wrong_tbr_type_set">Wrong TBR type set on pump (must be %s).</string>
     <string name="pump_settings_error_wrong_max_bolus_set">Wrong Max Bolus set on Pump (must be %1$.2f).</string>
     <string name="pump_settings_error_wrong_max_basal_set">Wrong Max Basal set on Pump (must be %1$.2f).</string>
+
+    <!-- Pump History -->
+    <string name="pump_history_type">Type:</string>
 
 
     <plurals name="duration_days">

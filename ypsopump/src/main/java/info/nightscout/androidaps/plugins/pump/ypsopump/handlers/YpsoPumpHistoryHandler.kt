@@ -88,7 +88,7 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
             // TODO save
             // TODO systemEntry we are ignoring this for now
 
-            pumpStatus.setPumpStatusValues(pumpStatusValues)
+            //pumpStatus.setPumpStatusValues(pumpStatusValues)
 
         }.start()
     }
@@ -195,6 +195,8 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
                     }
                 }
 
+                //dataDump("DB DATA DUMP - ALARM", pumpUtil.gsonRegular.toJson(dataEvents))
+
                 pumpStatusValues.lastAlarmSequenceNumber = newLastEvent
 
                 addHistoryToDatabase(
@@ -217,22 +219,22 @@ class YpsoPumpHistoryHandler @Inject constructor(var ypsoPumpHistory: YpsoPumpHi
         // TODO basal profile changed put together...
         // TODO preprocess TBRs for STOP/START of pump
 
-        dataDump("DB DATA DUMP - EVENTS", pumpUtil.gsonRegular.toJson(dataEventsInput))
+        //dataDump("DB DATA DUMP - EVENTS", pumpUtil.gsonRegular.toJson(dataEventsInput))
 
         var historyProcessingDto: HistoryProcessingDto = HistoryProcessingDto(dataEventsInput)
 
 
         aapsLogger.warn(LTag.PUMPCOMM, prefix + "Process - Before size=${dataEventsInput.size}")
 
-        var dataEvents = preProcessBasalProfiles(dataEventsInput)
+        var dataEvents = preProcessBasalProfiles(dataEventsInput)  // TODO
 
         aapsLogger.warn(LTag.PUMPCOMM, prefix + "Process - After Basal Profiles [size=${dataEventsInput.size}]")
 
-        dataEvents = preProcessConfigurationItems(dataEvents)
+        dataEvents = preProcessConfigurationItems(dataEvents)  // TODO
 
         aapsLogger.warn(LTag.PUMPCOMM, prefix + "Process - After Configuration [size=${dataEventsInput.size}]")
 
-        dataEvents = preProcessDeliverySuspendItems(dataEvents)
+        dataEvents = preProcessDeliverySuspendItems(dataEvents)  // TODO
 
         aapsLogger.warn(LTag.PUMPCOMM, prefix + "Process - After Delivery Suspend [size=${dataEventsInput.size}]")
 

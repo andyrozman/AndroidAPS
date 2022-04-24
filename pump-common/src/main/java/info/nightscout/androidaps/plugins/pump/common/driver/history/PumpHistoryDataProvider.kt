@@ -36,6 +36,11 @@ interface PumpHistoryDataProvider {
      */
     fun getText(key: PumpHistoryText): String
 
+    /**
+     * For filtering of items
+     */
+    fun isItemInSelection(itemGroup: PumpHistoryEntryGroup, targetGroup: PumpHistoryEntryGroup): Boolean
+
 }
 
 enum class PumpHistoryPeriod constructor(

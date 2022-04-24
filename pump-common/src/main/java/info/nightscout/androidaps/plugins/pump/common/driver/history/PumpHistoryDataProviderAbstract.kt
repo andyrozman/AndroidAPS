@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.common.driver.history
 
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
 import java.util.*
 
 abstract class PumpHistoryDataProviderAbstract : PumpHistoryDataProvider {
@@ -36,6 +37,10 @@ abstract class PumpHistoryDataProviderAbstract : PumpHistoryDataProvider {
         }
 
         return gregorianCalendar.timeInMillis
+    }
+
+    override fun isItemInSelection(itemGroup: PumpHistoryEntryGroup, targetGroup: PumpHistoryEntryGroup): Boolean {
+        return itemGroup === targetGroup
     }
 
 }

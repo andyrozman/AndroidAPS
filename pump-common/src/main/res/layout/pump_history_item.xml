@@ -16,7 +16,7 @@
 
     <TextView
         android:id="@+id/pump_history_source"
-        android:layout_width="130dp"
+        android:layout_width="100dp"
         android:layout_height="match_parent"
         android:gravity="center_vertical"
         android:textSize="12sp" />

@@ -59,7 +59,7 @@ class PumpHistoryActivity : DaggerAppCompatActivity() {
             filteredHistoryList.addAll(fullList)
         } else {
             for (pumpHistoryEntry in fullList) {
-                if (pumpHistoryEntry.getEntryTypeGroup() === group) {
+                if (historyDataProvider.isItemInSelection(pumpHistoryEntry.getEntryTypeGroup(), group)) {
                     filteredHistoryList.add(pumpHistoryEntry)
                 }
             }
@@ -74,9 +74,10 @@ class PumpHistoryActivity : DaggerAppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-
-        filterHistory(selectedGroup)
-        setHistoryTypeSpinner()
+        //filterHistory(selectedGroup)
+        //setHistoryTypeSpinner()
+        //aapsLogger.info(LTag.PUMP, "onResume")
+        //binding.pumpHistoryRoot.requestLayout()
     }
 
     private fun setHistoryTypeSpinner() {
@@ -127,6 +128,10 @@ class PumpHistoryActivity : DaggerAppCompatActivity() {
                 showingType = selected
                 selectedGroup = selected.entryGroup
                 filterHistory(selectedGroup)
+                val selectedText = parent!!.getChildAt(0) as TextView
+                selectedText.textSize = 15.0f  // FIXME hack for selected item, also concerns pump_type marginTop
+
+                binding.pumpHistoryTop.requestLayout()
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {
@@ -134,6 +139,7 @@ class PumpHistoryActivity : DaggerAppCompatActivity() {
                 filterHistory(PumpHistoryEntryGroup.All)
             }
         })
+        binding.pumpHistoryTypeText.requestLayout()
     }
 
     private fun getTypeList(list: List<PumpHistoryEntryGroup>?): List<TypeList> {

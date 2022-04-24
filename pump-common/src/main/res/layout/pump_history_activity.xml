@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/pump_history_root"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:paddingBottom="@dimen/activity_vertical_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:background="?attr/activity_title_backgroundColor"
-    tools:context=".dialog.PumpHistoryActivity">
+    tools:context=".ui.PumpHistoryActivity">
 
 
     <LinearLayout
@@ -17,19 +18,24 @@
         android:orientation="horizontal">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:id="@+id/pump_history_type_text"
+            android:layout_width="50dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="30dp"
-            android:layout_marginEnd="20dp"
-            android:text="@string/ypsopump_pump_history_type"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="1dp"
+            android:layout_marginTop="7dp"
+            android:gravity="center_vertical"
+            android:text="@string/pump_history_type"
             android:textAppearance="?android:attr/textAppearanceSmall" />
 
         <Spinner
+            android:theme="@style/YourSpinnerItemStyle"
             android:id="@+id/pump_history_type"
             android:layout_width="100dp"
+
+            android:textSize="13sp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="5dp"
-            android:textAppearance="?android:attr/textAppearanceSmall" />
+            android:layout_marginEnd="5dp" />
 
         <TextView
             android:id="@+id/pump_history_text"
