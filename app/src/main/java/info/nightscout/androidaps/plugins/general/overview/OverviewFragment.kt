@@ -20,6 +20,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.annotation.ColorRes
 import androidx.core.text.toSpanned
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.jjoe64.graphview.GraphView
@@ -772,12 +773,12 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             profileFunction.getProfile()?.let {
                 if (it is ProfileSealed.EPS) {
                     if (it.value.originalPercentage != 100 || it.value.originalTimeshift != 0L || it.value.originalDuration != 0L)
-                        rh.gc(R.color.ribbonWarning)
-                    else rh.gc(R.color.ribbonDefault)
+                        rh.gc(getBackgroundColor(OverviewColorScheme.ProfileChanged))
+                    else rh.gc(getBackgroundColor(OverviewColorScheme.ProfileNormal))
                 } else if (it is ProfileSealed.PS) {
-                    rh.gc(R.color.ribbonDefault)
+                    rh.gc(getBackgroundColor(OverviewColorScheme.ProfileNormal))
                 } else {
-                    rh.gc(R.color.ribbonDefault)
+                    rh.gc(getBackgroundColor(OverviewColorScheme.ProfileNormal))
                 }
             } ?: rh.gc(R.color.ribbonCritical)
 
@@ -785,14 +786,14 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             profileFunction.getProfile()?.let {
                 if (it is ProfileSealed.EPS) {
                     if (it.value.originalPercentage != 100 || it.value.originalTimeshift != 0L || it.value.originalDuration != 0L)
-                        rh.gc(R.color.ribbonTextWarning)
-                    else rh.gc(R.color.ribbonTextDefault)
+                        rh.gc(getTextColor(OverviewColorScheme.ProfileChanged))
+                    else rh.gc(getTextColor(OverviewColorScheme.ProfileNormal))
                 } else if (it is ProfileSealed.PS) {
-                    rh.gc(R.color.ribbonTextDefault)
+                    rh.gc(getTextColor(OverviewColorScheme.ProfileNormal))
                 } else {
-                    rh.gc(R.color.ribbonTextDefault)
+                    rh.gc(getTextColor(OverviewColorScheme.ProfileNormal))
                 }
-            } ?: rh.gc(R.color.ribbonTextDefault)
+            } ?: rh.gc(getTextColor(OverviewColorScheme.ProfileNormal))
 
         binding.activeProfile.text = profileFunction.getProfileNameWithRemainingTime()
         binding.activeProfile.setBackgroundColor(profileBackgroundColor)
@@ -871,8 +872,8 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         if (overviewData.temporaryTarget?.isInProgress(dateUtil) == false) overviewData.temporaryTarget = null
         val tempTarget = overviewData.temporaryTarget
         if (tempTarget != null) {
-            binding.tempTarget.setTextColor(rh.gc(R.color.ribbonTextWarning))
-            binding.tempTarget.setBackgroundColor(rh.gc(R.color.ribbonWarning))
+            binding.tempTarget.setTextColor(rh.gc(getTextColor(OverviewColorScheme.TempTargetSet)))
+            binding.tempTarget.setBackgroundColor(rh.gc(getBackgroundColor(OverviewColorScheme.TempTargetSet)))
             binding.tempTarget.text = Profile.toTargetRangeString(tempTarget.lowTarget, tempTarget.highTarget, GlucoseUnit.MGDL, units) + " " + dateUtil.untilString(tempTarget.end, rh)
         } else {
             // If the target is not the same as set in the profile then oref has overridden it
@@ -882,11 +883,11 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 if (targetUsed != 0.0 && abs(profile.getTargetMgdl() - targetUsed) > 0.01) {
                     aapsLogger.debug("Adjusted target. Profile: ${profile.getTargetMgdl()} APS: $targetUsed")
                     binding.tempTarget.text = Profile.toTargetRangeString(targetUsed, targetUsed, GlucoseUnit.MGDL, units)
-                    binding.tempTarget.setTextColor(rh.gc(R.color.ribbonTextWarning))
-                    binding.tempTarget.setBackgroundColor(rh.gc(R.color.tempTargetBackground))
+                    binding.tempTarget.setTextColor(rh.gc(getTextColor(OverviewColorScheme.TempTargetSet)))
+                    binding.tempTarget.setBackgroundColor(rh.gc(getBackgroundColor(OverviewColorScheme.TempTargetSet)))
                 } else {
-                    binding.tempTarget.setTextColor(rh.gc(R.color.ribbonTextDefault))
-                    binding.tempTarget.setBackgroundColor(rh.gc(R.color.ribbonDefault))
+                    binding.tempTarget.setTextColor(rh.gc(getTextColor(OverviewColorScheme.TempTargetNotSet)))
+                    binding.tempTarget.setBackgroundColor(rh.gc(getBackgroundColor(OverviewColorScheme.TempTargetNotSet)))
                     binding.tempTarget.text = Profile.toTargetRangeString(profile.getTargetLowMgdl(), profile.getTargetHighMgdl(), GlucoseUnit.MGDL, units)
                 }
             }
@@ -1002,4 +1003,15 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
     fun updateNotification(from: String) {
         binding.notifications.let { notificationStore.updateNotifications(it) }
     }
+
+    var useNewRibbonColors = false
+
+    @ColorRes fun getBackgroundColor(scheme: OverviewColorScheme): Int {
+        return scheme.getBackground(useNewRibbonColors)
+    }
+
+    @ColorRes fun getTextColor(scheme: OverviewColorScheme): Int {
+        return scheme.getTextColor(useNewRibbonColors)
+    }
+
 }

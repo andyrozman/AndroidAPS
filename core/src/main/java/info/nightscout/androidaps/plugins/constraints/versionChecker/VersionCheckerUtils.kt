@@ -54,14 +54,14 @@ class VersionCheckerUtils @Inject constructor(
                     compareWithCurrentVersion(version, config.VERSION_NAME)
 
                     // App expiration
-                    var endDate = sp.getLong(rh.gs(R.string.key_app_expiration) + "_" + config.VERSION_NAME, 0)
-                    AllowedVersions().findByVersion(definition, config.VERSION_NAME)?.let { expirationJson ->
-                        AllowedVersions().endDateToMilliseconds(expirationJson.getString("endDate"))?.let { ed ->
-                            endDate = ed + T.days(1).msecs()
-                            sp.putLong(rh.gs(R.string.key_app_expiration) + "_" + config.VERSION_NAME, endDate)
-                        }
-                    }
-                    if (endDate != 0L) onExpireDateDetected(config.VERSION_NAME, dateUtil.dateString(endDate))
+                    // var endDate = sp.getLong(rh.gs(R.string.key_app_expiration) + "_" + config.VERSION_NAME, 0)
+                    // AllowedVersions().findByVersion(definition, config.VERSION_NAME)?.let { expirationJson ->
+                    //     AllowedVersions().endDateToMilliseconds(expirationJson.getString("endDate"))?.let { ed ->
+                    //         endDate = ed + T.days(1).msecs()
+                    //         sp.putLong(rh.gs(R.string.key_app_expiration) + "_" + config.VERSION_NAME, endDate)
+                    //     }
+                    // }
+                    // if (endDate != 0L) onExpireDateDetected(config.VERSION_NAME, dateUtil.dateString(endDate))
 
                 } catch (e: IOException) {
                     aapsLogger.error(LTag.CORE, "Github master version check error: $e")
@@ -73,32 +73,32 @@ class VersionCheckerUtils @Inject constructor(
     @Suppress("SameParameterValue")
     fun compareWithCurrentVersion(newVersion: String?, currentVersion: String) {
 
-        val newVersionElements = newVersion.toNumberList()
-        val currentVersionElements = currentVersion.toNumberList()
-
-        if (newVersionElements == null || newVersionElements.isEmpty()) {
-            onVersionNotDetectable()
-            return
-        }
-
-        if (currentVersionElements == null || currentVersionElements.isEmpty()) {
-            // current version scrambled?!
-            onNewVersionDetected(currentVersion, newVersion)
-            return
-        }
-
-        newVersionElements.take(3).forEachIndexed { i, newElem ->
-            val currElem: Int = currentVersionElements.getOrNull(i)
-                ?: return onNewVersionDetected(currentVersion, newVersion)
-
-            (newElem - currElem).let {
-                when {
-                    it > 0  -> return onNewVersionDetected(currentVersion, newVersion)
-                    it < 0  -> return onOlderVersionDetected()
-                    it == 0 -> Unit
-                }
-            }
-        }
+        // val newVersionElements = newVersion.toNumberList()
+        // val currentVersionElements = currentVersion.toNumberList()
+        //
+        // if (newVersionElements == null || newVersionElements.isEmpty()) {
+        //     onVersionNotDetectable()
+        //     return
+        // }
+        //
+        // if (currentVersionElements == null || currentVersionElements.isEmpty()) {
+        //     // current version scrambled?!
+        //     onNewVersionDetected(currentVersion, newVersion)
+        //     return
+        // }
+        //
+        // newVersionElements.take(3).forEachIndexed { i, newElem ->
+        //     val currElem: Int = currentVersionElements.getOrNull(i)
+        //         ?: return onNewVersionDetected(currentVersion, newVersion)
+        //
+        //     (newElem - currElem).let {
+        //         when {
+        //             it > 0  -> return onNewVersionDetected(currentVersion, newVersion)
+        //             it < 0  -> return onOlderVersionDetected()
+        //             it == 0 -> Unit
+        //         }
+        //     }
+        // }
         onSameVersionDetected()
     }
 
