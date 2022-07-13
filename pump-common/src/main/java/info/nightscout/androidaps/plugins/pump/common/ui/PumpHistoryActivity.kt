@@ -20,7 +20,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigura
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryDataProvider
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryEntry
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryText
-import info.nightscout.androidaps.utils.resources.ResourceHelper
+import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import javax.inject.Inject

@@ -30,7 +30,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelector
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorText
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
-import info.nightscout.androidaps.utils.resources.ResourceHelper
+import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
