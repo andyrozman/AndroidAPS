@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- YpsoPump - Base -->
+    <string name="tandem_name" translatable="false">Tandem</string>
+    <string name="tandem_name_short" translatable="false">Tandem</string>
+    <string name="description_pump_tandem">Pump integration for Tandem with version 2.x (and higher) you can use Closed Loop, all other modules are Open Loop only.</string>
+
+
+    <!-- Overview -->
+    <string name="pump_refresh">Refresh</string>
+    <string name="pump_errors">Errors</string>
+    <string name="pump_status_label">Pump Status</string>
+    <string name="pump_firmware_label">Pump Firmware</string>
+    <string name="pump_last_bolus" translatable="false">%1$.1f %2$s (%3$s)</string>
+    <string name="pump_firmware_open_loop_only">%s (Open-Loop only)</string>
+
+    <!-- Commands -->
+    <string name="pump_cmd_desc_get_settings">Get Settings</string>
+    <string name="pump_cmd_desc_get_firmware">Get Pump Firmware</string>
+    <string name="pump_cmd_desc_get_basal_profile">Get Basal Profile</string>
+    <string name="pump_cmd_desc_set_basal_profile">Set Basal Profile</string>
+    <string name="pump_cmd_desc_get_tbr">Get Temporary Basal</string>
+    <string name="pump_cmd_desc_cancel_tbr">Cancel Temporary Basal</string>
+    <string name="pump_cmd_desc_set_tbr">Set Temporary Basal</string>
+    <string name="pump_cmd_desc_set_bolus">Set Bolus</string>
+    <string name="pump_cmd_desc_get_bolus">Get Bolus</string>
+    <string name="pump_cmd_desc_cancel_bolus">Cancel Bolus</string>
+
+    <string name="pump_cmd_desc_get_remaining_insulin">Get Remaining Insulin</string>
+    <string name="pump_cmd_desc_get_battery_status">Get Battery Status</string>
+    <string name="pump_cmd_desc_get_time">Get Time</string>
+    <string name="pump_cmd_desc_set_time">Set Time</string>
+    <string name="pump_cmd_desc_get_pump_status">Get Pump Status</string>
+    <string name="pump_cmd_desc_get_history">Get History</string>
+    <string name="pump_cmd_desc_get_history_params">Get History %s</string>
+
+
+
+    <!-- Command Errors -->
+    <string name="ypsopump_cmd_bolus_could_not_be_delivered_no_insulin">Bolus could not be delivered, because available insulin amount (%1$.2f) is less than bolus required (%2$.2f).</string>
+    <string name="ypsopump_cmd_bolus_could_not_be_delivered">Bolus could not be delivered.</string>
+    <string name="ypsopump_cmd_tbr_could_not_be_delivered">TBR could not be set.</string>
+    <string name="ypsopump_cmd_basal_profile_could_not_be_set">Basal profile could not be set.</string>
+    <string name="ypsopump_cmd_cant_read_tbr">Could not read current TBR.</string>
+    <string name="ypsopump_cmd_cant_cancel_tbr_stop_op">Could not cancel current TBR. Stopping operation.</string>
+    <string name="ypsopump_cmd_cant_cancel_tbr">Could not cancel current TBR.</string>
+
+
+    <!-- YpsoPump Config -->
+    <string name="key_ypsopump_address" translatable="false">pref_ypsopump_address</string>
+    <string name="key_ypsopump_serial" translatable="false">pref_ypsopump_serial</string>
+    <string name="key_ypsopump_name" translatable="false">pref_ypsopump_name</string>
+    <string name="key_ypsopump_bonded" translatable="false">pref_ypsopump_bonded</string>
+    <string name="key_ypsopump_status_list" translatable="false">pref_ypsopump_status_list</string>
+    <string name="key_ypsopump_bolus_size" translatable="false">pref_ypsopump_bolus_size</string>
+    <string name="ypsopump_bolus_size">Bolus size</string>
+
+
+    <!-- YpsoPump BLE Config -->
+    <string name="ypsopump_ble_config_scan_title">YpsoPump Scan</string>
+    <string name="ypsopump_ble_config_selected_pump_title">Selected YpsoPump</string>
+    <string name="ypsopump_ble_config_remove_pump_confirmation">Are you sure that you want to remove your YpsoPump?</string>
+    <string name="ypsopump_ble_config_remove_pump_title">Remove YpsoPump</string>
+    <string name="ypsopump_ble_config_no_pump_selected">No YpsoPump selected</string>
+
+    <!-- YpsoPump History -->
+    <string name="ypsopump_pump_history">YpsoPump History</string>
+    <string name="ypsopump_pump_history_type">Type:</string>
+    <string name="ypsopump_history_date">%d.%d.%d %02d:%02d:%02d</string>
+    <string name="ypsopump_history_alarm">Alarm: %s</string>
+    <string name="ypsopump_history_configuration_changed">%s: %s</string>
+    <string name="ypsopump_history_date_changed">Date Changed: %s</string>
+    <string name="ypsopump_history_time_changed">Time Changed: %s</string>
+    <string name="ypsopump_history_tbr">Rate: %d %%, Duration: %d minutes</string>
+
+    <string name="ypsopump_history_bolus_normal">Normal Bolus, Amount: %.2f U</string>
+    <string name="ypsopump_history_bolus_extended">Extended Bolus, Amount: %.2f U, Duration: %d min</string>
+    <string name="ypsopump_history_bolus_combined">Combined Bolus, Immediate: %.2f U, Extended: %.2f U, Duration: %d min</string>
+    <string name="ypsopump_history_bolus_smb">SMB Bolus, Amount: %.2f U</string>
+    <string name="ypsopump_history_bolus_prime">Prime Bolus, Amount: %.2f U</string>
+    <string name="ypsopump_history_basal_profile">Basal Profile (A): %s</string>
+
+    <string name="ypsopump_history_tdd_total_insulin">Total insulin: %.2f (U)</string>
+    <string name="ypsopump_history_tdd_parts_insulin">Basal: %.2f, Bolus: %.2f, Total: %.2f (U)</string>
+
+    <string name="ypsopump_alarm_battery_removed">Battery Removed</string>
+    <string name="ypsopump_alarm_battery_empty">Battery Empty</string>
+    <string name="ypsopump_alarm_reusable_error">Reusable Error</string>
+    <string name="ypsopump_alarm_no_cartridge">No Cartridge</string>
+    <string name="ypsopump_alarm_cartridge_empty">Cartridge Empty</string>
+    <string name="ypsopump_alarm_occlusion">Occlusion</string>
+    <string name="ypsopump_alarm_auto_stop">Auto Stop</string>
+    <string name="ypsopump_alarm_lipo_discharged">Lipo Discharged</string>
+    <string name="ypsopump_alarm_battery_rejected">Battery Rejected</string>
+
+    <string name="ypsopump_config_bolus_step_changed">Bolus Step Changed</string>
+    <string name="ypsopump_config_bolus_amount_cap_changed">Bolus Amount Cap Changed</string>
+    <string name="ypsopump_config_basal_amount_cap_changed">Basal Amount Cap Changed</string>
+    <string name="ypsopump_config_basal_profile_changed">Basal Profile Changed</string>
+
+    <string name="ypsopump_pump_status_type_pump_running">Pump Running</string>
+    <string name="ypsopump_pump_status_type_pump_suspended">Pump Suspended</string>
+    <string name="ypsopump_pump_status_type_priming">Priming (%s U)</string>
+    <string name="ypsopump_pump_status_type_rewind">Rewind</string>
+    <string name="ypsopump_pump_status_type_battery_removed">Battery Removed</string>
+
+    <!-- YpsoPump Error -->
+
+
+    <!-- YpsoPump UI - 1.5 Open Loop commands -->
+    <string name="ypsopump_cmd_exec_title_set_profile">Manually Set Profile on Pump</string>
+    <string name="ypsopump_cmd_exec_desc_set_profile">Please set Profile on your Pump, and AFTER\nyou are done confirm it here:\n %1$s</string>
+    <string name="ypsopump_cmd_exec_title_set_bolus">Manually Set Bolus on Pump</string>
+    <string name="ypsopump_cmd_exec_desc_set_bolus">Please set Bolus of %1$.2f U on your Pump, and AFTER\nyou are done confirm it here.</string>
+    <string name="ypsopump_cmd_exec_title_set_tbr">Manually Set Temporary Basal on Pump</string>
+    <string name="ypsopump_cmd_exec_desc_set_tbr">Please set Temporary Basal of %1$d %% for %2$d min\non your Pump, and AFTER you are done\nconfirm it here:\n %1$s</string>
+
+    <!-- YpsoPump UI - 1.5 Forced Open Loop -->
+    <string name="ypsopump_fol_closed_loop_not_allowed">Closed Loop not available with Firmware less than 1.6 (DOZE)</string>
+    <string name="ypsopump_fol_smb_not_allowed">SMB not available with Firmware less than 1.6 (DOZE)</string>
+
+    <!-- Pump Common MOVE THERE -->
+    <string name="time_difference_too_big">Time difference between pump and phone is over %1$d s (%2$d)</string>
+
+    <!-- Configuration -->
+    <string name="eightdigitnumber" translatable="false">^\\d{8}</string>
+
+
+    <string name="ypsopump_configuration">YpsoPump Configuration</string>
+
+
+    <!-- ddd -->
+    <string name="ypsopump_cmd_desc_get_history">Get History - Page %1$d (%2$d/16)</string>
+    <string name="ypsopump_cmd_desc_get_history_request">Get History - Page %1$d</string>
+    <string name="ypsopump_cmd_desc_get_time">Get Pump Time</string>
+    <!-- ddd end -->
+
+
+    <!-- OLD Ones past this line -->
+
+
+    <!-- MDT Configuration -->
+
+
+    <string name="medtronic_serial_number">Pump Serial Number</string>
+    <string name="medtronic_pump_type">Pump Type</string>
+    <string name="medtronic_custom_action_clear_bolus_block">Clear Bolus Block</string>
+
+
+    <!-- MDT Errors -->
+    <string name="medtronic_error_serial_not_set">Serial # not set.</string>
+    <string name="medtronic_error_serial_invalid">Serial # invalid.</string>
+    <string name="medtronic_error_rileylink_address_invalid">RileyLink Address invalid.</string>
+    <string name="medtronic_error_pump_type_set_differs_from_detected">Pump type detected is not the same as configured type.</string>
+
+    <string name="medtronic_error_pump_basal_profiles_not_enabled">Basal profiles/patterns setting is not enabled on pump. Enable it on the pump.</string>
+    <string name="medtronic_error_pump_incorrect_basal_profile_selected">Basal profile set on pump is incorrect (must be STD).</string>
+    <string name="medtronic_error_pump_wrong_tbr_type_set">Wrong TBR type set on pump (must be Absolute).</string>
+    <string name="medtronic_error_pump_wrong_max_bolus_set">Wrong Max Bolus set on Pump (must be %1$.2f).</string>
+    <string name="medtronic_error_pump_wrong_max_basal_set">Wrong Max Basal set on Pump (must be %1$.2f).</string>
+    <string name="medtronic_error_operation_not_possible_no_configuration">Operation is not possible.\n\n You need to configure Medtronic Pump first, before you can use this operation.</string>
+    <string name="medtronic_error_pump_24h_time_change_requested">Over 24h Time change was requested.</string>
+
+
+    <!--    <string name="medtronic_history_group_basal">Basals</string>-->
+    <!--    <string name="medtronic_history_group_configuration">Configurations</string>-->
+    <!--    <string name="medtronic_history_group_notification">Notifications</string>-->
+    <!--    <string name="medtronic_history_group_statistic">Statistics</string>-->
+    <!--    <string name="medtronic_history_group_unknown">Unknowns</string>-->
+    <!--    <string name="medtronic_history_group_all">All</string>-->
+
+
+    <!-- <string name="medtronic_cmd_profile_not_set">Remote Basal profile setting is not supported. Please modify Basal profile on your pump manually.</string> -->
+    <string name="medtronic_cmd_cancel_bolus_not_supported">You cancelled Bolus, after it was already set on Pump. Since Medtronic Pump doesn\'t support cancel, you will need to manually cancel it. Put the Pump into Suspend mode and then do Resume (if you still want to cancel). Application will pick up changes, on next update (in less than 5 minutes).</string>
+    <string name="medtronic_cmd_set_profile_pattern_overflow">Profile set failed, because following patterns, have too big basal rate: %1$s</string>
+    <string name="medtronic_cmd_basal_profile_not_set_is_same">Basal profile is the same, so it will not be set again.</string>
+
+    <string name="medtronic_cmd_desc_get_history">Get History - Page %1$d (%2$d/16)</string>
+    <string name="medtronic_cmd_desc_get_history_request">Get History - Page %1$d</string>
+    <string name="medtronic_cmd_desc_get_time">Get Pump Time</string>
+    <string name="medtronic_cmd_desc_get_settings">Get Settings</string>
+    <string name="medtronic_cmd_desc_get_model">Get Pump Model</string>
+    <string name="medtronic_cmd_desc_get_basal_profile">Get Basal Profile</string>
+    <string name="medtronic_cmd_desc_set_basal_profile">Set Basal Profile</string>
+    <string name="medtronic_cmd_desc_get_tbr">Get Temporary Basal</string>
+    <string name="medtronic_cmd_desc_set_tbr">Set Temporary Basal</string>
+    <string name="medtronic_cmd_desc_set_bolus">Set Bolus</string>
+
+    <string name="medtronic_pump_status_pump_unreachable">Pump unreachable</string>
+    <string name="medtronic_warning">Warning</string>  <!-- medtronic_warning -->
+    <string name="medtronic_pump_connected_now">Now</string> <!-- combo_pump_connected_now -->
+    <string name="ago">ago</string>
+    <string name="medtronic_notification_check_time_date">Pump clock update needed</string> <!-- combo_notification_check_time_date -->
+    <string name="common_on">On</string>
+    <string name="common_off">Off</string>
+    <string name="pump_time_updated">Pump time updated</string>
+    <string name="key_set_neutral_temps" translatable="false">set_neutral_temps</string>
+    <string name="set_neutral_temps_title">Set neutral temp basals</string>
+    <string name="set_neutral_temps_summary">If enabled, it will cancel a temporary basal before the end of each hour. This method can help stop some pumps beeping/vibrating on the hour.</string>
+
+
+</resources>
