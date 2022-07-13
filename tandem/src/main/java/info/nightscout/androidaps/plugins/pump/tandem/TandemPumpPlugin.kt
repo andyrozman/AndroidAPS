@@ -508,13 +508,13 @@ class TandemPumpPlugin @Inject constructor(
 
     private fun setDriverMode() {
         // TODO history refresh data
-        if (pumpStatus.isFirmwareSet) {
-            if (pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
-                // TODO
-            } else {
-                this.driverMode = YpsoDriverMode.ForcedOpenLoop
-            }
-        } else
+        // if (pumpStatus.isFirmwareSet) {
+        //     if (pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
+        //         // TODO
+        //     } else {
+        //         this.driverMode = YpsoDriverMode.ForcedOpenLoop
+        //     }
+        // } else
             this.driverMode = YpsoDriverMode.Faked
     }
 
@@ -616,33 +616,35 @@ class TandemPumpPlugin @Inject constructor(
                 if (diff > 60) {
                     aapsLogger.error(LTag.PUMP, "Time difference between phone and pump is more than 60s ($diff)")
 
-                    if (!pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
-                        val notification = Notification(Notification.PUMP_PHONE_TIME_DIFF_TOO_BIG, rh.gs(R.string.time_difference_too_big, 60, diff), Notification.INFO, 60)
-                        rxBus.send(EventNewNotification(notification))
-                    } else {
+                    // TODO fix this
 
-                        // TODO setNewTime, different notification
-                        val time = pumpConnectionManager.setTime()
-
-                        if (time != null) {
-                            pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), time.toLocalDateTime())
-
-                            val newTimeDiff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
-
-                            if (newTimeDiff < 60) {
-                                val notification = Notification(
-                                    Notification.INSIGHT_DATE_TIME_UPDATED,
-                                    rh.gs(R.string.pump_time_updated),
-                                    Notification.INFO, 60
-                                )
-                                rxBus.send(EventNewNotification(notification))
-                            } else {
-                                aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
-                            }
-                        } else {
-                            aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
-                        }
-                    }
+                    // if (!pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
+                    //     val notification = Notification(Notification.PUMP_PHONE_TIME_DIFF_TOO_BIG, rh.gs(R.string.time_difference_too_big, 60, diff), Notification.INFO, 60)
+                    //     rxBus.send(EventNewNotification(notification))
+                    // } else {
+                    //
+                    //     // TODO setNewTime, different notification
+                    //     val time = pumpConnectionManager.setTime()
+                    //
+                    //     if (time != null) {
+                    //         pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), time.toLocalDateTime())
+                    //
+                    //         val newTimeDiff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
+                    //
+                    //         if (newTimeDiff < 60) {
+                    //             val notification = Notification(
+                    //                 Notification.INSIGHT_DATE_TIME_UPDATED,
+                    //                 rh.gs(R.string.pump_time_updated),
+                    //                 Notification.INFO, 60
+                    //             )
+                    //             rxBus.send(EventNewNotification(notification))
+                    //         } else {
+                    //             aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
+                    //         }
+                    //     } else {
+                    //         aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
+                    //     }
+                    // }
                 }
             }
         } catch (ex: Exception) {
