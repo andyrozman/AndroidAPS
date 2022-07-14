@@ -71,6 +71,7 @@
     <string name="ble_error_failed_to_conn_to_ble_device">Failed To Connect To BLE Device</string>
     <string name="ble_error_encryption_failed">Encryption Failed</string>
     <string name="ble_error_pump_found_unbonded">Found not Bonded Pump</string>
+    <string name="ble_error_not_correct_pump">Device is not correct pump (%s)</string>
 
 
     <!-- Pump Error -->

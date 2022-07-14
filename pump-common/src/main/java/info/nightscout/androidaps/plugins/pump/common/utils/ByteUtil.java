@@ -311,6 +311,10 @@ public class ByteUtil {
     }
 
 
+    public static int toInt(Byte b1) {
+        return toInt(b1, null, null, null, BitConversion.BIG_ENDIAN);
+    }
+
     public static int toInt(int b1, int b2) {
         return toInt(b1, b2, null, null, BitConversion.BIG_ENDIAN);
     }
@@ -319,6 +323,9 @@ public class ByteUtil {
         return toInt(b1, b2, null, null, BitConversion.BIG_ENDIAN);
     }
 
+    public static int toInt(Byte b1, Byte b2, BitConversion bitConversion) {
+        return toInt(b1, b2, null, null, bitConversion);
+    }
 
     public static int toInt(int b1, int b2, int b3) {
         return toInt(b1, b2, b3, null, BitConversion.BIG_ENDIAN);
@@ -326,6 +333,10 @@ public class ByteUtil {
 
     public static int toInt(Byte b1, Byte b2, Byte b3) {
         return toInt(b1, b2, b3, null, BitConversion.BIG_ENDIAN);
+    }
+
+    public static int toInt(Byte b1, Byte b2, Byte b3, BitConversion flag) {
+        return toInt(b1, b2, b3, null, flag);
     }
 
     public static int toInt(int b1, int b2, BitConversion flag) {

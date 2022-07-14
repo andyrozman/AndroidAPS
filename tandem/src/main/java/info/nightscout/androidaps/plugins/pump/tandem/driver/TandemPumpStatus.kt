@@ -12,6 +12,7 @@ import info.nightscout.androidaps.plugins.pump.tandem.comm.data.YpsoPumpStatusLi
 import info.nightscout.androidaps.plugins.pump.tandem.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.shared.sharedPreferences.SP
 import java.util.*
 import javax.inject.Inject
@@ -29,6 +30,7 @@ class TandemPumpStatus @Inject constructor(private val resourceHelper: ResourceH
     lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null
     //var ypsopumpFirmware: YpsoPumpFirmware = YpsoPumpFirmware.VERSION_1_5  // TODO we default to 1.0 here
+    var tandemPumpFirmware: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1
     var isFirmwareSet = false
     @JvmField var baseBasalRate = 0.0
     var serialNumber: Long? = null

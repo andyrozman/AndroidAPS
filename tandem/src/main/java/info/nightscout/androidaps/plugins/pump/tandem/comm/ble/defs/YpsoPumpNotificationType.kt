@@ -19,5 +19,5 @@ enum class YpsoPumpNotificationType(var notificationType: Int,
     //TimeChangeOver24h(Notification.OVER_24H_TIME_CHANGE_REQUESTED, R.string.medtronic_error_pump_24h_time_change_requested, Notification.URGENT);
     ;
 
-    constructor(resourceId: Int, notificationUrgency: Int) : this(Notification.YPSOPUMP_PUMP_ALARM, resourceId, notificationUrgency) {}
+    constructor(resourceId: Int, notificationUrgency: Int) : this(Notification.COMBO_PUMP_ALARM   /*.YPSOPUMP_PUMP_ALARM*/, resourceId, notificationUrgency) {}
 }

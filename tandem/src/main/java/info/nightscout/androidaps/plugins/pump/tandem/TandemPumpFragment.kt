@@ -250,10 +250,10 @@ class TandemPumpFragment : DaggerFragment() {
         if (updateType == PumpUpdateFragmentType.Configuration || updateType == PumpUpdateFragmentType.Full) {
             // Firmware, Errors
 //            if (pumpStatus.ypsopumpFirmware != null) {
-            if (pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
-                binding.pumpFirmware.text = pumpStatus.ypsopumpFirmware.description
+            if (pumpStatus.tandemPumpFirmware.isClosedLoopPossible) {
+                binding.pumpFirmware.text = pumpStatus.tandemPumpFirmware.description
             } else {
-                binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_open_loop_only, pumpStatus.ypsopumpFirmware.description)
+                binding.pumpFirmware.text = resourceHelper.gs(R.string.pump_firmware_open_loop_only, pumpStatus.tandemPumpFirmware.description)
             }
             // }
             // else {

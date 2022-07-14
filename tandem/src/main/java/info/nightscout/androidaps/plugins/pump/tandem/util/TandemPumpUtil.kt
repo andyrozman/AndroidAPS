@@ -174,33 +174,7 @@ class TandemPumpUtil @Inject constructor(
         }
     }
 
-    //public static byte[]
-    // TOOO fix
-    fun CreateGLB_SAFE_VAR(piValueIn: Int, pbyBuffer: ByteArray) {
-        var piValue = piValueIn
-        pbyBuffer[0] = piValue.toByte()
-        piValue = piValue shr 8
-        pbyBuffer[1] = piValue.toByte()
-        piValue = piValue shr 8
-        pbyBuffer[2] = piValue.toByte()
-        piValue = piValue shr 8
-        pbyBuffer[3] = piValue.toByte()
-        pbyBuffer[4] = pbyBuffer[0].inv()
-        pbyBuffer[5] = pbyBuffer[1].inv()
-        pbyBuffer[6] = pbyBuffer[2].inv()
-        pbyBuffer[7] = pbyBuffer[3].inv()
-    }
 
-    fun getValueFromeGLB_SAFE_VAR(paBuffer: ByteArray): Int {
-        if (paBuffer[7].inv() and 0xFF.toByte() != paBuffer[3] and 0xFF.toByte() ||
-            paBuffer[6].inv() and 0xFF.toByte() != paBuffer[2] and 0xFF.toByte() ||
-            paBuffer[5].inv() and 0xFF.toByte() != paBuffer[1] and 0xFF.toByte() ||
-            paBuffer[4].inv() and 0xFF.toByte() != paBuffer[0] and 0xFF.toByte()
-        ) {
-            throw InvalidParameterException("Invalid GLB_SAFE_VAR byte array:$paBuffer")
-        }
-        return byteToInt(paBuffer, 0, 4)
-    }
 
     fun getBytesFromIntArray2(value: Int): ByteArray {
         val array = ByteBuffer.allocate(4).putInt(value).array()
