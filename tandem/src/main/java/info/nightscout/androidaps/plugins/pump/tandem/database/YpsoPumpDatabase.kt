@@ -8,29 +8,29 @@ import androidx.room.TypeConverters
 
 // TODO refactor this for Tandem
 
-@Database(
-    entities = [HistoryRecordEntity::class],
-    exportSchema = true,
-    version = YpsoPumpDatabase.VERSION
-)
-@TypeConverters(DatabaseConverters::class)
-abstract class YpsoPumpDatabase : RoomDatabase() {
+// @Database(
+//     entities = [HistoryRecordEntity::class],
+//     exportSchema = true,
+//     version = YpsoPumpDatabase.VERSION
+// )
+// @TypeConverters(DatabaseConverters::class)
+abstract class YpsoPumpDatabase /*: RoomDatabase()*/ {
 
-    abstract fun historyRecordDao(): HistoryRecordDao
+    //abstract fun historyRecordDao(): HistoryRecordDao
 
-    companion object {
-
-        const val VERSION = 1
-
-        fun build(context: Context) =
-            Room.databaseBuilder(
-                context.applicationContext,
-                YpsoPumpDatabase::class.java,
-                "ypsopump_database.db"
-            )
-                .allowMainThreadQueries()
-                .fallbackToDestructiveMigration()
-                .build()
-    }
+    // companion object {
+    //
+    //     const val VERSION = 1
+    //
+    //     fun build(context: Context) =
+    //         Room.databaseBuilder(
+    //             context.applicationContext,
+    //             YpsoPumpDatabase::class.java,
+    //             "ypsopump_database.db"
+    //         )
+    //             .allowMainThreadQueries()
+    //             .fallbackToDestructiveMigration()
+    //             .build()
+    // }
 
 }

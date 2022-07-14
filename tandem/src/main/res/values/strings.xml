@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- YpsoPump - Base -->
+    <!-- Tandem - Base -->
     <string name="tandem_name" translatable="false">Tandem</string>
     <string name="tandem_name_short" translatable="false">Tandem</string>
-    <string name="description_pump_tandem">Pump integration for Tandem with version 2.x (and higher) you can use Closed Loop, all other modules are Open Loop only.</string>
+    <string name="description_pump_tandem">Pump integration for Tandem with version 2.2 (and higher) you can use Closed Loop, all other modules are Open Loop only.</string>
 
 
     <!-- Overview -->
@@ -47,21 +47,22 @@
 
 
     <!-- YpsoPump Config -->
-    <string name="key_ypsopump_address" translatable="false">pref_ypsopump_address</string>
-    <string name="key_ypsopump_serial" translatable="false">pref_ypsopump_serial</string>
-    <string name="key_ypsopump_name" translatable="false">pref_ypsopump_name</string>
-    <string name="key_ypsopump_bonded" translatable="false">pref_ypsopump_bonded</string>
-    <string name="key_ypsopump_status_list" translatable="false">pref_ypsopump_status_list</string>
-    <string name="key_ypsopump_bolus_size" translatable="false">pref_ypsopump_bolus_size</string>
-    <string name="ypsopump_bolus_size">Bolus size</string>
 
+    <string name="key_tandem_address" translatable="false">pref_tandem_address</string>
+    <string name="key_tandem_serial" translatable="false">pref_tandem_serial</string>
+    <string name="key_tandem_name" translatable="false">pref_tandem_name</string>
+<!--    <string name="key_ypsopump_bonded" translatable="false">pref_ypsopump_bonded</string>-->
+    <string name="key_ypsopump_status_list" translatable="false">pref_ypsopump_status_list</string>
+<!--    <string name="key_ypsopump_bolus_size" translatable="false">pref_ypsopump_bolus_size</string>-->
+    <string name="ypsopump_bolus_size">Bolus size</string>
+    <string name="tandem_configuration">Tandem Configuration</string>
 
     <!-- YpsoPump BLE Config -->
-    <string name="ypsopump_ble_config_scan_title">YpsoPump Scan</string>
-    <string name="ypsopump_ble_config_selected_pump_title">Selected YpsoPump</string>
-    <string name="ypsopump_ble_config_remove_pump_confirmation">Are you sure that you want to remove your YpsoPump?</string>
-    <string name="ypsopump_ble_config_remove_pump_title">Remove YpsoPump</string>
-    <string name="ypsopump_ble_config_no_pump_selected">No YpsoPump selected</string>
+    <string name="tandem_ble_config_scan_title">Tandem Scan</string>
+    <string name="tandem_ble_config_selected_pump_title">Selected Tandem pump</string>
+    <string name="tandem_ble_config_remove_pump_confirmation">Are you sure that you want to remove your Tandem pump?</string>
+    <string name="tandem_ble_config_remove_pump_title">Remove Tandem pump</string>
+    <string name="tandem_ble_config_no_pump_selected">No Tandem pump selected</string>
 
     <!-- YpsoPump History -->
     <string name="ypsopump_pump_history">YpsoPump History</string>
@@ -126,7 +127,7 @@
     <string name="eightdigitnumber" translatable="false">^\\d{8}</string>
 
 
-    <string name="ypsopump_configuration">YpsoPump Configuration</string>
+
 
 
     <!-- ddd -->

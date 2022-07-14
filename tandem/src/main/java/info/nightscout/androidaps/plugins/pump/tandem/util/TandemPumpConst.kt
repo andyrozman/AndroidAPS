@@ -3,19 +3,19 @@ package info.nightscout.androidaps.plugins.pump.tandem.util
 import info.nightscout.androidaps.plugins.pump.tandem.R
 
 /**
- * Created by andy on 5/12/21.
+ * Created by andy on 14/07/2022.
  */
 object TandemPumpConst {
 
-    const val Prefix = "AAPS.YpsoPump."
+    const val Prefix = "AAPS.Tandem."
 
     object Prefs {
-        @JvmField val PumpSerial = R.string.key_ypsopump_serial
-        @JvmField val PumpAddress = R.string.key_ypsopump_address
-        @JvmField val PumpName = R.string.key_ypsopump_name
-        @JvmField val PumpBonded = R.string.key_ypsopump_bonded
-        @JvmField val PumpStatusList = R.string.key_ypsopump_status_list
-        @JvmField val BolusSize = R.string.key_ypsopump_bolus_size
+        @JvmField val PumpSerial = R.string.key_tandem_serial
+        @JvmField val PumpAddress = R.string.key_tandem_address
+        @JvmField val PumpName = R.string.key_tandem_name
+        //@JvmField val PumpBonded = R.string.key_ypsopump_bonded
+        //@JvmField val PumpStatusList = R.string.key_ypsopump_status_list
+        //@JvmField val BolusSize = R.string.key_ypsopump_bolus_size
     }
 
     object Statistics {

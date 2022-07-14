@@ -47,6 +47,7 @@ import info.nightscout.androidaps.plugins.pump.insight.LocalInsightPlugin
 import info.nightscout.androidaps.plugins.pump.medtronic.MedtronicPumpPlugin
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.OmnipodDashPumpPlugin
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.OmnipodErosPumpPlugin
+import info.nightscout.androidaps.plugins.pump.tandem.TandemPumpPlugin
 import info.nightscout.androidaps.plugins.pump.virtual.VirtualPumpPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityAAPSPlugin
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityOref1Plugin
@@ -183,6 +184,12 @@ abstract class PluginsModule {
     @IntoMap
     @IntKey(160)
     abstract fun bindDiaconnG8Plugin(plugin: DiaconnG8Plugin): PluginBase
+
+    @Binds
+    @PumpDriver
+    @IntoMap
+    @IntKey(164)
+    abstract fun bindTandemPlugin(plugin: TandemPumpPlugin): PluginBase
 
     @Binds
     @AllConfigs

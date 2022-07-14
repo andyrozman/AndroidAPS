@@ -4,35 +4,36 @@
     xmlns:validate="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
-        android:title="@string/ypsopump_name"
+        android:title="@string/tandem_name"
         app:initialExpandedChildrenCount="0">
 
         <EditTextPreference
             android:defaultValue="00000000"
-            android:key="@string/key_ypsopump_serial"
+            android:key="@string/key_tandem_serial"
             android:selectAllOnFocus="true"
             android:singleLine="false"
             android:enabled="false"
             android:shouldDisableView="false"
             android:title="@string/pump_serial_number"
-            validate:customRegexp="@string/eightdigitnumber"
-            validate:testErrorString="@string/error_mustbe8digitnumber"
-            validate:testType="regexp" />
+            />
+        <!--            validate:customRegexp="@string/eightdigitnumber"-->
+        <!--            validate:testErrorString="@string/error_mustbe8digitnumber"-->
+        <!--            validate:testType="regexp" -->
 
         <Preference
             android:enabled="true"
-            android:key="@string/key_ypsopump_address"
+            android:key="@string/key_tandem_address"
             android:summary=""
-            android:title="YpsoPump Configuration">
+            android:title="Tandem Configuration">
             <intent android:action="info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity" />
         </Preference>
 
-        <ListPreference
-            android:defaultValue="0.1"
-            android:entries="@array/ypsoPumpBolusSize"
-            android:entryValues="@array/ypsoPumpBolusSize"
-            android:key="@string/key_ypsopump_bolus_size"
-            android:title="@string/ypsopump_bolus_size" />
+<!--        <ListPreference-->
+<!--            android:defaultValue="0.1"-->
+<!--            android:entries="@array/ypsoPumpBolusSize"-->
+<!--            android:entryValues="@array/ypsoPumpBolusSize"-->
+<!--            android:key="@string/key_ypsopump_bolus_size"-->
+<!--            android:title="@string/ypsopump_bolus_size" />-->
 
     </PreferenceCategory>
 

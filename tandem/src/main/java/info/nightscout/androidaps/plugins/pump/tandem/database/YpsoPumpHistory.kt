@@ -121,41 +121,41 @@ class YpsoPumpHistory @Inject constructor(
     }
 
     fun insertOrUpdate(event: EventDto): HistoryRecordEntity? {
-        aapsLogger.debug(LTag.PUMP, prefix + "EventDto to convert = ${gson.toJson(event)}")
-        val entity = historyMapper.domainToEntity(event)
-        var returnEntity: HistoryRecordEntity? = null
-        pumpHistoryDatabase.runInTransaction {
-            val dbEntity = pumpHistoryDao.getById(entity.id, entity.serial, entity.historyRecordType)
-
-            aapsLogger.debug(LTag.PUMP, prefix + "pumpHistoryDao.getById[${entity.id}] = ${gson.toJson(dbEntity)}")
-
-            if (dbEntity == null) {
-                entity.id = entity.eventSequenceNumber
-                entity.createdAt = System.currentTimeMillis()
-                entity.updatedAt = entity.createdAt
-
-                aapsLogger.debug(LTag.PUMP, prefix + "pumpHistoryDao.saveBlocking()")
-
-                pumpHistoryDao.saveBlocking(entity)
-                returnEntity = entity
-            } else {
-                if (isDifferentData(dbEntity, entity)) {
-                    val entityForUpdate = prepareData(dbEntity, entity)
-                    aapsLogger.debug(LTag.PUMP, prefix + "pumpHistoryDao.updateBlocking()")
-                    pumpHistoryDao.updateBlocking(entityForUpdate)
-                    returnEntity = entityForUpdate
-                } else {
-                    aapsLogger.debug(LTag.PUMP, prefix + "same data no Db action.")
-                }
-            }
-        }
-
-        return returnEntity
-
-        // if (returnEntity != null) {
-        //     //sendDataToPumpSync(returnEntity!!)
+        // aapsLogger.debug(LTag.PUMP, prefix + "EventDto to convert = ${gson.toJson(event)}")
+        // val entity = historyMapper.domainToEntity(event)
+        // var returnEntity: HistoryRecordEntity? = null
+        // pumpHistoryDatabase.runInTransaction {
+        //     val dbEntity = pumpHistoryDao.getById(entity.id, entity.serial, entity.historyRecordType)
+        //
+        //     aapsLogger.debug(LTag.PUMP, prefix + "pumpHistoryDao.getById[${entity.id}] = ${gson.toJson(dbEntity)}")
+        //
+        //     if (dbEntity == null) {
+        //         entity.id = entity.eventSequenceNumber
+        //         entity.createdAt = System.currentTimeMillis()
+        //         entity.updatedAt = entity.createdAt
+        //
+        //         aapsLogger.debug(LTag.PUMP, prefix + "pumpHistoryDao.saveBlocking()")
+        //
+        //         pumpHistoryDao.saveBlocking(entity)
+        //         returnEntity = entity
+        //     } else {
+        //         if (isDifferentData(dbEntity, entity)) {
+        //             val entityForUpdate = prepareData(dbEntity, entity)
+        //             aapsLogger.debug(LTag.PUMP, prefix + "pumpHistoryDao.updateBlocking()")
+        //             pumpHistoryDao.updateBlocking(entityForUpdate)
+        //             returnEntity = entityForUpdate
+        //         } else {
+        //             aapsLogger.debug(LTag.PUMP, prefix + "same data no Db action.")
+        //         }
+        //     }
         // }
-
+        //
+        // return returnEntity
+        //
+        // // if (returnEntity != null) {
+        // //     //sendDataToPumpSync(returnEntity!!)
+        // // }
+    return null
     }
 
     private fun prepareData(dbEntity: HistoryRecordEntity, newEntity: HistoryRecordEntity): HistoryRecordEntity {

@@ -9,18 +9,17 @@ import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.driver.config.TandemBLESelector
 import info.nightscout.androidaps.plugins.pump.tandem.driver.config.TandemPumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.tandem.driver.config.TandemHistoryDataProvider
-import info.nightscout.androidaps.plugins.pump.tandem.handlers.YpsoPumpStatusHandler
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 
 //@Module(includes = [TandemDatabaseModule::class])
 @Module
 @Suppress("unused")
-abstract class TandemPumpModule {
+abstract class TandemModule {
 
     // Driver basics
     @ContributesAndroidInjector abstract fun ypsopumpPumpStatus(): TandemPumpStatus
     @ContributesAndroidInjector abstract fun contributeYpsoPumpUtil(): TandemPumpUtil
-    @ContributesAndroidInjector abstract fun contributeYpsoPumpStatusHandler(): YpsoPumpStatusHandler
+    //@ContributesAndroidInjector abstract fun contributeYpsoPumpStatusHandler(): YpsoPumpStatusHandler
 
     // Data
     @ContributesAndroidInjector

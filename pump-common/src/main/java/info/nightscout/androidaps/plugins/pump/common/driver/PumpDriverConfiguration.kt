@@ -4,8 +4,8 @@ import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistory
 
 interface PumpDriverConfiguration {
 
-    fun getPumpBLESelector(): PumpBLESelector
+    fun getPumpBLESelector(): PumpBLESelector?
 
-    fun getPumpHistoryDataProvider(): PumpHistoryDataProvider
+    fun getPumpHistoryDataProvider(): PumpHistoryDataProvider?
 
 }

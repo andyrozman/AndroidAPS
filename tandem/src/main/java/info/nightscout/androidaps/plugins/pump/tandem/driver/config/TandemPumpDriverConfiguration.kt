@@ -6,15 +6,16 @@ import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistory
 import javax.inject.Inject
 
 class TandemPumpDriverConfiguration @Inject constructor(
-    var pumpBLESelector: TandemBLESelector,
-    var pumpHistoryDataProvider: TandemHistoryDataProvider
+    var pumpBLESelector: TandemBLESelector //,
+    //var pumpHistoryDataProvider: TandemHistoryDataProvider
 ) : PumpDriverConfiguration {
 
     override fun getPumpBLESelector(): PumpBLESelector {
         return pumpBLESelector;
     }
 
-    override fun getPumpHistoryDataProvider(): PumpHistoryDataProvider {
-        return pumpHistoryDataProvider
+    override fun getPumpHistoryDataProvider(): PumpHistoryDataProvider? {
+        return null
+        // return pumpHistoryDataProvider
     }
 }

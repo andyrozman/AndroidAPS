@@ -34,7 +34,6 @@ import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoDriverMode
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.driver.config.TandemPumpDriverConfiguration
-import info.nightscout.androidaps.plugins.pump.tandem.handlers.YpsoPumpStatusHandler
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.androidaps.utils.DateUtil
@@ -76,7 +75,7 @@ class TandemPumpPlugin @Inject constructor(
     aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
     pumpSyncStorage: PumpSyncStorage,
-    var ypsoPumpStatusHandler: YpsoPumpStatusHandler,
+
     var pumpDriverConfiguration: TandemPumpDriverConfiguration
 ) : PumpPluginAbstract(
     PluginDescription() //
@@ -110,11 +109,11 @@ class TandemPumpPlugin @Inject constructor(
 
     override fun updatePreferenceSummary(pref: Preference) {
         super.updatePreferenceSummary(pref)
-        if (pref.key == rh.gs(R.string.key_ypsopump_address)) {
-            val value: String? = sp.getStringOrNull(R.string.key_ypsopump_address, null)
+        if (pref.key == rh.gs(R.string.key_tandem_address)) {
+            val value: String? = sp.getStringOrNull(R.string.key_tandem_address, null)
             pref.summary = value ?: rh.gs(R.string.not_set_short)
-        } else if (pref.key == rh.gs(R.string.key_ypsopump_serial)) {
-            val value: String? = sp.getStringOrNull(R.string.key_ypsopump_serial, null)
+        } else if (pref.key == rh.gs(R.string.key_tandem_serial)) {
+            val value: String? = sp.getStringOrNull(R.string.key_tandem_serial, null)
             pref.summary = value ?: rh.gs(R.string.not_set_short)
         }
         aapsLogger.info(LTag.PUMP, "Preference: $pref")
@@ -144,15 +143,15 @@ class TandemPumpPlugin @Inject constructor(
 
     override fun onStartScheduledPumpActions() {
 
-        disposable.add(rxBus
-                           .toObservable(EventPreferenceChange::class.java)
-                           .observeOn(aapsSchedulers.io)
-                           .subscribe({ event: EventPreferenceChange ->
-                                          if (event.isChanged(rh, TandemPumpConst.Prefs.PumpSerial)) {
-                                              ypsoPumpStatusHandler.switchPumpData()
-                                              resetStatusState()
-                                          }
-                                      }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
+        // disposable.add(rxBus
+        //                    .toObservable(EventPreferenceChange::class.java)
+        //                    .observeOn(aapsSchedulers.io)
+        //                    .subscribe({ event: EventPreferenceChange ->
+        //                                   if (event.isChanged(rh, TandemPumpConst.Prefs.PumpSerial)) {
+        //                                       ypsoPumpStatusHandler.switchPumpData()
+        //                                       resetStatusState()
+        //                                   }
+        //                               }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
 
         rxBus.send(EventPumpConnectionParametersChanged())
 
@@ -227,7 +226,7 @@ class TandemPumpPlugin @Inject constructor(
         //sp.remove(YpsoPumpConst.Prefs.PumpSerial)
         //sp.putString(YpsoPumpConst.Prefs.PumpSerial, "" + serialNumber)
 
-        ypsoPumpStatusHandler.loadYpsoPumpStatusList()
+        //ypsoPumpStatusHandler.loadYpsoPumpStatusList()
 
         checkInitializationState()
 
@@ -236,9 +235,12 @@ class TandemPumpPlugin @Inject constructor(
     private fun checkInitializationState() {
 
         pumpAddress = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
-        pumpBonded = sp.getBoolean(TandemPumpConst.Prefs.PumpBonded, false)
+        //pumpBonded = sp.getBoolean(TandemPumpConst.Prefs.PumpBonded, false)
 
-        driverInitialized = (!pumpAddress.isEmpty() && pumpBonded)
+        // TODO Tandem doesn't need to be "bonded" but it needs to be sort of paired, having retrived certain data,
+        //  that check needs to be added here
+
+        driverInitialized = (!pumpAddress.isEmpty())
     }
 
     override val serviceClass: Class<*>?

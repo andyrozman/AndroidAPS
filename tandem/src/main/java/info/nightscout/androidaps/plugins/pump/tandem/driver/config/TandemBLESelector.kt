@@ -56,9 +56,10 @@ class TandemBLESelector @Inject constructor(
     }
 
     override fun removeDevice(device: BluetoothDevice) {
-        if (device.getBondState() == 12) {
-            removeBond(device)
-        }
+        // if (device.getBondState() == 12) {
+        //     removeBond(device)
+        // }
+        // TODO tandem
     }
 
     override fun getScanSettings(): ScanSettings? {
@@ -84,8 +85,13 @@ class TandemBLESelector @Inject constructor(
 
     override fun cleanupAfterDeviceRemoved() {
         sp.remove(TandemPumpConst.Prefs.PumpAddress)
-        sp.remove(TandemPumpConst.Prefs.PumpName)
-        sp.putBoolean(TandemPumpConst.Prefs.PumpBonded, false)
+        //sp.remove(TandemPumpConst.Prefs.PumpName)
+        //sp.putBoolean(TandemPumpConst.Prefs.PumpBonded, false)
+
+        // TODO save what data needs to be saving, and clean what needs to be cleaned
+
+        // TODO if Tandem needs to be "un-paired" on pump, code call for that should go here...
+
         rxBus.send(EventPumpConnectionParametersChanged())
     }
 
@@ -98,20 +104,22 @@ class TandemBLESelector @Inject constructor(
         val bonded = bondState != 12
 
         // if we are not bonded, bonding is started
-        if (bondState != 12) {
-            aapsLogger.debug(TAG, "Start bonding")
-            context.registerReceiver(
-                BondStateReceiver(
-                    R.string.key_ypsopump_address,
-                    R.string.key_ypsopump_bonded,
-                    bleAddress, 12
-                ),
-                IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
-            )
-            bluetoothDevice.createBond()
-        }
+        // if (bondState != 12) {
+        //     aapsLogger.debug(TAG, "Start bonding")
+        //     context.registerReceiver(
+        //         BondStateReceiver(
+        //             R.string.key_ypsopump_address,
+        //             R.string.key_ypsopump_bonded,
+        //             bleAddress, 12
+        //         ),
+        //         IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+        //     )
+        //     bluetoothDevice.createBond()
+        // }
 
-        sp.putBoolean(TandemPumpConst.Prefs.PumpBonded, bonded)
+        // TODO call Tandem "bonding/pairing/handshaking"
+
+        //sp.putBoolean(TandemPumpConst.Prefs.PumpBonded, bonded)
         rxBus.send(EventPumpConnectionParametersChanged())
 
         var addressChanged = false
@@ -121,14 +129,14 @@ class TandemBLESelector @Inject constructor(
             addressChanged = true
         }
 
-        setSystemParameterForBT(TandemPumpConst.Prefs.PumpName, deviceName)
+        //setSystemParameterForBT(TandemPumpConst.Prefs.PumpName, deviceName)
 
-        var name: String = bluetoothDevice.getName()
-
-        if (name.contains("_")) {
-            name = name.substring(name.indexOf("_") + 1)
-            setSystemParameterForBT(TandemPumpConst.Prefs.PumpSerial, name)
-        }
+        // var name: String = bluetoothDevice.getName()
+        //
+        // if (name.contains("_")) {
+        //     name = name.substring(name.indexOf("_") + 1)
+        //     setSystemParameterForBT(TandemPumpConst.Prefs.PumpSerial, name)
+        // }
 
         if (addressChanged) {
             rxBus.send(EventPumpConnectionParametersChanged())
@@ -150,22 +158,22 @@ class TandemBLESelector @Inject constructor(
         return false
     }
 
-    override fun getUnknownPumpName(): String = "YpsoPump (?)"
+    override fun getUnknownPumpName(): String = "Tandem (?)"
 
     override fun currentlySelectedPumpAddress(): String = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
 
     override fun currentlySelectedPumpName(): String = sp.getString(TandemPumpConst.Prefs.PumpName, getUnknownPumpName())
 
     override fun getText(key: PumpBLESelectorText): String {
-        var stringId: Int = R.string.ypsopump_ble_config_scan_title
+        var stringId: Int = R.string.tandem_ble_config_scan_title
 
         when (key) {
-            PumpBLESelectorText.SCAN_TITLE          -> stringId = R.string.ypsopump_ble_config_scan_title
-            PumpBLESelectorText.SELECTED_PUMP_TITLE -> stringId = R.string.ypsopump_ble_config_selected_pump_title
-            PumpBLESelectorText.REMOVE_TITLE        -> stringId = R.string.ypsopump_ble_config_remove_pump_title
-            PumpBLESelectorText.REMOVE_TEXT         -> stringId = R.string.ypsopump_ble_config_remove_pump_confirmation
-            PumpBLESelectorText.NO_SELECTED_PUMP    -> stringId = R.string.ypsopump_ble_config_no_pump_selected
-            PumpBLESelectorText.PUMP_CONFIGURATION  -> stringId = R.string.ypsopump_configuration
+            PumpBLESelectorText.SCAN_TITLE          -> stringId = R.string.tandem_ble_config_scan_title
+            PumpBLESelectorText.SELECTED_PUMP_TITLE -> stringId = R.string.tandem_ble_config_selected_pump_title
+            PumpBLESelectorText.REMOVE_TITLE        -> stringId = R.string.tandem_ble_config_remove_pump_title
+            PumpBLESelectorText.REMOVE_TEXT         -> stringId = R.string.tandem_ble_config_remove_pump_confirmation
+            PumpBLESelectorText.NO_SELECTED_PUMP    -> stringId = R.string.tandem_ble_config_no_pump_selected
+            PumpBLESelectorText.PUMP_CONFIGURATION  -> stringId = R.string.tandem_configuration
         }
 
         return resourceHelper.gs(stringId)
