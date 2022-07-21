@@ -2,6 +2,7 @@ package info.nightscout.androidaps.plugins.pump.common.data
 
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpRunningState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
+import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import java.util.*
 
 /**
@@ -35,10 +36,16 @@ abstract class PumpStatus(var pumpType: PumpType) {
     var units: String? = null // Constants.MGDL or Constants.MMOL
     var pumpRunningState = PumpRunningState.Running
     var basalsByHour: DoubleArray? = null
+
+    // TODO refactor to use TempBasalPair
     var tempBasalStart: Long? = null
     var tempBasalAmount: Double? = 0.0
-    var tempBasalLength: Int? = 0
+    var tempBasalPercent: Int? = 100
+    var tempBasalDuration: Int? = 0
     var tempBasalEnd: Long? = null
+
+    //var tbr: TempBasalPair
+
     var pumpTime: PumpTimeDifferenceDto? = null
 
     abstract fun initSettings()

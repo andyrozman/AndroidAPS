@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.medtronic.util
 
+import android.content.Context
 import com.google.gson.GsonBuilder
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
@@ -19,6 +20,7 @@ import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicDeviceTyp
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicNotificationType
 import info.nightscout.androidaps.plugins.pump.medtronic.driver.MedtronicPumpStatus
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.plugins.pump.common.utils.PumpUtil
 import org.joda.time.LocalTime
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -32,16 +34,21 @@ import kotlin.experimental.or
  */
 @Singleton
 class MedtronicUtil @Inject constructor(
-    private val aapsLogger: AAPSLogger,
-    private val rxBus: RxBus,
+    aapsLogger: AAPSLogger,
+    rxBus: RxBus,
+    context: Context,
     private val rileyLinkUtil: RileyLinkUtil,
-    private val medtronicPumpStatus: MedtronicPumpStatus
-) {
+    private val medtronicPumpStatus: MedtronicPumpStatus,
+    resourceHelper: ResourceHelper
+): PumpUtil(aapsLogger, rxBus, context, resourceHelper) {
 
     private val ENVELOPE_SIZE = 4 // 0xA7 S1 S2 S3 CMD PARAM_COUNT [PARAMS]
 
     //private MedtronicDeviceType medtronicPumpModel;
-    private var currentCommand: MedtronicCommandType? = null
+    private var medtronicCurrentCommand: MedtronicCommandType? = null
+
+
+
     var settings: Map<String, PumpSettingDTO>? = null
     private val BIG_FRAME_LENGTH = 65
     private val doneBit = 1 shl 7
@@ -93,25 +100,25 @@ class MedtronicUtil @Inject constructor(
         return ByteUtil.concat(input.size.toByte(), input)
     }
 
-    fun sendNotification(notificationType: MedtronicNotificationType, rh: ResourceHelper, rxBus: RxBus) {
-        val notification = Notification( //
-            notificationType.notificationType,  //
-            rh.gs(notificationType.resourceId),  //
-            notificationType.notificationUrgency)
-        rxBus.send(EventNewNotification(notification))
-    }
-
-    fun sendNotification(notificationType: MedtronicNotificationType, rh: ResourceHelper, rxBus: RxBus, vararg parameters: Any?) {
-        val notification = Notification( //
-            notificationType.notificationType,  //
-            rh.gs(notificationType.resourceId, *parameters),  //
-            notificationType.notificationUrgency)
-        rxBus.send(EventNewNotification(notification))
-    }
-
-    fun dismissNotification(notificationType: MedtronicNotificationType, rxBus: RxBus) {
-        rxBus.send(EventDismissNotification(notificationType.notificationType))
-    }
+    // fun sendNotification(notificationType: MedtronicNotificationType, rh: ResourceHelper, rxBus: RxBus) {
+    //     val notification = Notification( //
+    //         notificationType.notificationType,  //
+    //         rh.gs(notificationType.resourceId),  //
+    //         notificationType.notificationUrgency)
+    //     rxBus.send(EventNewNotification(notification))
+    // }
+    //
+    // fun sendNotification(notificationType: MedtronicNotificationType, rh: ResourceHelper, rxBus: RxBus, vararg parameters: Any?) {
+    //     val notification = Notification( //
+    //         notificationType.notificationType,  //
+    //         rh.gs(notificationType.resourceId, *parameters),  //
+    //         notificationType.notificationUrgency)
+    //     rxBus.send(EventNewNotification(notification))
+    // }
+    //
+    // fun dismissNotification(notificationType: MedtronicNotificationType, rxBus: RxBus) {
+    //     rxBus.send(EventDismissNotification(notificationType.notificationType))
+    // }
 
     fun buildCommandPayload(rileyLinkServiceData: RileyLinkServiceData, commandType: MedtronicCommandType, parameters: ByteArray?): ByteArray {
         return buildCommandPayload(rileyLinkServiceData, commandType.commandCode, parameters)
@@ -226,12 +233,12 @@ class MedtronicUtil @Inject constructor(
         }
 
     fun getCurrentCommand(): MedtronicCommandType? {
-        return currentCommand
+        return medtronicCurrentCommand
     }
 
     fun setCurrentCommand(currentCommandIn: MedtronicCommandType?) {
-        this.currentCommand = currentCommandIn
-        if (currentCommand != null) rileyLinkUtil.rileyLinkHistory.add(RLHistoryItemMedtronic(currentCommandIn!!))
+        this.medtronicCurrentCommand = currentCommandIn
+        if (medtronicCurrentCommand != null) rileyLinkUtil.rileyLinkHistory.add(RLHistoryItemMedtronic(currentCommandIn!!))
     }
 
     var pageNumber = 0
@@ -240,7 +247,7 @@ class MedtronicUtil @Inject constructor(
     fun setCurrentCommand(currentCommand: MedtronicCommandType, pageNumber_: Int, frameNumber_: Int?) {
         pageNumber = pageNumber_
         frameNumber = frameNumber_
-        if (this.currentCommand !== currentCommand) {
+        if (this.medtronicCurrentCommand !== currentCommand) {
             setCurrentCommand(currentCommand)
         }
         rxBus.send(EventRileyLinkDeviceStatusChange(medtronicPumpStatus.pumpDeviceState))
@@ -306,6 +313,11 @@ class MedtronicUtil @Inject constructor(
             val diff = d1 - d2
             return Math.abs(diff) <= 0.000001
         }
+    }
+
+
+    override fun getPumpAlarmNotification(): Int {
+        return Notification.MEDTRONIC_PUMP_ALARM
     }
 
 }

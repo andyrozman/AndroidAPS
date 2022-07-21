@@ -23,6 +23,9 @@ import info.nightscout.androidaps.plugins.pump.common.PumpPluginAbstract
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
+import info.nightscout.androidaps.plugins.pump.common.driver.scheduler.PumpCommandSchedulerCapable
+import info.nightscout.androidaps.plugins.pump.common.driver.scheduler.PumpCommandSchedulerUtil
+import info.nightscout.androidaps.plugins.pump.common.driver.scheduler.PumpStatusRefreshType
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.RileyLinkConst
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.defs.RileyLinkPumpDevice
@@ -37,6 +40,7 @@ import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncEntriesCreato
 import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
 import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
 import info.nightscout.androidaps.plugins.pump.common.utils.ProfileUtil
+import info.nightscout.androidaps.plugins.pump.common.utils.PumpUtil
 import info.nightscout.androidaps.plugins.pump.medtronic.comm.history.pump.PumpHistoryEntry
 import info.nightscout.androidaps.plugins.pump.medtronic.comm.history.pump.PumpHistoryResult
 import info.nightscout.androidaps.plugins.pump.medtronic.data.MedtronicHistoryData
@@ -47,6 +51,7 @@ import info.nightscout.androidaps.plugins.pump.medtronic.data.dto.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.*
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicCommandType.Companion.getSettings
 import info.nightscout.androidaps.plugins.pump.medtronic.driver.MedtronicPumpStatus
+import info.nightscout.androidaps.plugins.pump.medtronic.driver.schedule.MedtronicPumpCommandSchedulerSettings
 import info.nightscout.androidaps.plugins.pump.medtronic.events.EventMedtronicPumpConfigurationChanged
 import info.nightscout.androidaps.plugins.pump.medtronic.events.EventMedtronicPumpValuesChanged
 import info.nightscout.androidaps.plugins.pump.medtronic.service.RileyLinkMedtronicService
@@ -88,10 +93,12 @@ class MedtronicPumpPlugin @Inject constructor(
     private val medtronicHistoryData: MedtronicHistoryData,
     private val rileyLinkServiceData: RileyLinkServiceData,
     private val serviceTaskExecutor: ServiceTaskExecutor,
+    private val medtronicPumpCommandSchedulerSettings: MedtronicPumpCommandSchedulerSettings,
     dateUtil: DateUtil,
     aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
-    pumpSyncStorage: PumpSyncStorage
+    pumpSyncStorage: PumpSyncStorage,
+    val pumpScheduler: PumpCommandSchedulerUtil
 ) : PumpPluginAbstract(
     PluginDescription() //
         .mainType(PluginType.PUMP) //
@@ -103,7 +110,7 @@ class MedtronicPumpPlugin @Inject constructor(
         .description(R.string.description_pump_medtronic),  //
     PumpType.MEDTRONIC_522_722,  // we default to most basic model, correct model from config is loaded later
     injector, rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage
-), Pump, RileyLinkPumpDevice, PumpSyncEntriesCreator {
+), Pump, RileyLinkPumpDevice, PumpSyncEntriesCreator, PumpCommandSchedulerCapable {
 
     private var rileyLinkMedtronicService: RileyLinkMedtronicService? = null
 
@@ -114,7 +121,9 @@ class MedtronicPumpPlugin @Inject constructor(
     private var isInitialized = false
     private var lastPumpHistoryEntry: PumpHistoryEntry? = null
     private val busyTimestamps: MutableList<Long> = ArrayList()
-    private var hasTimeDateOrTimeZoneChanged = false
+
+
+    override var hasTimeDateOrTimeZoneChanged = false
     private var isBusy = false
 
     override fun onStart() {
@@ -206,8 +215,8 @@ class MedtronicPumpPlugin @Inject constructor(
             do {
                 SystemClock.sleep(60000)
                 if (this.isInitialized) {
-                    val statusRefresh = synchronized(statusRefreshMap) { HashMap(statusRefreshMap) }
-                    if (doWeHaveAnyStatusNeededRefreshing(statusRefresh)) {
+                    //val statusRefresh = synchronized(statusRefreshMap) { HashMap(statusRefreshMap) }
+                    if (pumpScheduler.doWeHaveAnyStatusNeededRefreshing()) {
                         if (!commandQueue.statusInQueue()) {
                             commandQueue.readStatus(rh.gs(R.string.scheduled_status_refresh), null)
                         }
@@ -295,7 +304,7 @@ class MedtronicPumpPlugin @Inject constructor(
         if (firstRun) {
             needRefresh = initializePump()  /*!isRefresh*/
         } else {
-            refreshAnyStatusThatNeedsToBeRefreshed()
+            pumpScheduler.refreshAnyStatusThatNeedsToBeRefreshed()
         }
         if (needRefresh) rxBus.send(EventMedtronicPumpValuesChanged())
     }
@@ -305,7 +314,7 @@ class MedtronicPumpPlugin @Inject constructor(
         isRefresh = true
     }//
 
-    private val isPumpNotReachable: Boolean
+    override val isPumpNotReachable: Boolean
         get() {
             val rileyLinkServiceState = rileyLinkServiceData.rileyLinkServiceState
             if (rileyLinkServiceState != RileyLinkServiceState.PumpConnectorReady
@@ -318,70 +327,70 @@ class MedtronicPumpPlugin @Inject constructor(
             return rileyLinkMedtronicService?.deviceCommunicationManager?.isDeviceReachable != true
         }
 
-    private fun refreshAnyStatusThatNeedsToBeRefreshed() {
-        val statusRefresh = synchronized(statusRefreshMap) { HashMap(statusRefreshMap) }
-        if (!doWeHaveAnyStatusNeededRefreshing(statusRefresh)) {
-            return
-        }
-        var resetTime = false
-        if (isPumpNotReachable) {
-            aapsLogger.error("Pump unreachable.")
-            medtronicUtil.sendNotification(MedtronicNotificationType.PumpUnreachable, rh, rxBus)
-            return
-        }
-        medtronicUtil.dismissNotification(MedtronicNotificationType.PumpUnreachable, rxBus)
-        if (hasTimeDateOrTimeZoneChanged) {
-            checkTimeAndOptionallySetTime()
-
-            // read time if changed, set new time
-            hasTimeDateOrTimeZoneChanged = false
-        }
-
-        // execute
-        val refreshTypesNeededToReschedule: MutableSet<MedtronicStatusRefreshType> = mutableSetOf()
-        for ((key, value) in statusRefresh) {
-            if (value > 0 && System.currentTimeMillis() > value) {
-                when (key) {
-                    MedtronicStatusRefreshType.PumpHistory                                                -> {
-                        readPumpHistory()
-                    }
-
-                    MedtronicStatusRefreshType.PumpTime                                                   -> {
-                        checkTimeAndOptionallySetTime()
-                        refreshTypesNeededToReschedule.add(key)
-                        resetTime = true
-                    }
-
-                    MedtronicStatusRefreshType.BatteryStatus, MedtronicStatusRefreshType.RemainingInsulin -> {
-                        rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(key.getCommandType(medtronicUtil.medtronicPumpModel)!!)
-                        refreshTypesNeededToReschedule.add(key)
-                        resetTime = true
-                    }
-
-                    MedtronicStatusRefreshType.Configuration                                              -> {
-                        rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(key.getCommandType(medtronicUtil.medtronicPumpModel)!!)
-                        resetTime = true
-                    }
-                }
-            }
-
-            // reschedule
-            for (refreshType2 in refreshTypesNeededToReschedule) {
-                scheduleNextRefresh(refreshType2)
-            }
-        }
-
-        if (resetTime) medtronicPumpStatus.setLastCommunicationToNow()
-    }
-
-    private fun doWeHaveAnyStatusNeededRefreshing(statusRefresh: Map<MedtronicStatusRefreshType, Long>): Boolean {
-        for ((_, value) in statusRefresh) {
-            if (value > 0 && System.currentTimeMillis() > value) {
-                return true
-            }
-        }
-        return hasTimeDateOrTimeZoneChanged
-    }
+    // private fun refreshAnyStatusThatNeedsToBeRefreshed() {
+    //     val statusRefresh = synchronized(statusRefreshMap) { HashMap(statusRefreshMap) }
+    //     if (!doWeHaveAnyStatusNeededRefreshing(statusRefresh)) {
+    //         return
+    //     }
+    //     var resetTime = false
+    //     if (isPumpNotReachable) {
+    //         aapsLogger.error("Pump unreachable.")
+    //         medtronicUtil.sendNotification(MedtronicNotificationType.PumpUnreachable, rh, rxBus)
+    //         return
+    //     }
+    //     medtronicUtil.dismissNotification(MedtronicNotificationType.PumpUnreachable, rxBus)
+    //     if (hasTimeDateOrTimeZoneChanged) {
+    //         checkTimeAndOptionallySetTime()
+    //
+    //         // read time if changed, set new time
+    //         hasTimeDateOrTimeZoneChanged = false
+    //     }
+    //
+    //     // execute
+    //     val refreshTypesNeededToReschedule: MutableSet<MedtronicStatusRefreshType> = mutableSetOf()
+    //     for ((key, value) in statusRefresh) {
+    //         if (value > 0 && System.currentTimeMillis() > value) {
+    //             when (key) {
+    //                 MedtronicStatusRefreshType.PumpHistory                                                -> {
+    //                     readPumpHistory()
+    //                 }
+    //
+    //                 MedtronicStatusRefreshType.PumpTime                                                   -> {
+    //                     checkTimeAndOptionallySetTime()
+    //                     refreshTypesNeededToReschedule.add(key)
+    //                     resetTime = true
+    //                 }
+    //
+    //                 MedtronicStatusRefreshType.BatteryStatus, MedtronicStatusRefreshType.RemainingInsulin -> {
+    //                     rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(key.getCommandType(medtronicUtil.medtronicPumpModel)!!)
+    //                     refreshTypesNeededToReschedule.add(key)
+    //                     resetTime = true
+    //                 }
+    //
+    //                 MedtronicStatusRefreshType.Configuration                                              -> {
+    //                     rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(key.getCommandType(medtronicUtil.medtronicPumpModel)!!)
+    //                     resetTime = true
+    //                 }
+    //             }
+    //         }
+    //
+    //         // reschedule
+    //         for (refreshType2 in refreshTypesNeededToReschedule) {
+    //             scheduleNextRefresh(refreshType2)
+    //         }
+    //     }
+    //
+    //     if (resetTime) medtronicPumpStatus.setLastCommunicationToNow()
+    // }
+    //
+    // private fun doWeHaveAnyStatusNeededRefreshing(statusRefresh: Map<MedtronicStatusRefreshType, Long>): Boolean {
+    //     for ((_, value) in statusRefresh) {
+    //         if (value > 0 && System.currentTimeMillis() > value) {
+    //             return true
+    //         }
+    //     }
+    //     return hasTimeDateOrTimeZoneChanged
+    // }
 
     private fun setRefreshButtonEnabled(enabled: Boolean) {
         rxBus.send(EventRefreshButtonState(enabled))
@@ -419,11 +428,11 @@ class MedtronicPumpPlugin @Inject constructor(
 
         // remaining insulin (>50 = 4h; 50-20 = 1h; 15m)
         rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(MedtronicCommandType.GetRemainingInsulin)
-        scheduleNextRefresh(MedtronicStatusRefreshType.RemainingInsulin, 10)
+        scheduleNextRefresh(PumpStatusRefreshType.RemainingInsulin, 10)
 
         // remaining power (1h)
         rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(MedtronicCommandType.GetBatteryStatus)
-        scheduleNextRefresh(MedtronicStatusRefreshType.BatteryStatus, 20)
+        scheduleNextRefresh(PumpStatusRefreshType.BatteryStatus, 20)
 
         // configuration (once and then if history shows config changes)
         rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(getSettings(medtronicUtil.medtronicPumpModel))
@@ -533,7 +542,7 @@ class MedtronicPumpPlugin @Inject constructor(
         CancelDelivery
     }
 
-    private fun checkTimeAndOptionallySetTime() {
+    override fun checkTimeAndOptionallySetTime() {
         aapsLogger.info(LTag.PUMP, "MedtronicPumpPlugin::checkTimeAndOptionallySetTime - Start")
         setRefreshButtonEnabled(false)
         if (isPumpNotReachable) {
@@ -567,7 +576,7 @@ class MedtronicPumpPlugin @Inject constructor(
         } else {
             aapsLogger.info(LTag.PUMP, String.format(Locale.ENGLISH, "MedtronicPumpPlugin::checkTimeAndOptionallySetTime - Time difference is %d s. Do nothing.", timeDiff))
         }
-        scheduleNextRefresh(MedtronicStatusRefreshType.PumpTime, 0)
+        scheduleNextRefresh(PumpStatusRefreshType.PumpTime, 0)
     }
 
     @Synchronized
@@ -750,7 +759,7 @@ class MedtronicPumpPlugin @Inject constructor(
         } else {
             medtronicPumpStatus.tempBasalStart = System.currentTimeMillis()
             medtronicPumpStatus.tempBasalAmount = absoluteRate
-            medtronicPumpStatus.tempBasalLength = durationInMinutes
+            medtronicPumpStatus.tempBasalDuration = durationInMinutes
 
             val tempData = PumpDbEntryTBR(absoluteRate, true, durationInMinutes * 60, tbrType)
 
@@ -849,12 +858,12 @@ class MedtronicPumpPlugin @Inject constructor(
 //        if (isLoggingEnabled())
 //            LOG.error(getLogPrefix() + "readPumpHistory WIP.");
         readPumpHistoryLogic()
-        scheduleNextRefresh(MedtronicStatusRefreshType.PumpHistory)
+        scheduleNextRefresh(PumpStatusRefreshType.PumpHistory)
         if (medtronicHistoryData.hasRelevantConfigurationChanged()) {
-            scheduleNextRefresh(MedtronicStatusRefreshType.Configuration, -1)
+            scheduleNextRefresh(PumpStatusRefreshType.Configuration, -1)
         }
         if (medtronicHistoryData.hasPumpTimeChanged()) {
-            scheduleNextRefresh(MedtronicStatusRefreshType.PumpTime, -1)
+            scheduleNextRefresh(PumpStatusRefreshType.PumpTime, -1)
         }
         if (medtronicPumpStatus.basalProfileStatus !== BasalProfileStatus.NotInitialized
             && medtronicHistoryData.hasBasalProfileChanged()
@@ -960,27 +969,33 @@ class MedtronicPumpPlugin @Inject constructor(
             }
         }
 
-    private fun scheduleNextRefresh(refreshType: MedtronicStatusRefreshType, additionalTimeInMinutes: Int = 0) {
-        when (refreshType) {
-            MedtronicStatusRefreshType.RemainingInsulin                                                                                                                     -> {
-                val remaining = medtronicPumpStatus.reservoirRemainingUnits
-                val min: Int = if (remaining > 50) 4 * 60 else if (remaining > 20) 60 else 15
-                synchronized(statusRefreshMap) { statusRefreshMap[refreshType] = getTimeInFutureFromMinutes(min) }
-            }
-
-            MedtronicStatusRefreshType.PumpTime, MedtronicStatusRefreshType.Configuration, MedtronicStatusRefreshType.BatteryStatus, MedtronicStatusRefreshType.PumpHistory -> {
-                synchronized(statusRefreshMap) { statusRefreshMap[refreshType] = getTimeInFutureFromMinutes(refreshType.refreshTime + additionalTimeInMinutes) }
-            }
-        }
+    private fun scheduleNextRefresh(refreshType: PumpStatusRefreshType, additionalTimeInMinutes: Int = 0) {
+        pumpScheduler.scheduleNextRefresh(refreshType = refreshType,
+                                          additionalTimeInMinutes = additionalTimeInMinutes)
     }
 
-    private fun getTimeInFutureFromMinutes(minutes: Int): Long {
-        return System.currentTimeMillis() + getTimeInMs(minutes)
-    }
 
-    private fun getTimeInMs(minutes: Int): Long {
-        return minutes * 60 * 1000L
-    }
+    // private fun scheduleNextRefresh(refreshType: MedtronicStatusRefreshType, additionalTimeInMinutes: Int = 0) {
+    //     when (refreshType) {
+    //         MedtronicStatusRefreshType.RemainingInsulin                                                                                                                     -> {
+    //             val remaining = medtronicPumpStatus.reservoirRemainingUnits
+    //             val min: Int = if (remaining > 50) 4 * 60 else if (remaining > 20) 60 else 15
+    //             synchronized(statusRefreshMap) { statusRefreshMap[refreshType] = getTimeInFutureFromMinutes(min) }
+    //         }
+    //
+    //         MedtronicStatusRefreshType.PumpTime, MedtronicStatusRefreshType.Configuration, MedtronicStatusRefreshType.BatteryStatus, MedtronicStatusRefreshType.PumpHistory -> {
+    //             synchronized(statusRefreshMap) { statusRefreshMap[refreshType] = getTimeInFutureFromMinutes(refreshType.refreshTime + additionalTimeInMinutes) }
+    //         }
+    //     }
+    // }
+    //
+    // private fun getTimeInFutureFromMinutes(minutes: Int): Long {
+    //     return System.currentTimeMillis() + getTimeInMs(minutes)
+    // }
+
+    // private fun getTimeInMs(minutes: Int): Long {
+    //     return minutes * 60 * 1000L
+    // }
 
     private fun readTBR(): TempBasalPair? {
         val responseTask = rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(MedtronicCommandType.ReadTemporaryBasal)
@@ -1218,6 +1233,49 @@ class MedtronicPumpPlugin @Inject constructor(
             customActionResetRLConfig.isEnabled = isEnabled
         }
         refreshCustomActionsList()
+    }
+
+
+    // Scheduler
+
+    override fun executeScheduledCommand(pumpStatusRefreshType: PumpStatusRefreshType): Boolean {
+
+        when (pumpStatusRefreshType) {
+
+            PumpStatusRefreshType.PumpHistory      -> {
+                readPumpHistory()
+            }
+
+            PumpStatusRefreshType.PumpTime         -> {
+                //checkTimeAndOptionallySetTime()
+            }
+
+            PumpStatusRefreshType.BatteryStatus -> {
+                rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(MedtronicCommandType.GetBatteryStatus)
+            }
+
+            PumpStatusRefreshType.RemainingInsulin -> {
+                rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(MedtronicCommandType.GetRemainingInsulin)
+            }
+
+            PumpStatusRefreshType.Configuration    -> {
+                rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(MedtronicCommandType.getSettings(medtronicUtil.medtronicPumpModel))
+            }
+        }
+
+        return true
+    }
+
+    override fun getSchedulerSettings(): MedtronicPumpCommandSchedulerSettings {
+        return medtronicPumpCommandSchedulerSettings
+    }
+
+    override fun getPumpUtil(): PumpUtil {
+        return medtronicUtil
+    }
+
+    override fun getPumpStatus(): PumpStatus{
+        return medtronicPumpStatus
     }
 
 }

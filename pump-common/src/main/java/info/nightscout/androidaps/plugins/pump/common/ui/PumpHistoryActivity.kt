@@ -101,7 +101,13 @@ class PumpHistoryActivity : DaggerAppCompatActivity() {
         val activePump = activePlugin.activePump
 
         if (activePump is PumpDriverConfigurationCapable) {
-            historyDataProvider = activePump.getPumpDriverConfiguration().getPumpHistoryDataProvider()
+
+            val pumpHistoryDataProvider = activePump.getPumpDriverConfiguration().getPumpHistoryDataProvider()
+            if (pumpHistoryDataProvider==null) {
+                throw RuntimeException("PumpHistoryDataProvider needs to be implemented for PumpHistoryActivity to be used.")
+            } else {
+                historyDataProvider = pumpHistoryDataProvider
+            }
         } else {
             throw RuntimeException("PumpHistoryActivity can be used only with PumpDriverConfigurationCapable pump driver.")
         }

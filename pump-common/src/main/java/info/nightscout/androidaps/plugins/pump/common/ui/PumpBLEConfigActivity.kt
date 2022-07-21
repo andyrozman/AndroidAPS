@@ -82,7 +82,12 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
         val activePump = activePlugin.activePump
 
         if (activePump is PumpDriverConfigurationCapable) {
-            bleSelector = activePump.getPumpDriverConfiguration().getPumpBLESelector()
+            val pumpBLESelector = activePump.getPumpDriverConfiguration().getPumpBLESelector()
+            if (pumpBLESelector==null) {
+                throw RuntimeException("PumpBLESelector needs to be implemented for PumpBLEConfigActivity to be used.")
+            } else {
+                bleSelector = pumpBLESelector
+            }
         } else {
             throw RuntimeException("PumpBLEConfigActivity can be used only with PumpDriverConfigurationCapable pump driver.")
         }

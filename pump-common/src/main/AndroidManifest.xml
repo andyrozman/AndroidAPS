@@ -12,7 +12,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.PumpHistoryActivity" />
+        <activity android:name="info.nightscout.androidaps.plugins.pump.common.ui.PumpHistoryActivity" />
 
     </application>
 
