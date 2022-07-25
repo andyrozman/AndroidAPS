@@ -7,21 +7,13 @@ import androidx.preference.Preference
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.data.PumpEnactResult
-import info.nightscout.androidaps.events.EventPreferenceChange
 import info.nightscout.androidaps.events.EventRefreshOverview
 import info.nightscout.androidaps.interfaces.*
 import info.nightscout.androidaps.interfaces.PumpSync.TemporaryBasalType
 import info.nightscout.androidaps.plugins.bus.RxBus
-import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
-import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
 import info.nightscout.androidaps.plugins.pump.common.PumpPluginAbstract
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpRunningState
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpUpdateFragmentType
-import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
@@ -30,7 +22,6 @@ import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonS
 import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
 import info.nightscout.androidaps.plugins.pump.common.utils.ProfileUtil
 import info.nightscout.androidaps.plugins.pump.tandem.connector.TandemPumpConnectionManager
-import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoDriverMode
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.driver.config.TandemPumpDriverConfiguration
@@ -41,6 +32,7 @@ import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.TimeChangeType
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.plugins.pump.common.defs.*
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
 import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpStatusRefreshType
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
@@ -96,7 +88,7 @@ class TandemPumpPlugin @Inject constructor(
     private val statusRefreshMap: MutableMap<YpsoPumpStatusRefreshType?, Long?> = mutableMapOf()
     private var isInitialized = false
     private var hasTimeDateOrTimeZoneChanged = false
-    private var driverMode = YpsoDriverMode.Faked // TODO when implementation fully done, default should be automatic
+    private var driverMode = PumpDriverMode.Faked // TODO when implementation fully done, default should be automatic
 
     private var driverInitialized = false
     private var pumpAddress: String = ""
@@ -120,7 +112,7 @@ class TandemPumpPlugin @Inject constructor(
     }
 
     private val logPrefix: String
-        get() = "YpsopumpPumpPlugin::"
+        get() = "TandemPumpPlugin::"
 
     // PumpAbstract implementations
     override fun initPumpStatusData() {
@@ -254,7 +246,7 @@ class TandemPumpPlugin @Inject constructor(
         if (value.value()) {
             value.set(
                 aapsLogger,
-                driverMode == YpsoDriverMode.Automatic,
+                driverMode == PumpDriverMode.Automatic,
                 rh.gs(R.string.ypsopump_fol_closed_loop_not_allowed),
                 this
             )
@@ -270,7 +262,7 @@ class TandemPumpPlugin @Inject constructor(
         if (value.value()) {
             value.set(
                 aapsLogger,
-                driverMode == YpsoDriverMode.Automatic,
+                driverMode == PumpDriverMode.Automatic,
                 rh.gs(R.string.ypsopump_fol_smb_not_allowed),
                 this
             )
@@ -517,7 +509,7 @@ class TandemPumpPlugin @Inject constructor(
         //         this.driverMode = YpsoDriverMode.ForcedOpenLoop
         //     }
         // } else
-            this.driverMode = YpsoDriverMode.Faked
+            this.driverMode = PumpDriverMode.Faked
     }
 
     // private val basalProfiles: Unit
@@ -534,7 +526,7 @@ class TandemPumpPlugin @Inject constructor(
 
         this.profile = profile  // TODO remove this later
 
-        if (driverMode == YpsoDriverMode.Faked) {
+        if (driverMode == PumpDriverMode.Faked) {
             aapsLogger.debug(LTag.PUMP, "  Faked mode: returning true")
             return true
         } else {
@@ -939,170 +931,8 @@ class TandemPumpPlugin @Inject constructor(
 
         scheduleNextRefresh(YpsoPumpStatusRefreshType.PumpHistory)
 
-
-
-        // read last event history
-        // read 10 minutes in past
-
-//        if (isLoggingEnabled())
-//            aapsLogger.warn(LTag.PUMP, getLogPrefix() + "readPumpHistory WIP.");
-//
-//        readPumpHistoryLogic();
-//
-//        scheduleNextRefresh(YpsoPumpStatusRefreshType.PumpHistory);
-//
-//        if (medtronicHistoryData.hasRelevantConfigurationChanged()) {
-//            scheduleNextRefresh(YpsoPumpStatusRefreshType.Configuration, -1);
-//        }
-//
-//        if (medtronicHistoryData.hasPumpTimeChanged()) {
-//            scheduleNextRefresh(YpsoPumpStatusRefreshType.PumpTime, -1);
-//        }
-//
-//        if (this.ypsopumpPumpStatus.basalProfileStatus != BasalProfileStatus.NotInitialized
-//                && medtronicHistoryData.hasBasalProfileChanged()) {
-//            medtronicHistoryData.processLastBasalProfileChange(pumpDescription.pumpType, ypsopumpPumpStatus);
-//        }
-//
-//        PumpDriverState previousState = this.pumpState;
-//
-//        if (medtronicHistoryData.isPumpSuspended()) {
-//            this.pumpState = PumpDriverState.Suspended;
-//            aapsLogger.debug(LTag.PUMP, getLogPrefix() + "isPumpSuspended: true");
-//        } else {
-//            if (previousState == PumpDriverState.Suspended) {
-//                this.pumpState = PumpDriverState.Ready;
-//            }
-//            aapsLogger.debug(LTag.PUMP, getLogPrefix() + "isPumpSuspended: false");
-//        }
-//
-//        medtronicHistoryData.processNewHistoryData();
-//
-//        this.medtronicHistoryData.finalizeNewHistoryRecords();
-        // this.medtronicHistoryData.setLastHistoryRecordTime(this.lastPumpHistoryEntry.atechDateTime);
     }
 
-    //    private void readPumpHistoryLogic() {
-    //
-    //        boolean debugHistory = false;
-    //
-    //        LocalDateTime targetDate = null;
-    //
-    //        if (lastPumpHistoryEntry == null) {
-    //
-    //            if (debugHistory)
-    //                aapsLogger.debug(LTag.PUMP, getLogPrefix() + "readPumpHistoryLogic(): lastPumpHistoryEntry: null");
-    //
-    //            Long lastPumpHistoryEntryTime = getLastPumpEntryTime();
-    //
-    //            LocalDateTime timeMinus36h = new LocalDateTime();
-    //            timeMinus36h = timeMinus36h.minusHours(36);
-    //            medtronicHistoryData.setIsInInit(true);
-    //
-    //            if (lastPumpHistoryEntryTime == 0L) {
-    //                if (debugHistory)
-    //                    aapsLogger.debug(LTag.PUMP, getLogPrefix() + "readPumpHistoryLogic(): lastPumpHistoryEntryTime: 0L - targetDate: "
-    //                            + targetDate);
-    //                targetDate = timeMinus36h;
-    //            } else {
-    //                // LocalDateTime lastHistoryRecordTime = DateTimeUtil.toLocalDateTime(lastPumpHistoryEntryTime);
-    //
-    //                if (debugHistory)
-    //                    aapsLogger.debug(LTag.PUMP, getLogPrefix() + "readPumpHistoryLogic(): lastPumpHistoryEntryTime: " + lastPumpHistoryEntryTime + " - targetDate: " + targetDate);
-    //
-    //                medtronicHistoryData.setLastHistoryRecordTime(lastPumpHistoryEntryTime);
-    //
-    //                LocalDateTime lastHistoryRecordTime = DateTimeUtil.toLocalDateTime(lastPumpHistoryEntryTime);
-    //
-    //                lastHistoryRecordTime = lastHistoryRecordTime.minusHours(12); // we get last 12 hours of history to
-    //                // determine pump state
-    //                // (we don't process that data), we process only
-    //
-    //                if (timeMinus36h.isAfter(lastHistoryRecordTime)) {
-    //                    targetDate = timeMinus36h;
-    //                }
-    //
-    //                targetDate = (timeMinus36h.isAfter(lastHistoryRecordTime) ? timeMinus36h : lastHistoryRecordTime);
-    //
-    //                if (debugHistory)
-    //                    aapsLogger.debug(LTag.PUMP, getLogPrefix() + "readPumpHistoryLogic(): targetDate: " + targetDate);
-    //            }
-    //        } else {
-    //            if (debugHistory)
-    //                aapsLogger.debug(LTag.PUMP, getLogPrefix() + "readPumpHistoryLogic(): lastPumpHistoryEntry: not null - " + ypsopumpUtil.gsonInstance.toJson(lastPumpHistoryEntry));
-    //            medtronicHistoryData.setIsInInit(false);
-    //            // medtronicHistoryData.setLastHistoryRecordTime(lastPumpHistoryEntry.atechDateTime);
-    //
-    //            // targetDate = lastPumpHistoryEntry.atechDateTime;
-    //        }
-    //
-    //        //aapsLogger.debug(LTag.PUMP, "HST: Target Date: " + targetDate);
-    //
-    //        MedtronicUITask responseTask2 = ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.GetHistoryData,
-    //                lastPumpHistoryEntry, targetDate);
-    //
-    //        if (debugHistory)
-    //            aapsLogger.debug(LTag.PUMP, "HST: After task");
-    //
-    //        PumpHistoryResult historyResult = (PumpHistoryResult) responseTask2.returnData;
-    //
-    //        if (debugHistory)
-    //            aapsLogger.debug(LTag.PUMP, "HST: History Result: " + historyResult.toString());
-    //
-    //        PumpHistoryEntry latestEntry = historyResult.getLatestEntry();
-    //
-    //        if (debugHistory)
-    //            aapsLogger.debug(LTag.PUMP, getLogPrefix() + "Last entry: " + latestEntry);
-    //
-    //        if (latestEntry == null) // no new history to read
-    //            return;
-    //
-    //        this.lastPumpHistoryEntry = latestEntry;
-    //        sp.putLong(YpsoPumpConst.Statistics.LastPumpHistoryEntry, latestEntry.atechDateTime);
-    //
-    //        if (debugHistory)
-    //            aapsLogger.debug(LTag.PUMP, "HST: History: valid=" + historyResult.validEntries.size() + ", unprocessed=" + historyResult.unprocessedEntries.size());
-    //
-    //        this.medtronicHistoryData.addNewHistory(historyResult);
-    //        this.medtronicHistoryData.filterNewEntries();
-    //
-    //        // determine if first run, if yes detrmine how much of update do we need
-    //        // first run:
-    //        // get last hiostory entry, if not there download 1.5 days of data
-    //        // - there: check if last entry is older than 1.5 days
-    //        // - yes: download 1.5 days
-    //        // - no: download with last entry
-    //        // - not there: download 1.5 days
-    //        //
-    //        // upload all new entries to NightScout (TBR, Bolus)
-    //        // determine pump status
-    //        //
-    //        // save last entry
-    //        //
-    //        // not first run:
-    //        // update to last entry
-    //        // - save
-    //        // - determine pump status
-    //    }
-    //    private Long getLastPumpEntryTime() {
-    //        Long lastPumpEntryTime = sp.getLong(YpsoPumpConst.Statistics.LastPumpHistoryEntry, 0L);
-    //
-    //        try {
-    //            LocalDateTime localDateTime = DateTimeUtil.toLocalDateTime(lastPumpEntryTime);
-    //
-    //            if (localDateTime.getYear() != (new GregorianCalendar().get(Calendar.YEAR))) {
-    //                aapsLogger.warn(LTag.PUMP, "Saved LastPumpHistoryEntry was invalid. Year was not the same.");
-    //                return 0L;
-    //            }
-    //
-    //            return lastPumpEntryTime;
-    //
-    //        } catch (Exception ex) {
-    //            aapsLogger.warn(LTag.PUMP, "Saved LastPumpHistoryEntry was invalid.");
-    //            return 0L;
-    //        }
-    //
-    //    }
 
     private fun readPumpHistoryAfterAction(bolusInfo: DetailedBolusInfo? = null,
                                            tempBasalInfo: TempBasalPair? = null,
@@ -1141,7 +971,7 @@ class TandemPumpPlugin @Inject constructor(
     }
 
     private fun getHistoryRefreshTime(): Int {
-        if (this.driverMode != YpsoDriverMode.Automatic) {
+        if (this.driverMode != PumpDriverMode.Automatic) {
             return 15 // TODO use settings
         } else {
             return 5
@@ -1269,9 +1099,9 @@ class TandemPumpPlugin @Inject constructor(
             var resultCommandResponse: ResultCommandResponse? = null
             var driverModeCurrent = driverMode
 
-            if (driverModeCurrent == YpsoDriverMode.Faked) {
+            if (driverModeCurrent == PumpDriverMode.Faked) {
                 pumpConnectionManager.sendFakeCommand(PumpCommandType.SetBasalProfile)
-            } else if (driverModeCurrent == YpsoDriverMode.ForcedOpenLoop) {
+            } else if (driverModeCurrent == PumpDriverMode.ForcedOpenLoop) {
 
                 aapsLogger.error(LTag.PUMP, "Forced Open Loop: setNewBasalProfile")
                 // Looper.prepare()
