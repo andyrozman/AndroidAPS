@@ -1,18 +1,14 @@
 package info.nightscout.androidaps.plugins.pump.tandem.connector
 
-import android.os.SystemClock
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.plugins.bus.RxBus
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpConnectorInterface
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.parameters.CommandParameters
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
-import info.nightscout.androidaps.plugins.pump.tandem.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus

@@ -12,9 +12,8 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.r
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.util.PumpUtil
-import info.nightscout.androidaps.plugins.pump.tandem.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
-import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import java.util.*
 import javax.inject.Singleton
@@ -131,7 +130,8 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
 
     override fun getTime(): DataCommandResponse<DateTimeDto?> {
         return DataCommandResponse(
-            PumpCommandType.GetTime, true, null, DateTimeDto(GregorianCalendar()))
+            PumpCommandType.GetTime, true, null, DateTimeDto(GregorianCalendar())
+        )
     }
 
     override fun setTime(): ResultCommandResponse {

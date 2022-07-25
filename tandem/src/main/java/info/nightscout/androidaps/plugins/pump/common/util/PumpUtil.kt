@@ -1,30 +1,18 @@
 package info.nightscout.androidaps.plugins.pump.common.util
 
 import android.content.Context
-import android.util.Log
 import com.google.gson.GsonBuilder
 import info.nightscout.androidaps.plugins.bus.RxBus
-import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
-import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
-import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
-import info.nightscout.androidaps.plugins.pump.tandem.comm.ble.defs.YpsoPumpNotificationType
-import info.nightscout.androidaps.plugins.pump.tandem.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
-import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpStatusChanged
 import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
-import java.nio.ByteBuffer
-import java.security.InvalidParameterException
-import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.experimental.and
-import kotlin.experimental.inv
 
 @Singleton
 open class PumpUtil @Inject constructor(

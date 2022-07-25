@@ -8,7 +8,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.d
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.parameters.PumpHistoryFilterInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.*
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
-import info.nightscout.androidaps.plugins.pump.tandem.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
 
 interface PumpConnectorInterface {
 

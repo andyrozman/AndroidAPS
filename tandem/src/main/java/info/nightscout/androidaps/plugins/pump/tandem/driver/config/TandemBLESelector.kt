@@ -6,7 +6,9 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.IntentFilter
+import android.os.ParcelUuid
 import androidx.annotation.StringRes
+import com.jwoglom.pumpx2.pump.bluetooth.ServiceUUID
 import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.ble.BondStateReceiver
@@ -71,17 +73,23 @@ class TandemBLESelector @Inject constructor(
         return scanSettingBuilder.build();
     }
 
-    override fun getScanFilters(): MutableList<ScanFilter>? = null
+    override fun getScanFilters(): MutableList<ScanFilter>? {
+        val filter = ScanFilter.Builder()
+            .setServiceUuid(ParcelUuid(ServiceUUID.PUMP_SERVICE_UUID))
+            .build()
 
-    override fun filterDevice(device: BluetoothDevice): BluetoothDevice? {
-        //aapsLogger.debug(TAG, "filter device: name=" + (if (device.name == null) "null" else device.name))
-        if (device.name != null && device.name.contains("Ypso")) {
-            aapsLogger.info(TAG, "   Found YpsoPump with address: ${device.address}")
-            return device
-        }
-
-        return null
+        return mutableListOf(filter);
     }
+
+    // override fun filterDevice(device: BluetoothDevice): BluetoothDevice? {
+    //     //aapsLogger.debug(TAG, "filter device: name=" + (if (device.name == null) "null" else device.name))
+    //     if (device.name != null && device.name.contains("Ypso")) {
+    //         aapsLogger.info(TAG, "   Found YpsoPump with address: ${device.address}")
+    //         return device
+    //     }
+    //
+    //     return null
+    // }
 
     override fun cleanupAfterDeviceRemoved() {
         sp.remove(TandemPumpConst.Prefs.PumpAddress)

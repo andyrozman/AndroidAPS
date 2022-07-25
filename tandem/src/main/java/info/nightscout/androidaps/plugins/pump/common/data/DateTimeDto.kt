@@ -1,4 +1,4 @@
-package info.nightscout.androidaps.plugins.pump.tandem.data
+package info.nightscout.androidaps.plugins.pump.common.data
 
 import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
 import org.joda.time.DateTime
@@ -52,11 +52,10 @@ data class DateTimeDto constructor(var year: Int? = 0,
         return DateTimeUtil.toATechDate(this.year!!, this.month!!, this.day!!, this.hour!!, this.minute!!, this.second!!)
     }
 
-    // fun toMillis(): Long {
-    //     toLocalDateTime()
-    //     val calendar = GregorianCalendar(this.year!!, this.month!!, this.day!!, this.hour!!, this.minute!!, this.second!!)
-    //     return calendar.timeInMillis
-    // }
+    fun toMillis(): Long {
+        val calendar = GregorianCalendar(this.year!!, this.month!!-1, this.day!!, this.hour!!, this.minute!!, this.second!!)
+        return calendar.timeInMillis
+    }
 
     fun toLocalDateTime(): DateTime {
         return DateTime(this.year!!, this.month!!, this.day!!, this.hour!!, this.minute!!, this.second!!)
