@@ -645,7 +645,6 @@
     <string name="needsystemwindowpermission">Приложению требуется разрешение системного окна для уведомлений</string>
     <string name="needlocationpermission">Приложению требуется разрешение на доступ к местоположению для сканирования BT и идентификации WiFi</string>
     <string name="needstoragepermission">Приложение требует разрешения на доступ к записи в память, чтобы хранить файлы журналов и настройки экспорта</string>
-    <string name="needconnectpermission">Приложению требуется разрешение Bluetooth</string>
     <string name="request">Запрос</string>
     <string name="open_navigation">Показать панель навигации</string>
     <string name="close_navigation">Cкрыть панель навигации</string>
@@ -1036,10 +1035,12 @@
     <string name="a11y_only_on_watch">только на часах</string>
     <string name="a11y_only_on_phone">только на телефоне</string>
     <string name="a11y_drag_and_drop_handle">якорь перетягивания</string>
+    <string name="search">Поиск</string>
     <!-- Aidex Cgms -->
     <string name="aidex">Aidex GlucoRx</string>
     <string name="aidex_short">Aidex </string>
     <string name="description_source_aidex">Получить значения ГК от GlucoRx Aidex</string>
     <string name="blocked_by_charging">Заблокировано опциями зарядки</string>
     <string name="blocked_by_connectivity">Заблокировано настройками подключения</string>
+    <string name="no_watch_connected">(Часы не подключены)</string>
 </resources>

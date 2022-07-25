@@ -645,7 +645,6 @@
     <string name="needsystemwindowpermission">Pro oznámení vyžaduje aplikace oprávnění systémového okna</string>
     <string name="needlocationpermission">Aplikace potřebuje oprávnění k přístupu k poloze kvůli skenování BT a WiFi identifikaci</string>
     <string name="needstoragepermission">Aby bylo možné nahrávat logy a exportovat nastavení, je nutné pro aplikaci povolit oprávnění přístupu k úložišti</string>
-    <string name="needconnectpermission">Aplikace potřebuje oprávnění bluetooth</string>
     <string name="request">Požadavek</string>
     <string name="open_navigation">Otevřít menu</string>
     <string name="close_navigation">Zavřít menu</string>
@@ -1037,6 +1036,7 @@
     <string name="a11y_only_on_watch">pouze na hodinkách</string>
     <string name="a11y_only_on_phone">pouze na telefonu</string>
     <string name="a11y_drag_and_drop_handle">úchyt pro přetažení</string>
+    <string name="search">Hledat</string>
     <!-- Aidex Cgms -->
     <string name="aidex">GlucoRx Aidex</string>
     <string name="aidex_short">Aidex</string>

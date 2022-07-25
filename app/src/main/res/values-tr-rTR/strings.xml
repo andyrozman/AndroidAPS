@@ -646,7 +646,6 @@ Aktif Karbonhidratın ne kadar hızlı sindirildiğine ve KŞ\'nin beklenenden d
     <string name="needsystemwindowpermission">Uygulama, bildirimler için sistem iznine ihtiyaç duyuyor</string>
     <string name="needlocationpermission">Uygulamanın BT taraması ve WiFi tanımlaması için konum iznine ihtiyacı var</string>
     <string name="needstoragepermission">Uygulamanın, günlük dosyalarını saklayabilmesi ve ayarları dışa aktarabilmesi için depolama iznine ihtiyacı var</string>
-    <string name="needconnectpermission">Uygulama bluetooth iznine ihtiyac duyuyor</string>
     <string name="request">İstek</string>
     <string name="open_navigation">Navigasyonu aç</string>
     <string name="close_navigation">Navigasyonu kapat</string>
@@ -1038,6 +1037,7 @@ Aktif Karbonhidratın ne kadar hızlı sindirildiğine ve KŞ\'nin beklenenden d
     <string name="a11y_only_on_watch">sadece saatte</string>
     <string name="a11y_only_on_phone">sadece telefonda</string>
     <string name="a11y_drag_and_drop_handle">sürükle ve bırak kolu</string>
+    <string name="search">Ara</string>
     <!-- Aidex Cgms -->
     <string name="aidex">GlucoRx Aidex</string>
     <string name="aidex_short">Aidex</string>

@@ -138,7 +138,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
                         aapsLogger.debug(TAG, "Device can be detected near, so trying to remove bond if possible.")
                         bleSelector.removeDevice(bluetoothDevice!!)
                     } else {
-                        val remoteDevice = bluetoothAdapter!!.getRemoteDevice(deviceAddress)
+                        val remoteDevice = bluetoothAdapter?.getRemoteDevice(deviceAddress)
                         if (remoteDevice != null) {
                             bleSelector.removeDevice(remoteDevice)
                         }
@@ -189,7 +189,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
     }
 
     private fun prepareForScanning() {
-        bleScanner = bluetoothAdapter!!.bluetoothLeScanner
+        bleScanner = bluetoothAdapter?.bluetoothLeScanner
         settings = bleSelector.getScanSettings()
         filters = bleSelector.getScanFilters()
     }
@@ -248,7 +248,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
             binding.pumpBleConfigButtonScanStop.visibility = View.VISIBLE
         }
         scanning = true
-        bleScanner!!.startScan(filters, settings, bleScanCallback)
+        bleScanner?.startScan(filters, settings, bleScanCallback)
         aapsLogger.debug(LTag.PUMPBTCOMM, "startLeDeviceScan: Scanning Start")
         bleSelector.onStartLeDeviceScan(this@PumpBLEConfigActivity)
     }
@@ -256,7 +256,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
     private fun stopLeDeviceScan(manualStop: Boolean) {
         if (scanning) {
             scanning = false
-            bleScanner!!.stopScan(bleScanCallback)
+            bleScanner?.stopScan(bleScanCallback)
             aapsLogger.debug(LTag.PUMPBTCOMM, "stopLeDeviceScan: Scanning Stop")
             bleSelector.onStopLeDeviceScan(this@PumpBLEConfigActivity)
             handler.removeCallbacks(stopScanAfterTimeoutRunnable)
@@ -325,8 +325,8 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
             if (currentlySelectedAddress == device.address) {
                 deviceName += " (" + resources.getString(R.string.ble_config_scan_selected) + ")"
             }
-            holder.deviceName!!.text = deviceName
-            holder.deviceAddress!!.text = device.address
+            holder.deviceName?.text = deviceName
+            holder.deviceAddress?.text = device.address
             return v!!
         }
     }
