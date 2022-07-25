@@ -9,7 +9,7 @@ enum class TandemPumpApiVersion(val description: String,
 
     VERSION_2_1("Version 2.1", 2, 0, false),
     VERSION_2_2("Version 2.2", 2, 2, false),
-    //VERSION_1_6("Version 1.6", true),
+    VERSION_2_5("Version 2.5", 2, 5, true),
     Unknown("", 0, 0, false);
 
 

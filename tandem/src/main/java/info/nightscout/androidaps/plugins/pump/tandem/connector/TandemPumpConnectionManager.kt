@@ -163,7 +163,7 @@ class TandemPumpConnectionManager @Inject constructor(
 
     fun determineFirmwareVersion() {
 
-
+        // TODO Tandem
     }
 
 //     fun executeCommand(parameters: CommandParameters): ResultCommandResponse {

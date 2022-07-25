@@ -304,6 +304,7 @@ enum class PumpType {
         baseBasalMinValue = 0.1,
         baseBasalStep = 0.001,
         baseBasalSpecialSteps = null,
+        reservoirSize = 200,
         pumpCapability = PumpCapability.VirtualPumpCapabilities
     ),
     TANDEM_T_FLEX(description = "Tandem t:flex", model = "t:flex", parent = TANDEM_T_SLIM),
@@ -419,6 +420,9 @@ enum class PumpType {
         private set
     var useHardwareLink = false
         private set
+    var reservoirSize: Int = 0
+        get() = parent?.reservoirSize ?: field
+        private set
     private var parent: PumpType? = null
     val source: Sources
 
@@ -491,6 +495,7 @@ enum class PumpType {
         isPatchPump: Boolean = false,
         supportBatteryLevel: Boolean = true,
         useHardwareLink: Boolean = false,
+        reservoirSize: Int = 0,
         source: Sources = Sources.VirtualPump
     ) {
         this.description = description

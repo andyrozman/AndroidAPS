@@ -15,6 +15,7 @@ import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.shared.logging.AAPSLogger
 import javax.inject.Inject
 
+// TODO needs to be fully refactored
 class TandemHistoryDataProvider @Inject constructor(
     var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger,

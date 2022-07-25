@@ -110,7 +110,7 @@ class TandemPumpFragment : DaggerFragment() {
         }
 
         binding.pumpHistory.setOnClickListener {
-            startActivity(Intent(context, PumpHistoryActivity::class.java))
+            //startActivity(Intent(context, PumpHistoryActivity::class.java))
         }
 
     }

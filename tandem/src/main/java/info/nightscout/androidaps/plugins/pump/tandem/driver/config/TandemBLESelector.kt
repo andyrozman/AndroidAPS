@@ -105,11 +105,11 @@ class TandemBLESelector @Inject constructor(
 
     override fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String) {
 
-        val bondState: Int = bluetoothDevice.getBondState()
+        //val bondState: Int = bluetoothDevice.getBondState()
 
         aapsLogger.debug(TAG, "Device bonding status: " + bluetoothDevice.getBondState() + " desc: " + getBondingStatusDescription(bluetoothDevice.getBondState()))
 
-        val bonded = bondState != 12
+        //val bonded = bondState != 12
 
         // if we are not bonded, bonding is started
         // if (bondState != 12) {

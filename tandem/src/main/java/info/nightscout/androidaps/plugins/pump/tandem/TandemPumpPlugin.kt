@@ -232,7 +232,9 @@ class TandemPumpPlugin @Inject constructor(
         // TODO Tandem doesn't need to be "bonded" but it needs to be sort of paired, having retrived certain data,
         //  that check needs to be added here
 
-        driverInitialized = (!pumpAddress.isEmpty())
+        // driverInitialized = (!pumpAddress.isEmpty())
+
+        driverInitialized = true
     }
 
     override val serviceClass: Class<*>?
@@ -247,7 +249,7 @@ class TandemPumpPlugin @Inject constructor(
             value.set(
                 aapsLogger,
                 driverMode == PumpDriverMode.Automatic,
-                rh.gs(R.string.ypsopump_fol_closed_loop_not_allowed),
+                rh.gs(R.string.tandem_fol_closed_loop_not_allowed),
                 this
             )
         }
@@ -263,7 +265,7 @@ class TandemPumpPlugin @Inject constructor(
             value.set(
                 aapsLogger,
                 driverMode == PumpDriverMode.Automatic,
-                rh.gs(R.string.ypsopump_fol_smb_not_allowed),
+                rh.gs(R.string.tandem_fol_smb_not_allowed),
                 this
             )
         }
@@ -423,10 +425,11 @@ class TandemPumpPlugin @Inject constructor(
         if (isInitialized) return false
         aapsLogger.info(LTag.PUMP, logPrefix + "initializePump - start")
 
-        if (pumpStatus.serialNumber == null) {
-            aapsLogger.info(LTag.PUMP, logPrefix + "initializePump - serial Number is null, initialization stopped.")
-            return false
-        }
+        // TODO Tandem handle this
+        // if (pumpStatus.serialNumber == null) {
+        //     aapsLogger.info(LTag.PUMP, logPrefix + "initializePump - serial Number is null, initialization stopped.")
+        //     return false
+        // }
 
         setRefreshButtonEnabled(false)
         pumpState = PumpDriverState.Connected
@@ -524,19 +527,23 @@ class TandemPumpPlugin @Inject constructor(
     override fun isThisProfileSet(profile: Profile): Boolean {
         aapsLogger.debug(LTag.PUMP, "isThisProfileSet ")
 
-        this.profile = profile  // TODO remove this later
+        // if (driverMode == PumpDriverMode.Faked) {
+        //     //this.profile = profile  // TODO remove this later
+        //     pumpStatus.basalProfile = profile
+        // }
 
-        if (driverMode == PumpDriverMode.Faked) {
-            aapsLogger.debug(LTag.PUMP, "  Faked mode: returning true")
-            return true
-        } else {
+        // if (driverMode == PumpDriverMode.Faked) {
+        //     aapsLogger.debug(LTag.PUMP, "  Faked mode: returning true")
+        //     return true
+        // } else {
 
-            if (pumpStatus.basalProfilePump == null) {
-                aapsLogger.debug(LTag.PUMP, "  Pump Profile:     null, returning true")
-                return true
+            if (pumpStatus.basalProfile == null) {
+                aapsLogger.debug(LTag.PUMP, "  Pump Profile:     null, returning false")
+                return false
             } else {
-                val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArray(profile, PumpType.YPSOPUMP)
-                val profileDriver = ProfileUtil.getProfilesByHourToString(pumpStatus.basalProfilePump!!.basalPatterns)
+                val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArray(profile, PumpType.TANDEM_T_SLIM_X2)
+                //val profileDriver = ProfileUtil.getProfilesByHourToString(pumpStatus.basalProfilePump!!.basalPatterns)
+                val profileDriver = ProfileUtil.getBasalProfilesDisplayableAsStringOfArray(pumpStatus.basalProfile!!, PumpType.TANDEM_T_SLIM_X2)
 
                 aapsLogger.debug(LTag.PUMP, "AAPS Profile:     $profileAsString")
                 aapsLogger.debug(LTag.PUMP, "Pump Profile:     $profileDriver")
@@ -547,7 +554,7 @@ class TandemPumpPlugin @Inject constructor(
 
                 return areTheySame
             }
-        }
+        //}
     }
 
     override fun lastDataTime(): Long {
@@ -559,14 +566,14 @@ class TandemPumpPlugin @Inject constructor(
 
     override val baseBasalRate: Double
         get() =// TODO fix this
-            if (profile == null) {
+            if (pumpStatus.basalProfile == null) {
                 aapsLogger.debug("Profile is not set: ")
                 pumpStatus.baseBasalRate = 0.0
                 0.0
             } else {
                 val gc = GregorianCalendar()
                 val time = gc[Calendar.HOUR_OF_DAY] * 60 * 60 + (gc[Calendar.MINUTE] * 60).toLong()
-                val basal = profile!!.getBasal(time)
+                val basal = pumpStatus.basalProfile!!.getBasal(time)
                 aapsLogger.debug("Basal for this hour is: $basal")
                 pumpStatus.baseBasalRate = basal
                 basal
@@ -1100,7 +1107,7 @@ class TandemPumpPlugin @Inject constructor(
             var driverModeCurrent = driverMode
 
             if (driverModeCurrent == PumpDriverMode.Faked) {
-                pumpConnectionManager.sendFakeCommand(PumpCommandType.SetBasalProfile)
+                resultCommandResponse = pumpConnectionManager.sendFakeCommand(PumpCommandType.SetBasalProfile)
             } else if (driverModeCurrent == PumpDriverMode.ForcedOpenLoop) {
 
                 aapsLogger.error(LTag.PUMP, "Forced Open Loop: setNewBasalProfile")
@@ -1134,6 +1141,7 @@ class TandemPumpPlugin @Inject constructor(
             //val commandResponse = pumpConnectionManager.setBasalProfile(profile)
             aapsLogger.info(LTag.PUMP, logPrefix + "Basal Profile was set: " + resultCommandResponse)
             if (resultCommandResponse != null && resultCommandResponse.isSuccess) {
+                pumpStatus.basalProfile = profile
                 PumpEnactResult(injector).success(true).enacted(true)
             } else {
                 PumpEnactResult(injector).success(false).enacted(false) //

@@ -29,46 +29,36 @@ class TandemPumpStatus @Inject constructor(private val resourceHelper: ResourceH
 
     lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null
-    //var ypsopumpFirmware: YpsoPumpFirmware = YpsoPumpFirmware.VERSION_1_5  // TODO we default to 1.0 here
     var tandemPumpFirmware: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1
     var isFirmwareSet = false
     @JvmField var baseBasalRate = 0.0
     var serialNumber: Long? = null
-    var ypsoPumpStatusList: YpsoPumpStatusList? = null
+    //var ypsoPumpStatusList: YpsoPumpStatusList? = null
 
-    //        rileyLinkUtil.getRileyLinkHistory().add(new RLHistoryItem(pumpDeviceState, RileyLinkTargetDevice.MedtronicPump));
-//
-//        rxBus.send(new EventRileyLinkDeviceStatusChange(pumpDeviceState));
-    //public Double maxBolus;
-    //public Double maxBasal;
+
     // statuses
     var pumpDeviceState = PumpDeviceState.NeverContacted
 
-    //@JvmField var tempBasalStart: Date? = null
-    //@JvmField var tempBasalPercent = 100
-    //@JvmField var tempBasalDuration = 0
-
-    //var tempBasalEnd = 0L
     // TODO determine if this is needed
     var basalProfileStatus = BasalProfileStatus.NotInitialized
     var basalProfile: Profile? = null
 
     //var connectionStatus = YpsoConnectionStatus.NOT_CONNECTED
-    var settingsServiceVersion: String? = null
+    //var settingsServiceVersion: String? = null
 
-    var lastConfigurationUpdate: Long = 0
-    var configChanged: Boolean = false
+    // var lastConfigurationUpdate: Long = 0
+    // var configChanged: Boolean = false
     var bolusStep: Double = 0.1
     var maxBolus: Double? = null
     var maxBasal: Double? = null
 
-    var forceRefreshBasalProfile: Boolean = true
-    var basalProfilePump: BasalProfileDto? = null
+    //var forceRefreshBasalProfile: Boolean = true
+    //var basalProfilePump: BasalProfileDto? = null
 
     override fun initSettings() {
         activeProfileName = "A"
         reservoirRemainingUnits = 75.0
-        reservoirFullUnits = 160
+        reservoirFullUnits = 200
         batteryRemaining = 75
         lastConnection = sp.getLong(TandemPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         lastDataTime = lastConnection
@@ -76,14 +66,14 @@ class TandemPumpStatus @Inject constructor(private val resourceHelper: ResourceH
 
     //var ypsoPumpStatusList: YpsoPumpStatusList? = null
 
-    fun getPumpStatusValuesForSelectedPump(): YpsoPumpStatusEntry? {
-        return ypsoPumpStatusList!!.map.get(serialNumber)
-    }
-
-    fun setPumpStatusValues(entry: YpsoPumpStatusEntry) {
-        ypsoPumpStatusList!!.map.put(entry.serialNumber, entry)
-        
-    }
+    // fun getPumpStatusValuesForSelectedPump(): YpsoPumpStatusEntry? {
+    //     return ypsoPumpStatusList!!.map.get(serialNumber)
+    // }
+    //
+    // fun setPumpStatusValues(entry: YpsoPumpStatusEntry) {
+    //     ypsoPumpStatusList!!.map.put(entry.serialNumber, entry)
+    //
+    // }
 
     val basalProfileForHour: Double
         get() {
