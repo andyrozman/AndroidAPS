@@ -10,6 +10,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpConne
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
+import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemCommunicationManager
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpConfigurationChanged
@@ -32,6 +33,7 @@ class TandemPumpConnectionManager @Inject constructor(
     val aapsLogger: AAPSLogger,
     val rxBus: RxBus,
     val fabricPrivacy: FabricPrivacy,
+    val tandemCommunicationManager: TandemCommunicationManager
     //val ypsoPumpBLE: YpsoPumpBLE,
     //val ypsoPumpHistoryHandler: YpsoPumpHistoryHandler
 ) {
@@ -407,7 +409,11 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     init {
-        baseConnector = TandemPumpConnector(pumpStatus, pumpUtil, injector, aapsLogger) //new YpsoPumpBaseConnector(ypsopumpUtil, injector, aapsLogger);
+        baseConnector = TandemPumpConnector(pumpStatus = pumpStatus,
+                                            pumpUtil = pumpUtil,
+                                            injector = injector,
+                                            tandemCommunicationManager = tandemCommunicationManager,
+                                            aapsLogger = aapsLogger) //new YpsoPumpBaseConnector(ypsopumpUtil, injector, aapsLogger);
         selectedConnector = baseConnector //new YpsoPumpDummyConnector(ypsopumpUtil, injector, aapsLogger);
         //this.fabricPrivacy = fabricPrivacy
         disposable.add(rxBus

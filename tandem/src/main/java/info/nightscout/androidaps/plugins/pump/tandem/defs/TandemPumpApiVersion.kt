@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.tandem.defs
 
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
 
 enum class TandemPumpApiVersion(val description: String,
@@ -7,10 +8,42 @@ enum class TandemPumpApiVersion(val description: String,
                                 val minorVersion: Int,
                                 val isClosedLoopPossible: Boolean) : FirmwareVersionInterface {
 
-    VERSION_2_1("Version 2.1", 2, 0, false),
+    VERSION_0_x("Version 0.x", 0, 0, false),
+    VERSION_1_x("Version 1.x", 1, 0, false),
+    VERSION_2_0("Version 2.1", 2, 1, false),
+    VERSION_2_1("Version 2.1", 2, 1, false),
     VERSION_2_2("Version 2.2", 2, 2, false),
-    VERSION_2_5("Version 2.5", 2, 5, true),
+    VERSION_2_3("Version 2.3", 2, 3, false),
+    VERSION_2_4("Version 2.4", 2, 4, false),
+    //VERSION_2_5("Version 2.5", 2, 5, true),
+    VERSION_2_5_OR_HIGHER("Version 2.5 or higher", 2, 5, true),
     Unknown("", 0, 0, false);
+
+
+    companion object {
+
+        @JvmStatic
+        fun getApiVersionFromResponse(response: ApiVersionResponse): TandemPumpApiVersion {
+            return (
+                when (response.majorVersion) {
+                    0    -> VERSION_0_x
+                    1    -> VERSION_1_x
+
+                    2    -> {
+                        when (response.minorVersion) {
+                            0    -> VERSION_2_0
+                            1    -> VERSION_2_1
+                            2    -> VERSION_2_2
+                            3    -> VERSION_2_3
+                            4    -> VERSION_2_4
+                            else -> VERSION_2_5_OR_HIGHER
+                        }
+                    }
+
+                    else -> VERSION_2_5_OR_HIGHER
+                })
+        }
+    }
 
 
 

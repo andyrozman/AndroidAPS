@@ -6,7 +6,9 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpConne
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.util.PumpUtil
+import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemCommunicationManager
 import info.nightscout.shared.logging.AAPSLogger
+import javax.inject.Inject
 
 /**
  * TODO
@@ -18,13 +20,27 @@ import info.nightscout.shared.logging.AAPSLogger
  *
  *
  */
-class TandemPumpConnector(pumpStatus: PumpStatus,
-                          pumpUtil: PumpUtil,
-                          injector: HasAndroidInjector,
-                          aapsLogger: AAPSLogger
+class TandemPumpConnector @Inject constructor(pumpStatus: PumpStatus,
+                                              pumpUtil: PumpUtil,
+                                              injector: HasAndroidInjector,
+                                              var tandemCommunicationManager: TandemCommunicationManager,
+                                              aapsLogger: AAPSLogger
 ): PumpDummyConnector(pumpStatus, pumpUtil, injector, aapsLogger) {
 
     //var supportedCommandsList: List<PumpCommandType>
+
+
+    override fun connectToPump(): Boolean {
+        //tandemCommunicationManager.onPumpConnected()
+        pumpUtil.sleepSeconds(10)
+        return true
+    }
+
+    override fun disconnectFromPump(): Boolean {
+        pumpUtil.sleepSeconds(10)
+        return true
+    }
+
 
     init {
         supportedCommandsList = listOf()

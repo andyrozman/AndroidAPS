@@ -1,18 +1,18 @@
 package info.nightscout.androidaps.dependencyInjection
 
-import android.content.Context
+//import android.content.Context
 import dagger.Module
-import dagger.Provides
-import dagger.Reusable
-import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.plugins.pump.tandem.database.HistoryMapper
-import info.nightscout.androidaps.plugins.pump.tandem.database.HistoryRecordDao
-import info.nightscout.androidaps.plugins.pump.tandem.database.YpsoPumpDatabase
-import info.nightscout.androidaps.plugins.pump.tandem.database.YpsoPumpHistory
-import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
-import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
-import info.nightscout.shared.logging.AAPSLogger
-import javax.inject.Singleton
+// import dagger.Provides
+// import dagger.Reusable
+// import info.nightscout.androidaps.interfaces.PumpSync
+// import info.nightscout.androidaps.plugins.pump.tandem.database.HistoryMapper
+// import info.nightscout.androidaps.plugins.pump.tandem.database.HistoryRecordDao
+// import info.nightscout.androidaps.plugins.pump.tandem.database.YpsoPumpDatabase
+// import info.nightscout.androidaps.plugins.pump.tandem.database.YpsoPumpHistory
+// import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
+// import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
+// import info.nightscout.shared.logging.AAPSLogger
+// import javax.inject.Singleton
 
 @Module
 @Suppress("unused")

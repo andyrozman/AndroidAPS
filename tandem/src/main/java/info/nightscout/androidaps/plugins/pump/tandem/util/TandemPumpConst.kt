@@ -13,6 +13,9 @@ object TandemPumpConst {
         @JvmField val PumpSerial = R.string.key_tandem_serial
         @JvmField val PumpAddress = R.string.key_tandem_address
         @JvmField val PumpName = R.string.key_tandem_name
+        @JvmField val PumpPairStatus = R.string.key_tandem_pair_status
+        @JvmField val PumpApiVersion = R.string.key_tandem_api_version
+//        @JvmField val PumpError = R.string.key_tandem_pair_status
         //@JvmField val PumpBonded = R.string.key_ypsopump_bonded
         //@JvmField val PumpStatusList = R.string.key_ypsopump_status_list
         //@JvmField val BolusSize = R.string.key_ypsopump_bolus_size

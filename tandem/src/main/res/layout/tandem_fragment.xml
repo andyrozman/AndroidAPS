@@ -487,7 +487,7 @@
                     android:layout_width="239dp"
                     android:layout_height="157dp"
                     android:layout_gravity="center"
-                    android:drawableTop="@drawable/ic_ypsopump"
+                    android:drawableTop="@drawable/ic_tslim_128"
                     android:paddingTop="40dp" />
 
             </LinearLayout>

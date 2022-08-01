@@ -72,7 +72,7 @@
     <string name="ble_error_encryption_failed">Encryption Failed</string>
     <string name="ble_error_pump_found_unbonded">Found not Bonded Pump</string>
     <string name="ble_error_not_correct_pump">Device is not correct pump (%s)</string>
-
+    <string name="ble_error_pump_pair_invalid_pair_code">Pump Pair: Invalid Pair Code</string>
 
     <!-- Pump Error -->
     <string name="pump_settings_error_basal_profiles_not_enabled">Basal profiles/patterns setting is not enabled on pump. Enable it on the pump.</string>

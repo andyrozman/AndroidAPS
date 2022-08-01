@@ -14,6 +14,7 @@ enum class PumpErrorType(@StringRes var resourceId: Int, var hasParameter: Boole
     ConfiguredPumpNotFound(R.string.ble_error_configured_pump_not_found),  //
     PumpFoundUnbonded(R.string.ble_error_pump_found_unbonded),
     PumpUnreachable(R.string.ble_error_pump_unreachable), //
+    PumpPairInvalidPairCode(R.string.ble_error_pump_pair_invalid_pair_code), //
     DeviceIsNotPump(R.string.ble_error_not_correct_pump, true),  //
     EncryptionFailed(R.string.ble_error_encryption_failed)
     ;
