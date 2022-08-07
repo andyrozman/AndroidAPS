@@ -1,7 +1,8 @@
 package info.nightscout.androidaps.plugins.pump.tandem.comm
 
 import android.content.Context
-import com.jwoglom.pumpx2.pump.TandemPump
+import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
+import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.authentication.CentralChallengeResponse
 import com.jwoglom.pumpx2.pump.messages.response.authentication.PumpChallengeResponse
@@ -22,6 +23,36 @@ class TandemPairingManager @Inject constructor(
     var sp: SP,
     var pumpUtil: TandemPumpUtil
 ) : TandemPump(context) {
+
+    var bluetoothHandler: TandemBluetoothHandler? = null
+
+    fun startPairing(btAddress: String) {
+        createBluetoothHandler()
+
+        // TODO initiaate pairing
+
+
+    }
+
+    fun shutdownPairingManager() {
+        stopBluetoothHandler()
+    }
+
+
+    open fun createBluetoothHandler(): TandemBluetoothHandler? {
+        if (bluetoothHandler != null) {
+            return bluetoothHandler
+        }
+        //tandemEventCallback = PumpX2TandemPump(getApplicationContext())
+        bluetoothHandler = TandemBluetoothHandler.getInstance(context, this)
+        return bluetoothHandler
+    }
+
+    open fun stopBluetoothHandler() {
+        bluetoothHandler!!.stop()
+        bluetoothHandler = null
+        //return getBluetoothHandler()
+    }
 
     override fun onReceiveMessage(peripheral: BluetoothPeripheral?, message: Message?) {
 

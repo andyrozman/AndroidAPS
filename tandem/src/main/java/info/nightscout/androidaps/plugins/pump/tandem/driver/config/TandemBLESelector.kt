@@ -8,10 +8,9 @@ import android.content.Context
 import android.content.IntentFilter
 import android.os.ParcelUuid
 import androidx.annotation.StringRes
-import com.jwoglom.pumpx2.pump.bluetooth.ServiceUUID
+import com.jwoglom.pumpx2.pump.messages.bluetooth.ServiceUUID
 import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.plugins.bus.RxBus
-import info.nightscout.androidaps.plugins.pump.common.ble.BondStateReceiver
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelector
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorText
 import info.nightscout.androidaps.plugins.pump.common.driver.ble.PumpBLESelectorAbstract
@@ -20,6 +19,7 @@ import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemPairingManager
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.sharedPreferences.SP
 import javax.inject.Inject
@@ -33,7 +33,8 @@ class TandemBLESelector @Inject constructor(
     rxBus: RxBus,
     context: Context,
     var tandemPumpUtil: TandemPumpUtil,
-    var pumpSync: PumpSync
+    var pumpSync: PumpSync,
+    var tandemPairingManager: TandemPairingManager
 ) : PumpBLESelectorAbstract(resourceHelper, aapsLogger, sp, rxBus, context), PumpBLESelector {
 
     var startingAddress: String? = null
@@ -149,6 +150,10 @@ class TandemBLESelector @Inject constructor(
         if (addressChanged) {
             rxBus.send(EventPumpConnectionParametersChanged())
         }
+
+        tandemPairingManager.startPairing(bleAddress)
+
+
     }
 
     private fun setSystemParameterForBT(@StringRes parameter: Int, newValue: String): Boolean {

@@ -41,6 +41,7 @@ apply from: "${project.rootDir}/core/jacoco_global.gradle"
 //    }
 //}
 
+
 android {
     defaultConfig {
         kapt {
@@ -52,8 +53,15 @@ android {
     }
 }
 
+buildscript {
+    ext {
+        jwoglom_pumpx2_version = '0.1'
+    }
+}
+
 
 dependencies {
+    //implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
 
     implementation project(':core')
     implementation project(':pump-common')
@@ -76,6 +84,16 @@ dependencies {
     //implementation 'com.github.guepardoapps:kulid:1.1.2.0'
     testImplementation 'org.mockito:mockito-inline:2.13.0'
     testImplementation 'org.powermock:powermock-mockito-release-full:1.5.4'
+
+    //pumpx2_version = '0.1'
+
+    //implementation(name:'com.jwoglom.pumpx2.lib:0.1', ext:'aar')
+    implementation files("libs/com.jwoglom.pumpx2.core-0.1.2.aar")
+    implementation files('libs/com.jwoglom.pumpx2.messages-0.1.2.jar')
+    implementation files('libs/com.jwoglom.pumpx2.shared-0.1.2.jar')
+    //implementation 'com.jwoglom.pumpx2.lib:0.1@aar'
+    //implementation(name:'com.jwoglom.pumpx2.messages:0.1', ext:'jar')
+    //implementation(name:'com.jwoglom.pumpx2.shared:0.1', ext:'jar')
 
     // TODO for now we are using "integrated" version of jwoglom.pumpx2, at later time we will
     //  remove this dependnecies and just use the library instead (when we have it 100% working)
