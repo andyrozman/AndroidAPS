@@ -1,7 +1,8 @@
 package info.nightscout.androidaps.plugins.pump.tandem.comm
 
 import android.content.Context
-import com.jwoglom.pumpx2.pump.TandemPump
+import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
+
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.CentralChallengeBuilder
 import com.jwoglom.pumpx2.pump.messages.response.authentication.CentralChallengeResponse
