@@ -74,6 +74,7 @@ plugins {
 
 allprojects {
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven { url "https://maven.google.com" }

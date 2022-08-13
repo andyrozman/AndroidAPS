@@ -55,7 +55,7 @@ android {
 
 buildscript {
     ext {
-        jwoglom_pumpx2_version = '0.1'
+        jwoglom_pumpx2_version = '1.0.0'
     }
 }
 
@@ -88,20 +88,32 @@ dependencies {
     //pumpx2_version = '0.1'
 
     //implementation(name:'com.jwoglom.pumpx2.lib:0.1', ext:'aar')
-    implementation files("libs/com.jwoglom.pumpx2.core-0.1.2.aar")
-    implementation files('libs/com.jwoglom.pumpx2.messages-0.1.2.jar')
-    implementation files('libs/com.jwoglom.pumpx2.shared-0.1.2.jar')
+    //implementation files("libs/com.jwoglom.pumpx2.core-0.1.4.aar")
+    //implementation files('libs/com.jwoglom.pumpx2.messages-0.1.4.jar')
+    //implementation files('libs/com.jwoglom.pumpx2.shared-0.1.4.jar')
+
+    //implementation 'com.jwoglom.pumpx2.androidLib:1.0.0'
+
+    //implementation 'com.jwoglom.pumpx2.androidLib.androidLib:1.0.0'
+
+
+    api "com.jwoglom.pumpx2:androidLib:$jwoglom_pumpx2_version"
+    api "com.jwoglom.pumpx2:messages:$jwoglom_pumpx2_version"
+    api "com.jwoglom.pumpx2:shared:$jwoglom_pumpx2_version"
+    implementation 'com.github.weliem:blessed-android:2.2.0'
+
+
     //implementation 'com.jwoglom.pumpx2.lib:0.1@aar'
     //implementation(name:'com.jwoglom.pumpx2.messages:0.1', ext:'jar')
     //implementation(name:'com.jwoglom.pumpx2.shared:0.1', ext:'jar')
 
     // TODO for now we are using "integrated" version of jwoglom.pumpx2, at later time we will
     //  remove this dependnecies and just use the library instead (when we have it 100% working)
-    implementation 'com.github.weliem:blessed-android:2.2.0'
-    implementation 'com.jakewharton.timber:timber:5.0.1'
-    implementation "me.champeau.openbeans:openbeans:1.0.2"
-    implementation "commons-codec:commons-codec:1.15"
-    implementation "org.apache.commons:commons-lang3:3.12.0"
-    implementation "com.google.guava:guava:31.0.1-android"
+    //
+//    implementation 'com.jakewharton.timber:timber:5.0.1'
+//    implementation "me.champeau.openbeans:openbeans:1.0.2"
+//    implementation "commons-codec:commons-codec:1.15"
+//    implementation "org.apache.commons:commons-lang3:3.12.0"
+//    implementation "com.google.guava:guava:31.0.1-android"
 
 }

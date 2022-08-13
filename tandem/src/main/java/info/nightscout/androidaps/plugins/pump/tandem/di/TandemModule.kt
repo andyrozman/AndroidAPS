@@ -30,8 +30,8 @@ abstract class TandemModule {
     // Communication Layer
     @ContributesAndroidInjector abstract fun contributeTandemConnectionManager(): TandemPumpConnectionManager
     @ContributesAndroidInjector abstract fun contributeTandemPumpConnector(): TandemPumpConnector
-    @ContributesAndroidInjector abstract fun contributeTandemPairingManager(): TandemPairingManager
-    @ContributesAndroidInjector abstract fun contributeTandemCommunicationManager(): TandemCommunicationManager
+    //@ContributesAndroidInjector abstract fun contributeTandemPairingManager(): TandemPairingManager
+    //@ContributesAndroidInjector abstract fun contributeTandemCommunicationManager(): TandemCommunicationManager
 
 
     // Activites and Fragments

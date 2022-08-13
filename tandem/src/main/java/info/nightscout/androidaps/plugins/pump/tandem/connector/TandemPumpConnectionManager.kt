@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.tandem.connector
 
+import android.content.Context
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
@@ -33,7 +34,8 @@ class TandemPumpConnectionManager @Inject constructor(
     val aapsLogger: AAPSLogger,
     val rxBus: RxBus,
     val fabricPrivacy: FabricPrivacy,
-    val tandemCommunicationManager: TandemCommunicationManager
+    val context: Context,
+
     //val ypsoPumpBLE: YpsoPumpBLE,
     //val ypsoPumpHistoryHandler: YpsoPumpHistoryHandler
 ) {
@@ -47,6 +49,8 @@ class TandemPumpConnectionManager @Inject constructor(
     private var currentFirmware: TandemPumpApiVersion? = null
     var inConnectMode = false
     var inDisconnectMode = false
+
+    //var lateinit tandemCommunicationManager: TandemCommunicationManager
 
     // var deviceMac: String? = null
     // var deviceBonded: Boolean = false
@@ -410,9 +414,10 @@ class TandemPumpConnectionManager @Inject constructor(
 
     init {
         baseConnector = TandemPumpConnector(pumpStatus = pumpStatus,
-                                            pumpUtil = pumpUtil,
+                                            tandemPumpUtil = pumpUtil,
                                             injector = injector,
-                                            tandemCommunicationManager = tandemCommunicationManager,
+                                            sp = sp,
+                                            context = context,
                                             aapsLogger = aapsLogger) //new YpsoPumpBaseConnector(ypsopumpUtil, injector, aapsLogger);
         selectedConnector = baseConnector //new YpsoPumpDummyConnector(ypsopumpUtil, injector, aapsLogger);
         //this.fabricPrivacy = fabricPrivacy

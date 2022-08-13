@@ -52,8 +52,10 @@
     <string name="key_tandem_serial" translatable="false">pref_tandem_serial</string>
     <string name="key_tandem_name" translatable="false">pref_tandem_name</string>
     <string name="key_tandem_pair_status" translatable="false">pref_tandem_pair_status</string>
+    <string name="key_tandem_pair_code" translatable="false">pref_tandem_pair_code</string>
     <string name="key_tandem_api_version" translatable="false">pref_tandem_api_version</string>
     <string name="key_tandem_error" translatable="false">pref_tandem_error</string>
+    <string name="key_tandem_version_response" translatable="false">pref_tandem_version_response</string>
 <!--    <string name="key_ypsopump_bonded" translatable="false">pref_ypsopump_bonded</string>-->
     <string name="key_ypsopump_status_list" translatable="false">pref_ypsopump_status_list</string>
 <!--    <string name="key_ypsopump_bolus_size" translatable="false">pref_ypsopump_bolus_size</string>-->

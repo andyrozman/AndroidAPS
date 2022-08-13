@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.tandem.connector
 
+import android.content.Context
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpConnectorAbstract
@@ -7,7 +8,10 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummy
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.util.PumpUtil
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemCommunicationManager
+import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
+import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.sharedPreferences.SP
 import javax.inject.Inject
 
 /**
@@ -21,19 +25,44 @@ import javax.inject.Inject
  *
  */
 class TandemPumpConnector @Inject constructor(pumpStatus: PumpStatus,
-                                              pumpUtil: PumpUtil,
+                                              var context: Context,
+                                              var tandemPumpUtil: TandemPumpUtil,
                                               injector: HasAndroidInjector,
-                                              var tandemCommunicationManager: TandemCommunicationManager,
+                                              var sp: SP,
                                               aapsLogger: AAPSLogger
-): PumpDummyConnector(pumpStatus, pumpUtil, injector, aapsLogger) {
+): PumpDummyConnector(pumpStatus, tandemPumpUtil, injector, aapsLogger) {
 
     //var supportedCommandsList: List<PumpCommandType>
-
+    var tandemCommunicationManager: TandemCommunicationManager? = null
+    var btAddressUsed: String? = null
 
     override fun connectToPump(): Boolean {
-        //tandemCommunicationManager.onPumpConnected()
-        pumpUtil.sleepSeconds(10)
-        return true
+        var createInstance: Boolean = false
+        var newBtAddress = sp.getStringOrNull(TandemPumpConst.Prefs.PumpAddress, null)
+
+        if (!btAddressUsed.isNullOrEmpty()) {
+            if (btAddressUsed.equals(newBtAddress)) {
+                newBtAddress = null
+            }
+        } else {
+            if (newBtAddress.isNullOrEmpty()) {
+                return false;
+            }
+        }
+
+        if (!newBtAddress.isNullOrEmpty()) {
+            tandemCommunicationManager = TandemCommunicationManager(
+                context = context,
+                aapsLogger = aapsLogger,
+                sp = sp,
+                pumpUtil = tandemPumpUtil,
+                btAddress = btAddressUsed!!
+            )
+        }
+
+        return tandemCommunicationManager!!.connect()
+
+
     }
 
     override fun disconnectFromPump(): Boolean {

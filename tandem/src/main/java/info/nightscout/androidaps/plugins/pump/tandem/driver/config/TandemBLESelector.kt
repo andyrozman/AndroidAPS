@@ -34,10 +34,10 @@ class TandemBLESelector @Inject constructor(
     context: Context,
     var tandemPumpUtil: TandemPumpUtil,
     var pumpSync: PumpSync,
-    var tandemPairingManager: TandemPairingManager
 ) : PumpBLESelectorAbstract(resourceHelper, aapsLogger, sp, rxBus, context), PumpBLESelector {
 
     var startingAddress: String? = null
+    var tandemPairingManager: TandemPairingManager? = null
 
     override fun onResume() {
         tandemPumpUtil.preventConnect = true
@@ -94,6 +94,9 @@ class TandemBLESelector @Inject constructor(
 
     override fun cleanupAfterDeviceRemoved() {
         sp.remove(TandemPumpConst.Prefs.PumpAddress)
+
+
+
         //sp.remove(TandemPumpConst.Prefs.PumpName)
         //sp.putBoolean(TandemPumpConst.Prefs.PumpBonded, false)
 
@@ -151,9 +154,8 @@ class TandemBLESelector @Inject constructor(
             rxBus.send(EventPumpConnectionParametersChanged())
         }
 
-        tandemPairingManager.startPairing(bleAddress)
-
-
+        tandemPairingManager = TandemPairingManager(context, aapsLogger, sp, pumpUtil = tandemPumpUtil, btAddress = bleAddress, rxBus = rxBus)
+        tandemPairingManager!!.startPairing()
     }
 
     private fun setSystemParameterForBT(@StringRes parameter: Int, newValue: String): Boolean {
