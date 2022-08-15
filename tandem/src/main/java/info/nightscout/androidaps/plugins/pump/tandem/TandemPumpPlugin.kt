@@ -73,7 +73,7 @@ class TandemPumpPlugin @Inject constructor(
     PluginDescription() //
         .mainType(PluginType.PUMP) //
         .fragmentClass(TandemPumpFragment::class.java.name) //
-        .pluginIcon(R.drawable.ic_ypsopump128)
+        .pluginIcon(R.drawable.ic_tslim_128)
         .pluginName(R.string.tandem_name) //
         .shortName(R.string.tandem_name_short) //
         .preferencesId(R.xml.pref_tandem)
@@ -450,11 +450,13 @@ class TandemPumpPlugin @Inject constructor(
         // TODO readPumpHistory
         readPumpHistory()
 
-        // TODO remaining insulin (>50 = 4h; 50-20 = 1h; 15m) - pumpConnectionManager.remainingInsulin (command not available)
-        //scheduleNextRefresh(YpsoPumpStatusRefreshType.RemainingInsulin, 10)
+        // TODO remaining insulin (>50 = 4h; 50-20 = 1h; 15m) -
+        pumpConnectionManager.getRemainingInsulin() // (command not available)
+        scheduleNextRefresh(YpsoPumpStatusRefreshType.RemainingInsulin, 10)
 
-        // TODO remaining power (1h) - pumpConnectionManager.batteryStatus (command not available)
-        //scheduleNextRefresh(YpsoPumpStatusRefreshType.BatteryStatus, 20)
+        // TODO remaining power (1h) -
+        pumpConnectionManager.getBatteryLevel()
+        scheduleNextRefresh(YpsoPumpStatusRefreshType.BatteryStatus, 20)
 
         // configuration (once and then if history shows config changes)
         pumpConnectionManager.getConfiguration()

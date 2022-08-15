@@ -3,10 +3,7 @@ package info.nightscout.androidaps.plugins.pump.tandem.util
 import android.content.Context
 import android.util.Log
 import info.nightscout.androidaps.plugins.bus.RxBus
-import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
-import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
-import info.nightscout.androidaps.plugins.pump.tandem.comm.ble.defs.YpsoPumpNotificationType
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.interfaces.ResourceHelper
@@ -24,7 +21,7 @@ class TandemPumpUtil @Inject constructor(
     rxBus: RxBus,
     context: Context,
     resourceHelper: ResourceHelper,
-    val ypsopumpPumpStatus: TandemPumpStatus
+    val tandemPumpStatus: TandemPumpStatus
 ): PumpUtil(aapsLogger, rxBus, context, resourceHelper) {
 
 
@@ -32,7 +29,7 @@ class TandemPumpUtil @Inject constructor(
     //var preventConnect: Boolean = false
 
     //private var driverStatusInternal: PumpDriverState
-    private var pumpCommandType: PumpCommandType? = null
+    //private var pumpCommandType: PumpCommandType? = null
     //var gson = GsonBuilder().setPrettyPrinting().create()
     //var gsonRegular = GsonBuilder().create()
 
@@ -172,23 +169,6 @@ class TandemPumpUtil @Inject constructor(
         return byteArrayOf(array[3], array[2])
     }
 
-    fun sendNotification(notificationType: YpsoPumpNotificationType) {
-        val notification = Notification( //
-            notificationType.notificationType,  //
-            resourceHelper.gs(notificationType.resourceId),  //
-            notificationType.notificationUrgency
-        )
-        rxBus.send(EventNewNotification(notification))
-    }
-
-    fun sendNotification(notificationType: YpsoPumpNotificationType, vararg parameters: Any?) {
-        val notification = Notification( //
-            notificationType.notificationType,  //
-            resourceHelper.gs(notificationType.resourceId, *parameters),  //
-            notificationType.notificationUrgency
-        )
-        rxBus.send(EventNewNotification(notification))
-    }
 
     companion object {
 

@@ -2,7 +2,7 @@ package info.nightscout.androidaps.plugins.pump.common.driver.connector.command.
 
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType;
 
-public class CommandResponseAbstract<E> {
+public class CommandResponseAbstract<E> implements CommandResponseInterface {
 
     private PumpCommandType commandType;
     private boolean success;

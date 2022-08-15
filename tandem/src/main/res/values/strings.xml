@@ -46,7 +46,7 @@
     <string name="ypsopump_cmd_cant_cancel_tbr">Could not cancel current TBR.</string>
 
 
-    <!-- YpsoPump Config -->
+    <!-- Tandem Config -->
 
     <string name="key_tandem_address" translatable="false">pref_tandem_address</string>
     <string name="key_tandem_serial" translatable="false">pref_tandem_serial</string>
@@ -62,12 +62,16 @@
     <string name="ypsopump_bolus_size">Bolus size</string>
     <string name="tandem_configuration">Tandem Configuration</string>
 
-    <!-- YpsoPump BLE Config -->
+    <!-- Tandem BLE Config -->
     <string name="tandem_ble_config_scan_title">Tandem Scan</string>
     <string name="tandem_ble_config_selected_pump_title">Selected Tandem pump</string>
     <string name="tandem_ble_config_remove_pump_confirmation">Are you sure that you want to remove your Tandem pump?</string>
     <string name="tandem_ble_config_remove_pump_title">Remove Tandem pump</string>
     <string name="tandem_ble_config_no_pump_selected">No Tandem pump selected</string>
+
+
+
+    <string name="tandem_notification_wrong_pairing_code">Your Pairing Code is no longer valid. Please reconfigure your Tandem Pump.</string>
 
     <!-- YpsoPump History -->
     <string name="ypsopump_pump_history">YpsoPump History</string>

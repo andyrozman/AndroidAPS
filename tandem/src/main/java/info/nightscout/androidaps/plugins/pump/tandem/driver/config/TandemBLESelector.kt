@@ -59,10 +59,6 @@ class TandemBLESelector @Inject constructor(
     }
 
     override fun removeDevice(device: BluetoothDevice) {
-        // if (device.getBondState() == 12) {
-        //     removeBond(device)
-        // }
-        // TODO tandem
     }
 
     override fun getScanSettings(): ScanSettings? {
@@ -95,13 +91,6 @@ class TandemBLESelector @Inject constructor(
     override fun cleanupAfterDeviceRemoved() {
         sp.remove(TandemPumpConst.Prefs.PumpAddress)
 
-
-
-        //sp.remove(TandemPumpConst.Prefs.PumpName)
-        //sp.putBoolean(TandemPumpConst.Prefs.PumpBonded, false)
-
-        // TODO save what data needs to be saving, and clean what needs to be cleaned
-
         // TODO if Tandem needs to be "un-paired" on pump, code call for that should go here...
 
         rxBus.send(EventPumpConnectionParametersChanged())
@@ -109,30 +98,7 @@ class TandemBLESelector @Inject constructor(
 
     override fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String) {
 
-        //val bondState: Int = bluetoothDevice.getBondState()
-
-        aapsLogger.debug(TAG, "Device bonding status: " + bluetoothDevice.getBondState() + " desc: " + getBondingStatusDescription(bluetoothDevice.getBondState()))
-
-        //val bonded = bondState != 12
-
-        // if we are not bonded, bonding is started
-        // if (bondState != 12) {
-        //     aapsLogger.debug(TAG, "Start bonding")
-        //     context.registerReceiver(
-        //         BondStateReceiver(
-        //             R.string.key_ypsopump_address,
-        //             R.string.key_ypsopump_bonded,
-        //             bleAddress, 12
-        //         ),
-        //         IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
-        //     )
-        //     bluetoothDevice.createBond()
-        // }
-
-        // TODO call Tandem "bonding/pairing/handshaking"
-
-        //sp.putBoolean(TandemPumpConst.Prefs.PumpBonded, bonded)
-        rxBus.send(EventPumpConnectionParametersChanged())
+        aapsLogger.debug(TAG, "onDeviceSelected: ${bleAddress} ")
 
         var addressChanged = false
 
@@ -141,21 +107,13 @@ class TandemBLESelector @Inject constructor(
             addressChanged = true
         }
 
-        //setSystemParameterForBT(TandemPumpConst.Prefs.PumpName, deviceName)
-
-        // var name: String = bluetoothDevice.getName()
-        //
-        // if (name.contains("_")) {
-        //     name = name.substring(name.indexOf("_") + 1)
-        //     setSystemParameterForBT(TandemPumpConst.Prefs.PumpSerial, name)
-        // }
-
         if (addressChanged) {
             rxBus.send(EventPumpConnectionParametersChanged())
+
+            tandemPairingManager = TandemPairingManager(context, aapsLogger, sp, pumpUtil = tandemPumpUtil, btAddress = bleAddress, rxBus = rxBus)
+            tandemPairingManager!!.startPairing()
         }
 
-        tandemPairingManager = TandemPairingManager(context, aapsLogger, sp, pumpUtil = tandemPumpUtil, btAddress = bleAddress, rxBus = rxBus)
-        tandemPairingManager!!.startPairing()
     }
 
     private fun setSystemParameterForBT(@StringRes parameter: Int, newValue: String): Boolean {

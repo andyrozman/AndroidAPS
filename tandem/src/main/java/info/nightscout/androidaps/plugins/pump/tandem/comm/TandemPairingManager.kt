@@ -105,13 +105,7 @@ class TandemPairingManager constructor(
 
         aapsLogger.info(LTag.PUMPCOMM, "onWaitingForPairingCode:")
 
-        // display dialog after success, initiate pairing
-        var success = false
-        var pairCode: String? = null
-
-        sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 1)
-
-        /// TODO
+        sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 40)
 
         triggerPairDialog(peripheral, btAddress, centralChallenge)
 
@@ -157,39 +151,36 @@ class TandemPairingManager constructor(
         builder.setTitle("Enter pairing code (case-sensitive)")
         builder.setMessage("Enter the pairing code from Bluetooth Settings > Pair Device to connect to:\n\n$btName ($btAddress)")
 
-// Set up the input
+        // Set up the input
         val input = EditText(this.context)
         // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
         input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
-        // val savedPairingCode = PumpState.getPairingCode(this.context)
-        // if (!Strings.isNullOrEmpty(savedPairingCode)) {
-        //     input.setText(savedPairingCode)
-        //     if (PumpState.failedPumpConnectionAttempts == 0) {
-        //         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 2)
-        //
-        //         pair(peripheral, challenge, savedPairingCode)
-        //         return
-        //     }
-        // }
+
         builder.setView(input)
 
-// Set up the buttons
-        builder.setPositiveButton("OK") { dialog, which ->
+        // Set up the buttons
+        builder.setPositiveButton("OK") { _, _ ->
             val pairingCode = input.text.toString()
             //Timber.i("pairing code inputted: %s", pairingCode)
             //triggerImmediatePair(peripheral, pairingCode, challenge)
-            sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 2)
+            sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 50)
             sp.putString(TandemPumpConst.Prefs.PumpPairCode, pairingCode)
 
             aapsLogger.info(LTag.PUMPCOMM, "PairingCode Accepted: ${pairingCode}")
 
             pair(peripheral, challenge, pairingCode)
         }
-        builder.setNegativeButton("Cancel") { dialog, which -> dialog.cancel() }
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
         builder.show()
     }
 
-    //  40 = onWaitingForPairingCode  -1 = onInvalidPairingCode     70 = connected; 80 = ApiVersionResponse; 90 = TimeSinceResetResponse; 100 = PumpVersionResponse
+    //  40 = onWaitingForPairingCode
+    //  50 pairing code set
+    //  -1 = onInvalidPairingCode
+    //  70 = connected;
+    //  80 = ApiVersionResponse;
+    //  90 = TimeSinceResetResponse;
+    //  100 = PumpVersionResponse
 
     override fun onPumpConnected(peripheral: BluetoothPeripheral?) {
         aapsLogger.info(LTag.PUMPCOMM, "onPumpConnected")

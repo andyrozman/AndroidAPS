@@ -9,13 +9,16 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.Pump
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
 import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpStatusChanged
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
+import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
+import info.nightscout.androidaps.plugins.pump.common.defs.NotificationTypeInterface
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Singleton
-open class PumpUtil @Inject constructor(
+
+open class PumpUtil constructor(
     val aapsLogger: AAPSLogger,
     val rxBus: RxBus,
     val context: Context,
@@ -76,7 +79,7 @@ open class PumpUtil @Inject constructor(
         type: StatusChange,
         driverStatusIn: PumpDriverState?,
         pumpCommandType: PumpCommandType?,
-        ypsoPumpErrorType: PumpErrorType? = null
+        pumpErrorType: PumpErrorType? = null
     ): Any? {
 
         //aapsLogger.debug(LTag.PUMP, "Status change type: " + type.name() + ", DriverStatus: " + (driverStatus != null ? driverStatus.name() : ""));
@@ -105,7 +108,7 @@ open class PumpUtil @Inject constructor(
             StatusChange.GetError   -> return errorTypeInternal
 
             StatusChange.SetError   -> {
-                errorTypeInternal = ypsoPumpErrorType!!
+                errorTypeInternal = pumpErrorType!!
                 this.pumpCommandType = null
                 driverStatusInternal = PumpDriverState.ErrorCommunicatingWithPump
                 rxBus.send(EventPumpStatusChanged(driverStatusInternal))
@@ -167,6 +170,25 @@ open class PumpUtil @Inject constructor(
         val diff = d1 - d2
         return Math.abs(diff) <= 0.000001
     }
+
+    fun sendNotification(notificationType: NotificationTypeInterface) {
+        val notification = Notification( //
+            notificationType.notificationType,  //
+            resourceHelper.gs(notificationType.resourceId),  //
+            notificationType.notificationUrgency
+        )
+        rxBus.send(EventNewNotification(notification))
+    }
+
+    fun sendNotification(notificationType: NotificationTypeInterface, vararg parameters: Any?) {
+        val notification = Notification( //
+            notificationType.notificationType,  //
+            resourceHelper.gs(notificationType.resourceId, *parameters),  //
+            notificationType.notificationUrgency
+        )
+        rxBus.send(EventNewNotification(notification))
+    }
+
 
 
     companion object {

@@ -311,6 +311,23 @@ enum class PumpType {
     TANDEM_T_SLIM_G4(description = "Tandem t:slim G4", model = "t:slim G4", parent = TANDEM_T_SLIM),
     TANDEM_T_SLIM_X2(description = "Tandem t:slim X2", model = "t:slim X2", parent = TANDEM_T_SLIM),
 
+    TANDEM_T_SLIM_X2_BT(
+        description = "Tandem t:slim X2",
+        manufacturer = ManufacturerType.Tandem,
+        model = "t:slim",
+        bolusSize = 0.01,
+        specialBolusSize = null,
+        extendedBolusSettings = DoseSettings(0.01, 15, 8 * 60, 0.4),
+        pumpTempBasalType = PumpTempBasalType.Percent,
+        tbrSettings = DoseSettings(1.0, 15, 8 * 60, 0.0, 250.0),
+        specialBasalDurations = PumpCapability.BasalRate_Duration15and30minAllowed,
+        baseBasalMinValue = 0.1,
+        baseBasalStep = 0.001,
+        baseBasalSpecialSteps = null,
+        reservoirSize = 200,
+        pumpCapability = PumpCapability.TandemCapabilities
+    ),
+
     YPSOPUMP(
         description = "YpsoPump",
         manufacturer = ManufacturerType.Ypsomed,
@@ -460,6 +477,7 @@ enum class PumpType {
                 InterfaceIDs.PumpType.TANDEM_T_SLIM_G4            -> TANDEM_T_SLIM_G4
                 InterfaceIDs.PumpType.TANDEM_T_FLEX               -> TANDEM_T_FLEX
                 InterfaceIDs.PumpType.TANDEM_T_SLIM_X2            -> TANDEM_T_SLIM_X2
+                InterfaceIDs.PumpType.TANDEM_T_SLIM_X2_BT         -> TANDEM_T_SLIM_X2_BT
                 InterfaceIDs.PumpType.YPSOPUMP                    -> YPSOPUMP
                 InterfaceIDs.PumpType.MDI                         -> MDI
                 InterfaceIDs.PumpType.USER                        -> USER
@@ -592,6 +610,7 @@ enum class PumpType {
             TANDEM_T_SLIM_G4          -> InterfaceIDs.PumpType.TANDEM_T_SLIM_G4
             TANDEM_T_FLEX             -> InterfaceIDs.PumpType.TANDEM_T_FLEX
             TANDEM_T_SLIM_X2          -> InterfaceIDs.PumpType.TANDEM_T_SLIM_X2
+            TANDEM_T_SLIM_X2_BT       -> InterfaceIDs.PumpType.TANDEM_T_SLIM_X2_BT
             YPSOPUMP                  -> InterfaceIDs.PumpType.YPSOPUMP
             MDI                       -> InterfaceIDs.PumpType.MDI
             USER                      -> InterfaceIDs.PumpType.USER

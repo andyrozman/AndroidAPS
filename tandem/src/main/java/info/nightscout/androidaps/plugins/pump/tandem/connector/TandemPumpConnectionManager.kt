@@ -10,8 +10,12 @@ import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpConnectorInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
+import info.nightscout.androidaps.plugins.pump.common.util.PumpUtil
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemCommunicationManager
+import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpConfigurationChanged
@@ -35,6 +39,8 @@ class TandemPumpConnectionManager @Inject constructor(
     val rxBus: RxBus,
     val fabricPrivacy: FabricPrivacy,
     val context: Context,
+    val tandemDataConverter: TandemDataConverter,
+    val tandemPumpConnector: TandemPumpConnector
 
     //val ypsoPumpBLE: YpsoPumpBLE,
     //val ypsoPumpHistoryHandler: YpsoPumpHistoryHandler
@@ -331,13 +337,32 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     fun getRemainingInsulin(): Double? {
-        aapsLogger.error(LTag.PUMP, "getRemainingInsulin command is not available!!!")
+        //aapsLogger.error(LTag.PUMP, "getRemainingInsulin command is not available!!!")
 
         pumpUtil.currentCommand = PumpCommandType.GetRemainingInsulin
         val commandResponse = selectedConnector.retrieveRemainingInsulin()
         pumpUtil.resetDriverStatusToConnected()
 
-        return if (commandResponse.isSuccess()) commandResponse.value else null
+        return if (commandResponse.isSuccess()) {
+            pumpStatus.reservoirRemainingUnits = commandResponse.value!!
+            commandResponse.value
+        }
+        else null
+    }
+
+    fun getBatteryLevel(): Int? {
+        //aapsLogger.error(LTag.PUMP, "getBatteryLevel command is not available!!!")
+
+        pumpUtil.currentCommand = PumpCommandType.GetBatteryStatus
+        val commandResponse = selectedConnector.retrieveBatteryStatus()
+        pumpUtil.resetDriverStatusToConnected()
+
+        return if (commandResponse.isSuccess()) {
+            pumpStatus.batteryRemaining = commandResponse.value!!
+            commandResponse.value
+        }
+        else null
+
     }
 
     fun getConfiguration() {
@@ -413,12 +438,24 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     init {
-        baseConnector = TandemPumpConnector(pumpStatus = pumpStatus,
-                                            tandemPumpUtil = pumpUtil,
-                                            injector = injector,
-                                            sp = sp,
-                                            context = context,
-                                            aapsLogger = aapsLogger) //new YpsoPumpBaseConnector(ypsopumpUtil, injector, aapsLogger);
+        // TODO this can be changed, since we have only one connector
+
+        // var pumpStatus: PumpStatus,
+        // var pumpUtil: PumpUtil,
+        // injector: HasAndroidInjector,
+        // aapsLogger: AAPSLogger
+
+
+        baseConnector = PumpDummyConnector(pumpStatus, pumpUtil, injector, aapsLogger)
+
+        //baseConnector = tandemPumpConnector
+            // TandemPumpConnector(pumpStatus = pumpStatus,
+            //                                 tandemPumpUtil = pumpUtil,
+            //                                 injector = injector,
+            //                                 sp = sp,
+            //                                 context = context,
+            //
+            //                                 aapsLogger = aapsLogger) //new YpsoPumpBaseConnector(ypsopumpUtil, injector, aapsLogger);
         selectedConnector = baseConnector //new YpsoPumpDummyConnector(ypsopumpUtil, injector, aapsLogger);
         //this.fabricPrivacy = fabricPrivacy
         disposable.add(rxBus

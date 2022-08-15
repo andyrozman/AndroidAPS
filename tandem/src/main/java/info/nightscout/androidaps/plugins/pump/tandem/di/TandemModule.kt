@@ -4,6 +4,7 @@ import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import info.nightscout.androidaps.plugins.pump.tandem.TandemPumpFragment
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemCommunicationManager
+import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemPairingManager
 import info.nightscout.androidaps.plugins.pump.tandem.connector.TandemPumpConnectionManager
 import info.nightscout.androidaps.plugins.pump.tandem.comm.YpsoPumpDataConverter
@@ -24,12 +25,13 @@ abstract class TandemModule {
 
     // Data
     @ContributesAndroidInjector
-    abstract fun contributesYpsoPumpDataConverter(): YpsoPumpDataConverter // TODO remove
+    abstract fun contributesYpsoPumpDataConverter(): YpsoPumpDataConverter // TODO remove after history implemented
 
 
     // Communication Layer
     @ContributesAndroidInjector abstract fun contributeTandemConnectionManager(): TandemPumpConnectionManager
     @ContributesAndroidInjector abstract fun contributeTandemPumpConnector(): TandemPumpConnector
+    @ContributesAndroidInjector abstract fun contributeTandemDataConverter(): TandemDataConverter
     //@ContributesAndroidInjector abstract fun contributeTandemPairingManager(): TandemPairingManager
     //@ContributesAndroidInjector abstract fun contributeTandemCommunicationManager(): TandemCommunicationManager
 

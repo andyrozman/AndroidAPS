@@ -29,11 +29,11 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
     var successfulResponse =
         ResultCommandResponse(PumpCommandType.GetBolus, true, null)
 
-    var supportedCommandsList: List<PumpCommandType>
+    var supportedCommandsList: Set<PumpCommandType>
 
 
 
-    override fun getSupportedCommands(): List<PumpCommandType> {
+    override fun getSupportedCommands(): Set<PumpCommandType> {
         return supportedCommandsList
     }
 
@@ -143,11 +143,8 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
             PumpCommandType.GetHistory, true, null, listOf())
     }
 
-    // init {
-    //     pumpStatus = ypsopumpUtil.ypsopumpPumpStatus
-    // }
 
     init {
-        supportedCommandsList = listOf()
+        supportedCommandsList = setOf()
     }
 }
