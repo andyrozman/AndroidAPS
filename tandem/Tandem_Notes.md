@@ -1,14 +1,10 @@
-# Tandem X2
+# Tandem Slim X2
 
 At the time of creation of project there were only versions of pump available that don't support
 any kind of looping (Tandem is extending pump with bolus and hoping something more)
 
 ***
 
-History reading - NOT NEEDED 
-configurable time to read history 5, 10, 15, 30 minutes
-
-***
 
 ## Commands
 
@@ -94,17 +90,15 @@ here are simple instructions.
    version, It needs to have Tandem Pump API at version 2.2)
 
 
+## History reading
+- configurable time to read history 5, 10, 15, 30 minutes
+- reading history in AAPS
+- decoding history (*should be done in pumpX2 project*)
+- write history into database
+
+***
 
 
-Tandem Driver Implementation
-=============================
-
-At the moment Tandem doesn't support remote commands, but newest version of firmware will support
- at least some of them (remote bolus).
-
-COMMANDS WISHLIST:
-
-Command Type             Status             AAPS Implementation
 
 
 
