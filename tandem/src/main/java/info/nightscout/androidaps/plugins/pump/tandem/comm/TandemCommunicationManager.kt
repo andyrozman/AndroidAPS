@@ -9,14 +9,17 @@ import com.jwoglom.pumpx2.pump.messages.response.authentication.PumpChallengeRes
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.welie.blessed.BluetoothPeripheral
+import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpNotificationType
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
+import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
+import org.joda.time.DateTime
 import java.util.*
 
 class TandemCommunicationManager constructor(
@@ -24,6 +27,7 @@ class TandemCommunicationManager constructor(
     var aapsLogger: AAPSLogger,
     var sp: SP,
     var pumpUtil: TandemPumpUtil,
+    var pumpStatus: TandemPumpStatus,
     var btAddress: String
 ) : TandemPump(context, Optional.of(btAddress)) {
 
@@ -31,12 +35,14 @@ class TandemCommunicationManager constructor(
     var connected = false
     var inConnectMode = false
     var errorConnecting = false
-
     var commandRequestModeRunning = false
 
+    var commandRequest: Message? = null
+    var commandResponse: Message? = null
     var responses: MutableMap<Int, Message> = mutableMapOf()
 
     var bluetoothHandler: TandemBluetoothHandler? = null
+
 
     fun connect(): Boolean {
         if (bluetoothHandler==null) {
@@ -69,22 +75,20 @@ class TandemCommunicationManager constructor(
     }
 
 
-    fun createBluetoothHandler(): TandemBluetoothHandler? {
+    private fun createBluetoothHandler(): TandemBluetoothHandler? {
         if (bluetoothHandler != null) {
             return bluetoothHandler
         }
-        //tandemEventCallback = PumpX2TandemPump(getApplicationContext())
+
         bluetoothHandler = TandemBluetoothHandler.getInstance(context, this)
         return bluetoothHandler
     }
+
 
     override fun onInitialPumpConnection(peripheral: BluetoothPeripheral)  {
         this.peripheral = peripheral
         super.onInitialPumpConnection(peripheral)
     }
-
-    var commandRequest: Message? = null
-    var commandResponse: Message? = null
 
 
     fun sendCommand(request: Message): Message? {
@@ -109,16 +113,12 @@ class TandemCommunicationManager constructor(
     }
 
 
-
     override fun onReceiveMessage(peripheral: BluetoothPeripheral, message: Message) {
         aapsLogger.info(LTag.PUMPCOMM, "Received Response: ${message.opCode()} - ${message.javaClass.name} ")
 
         if (inConnectMode)  {
 
             if (message is ApiVersionResponse) {
-                // sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 80)
-                // sp.putString(TandemPumpConst.Prefs.PumpAddress, peripheral.address)
-                // sp.putString(TandemPumpConst.Prefs.PumpName, peripheral.name)
 
                 val apiVersionResponse = message
                 val apiVersion = TandemPumpApiVersion.getApiVersionFromResponse(apiVersionResponse)
@@ -128,9 +128,15 @@ class TandemCommunicationManager constructor(
                 // TODO check if PumpApiVersion changed
                 //sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
             } else if (message is TimeSinceResetResponse) {
-                sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 90)
-                val timeSinceResponse = message
-                aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: ${timeSinceResponse}")
+
+                aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: ${message}")
+
+                val dtPump = DateTime().withMillis(message.pumpTimeSeconds * 1000L)
+
+                val pumpTimeDifference = PumpTimeDifferenceDto(DateTime.now(), dtPump)
+                pumpStatus.pumpTime = pumpTimeDifference
+
+                // TODO check Pump Serial
 
                 this.connected = true
             }
@@ -141,8 +147,8 @@ class TandemCommunicationManager constructor(
             }
 
         }
-
     }
+
 
     override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: CentralChallengeResponse?) {
         val pairingCode = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
@@ -156,10 +162,12 @@ class TandemCommunicationManager constructor(
         pair(peripheral, centralChallenge, pairingCode)
     }
 
+
     override fun onInvalidPairingCode(peripheral: BluetoothPeripheral?, resp: PumpChallengeResponse?) {
         aapsLogger.error(LTag.PUMPCOMM, "onInvalidPairingCode() - PairingCode seems to be no longer valid.")
         sendInvalidPairingCodeError()
     }
+
 
     fun sendInvalidPairingCodeError() {
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, -2)

@@ -2,8 +2,11 @@ package info.nightscout.androidaps.plugins.pump.tandem.comm
 
 import android.app.AlertDialog
 import android.content.Context
+import android.content.DialogInterface
+import android.os.SystemClock
 import android.text.InputType
 import android.widget.EditText
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -16,17 +19,22 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.welie.blessed.BluetoothPeripheral
+import info.nightscout.androidaps.extensions.runOnUiThread
+import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
+import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpStatusChanged
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
+import info.nightscout.androidaps.utils.alertDialogs.AlertDialogHelper
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
 import java.util.*
+import javax.inject.Inject
 
 class TandemPairingManager constructor(
     var context: Context,
@@ -34,6 +42,7 @@ class TandemPairingManager constructor(
     var sp: SP,
     var pumpUtil: TandemPumpUtil,
     var btAddress: String,
+    var resourceHelper: ResourceHelper,
     var rxBus: RxBus
 ) : TandemPump(context, Optional.of(btAddress)) {
 
@@ -173,6 +182,51 @@ class TandemPairingManager constructor(
         builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
         builder.show()
     }
+
+
+    private fun triggerAAPSPairDialog(peripheral: BluetoothPeripheral, btAddress: String, challenge: CentralChallengeResponse) {
+
+        val btName = peripheral.name
+        var okClicked = false
+
+        // Set up the input
+        val input = EditText(this.context)
+        // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
+
+        MaterialAlertDialogBuilder(context, R.style.DialogTheme)
+            .setCustomTitle(AlertDialogHelper.buildCustomTitle(context, resourceHelper.gs(R.string.tandem_ble_config_pairing_title)))
+            .setMessage(resourceHelper.gs(R.string.tandem_ble_config_pairing_message, btName, btAddress))
+            .setView(input)
+            .setPositiveButton(context.getString(R.string.ok)) { dialog: DialogInterface, _: Int ->
+                if (okClicked) return@setPositiveButton
+                else {
+                    okClicked = true
+                    dialog.dismiss()
+                    SystemClock.sleep(100)
+                    val pairingCode = input.text.toString()
+                    sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 50)
+                    sp.putString(TandemPumpConst.Prefs.PumpPairCode, pairingCode)
+
+                    aapsLogger.info(LTag.PUMPCOMM, "PairingCode Accepted: ${pairingCode}")
+
+                    pair(peripheral, challenge, pairingCode)
+                }
+            }
+            .setNegativeButton(context.getString(R.string.cancel)) { dialog: DialogInterface, _: Int ->
+                if (okClicked) return@setNegativeButton
+                else {
+                    okClicked = true
+                    dialog.dismiss()
+                    SystemClock.sleep(100)
+                }
+            }
+            .show()
+            .setCanceledOnTouchOutside(false)
+
+    }
+
+
 
     //  40 = onWaitingForPairingCode
     //  50 pairing code set

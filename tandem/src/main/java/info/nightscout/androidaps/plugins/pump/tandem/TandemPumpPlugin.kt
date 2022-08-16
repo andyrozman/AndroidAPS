@@ -1008,7 +1008,7 @@ class TandemPumpPlugin @Inject constructor(
                 HashMap(statusRefreshMap)
             }
 
-            else                        -> null
+            //else                        -> null
         }
     }
 
@@ -1105,7 +1105,7 @@ class TandemPumpPlugin @Inject constructor(
         aapsLogger.info(LTag.PUMP, logPrefix + "setNewBasalProfile")
         return try {
             setRefreshButtonEnabled(false)
-            var resultCommandResponse: ResultCommandResponse? = null
+            var resultCommandResponse: ResultCommandResponse? //= null
             var driverModeCurrent = driverMode
 
             if (driverModeCurrent == PumpDriverMode.Faked) {
@@ -1193,6 +1193,8 @@ class TandemPumpPlugin @Inject constructor(
     //
     //        return basalProfile;
     //    }
+
+
     // OPERATIONS not supported by Pump or Plugin
     override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
         aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed. ")

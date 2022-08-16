@@ -2,12 +2,12 @@ package info.nightscout.androidaps.plugins.pump.tandem.connector
 
 import android.content.Context
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BasalLimitSettingsRequest
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQInfoV1Request
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQInfoV2Request
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBatteryV1Request
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBatteryV2Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.*
+import com.jwoglom.pumpx2.pump.messages.response.ErrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.BasalLimitSettingsResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV1Response
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV2Response
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.GlobalMaxBolusSettingsResponse
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpConnectorAbstract
@@ -18,11 +18,14 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.Pump
 import info.nightscout.androidaps.plugins.pump.common.util.PumpUtil
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemCommunicationManager
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemDataConverter
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpSettingType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
 import javax.inject.Inject
 
@@ -36,18 +39,21 @@ import javax.inject.Inject
  *
  *
  */
-class TandemPumpConnector @Inject constructor(pumpStatus: TandemPumpStatus,
+class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpStatus,
                                               var context: Context,
                                               var tandemPumpUtil: TandemPumpUtil,
+                                              //var pumpStatus: TandemPumpStatus,
                                               injector: HasAndroidInjector,
                                               var sp: SP,
                                               aapsLogger: AAPSLogger,
                                               var tandemDataConverter: TandemDataConverter
-): PumpDummyConnector(pumpStatus, tandemPumpUtil, injector, aapsLogger) {
+): PumpDummyConnector(tandemPumpStatus, tandemPumpUtil, injector, aapsLogger) {
 
     var tandemCommunicationManager: TandemCommunicationManager? = null
     var btAddressUsed: String? = null
-    var tandemPumpApiVersion: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_0
+    var tandemPumpApiVersion: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1
+
+    // TODO Better Error response handling
 
     fun getCommunicationManager(): TandemCommunicationManager {
         return tandemCommunicationManager!!
@@ -55,7 +61,6 @@ class TandemPumpConnector @Inject constructor(pumpStatus: TandemPumpStatus,
 
 
     override fun connectToPump(): Boolean {
-        var createInstance: Boolean = false
         var newBtAddress = sp.getStringOrNull(TandemPumpConst.Prefs.PumpAddress, null)
 
         if (!btAddressUsed.isNullOrEmpty()) {
@@ -74,6 +79,7 @@ class TandemPumpConnector @Inject constructor(pumpStatus: TandemPumpStatus,
                 aapsLogger = aapsLogger,
                 sp = sp,
                 pumpUtil = tandemPumpUtil,
+                pumpStatus = tandemPumpStatus,
                 btAddress = newBtAddress
             )
             this.btAddressUsed = newBtAddress
@@ -85,8 +91,7 @@ class TandemPumpConnector @Inject constructor(pumpStatus: TandemPumpStatus,
 
 
     override fun disconnectFromPump(): Boolean {
-        pumpUtil.sleepSeconds(10)
-        tandemCommunicationManager!!.disconnect()
+        getCommunicationManager().disconnect()
         return true
     }
 
@@ -97,7 +102,7 @@ class TandemPumpConnector @Inject constructor(pumpStatus: TandemPumpStatus,
         if (version!=null) {
             this.tandemPumpApiVersion = TandemPumpApiVersion.valueOf(version)
         } else {
-            this.tandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_0
+            this.tandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1
         }
 
         return DataCommandResponse(
@@ -106,51 +111,101 @@ class TandemPumpConnector @Inject constructor(pumpStatus: TandemPumpStatus,
 
 
     override fun retrieveConfiguration(): DataCommandResponse<Map<String,String>?> {
-        return DataCommandResponse(
-            PumpCommandType.GetSettings, true, null, mapOf())
 
-        var map:  MutableMap<String,String> = mutableMapOf()
+        val map:  MutableMap<String,String> = mutableMapOf()
 
-        // TODO check the versions
-        if (tandemPumpApiVersion.isSameVersion(TandemPumpApiVersion.VERSION_2_2_OR_HIGHER)) {
-            addToSettings(map, getCommunicationManager().sendCommand(CurrentBatteryV2Request()))
-            addToSettings(map, getCommunicationManager().sendCommand(ControlIQInfoV2Request()))
-        } else {
-            addToSettings(map, getCommunicationManager().sendCommand(CurrentBatteryV1Request()))
-            addToSettings(map, getCommunicationManager().sendCommand(ControlIQInfoV1Request()))
+        try {
+            addToSettings(map, getCommunicationManager().sendCommand(getCorrectRequest(TandemCommandType.ControlIQInfo)))
+            addToSettings(map, getCommunicationManager().sendCommand(BasalLimitSettingsRequest()))
+            addToSettings(map, getCommunicationManager().sendCommand(GlobalMaxBolusSettingsRequest()))
+
+            // TODO postProcessConfiguration()
+
+            return DataCommandResponse(
+                PumpCommandType.GetSettings, true, null, map
+            )
+        } catch(ex: Exception) {
+            return DataCommandResponse(
+                PumpCommandType.GetSettings, false, "Problem with reading some data: Ex: " + ex.toString(), map)
         }
-
-
-        addToSettings(map, getCommunicationManager().sendCommand(BasalLimitSettingsRequest()))
-
     }
 
-    fun addToSettings(settingsMap: Map<String,String>, message: Message?) {
+    fun addToSettings(settingsMap: MutableMap<String,String>, message: Message?) {
 
         // TODO add to Settings
 
+        when(message) {
+            is ControlIQInfoV1Response -> {  settingsMap.put(TandemPumpSettingType.CONTROL_IQ_ENABLED.name, message.closedLoopEnabled.toString()) }
+            is ControlIQInfoV2Response -> {  settingsMap.put(TandemPumpSettingType.CONTROL_IQ_ENABLED.name, message.closedLoopEnabled.toString()) }
+            is BasalLimitSettingsResponse -> {  settingsMap.put(TandemPumpSettingType.BASAL_LIMIT.name, message.basalLimit.toString())  }
+            is GlobalMaxBolusSettingsResponse -> {  settingsMap.put(TandemPumpSettingType.MAX_BOLUS.name, message.maxBolus.toString()) }
+            is ErrorResponse -> {
+                aapsLogger.error(LTag.PUMPBTCOMM, "Problem with packets from Tandem: requestedCodeId=${message.requestCodeId}, errorCode: ${message.errorCode}")
+                throw Exception("Problem with packets from Tandem: requestedCodeId=${message.requestCodeId}, errorCode: ${message.errorCode}")
+            }
+        }
 
+
+
+
+    }
+
+
+    private fun getCorrectRequest(command: TandemCommandType): Message {
+        return when(tandemPumpApiVersion) {
+            TandemPumpApiVersion.VERSION_0_x,
+            TandemPumpApiVersion.VERSION_1_x,
+            TandemPumpApiVersion.VERSION_2_0,
+            TandemPumpApiVersion.VERSION_2_1,
+            TandemPumpApiVersion.VERSION_2_2,
+            TandemPumpApiVersion.VERSION_2_3,
+            TandemPumpApiVersion.VERSION_2_4           -> {
+                when(command) {
+                    TandemCommandType.ControlIQInfo  -> ControlIQInfoV1Request()
+                    TandemCommandType.CurrentBattery -> CurrentBatteryV1Request()
+                }
+            }
+
+            TandemPumpApiVersion.VERSION_2_5_OR_HIGHER -> {
+                when(command) {
+                    TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()
+                    TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
+                }
+            }
+            else -> throw Exception()
+        }
     }
 
 
     override fun retrieveBatteryStatus(): DataCommandResponse<Int?> {
 
-        var responseMessage: Message? = null
+        val responseMessage: Message? = getCommunicationManager().sendCommand(getCorrectRequest(TandemCommandType.CurrentBattery))
 
-        // TODO check the versions
-        if (tandemPumpApiVersion.isSameVersion(TandemPumpApiVersion.VERSION_2_2_OR_HIGHER)) {
-            responseMessage = getCommunicationManager().sendCommand(CurrentBatteryV2Request())
-        } else {
-            responseMessage = getCommunicationManager().sendCommand(CurrentBatteryV1Request())
-        }
-
-        if (responseMessage==null) {
+        if (responseMessage==null || responseMessage is ErrorResponse) {
             return DataCommandResponse(
                 PumpCommandType.GetBatteryStatus, false, "Error communicating with pump", 0)
         } else {
-            return tandemDataConverter.convertMessage(responseMessage) as DataCommandResponse<Int?>
-        }
+            val response = tandemDataConverter.convertMessage(responseMessage) as DataCommandResponse<Int?>
+            pumpStatus.batteryRemaining = response.value!!
 
+            return response
+        }
+    }
+
+
+    override fun retrieveRemainingInsulin(): DataCommandResponse<Double?> {
+
+        val responseMessage: Message? = getCommunicationManager().sendCommand(InsulinStatusRequest())
+
+        if (responseMessage==null || responseMessage is ErrorResponse) {
+            return DataCommandResponse(
+                PumpCommandType.GetRemainingInsulin, false, "Error communicating with pump.", 0.0)
+        } else {
+            val response = tandemDataConverter.convertMessage(responseMessage) as DataCommandResponse<Double?>
+            pumpStatus.reservoirRemainingUnits = response.value!!
+
+            return response
+        }
     }
 
 

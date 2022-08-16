@@ -69,8 +69,10 @@
     <string name="tandem_ble_config_remove_pump_title">Remove Tandem pump</string>
     <string name="tandem_ble_config_no_pump_selected">No Tandem pump selected</string>
 
+    <string name="tandem_ble_config_pairing_title">Tandem Pairing</string>
+    <string name="tandem_ble_config_pairing_message">Enter the pairing code (case-sensitive) from\nBluetooth Settings > Pair Device to connect to:\n\n%s (%s)</string>
 
-
+    <!-- Notifications -->
     <string name="tandem_notification_wrong_pairing_code">Your Pairing Code is no longer valid. Please reconfigure your Tandem Pump.</string>
 
     <!-- YpsoPump History -->

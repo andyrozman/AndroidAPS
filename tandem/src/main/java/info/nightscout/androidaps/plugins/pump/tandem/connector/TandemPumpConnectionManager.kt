@@ -440,22 +440,11 @@ class TandemPumpConnectionManager @Inject constructor(
     init {
         // TODO this can be changed, since we have only one connector
 
-        // var pumpStatus: PumpStatus,
-        // var pumpUtil: PumpUtil,
-        // injector: HasAndroidInjector,
-        // aapsLogger: AAPSLogger
-
-
+        // TODO change this
         baseConnector = PumpDummyConnector(pumpStatus, pumpUtil, injector, aapsLogger)
 
         //baseConnector = tandemPumpConnector
-            // TandemPumpConnector(pumpStatus = pumpStatus,
-            //                                 tandemPumpUtil = pumpUtil,
-            //                                 injector = injector,
-            //                                 sp = sp,
-            //                                 context = context,
-            //
-            //                                 aapsLogger = aapsLogger) //new YpsoPumpBaseConnector(ypsopumpUtil, injector, aapsLogger);
+
         selectedConnector = baseConnector //new YpsoPumpDummyConnector(ypsopumpUtil, injector, aapsLogger);
         //this.fabricPrivacy = fabricPrivacy
         disposable.add(rxBus

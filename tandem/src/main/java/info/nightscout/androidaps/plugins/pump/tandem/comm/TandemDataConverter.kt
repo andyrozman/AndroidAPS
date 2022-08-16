@@ -22,32 +22,33 @@ class TandemDataConverter @Inject constructor(
 
         when(message) {
 
-            //is ControlIQInfoV2Response -> return null
-
-            //12 -> return null;
-
             // Battery Level
             is CurrentBatteryV1Response,
-            is CurrentBatteryV2Response    -> return getBatteryResponse(message as CurrentBatteryAbstractResponse)
+            is CurrentBatteryV2Response         -> return getBatteryResponse(message as CurrentBatteryAbstractResponse)
 
             // Configuration
             is ControlIQInfoV1Response,
-            is ControlIQInfoV2Response     -> return getControlIQEnabled(message)
-            is BasalLimitSettingsResponse  -> return getBasalLimit(message)
+            is ControlIQInfoV2Response          -> return getControlIQEnabled(message)
+            is BasalLimitSettingsResponse       -> return message.basalLimit
+            is GlobalMaxBolusSettingsResponse   -> return message.maxBolus
+
+            // Insulin Level
+            is InsulinStatusResponse            -> return getInsulinStatus(message)
+
+
 
 
             else                           -> {
                 aapsLogger.warn(LTag.PUMPCOMM, "Can't convert Tandem response Message of type: ${message.opCode()} and class: ${message.javaClass.name}")
                 return null
             }
-
-
         }
 
-        return null;
+    }
 
-
-
+    private fun getInsulinStatus(message: InsulinStatusResponse): DataCommandResponse<Double?>? {
+        return DataCommandResponse(
+            PumpCommandType.GetRemainingInsulin, true, null, message.currentInsulinAmount.toDouble())
     }
 
     private fun getBasalLimit(message: BasalLimitSettingsResponse): Long {
@@ -63,15 +64,9 @@ class TandemDataConverter @Inject constructor(
         return false
     }
 
-    private fun getBatteryResponse(message: CurrentBatteryAbstractResponse): CommandResponseInterface? {
-        // TODO calculate value 0-100
-
-
+    private fun getBatteryResponse(message: CurrentBatteryAbstractResponse): DataCommandResponse<Int?>? {
         return DataCommandResponse(
-            PumpCommandType.GetBatteryStatus, true, null, 80)
-
-
-
+            PumpCommandType.GetBatteryStatus, true, null, message.currentBatteryIbc)
     }
 
 }

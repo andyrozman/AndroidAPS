@@ -20,7 +20,7 @@ enum class TandemPumpApiVersion(val description: String,
     VERSION_2_5_OR_HIGHER("Version 2.5 or higher", 2, 5, true),
 
     // Special versions
-    VERSION_2_2_OR_HIGHER("Version 2.2 or higher", 0, 0, false, setOf(VERSION_2_2, VERSION_2_3, VERSION_2_4, VERSION_2_5_OR_HIGHER)),
+    // VERSION_2_2_OR_HIGHER("Version 2.2 or higher", 0, 0, false, setOf(VERSION_2_2, VERSION_2_3, VERSION_2_4, VERSION_2_5_OR_HIGHER)),
 
     Unknown("", 0, 0, false);
 
