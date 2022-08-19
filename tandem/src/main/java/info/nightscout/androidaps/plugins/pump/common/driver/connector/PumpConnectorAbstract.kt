@@ -92,13 +92,13 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
         return unSuccessfulResponse.cloneWithNewCommandType(PumpCommandType.SetTime)
     }
 
-    override fun getPumpHistory(): DataCommandResponse<List<PumpHistoryEntryInterface>?> {
-        return DataCommandResponse<List<PumpHistoryEntryInterface>?>(
+    override fun getPumpHistory(): DataCommandResponse<List<Any>?> {
+        return DataCommandResponse<List<Any>?>(
             PumpCommandType.GetHistory, false, "Command not implemented.", null)
     }
 
-    override fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<PumpHistoryEntryInterface>?> {
-        return DataCommandResponse<List<PumpHistoryEntryInterface>?>(
+    override fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<Any>?> {
+        return DataCommandResponse<List<Any>?>(
             PumpCommandType.GetHistoryWithParameters,false, "Command not implemented.", null)
     }
 

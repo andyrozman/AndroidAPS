@@ -55,7 +55,7 @@ android {
 
 buildscript {
     ext {
-        jwoglom_pumpx2_version = '1.0.0'
+        jwoglom_pumpx2_version = '1.1.0'
     }
 }
 
@@ -97,9 +97,9 @@ dependencies {
     //implementation 'com.jwoglom.pumpx2.androidLib.androidLib:1.0.0'
 
 
-    api "com.jwoglom.pumpx2:androidLib:$jwoglom_pumpx2_version"
-    api "com.jwoglom.pumpx2:messages:$jwoglom_pumpx2_version"
-    api "com.jwoglom.pumpx2:shared:$jwoglom_pumpx2_version"
+    api "com.jwoglom.pumpx2:pumpx2-android:$jwoglom_pumpx2_version"
+    api "com.jwoglom.pumpx2:pumpx2-messages:$jwoglom_pumpx2_version"
+    api "com.jwoglom.pumpx2:pumpx2-shared:$jwoglom_pumpx2_version"
     implementation 'com.github.weliem:blessed-android:2.2.0'
 
 

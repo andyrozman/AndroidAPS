@@ -131,6 +131,8 @@ class TandemPumpPlugin @Inject constructor(
         if (!sp.contains(TandemPumpConst.Statistics.FirstPumpStart)) {
             sp.putLong(TandemPumpConst.Statistics.FirstPumpStart, System.currentTimeMillis())
         }
+
+        pumpStatus.serialNumber = sp.getLong(TandemPumpConst.Prefs.PumpSerial, 0)
     }
 
     override fun onStartScheduledPumpActions() {
@@ -233,6 +235,9 @@ class TandemPumpPlugin @Inject constructor(
         //  that check needs to be added here
 
         // driverInitialized = (!pumpAddress.isEmpty())
+
+        // TODO check if  TandemPumpConst.Prefs.PumpPairStatus is 100
+
 
         driverInitialized = true
     }

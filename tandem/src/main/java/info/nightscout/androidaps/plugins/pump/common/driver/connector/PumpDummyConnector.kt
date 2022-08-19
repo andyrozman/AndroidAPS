@@ -119,7 +119,7 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
             PumpCommandType.GetBatteryStatus, true, null, 75)
     }
 
-    override fun getPumpHistory(): DataCommandResponse<List<PumpHistoryEntryInterface>?> {
+    override fun getPumpHistory(): DataCommandResponse<List<Any>?> {
         return DataCommandResponse(
             PumpCommandType.GetHistory, true, null, listOf())
     }
@@ -138,7 +138,7 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
         return successfulResponse.cloneWithNewCommandType(PumpCommandType.SetTime)
     }
 
-    override fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<PumpHistoryEntryInterface>?> {
+    override fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<Any>?> {
         return DataCommandResponse(
             PumpCommandType.GetHistory, true, null, listOf())
     }

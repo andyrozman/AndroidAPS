@@ -32,7 +32,7 @@ class TandemPumpStatus @Inject constructor(private val resourceHelper: ResourceH
     var tandemPumpFirmware: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1
     var isFirmwareSet = false
     @JvmField var baseBasalRate = 0.0
-    var serialNumber: Long? = null
+    var serialNumber: Long = 0
     //var ypsoPumpStatusList: YpsoPumpStatusList? = null
 
 

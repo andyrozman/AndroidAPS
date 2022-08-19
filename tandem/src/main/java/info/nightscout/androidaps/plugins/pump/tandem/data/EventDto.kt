@@ -49,7 +49,7 @@ data class EventDto(var id: Int?,
     override fun prepareEntryData(resourceHelper: ResourceHelper, pumpDataConverter: PumpDataConverter) {
         val ypsoPumpDataConverter = pumpDataConverter as YpsoPumpDataConverter
 
-        resolvedDate = resourceHelper.gs(R.string.ypsopump_history_date, dateTime.day, dateTime.month, dateTime.year, dateTime.hour, dateTime.minute, dateTime.second)
+        resolvedDate = resourceHelper.gs(R.string.tandem_history_date, dateTime.day, dateTime.month, dateTime.year, dateTime.hour, dateTime.minute, dateTime.second)
         resolvedType = resourceHelper.gs(entryType.getDescriptionResourceId())
         resolvedValue = getDisplayableValue(resourceHelper, ypsoPumpDataConverter)
     }
@@ -75,7 +75,7 @@ data class EventDto(var id: Int?,
         var sequenceString = "" + eventSequenceNumber
         sequenceString = sequenceString.padStart(8, ' ')
 
-        val dataLine = dateTime.toString() + "   " + entryTypeFormated + "  " + sequenceString
+        val dataLine = resolvedDate + "   " + entryTypeFormated + "  " + sequenceString
 
         if (subObject == null) {
             return dataLine + "      value1=" + value1 + ", value2=" + value2 + ", value3=" + value3
@@ -260,11 +260,11 @@ data class DateTimeChanged(var year: Int? = 0,
 ): EventObject() {
 
     override fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String {
-        val dt = resourceHelper.gs(R.string.ypsopump_history_date, day, month, year, hour, minute, second)
+        val dt = resourceHelper.gs(R.string.tandem_history_date, day, month, year, hour, minute, second)
         return if (timeChanged) {
-            resourceHelper.gs(R.string.ypsopump_history_time_changed, dt)
+            resourceHelper.gs(R.string.tandem_history_time_changed, dt)
         } else {
-            resourceHelper.gs(R.string.ypsopump_history_date_changed, dt)
+            resourceHelper.gs(R.string.tandem_history_date_changed, dt)
         }
     }
 }

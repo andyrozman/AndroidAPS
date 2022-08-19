@@ -208,6 +208,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         }
     }
 
+    override fun getPumpHistory(): DataCommandResponse<List<Any>?> {
+        return DataCommandResponse<List<Any>?>(
+            PumpCommandType.GetHistory, false, "Command not implemented.", null)
+    }
+
 
     init {
         supportedCommandsList = setOf(PumpCommandType.GetFirmwareVersion)

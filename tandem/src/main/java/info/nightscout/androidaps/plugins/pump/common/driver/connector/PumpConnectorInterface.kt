@@ -34,8 +34,8 @@ interface PumpConnectorInterface {
     fun getTime(): DataCommandResponse<DateTimeDto?>
     fun setTime(): ResultCommandResponse?
 
-    fun getPumpHistory(): DataCommandResponse<List<PumpHistoryEntryInterface>?>
-    fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<PumpHistoryEntryInterface>?>
+    fun getPumpHistory(): DataCommandResponse<List<Any>?>
+    fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<Any>?>
 
     fun getSupportedCommands(): Set<PumpCommandType>
 }

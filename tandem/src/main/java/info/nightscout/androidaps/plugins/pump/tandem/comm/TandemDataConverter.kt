@@ -1,12 +1,16 @@
 package info.nightscout.androidaps.plugins.pump.tandem.comm
 
-import android.content.Context
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.CommandResponseAbstract
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.CommandResponseInterface
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.TimeChangeHistoryLog
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
+import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
+import info.nightscout.androidaps.plugins.pump.tandem.data.history.DateTimeChanged
+import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogDto
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpEventType
+import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
@@ -16,7 +20,8 @@ import javax.inject.Inject
 class TandemDataConverter @Inject constructor(
     var aapsLogger: AAPSLogger,
     var sp: SP,
-    var pumpUtil: TandemPumpUtil) {
+    var pumpStatus: TandemPumpStatus,
+    var pumpUtil: TandemPumpUtil) : PumpDataConverter {
 
     fun convertMessage(message: Message) : Any? {
 
@@ -68,5 +73,59 @@ class TandemDataConverter @Inject constructor(
         return DataCommandResponse(
             PumpCommandType.GetBatteryStatus, true, null, message.currentBatteryIbc)
     }
+
+
+    //CGMHistoryLog
+
+    fun decodeHistoryLogs(historyLogList: List<HistoryLog>): MutableList<HistoryLogDto> {
+        var historyListOut = mutableListOf<HistoryLogDto>()
+
+        for (historyLog in historyLogList) {
+            val decodeHistoryLog = decodeHistoryLog(historyLog)
+            if (decodeHistoryLog!=null) {
+                historyListOut.add(decodeHistoryLog)
+            }
+        }
+
+        return historyListOut
+    }
+
+
+
+    fun decodeHistoryLog(historyLogPump: HistoryLog): HistoryLogDto? {
+
+        var historyLog = createHistoryLogDto(historyLogPump)
+
+        when (historyLogPump) {
+
+            is TimeChangeHistoryLog  ->  {
+                historyLog.subObject = createDateTimeChangeRecord(historyLogPump, true)
+                return historyLog
+            }
+
+            else  -> return null
+        }
+
+    }
+
+    private fun createDateTimeChangeRecord(historyLogPump: TimeChangeHistoryLog, timeChanged: Boolean): DateTimeChanged {
+
+        historyLogPump.timeAfter
+
+        //return DateTimeChanged()
+
+        TODO("Not yet implemented")
+    }
+
+    fun createHistoryLogDto(historyLogPump: HistoryLog) : HistoryLogDto {
+        return HistoryLogDto(id= null,
+                             serial = pumpStatus.serialNumber,
+                             pumpEventType = TandemPumpEventType.getByCode(historyLogPump.typeId()),
+                             dateTimeInMillis = historyLogPump.pumpTimeSecInstant.toEpochMilli(),
+                             sequenceNum = historyLogPump.sequenceNum,
+                             subObject = null);
+    }
+
+
 
 }

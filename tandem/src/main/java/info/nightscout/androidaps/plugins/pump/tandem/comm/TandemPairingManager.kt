@@ -20,12 +20,15 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionRespon
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.welie.blessed.BluetoothPeripheral
 import info.nightscout.androidaps.extensions.runOnUiThread
+import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
+import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
+import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpStatusChanged
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
@@ -43,7 +46,9 @@ class TandemPairingManager constructor(
     var pumpUtil: TandemPumpUtil,
     var btAddress: String,
     var resourceHelper: ResourceHelper,
-    var rxBus: RxBus
+    var rxBus: RxBus,
+    var pumpStatus: TandemPumpStatus,
+    var pumpSync: PumpSync
 ) : TandemPump(context, Optional.of(btAddress)) {
 
     var bluetoothHandler: TandemBluetoothHandler? = null
@@ -95,7 +100,6 @@ class TandemPairingManager constructor(
             sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 90)
             val timeSinceResponse = message
             aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: ${timeSinceResponse}")
-
         } else if (message is PumpVersionResponse) {
             sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 100)
             val pumpVersionResponse = message
@@ -105,7 +109,13 @@ class TandemPairingManager constructor(
             sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + pumpVersionResponse.serialNum)
             sp.putString(TandemPumpConst.Prefs.PumpVersionResponse, pumpUtil.gson.toJson(message))
 
+            pumpStatus.serialNumber = pumpVersionResponse.serialNum
+
+            pumpSync.connectNewPump()
+
             finalPairingStatus()
+
+            rxBus.send(EventPumpConnectionParametersChanged())
         }
 
     }

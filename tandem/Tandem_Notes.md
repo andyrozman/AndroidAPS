@@ -19,7 +19,7 @@ any kind of looping (Tandem is extending pump with bolus and hoping something mo
     GetBasalProfile                      |
         ProfileStatusResponse (?)????
     GetTime                              |
-        TimeSinceResetResponse (?)
+        TimeSinceResetResponse (?)                WIP-2 
     GetSettings                          |                                            See down...
         RemindersResponse,
         PumpSettingsResponse,
@@ -35,11 +35,11 @@ any kind of looping (Tandem is extending pump with bolus and hoping something mo
         TempRateResponse
     
     
-    GetReservoir                         |       WIP-2
-        InsulinStatusResponse
-    GetBatteryLevel                      |       WIP-2
-        CurrentBatteryV1Response (?)
-        CurrentBatteryV2Response (?)
+    GetReservoir                         |        WIP-2
+        InsulinStatusResponse            |        WIP-2
+    GetBatteryLevel                      |        WIP-2
+        CurrentBatteryV1Response (?)     |
+        CurrentBatteryV2Response (?)     |
     
     GetStatus (is pump running, bolus, tbr running)
         ???
@@ -59,6 +59,53 @@ any kind of looping (Tandem is extending pump with bolus and hoping something mo
 
     * Pairing is implemented, but dialog will need to be exchanged 
       for more native one
+
+
+
+***
+
+## ROADMAP
+
+- Pairing (AAPS Configuration) - DONE-WAITING-FOR-TEST (1)
+- Connect to pump: 
+  - Establish communication (connect/disconnect) - WIP-2  [2]
+  - Read Battery Level - WIP-2 [2]
+  - Read Reservoir Level - WIP-2 [2]
+  - Get Time - WIP-2 [2]
+
+- Level 2 commands:
+  - Get TBR [4]
+  - Get Settings [3]
+  - Implement checks based on settings [4]
+  - Change Pump Context based on settings (Max Bolus, Max Basal) [4]
+
+- Level 3 commands:
+  - Get Basal Profile [5]
+  - Get History [4]
+  - Parse History: [3] 
+    - TimeChangeHistoryLog [3]
+    - DateChangeHistoryLog
+    - BolusRequestedMsg1HistoryLog
+    - BolusRequestedMsg2HistoryLog
+    - BolusRequestedMsg3HistoryLog
+    - BolusDeliveryHistoryLog
+    - BolusCompletedHistoryLog
+    - BolexCompletedHistoryLog
+    - ...
+
+- Level 4 commands:
+  - Get TBR Status [6]
+  - Get Bolus Status [6]
+  - Get Pump Status [6]
+
+- Level 5 commands:
+  - Set Bolus [7]
+  - Set TBR [8]
+  - Set Profile [9]
+  - Set Time [10]
+
+- AAPS:
+  - Open Loop mode  
 
 
 

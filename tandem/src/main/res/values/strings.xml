@@ -75,14 +75,17 @@
     <!-- Notifications -->
     <string name="tandem_notification_wrong_pairing_code">Your Pairing Code is no longer valid. Please reconfigure your Tandem Pump.</string>
 
+    <!-- Tandem History -->
+    <string name="tandem_history_date">%02d.%02d.%d %02d:%02d:%02d</string>
+    <string name="tandem_history_date_changed">Date Changed: %s</string>
+    <string name="tandem_history_time_changed">Time Changed: %s</string>
+
+
     <!-- YpsoPump History -->
     <string name="ypsopump_pump_history">YpsoPump History</string>
     <string name="ypsopump_pump_history_type">Type:</string>
-    <string name="ypsopump_history_date">%d.%d.%d %02d:%02d:%02d</string>
     <string name="ypsopump_history_alarm">Alarm: %s</string>
     <string name="ypsopump_history_configuration_changed">%s: %s</string>
-    <string name="ypsopump_history_date_changed">Date Changed: %s</string>
-    <string name="ypsopump_history_time_changed">Time Changed: %s</string>
     <string name="ypsopump_history_tbr">Rate: %d %%, Duration: %d minutes</string>
 
     <string name="ypsopump_history_bolus_normal">Normal Bolus, Amount: %.2f U</string>

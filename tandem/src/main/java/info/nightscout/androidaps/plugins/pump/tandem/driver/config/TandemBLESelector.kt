@@ -20,6 +20,7 @@ import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemPairingManager
+import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.sharedPreferences.SP
 import javax.inject.Inject
@@ -34,6 +35,7 @@ class TandemBLESelector @Inject constructor(
     context: Context,
     var tandemPumpUtil: TandemPumpUtil,
     var pumpSync: PumpSync,
+    var pumpStatus: TandemPumpStatus
 ) : PumpBLESelectorAbstract(resourceHelper, aapsLogger, sp, rxBus, context), PumpBLESelector {
 
     var startingAddress: String? = null
@@ -49,13 +51,14 @@ class TandemBLESelector @Inject constructor(
         tandemPumpUtil.preventConnect = false
         rxBus.send(EventPumpConnectionParametersChanged())
 
-        val selectedAddress = currentlySelectedPumpAddress()
-
-        if (!startingAddress.equals(selectedAddress) &&
-            selectedAddress.length > 0
-        ) {
-            pumpSync.connectNewPump()
-        }
+        // val selectedAddress = currentlySelectedPumpAddress()
+        //
+        // // TODO this might need to be moved to PairingManager
+        // if (!startingAddress.equals(selectedAddress) &&
+        //     selectedAddress.length > 0
+        // ) {
+        //     pumpSync.connectNewPump()
+        // }
     }
 
     override fun removeDevice(device: BluetoothDevice) {
@@ -78,21 +81,9 @@ class TandemBLESelector @Inject constructor(
         return mutableListOf(filter);
     }
 
-    // override fun filterDevice(device: BluetoothDevice): BluetoothDevice? {
-    //     //aapsLogger.debug(TAG, "filter device: name=" + (if (device.name == null) "null" else device.name))
-    //     if (device.name != null && device.name.contains("Ypso")) {
-    //         aapsLogger.info(TAG, "   Found YpsoPump with address: ${device.address}")
-    //         return device
-    //     }
-    //
-    //     return null
-    // }
-
     override fun cleanupAfterDeviceRemoved() {
         sp.remove(TandemPumpConst.Prefs.PumpAddress)
-
-        // TODO if Tandem needs to be "un-paired" on pump, code call for that should go here...
-
+        cleanSP()
         rxBus.send(EventPumpConnectionParametersChanged())
     }
 
@@ -100,20 +91,35 @@ class TandemBLESelector @Inject constructor(
 
         aapsLogger.debug(TAG, "onDeviceSelected: ${bleAddress} ")
 
-        var addressChanged = false
+        //var addressChanged = false
 
         // set pump address
         if (setSystemParameterForBT(TandemPumpConst.Prefs.PumpAddress, bleAddress)) {
-            addressChanged = true
-        }
+            //addressChanged = true
+            cleanSP()
 
-        if (addressChanged) {
             rxBus.send(EventPumpConnectionParametersChanged())
 
-            tandemPairingManager = TandemPairingManager(context, aapsLogger, sp, pumpUtil = tandemPumpUtil, btAddress = bleAddress, rxBus = rxBus)
+            tandemPairingManager = TandemPairingManager(context = context,
+                                                        aapsLogger = aapsLogger,
+                                                        sp = sp,
+                                                        pumpUtil = tandemPumpUtil,
+                                                        btAddress = bleAddress,
+                                                        rxBus = rxBus,
+                                                        resourceHelper = resourceHelper,
+                                                        pumpStatus = pumpStatus,
+                                                        pumpSync = pumpSync)
             tandemPairingManager!!.startPairing()
         }
 
+    }
+
+    private fun cleanSP() {
+        sp.remove(TandemPumpConst.Prefs.PumpPairStatus)
+        sp.remove(TandemPumpConst.Prefs.PumpPairCode)
+        sp.remove(TandemPumpConst.Prefs.PumpName)
+        sp.remove(TandemPumpConst.Prefs.PumpSerial)
+        sp.remove(TandemPumpConst.Prefs.PumpVersionResponse)
     }
 
     private fun setSystemParameterForBT(@StringRes parameter: Int, newValue: String): Boolean {
