@@ -763,32 +763,84 @@ class MedtronicHistoryData @Inject constructor(
         var previousItem: TempBasalProcessDTO? = null
         val removalList : MutableList<TempBasalProcessDTO> = arrayListOf()
 
-        // fix for Zero TBRs
-        for (tempBasalProcessDTO in processList) {
-            if (previousItem!=null) {
+        // TODO this solution needs to be overworked, commenting out for now
+        val suspendList = getFilteredItems(newHistory,  //
+                                             setOf(PumpHistoryEntryType.SuspendPump))
 
-                val pheEnd = PumpHistoryEntry()
-                pheEnd.atechDateTime = DateTimeUtil.getATDWithAddedSeconds(tempBasalProcessDTO.itemOne.atechDateTime, -2)
-                pheEnd.addDecodedData("Object", TempBasalPair(0.0, false, 0))
+        val stopList : MutableList<PumpHistoryEntry> = mutableListOf()
+        stopList.addAll(suspendList);
+        stopList.addAll(rewindList);
 
-                val initialDuration = previousItem.durationAsSeconds
+        // // see if have rewind/stop items that need to fix any of current tempBasalProcessDTO items (bug 1724)
+        if (stopList.isNotEmpty()) {
+            for (tempBasalProcessDTO in processList) {
+                if (tempBasalProcessDTO.itemTwo==null) {
+                    val endTime: Long = DateTimeUtil.getATDWithAddedMinutes(tempBasalProcessDTO.itemOne.atechDateTime, tempBasalProcessDTO.itemOneTbr!!.durationMinutes)
 
-                previousItem.itemTwo = pheEnd
+                    val findNearestEntry = findNearestEntry(tempBasalProcessDTO.itemOne.atechDateTime, endTime, stopList);
 
-                if (previousItem.durationAsSeconds <=0) {
-                    // if we have duration of 0 or less, then we have invalid entry which needs to be removed
-                    removalList.add(previousItem)
-                } else if (previousItem.durationAsSeconds > initialDuration) {
-                    // if duration with last item is longer than planned TBR duration we remove previous item and leave original duration
-                    previousItem.itemTwo = null
+                    if (findNearestEntry!=null) {
+                        tempBasalProcessDTO.itemTwo = findNearestEntry
+                        stopList.remove(findNearestEntry)
+                    }
                 }
-
-                previousItem = null
-            }
-            if (tempBasalProcessDTO.itemOneTbr!!.isZeroTBR) {
-                previousItem = tempBasalProcessDTO
             }
         }
+
+
+        // started working on this solution, but it seems like its not neccessary for now
+        // processList.reverse()
+        //
+        // var isFirst = true
+        // var startDate: Long? = null
+        //
+        // // check that dates are correct
+        // for (tempBasalProcessDTO in processList) {
+        //     startDate = tempBasalProcessDTO.itemOne.atechDateTime
+        //
+        //     if (isFirst) {
+        //         isFirst = false
+        //     } else {
+        //         // fix
+        //         if (tempBasalProcessDTO.itemTwo==null) {
+        //             // no end item could be a problem
+        //         } else {
+        //             if (startDate<=tempBasalProcessDTO.itemTwo!!.atechDateTime) {
+        //
+        //             }
+        //         }
+        //     }
+        // }
+        //
+        // processList.reverse()
+
+
+        // fix for Zero TBRs (has a bug) - this logic removed, might be needed later
+        // for (tempBasalProcessDTO in processList) {
+        //     if (previousItem!=null) {
+        //
+        //         val pheEnd = PumpHistoryEntry()
+        //         pheEnd.atechDateTime = DateTimeUtil.getATDWithAddedSeconds(tempBasalProcessDTO.itemOne.atechDateTime, -2)
+        //         pheEnd.addDecodedData("Object", TempBasalPair(0.0, false, 0))
+        //
+        //         val initialDuration = previousItem.durationAsSeconds
+        //
+        //         previousItem.itemTwo = pheEnd
+        //
+        //         if (previousItem.durationAsSeconds <=0) {
+        //             // if we have duration of 0 or less, then we have invalid entry which needs to be removed
+        //             removalList.add(previousItem)
+        //         } else if (previousItem.durationAsSeconds > initialDuration) {
+        //             // if duration with last item is longer than planned TBR duration we remove previous item and leave original duration
+        //             previousItem.itemTwo = null
+        //         }
+        //
+        //         previousItem = null
+        //     }
+        //     if (tempBasalProcessDTO.itemOneTbr!!.isZeroTBR) {
+        //         previousItem = tempBasalProcessDTO
+        //     }
+        // }
 
         // removing previously tagged item
         if (removalList.isNotEmpty()) {
@@ -796,47 +848,6 @@ class MedtronicHistoryData @Inject constructor(
                 processList.remove(tempBasalProcessDTO)
             }
         }
-
-        // TODO this solution needs to be overworked, commenting out for now
-        // val suspendList = getFilteredItems(newHistory,  //
-        //                                      setOf(PumpHistoryEntryType.SuspendPump))
-        //
-        // val stopList : MutableList<PumpHistoryEntry> = mutableListOf()
-        // stopList.addAll(suspendList);
-        // stopList.addAll(rewindList);
-        //
-        // // TODO remove see if rewind items, need to fix any of current tempBasalProcessDTO items (bug 1724)
-        // if (rewindList.isNotEmpty()) {
-        //     for (rewindEntry in rewindList) {
-        //         for (tempBasalProcessDTO in processList) {
-        //             if (tempBasalProcessDTO.itemTwo==null) {
-        //                 val endTime: Long = DateTimeUtil.getATDWithAddedMinutes(tempBasalProcessDTO.itemOne.atechDateTime, tempBasalProcessDTO.itemOneTbr!!.durationMinutes)
-        //
-        //                 if ((rewindEntry.atechDateTime > tempBasalProcessDTO.itemOne.atechDateTime) &&
-        //                     (rewindEntry.atechDateTime < endTime)) {
-        //                     tempBasalProcessDTO.itemTwo = rewindEntry
-        //                     continue
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        //
-        // // see if have rewind/stop items that need to fix any of current tempBasalProcessDTO items (bug 1724)
-        // if (stopList.isNotEmpty()) {
-        //     for (tempBasalProcessDTO in processList) {
-        //         if (tempBasalProcessDTO.itemTwo==null) {
-        //             val endTime: Long = DateTimeUtil.getATDWithAddedMinutes(tempBasalProcessDTO.itemOne.atechDateTime, tempBasalProcessDTO.itemOneTbr!!.durationMinutes)
-        //
-        //             val findNearestEntry = findNearestEntry(tempBasalProcessDTO.itemOne.atechDateTime, endTime, stopList);
-        //
-        //             if (findNearestEntry!=null) {
-        //                 tempBasalProcessDTO.itemTwo = findNearestEntry
-        //                 stopList.remove(findNearestEntry)
-        //             }
-        //         }
-        //     }
-        // }
 
         return processList
     }
