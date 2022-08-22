@@ -94,11 +94,13 @@ class TandemBLESelector @Inject constructor(
         //var addressChanged = false
 
         // set pump address
-        if (setSystemParameterForBT(TandemPumpConst.Prefs.PumpAddress, bleAddress)) {
+        //if (setSystemParameterForBT(TandemPumpConst.Prefs.PumpAddress, bleAddress)) {
             //addressChanged = true
             cleanSP()
 
             rxBus.send(EventPumpConnectionParametersChanged())
+
+            aapsLogger.debug(TAG, "DBG: Create TandemPairingManager")
 
             tandemPairingManager = TandemPairingManager(context = context,
                                                         aapsLogger = aapsLogger,
@@ -110,7 +112,7 @@ class TandemBLESelector @Inject constructor(
                                                         pumpStatus = pumpStatus,
                                                         pumpSync = pumpSync)
             tandemPairingManager!!.startPairing()
-        }
+        //}
 
     }
 
