@@ -142,13 +142,8 @@ class TandemPairingManager constructor(
 
         triggerPairDialog(peripheral, btAddress, centralChallenge)
 
-        // if (success) {
-        //     sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 2)
-        //     pair(peripheral, centralChallenge, pairCode)
-        // }
-
-
-        //TODO("Not yet implemented")
+        //triggerAAPSPairDialog(peripheral, btAddress, centralChallenge)
+        
     }
 
     override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse) {
