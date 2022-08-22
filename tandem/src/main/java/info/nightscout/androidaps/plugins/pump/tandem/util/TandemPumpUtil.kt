@@ -2,6 +2,7 @@ package info.nightscout.androidaps.plugins.pump.tandem.util
 
 import android.content.Context
 import android.util.Log
+import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
@@ -24,6 +25,11 @@ class TandemPumpUtil @Inject constructor(
     val tandemPumpStatus: TandemPumpStatus
 ): PumpUtil(aapsLogger, rxBus, context, resourceHelper) {
 
+
+
+    fun getTimeFromPumpAsEpochMillis(pumpTime: Long): Long {
+        return Dates.fromJan12008EpochSecondsToDate(pumpTime).toEpochMilli();
+    }
 
 
     //var preventConnect: Boolean = false

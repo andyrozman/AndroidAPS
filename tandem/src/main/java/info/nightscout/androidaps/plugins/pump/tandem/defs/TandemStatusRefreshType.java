@@ -6,7 +6,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.Pump
  * Created by andy on 04.07.2022.
  */
 
-public enum YpsoPumpStatusRefreshType {
+public enum TandemStatusRefreshType {
 
     PumpHistory(5, null), //
     //Configuration(0, null), //
@@ -19,7 +19,7 @@ public enum YpsoPumpStatusRefreshType {
     private final PumpCommandType commandType;
 
 
-    YpsoPumpStatusRefreshType(int refreshTime, PumpCommandType commandType) {
+    TandemStatusRefreshType(int refreshTime, PumpCommandType commandType) {
         this.refreshTime = refreshTime;
         this.commandType = commandType;
     }

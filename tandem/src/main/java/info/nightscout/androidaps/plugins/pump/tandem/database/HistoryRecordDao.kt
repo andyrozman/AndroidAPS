@@ -25,8 +25,8 @@ abstract class HistoryRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun saveBlocking(historyRecordEntity: HistoryRecordEntity)
 
-    @Query("SELECT * from history_records where id = :id and serial= :serialNumber and entryType= :entryType")
-    abstract fun getById(id: Int, serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity?
+    // @Query("SELECT * from history_records where id = :id and serial= :serialNumber and entryType= :entryType")
+    // abstract fun getById(id: Int, serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun save(historyRecordEntity: HistoryRecordEntity): Completable

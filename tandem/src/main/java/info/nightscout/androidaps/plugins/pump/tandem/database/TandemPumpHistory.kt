@@ -3,7 +3,10 @@ package info.nightscout.androidaps.plugins.pump.tandem.database
 import com.google.gson.Gson
 import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.plugins.pump.tandem.data.*
-import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpEventType
+import info.nightscout.androidaps.plugins.pump.tandem.data.history.DateTimeChanged
+
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpEventType
+
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
@@ -14,9 +17,9 @@ import java.util.*
 import javax.inject.Inject
 
 // TODO refactor this for Tandem
-class YpsoPumpHistory @Inject constructor(
+class TandemPumpHistory /*@Inject*/ constructor(
     val pumpHistoryDao: HistoryRecordDao,
-    val pumpHistoryDatabase: YpsoPumpDatabase,
+    val pumpHistoryDatabase: TandemPumpDatabase,
     val historyMapper: HistoryMapper,
     val pumpSync: PumpSync,
     val pumpUtil: TandemPumpUtil,
@@ -33,14 +36,9 @@ class YpsoPumpHistory @Inject constructor(
 
     fun createRecord(
         serial: Long,
-        date: Long,
-        historyRecordType: HistoryEntryType,
-        entryType: YpsoPumpEventType,
-        entryTypeAsInt: Int,
-        value1: Int,
-        value2: Int,
-        value3: Int,
-        eventSequenceNumber: Int,
+        pumpEventType: TandemPumpEventType,
+        sequenceNum: Long,
+        dateTimeMillis: Long,
         tempBasalRecord: TemporaryBasal?,
         bolusRecord: Bolus?,
         tdiRecord: TotalDailyInsulin?,
@@ -49,8 +47,10 @@ class YpsoPumpHistory @Inject constructor(
         configRecord: ConfigurationChanged?,
         pumpStatusRecord: PumpStatusChanged?,
         dateTimeRecord: DateTimeChanged?
-    ): Single<Int> {
-        var id = eventSequenceNumber
+    ): Single<Long> {
+
+        var id = sequenceNum
+
 
         // TODO Db
         // when {
@@ -63,16 +63,11 @@ class YpsoPumpHistory @Inject constructor(
 
         return pumpHistoryDao.save(
             HistoryRecordEntity(
-                id = eventSequenceNumber,
+                id = sequenceNum,
                 serial = serial,
-                historyRecordType = historyRecordType,
-                date = date,
-                entryType = entryType,
-                entryTypeAsInt = entryTypeAsInt,
-                value1 = value1,
-                value2 = value2,
-                value3 = value3,
-                eventSequenceNumber = eventSequenceNumber,
+                pumpEventType = pumpEventType,
+                sequenceNum = sequenceNum,
+                dateTimeMillis = dateTimeMillis,
                 createdAt = currentTimeMillis(),
                 updatedAt = currentTimeMillis(),
                 temporaryBasalRecord = tempBasalRecord,
@@ -99,7 +94,9 @@ class YpsoPumpHistory @Inject constructor(
     // }
 
     fun getRecords(): Single<List<EventDto>> =
-        pumpHistoryDao.all().map { list -> list.map(historyMapper::entityToDomain) }
+        pumpHistoryDao.all().map { list -> listOf<EventDto>()
+            //list.map(historyMapper::entityToDomain)
+             }
 
     fun getRecordsAfter(time: Long): Single<List<HistoryRecordEntity>> = pumpHistoryDao.allSince(time)
 
@@ -159,23 +156,32 @@ class YpsoPumpHistory @Inject constructor(
     }
 
     private fun prepareData(dbEntity: HistoryRecordEntity, newEntity: HistoryRecordEntity): HistoryRecordEntity {
-        if (dbEntity.entryType != newEntity.entryType)
-            dbEntity.entryType = newEntity.entryType
+        // TODO
 
-        if (dbEntity.entryTypeAsInt != newEntity.entryTypeAsInt)
-            dbEntity.entryTypeAsInt = newEntity.entryTypeAsInt
-
-        if (dbEntity.value1 != newEntity.value1)
-            dbEntity.value1 != newEntity.value1
-
-        if (dbEntity.value2 != newEntity.value2)
-            dbEntity.value2 != newEntity.value2
-
-        if (dbEntity.value3 != newEntity.value3)
-            dbEntity.value3 != newEntity.value3
-
-        if (dbEntity.date != newEntity.date)
-            dbEntity.date != newEntity.date
+        // if (dbEntity.entryType != newEntity.entryType)
+        //     dbEntity.entryType = newEntity.entryType
+        //
+        // if (dbEntity.entryTypeAsInt != newEntity.entryTypeAsInt)
+        //     dbEntity.entryTypeAsInt = newEntity.entryTypeAsInt
+        //
+        // if (dbEntity.value1 != newEntity.value1)
+        //     dbEntity.value1 != newEntity.value1
+        //
+        // if (dbEntity.value2 != newEntity.value2)
+        //     dbEntity.value2 != newEntity.value2
+        //
+        // if (dbEntity.value3 != newEntity.value3)
+        //     dbEntity.value3 != newEntity.value3
+        //
+        // if (dbEntity.date != newEntity.date)
+        //     dbEntity.date != newEntity.date
+        //
+        //
+        // var id: Long,
+        // var serial: Long,
+        // var pumpEventType: TandemPumpEventType,
+        // var sequenceNum: Long,
+        // var dateTimeMillis: Long,
 
         if (!Objects.equals(dbEntity.bolusRecord, newEntity.bolusRecord))
             dbEntity.bolusRecord = newEntity.bolusRecord
@@ -207,13 +213,14 @@ class YpsoPumpHistory @Inject constructor(
     }
 
     private fun isDifferentData(entity1: HistoryRecordEntity, entity2: HistoryRecordEntity): Boolean {
-        if (entity1.entryType != entity2.entryType ||
-            entity1.entryTypeAsInt != entity2.entryTypeAsInt ||
-            entity1.value1 != entity2.value1 ||
-            entity1.value2 != entity2.value2 ||
-            entity1.value3 != entity2.value3 ||
-            entity1.date != entity2.date)
-            return true
+        // TODO
+        // if (entity1.entryType != entity2.entryType ||
+        //     entity1.entryTypeAsInt != entity2.entryTypeAsInt ||
+        //     entity1.value1 != entity2.value1 ||
+        //     entity1.value2 != entity2.value2 ||
+        //     entity1.value3 != entity2.value3 ||
+        //     entity1.date != entity2.date)
+        //     return true
 
         if (!Objects.equals(entity1.bolusRecord, entity2.bolusRecord) ||
             !Objects.equals(entity1.temporaryBasalRecord, entity2.temporaryBasalRecord) ||

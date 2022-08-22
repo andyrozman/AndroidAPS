@@ -14,7 +14,7 @@ import androidx.room.TypeConverters
 //     version = YpsoPumpDatabase.VERSION
 // )
 // @TypeConverters(DatabaseConverters::class)
-abstract class YpsoPumpDatabase /*: RoomDatabase()*/ {
+abstract class TandemPumpDatabase /*: RoomDatabase()*/ {
 
     //abstract fun historyRecordDao(): HistoryRecordDao
 

@@ -21,10 +21,10 @@ any kind of looping (Tandem is extending pump with bolus and hoping something mo
     GetTime                              |
         TimeSinceResetResponse (?)                WIP-2 
     GetSettings                          |                                            See down...
-        RemindersResponse,
-        PumpSettingsResponse,
+        RemindersResponse,                        NN
+        PumpSettingsResponse,                     NN
         PumpGlobalsResponse,
-        GlobalMaxBolusSettingsResponse
+        GlobalMaxBolusSettingsResponse            WIP-2
         ControlIQInfoV1Response (?)               WIP-2
         ControlIQInfoV2Response (?)               WIP-2
     
@@ -56,6 +56,7 @@ any kind of looping (Tandem is extending pump with bolus and hoping something mo
     NI = Not implemented
     WIP = Work in Progress
     WIP-2 = Work in Progress (implemented but not tested)
+    NN = Not needed
 
     * Pairing is implemented, but dialog will need to be exchanged 
       for more native one

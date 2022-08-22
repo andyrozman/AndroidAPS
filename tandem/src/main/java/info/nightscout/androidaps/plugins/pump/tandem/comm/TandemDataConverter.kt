@@ -1,14 +1,16 @@
 package info.nightscout.androidaps.plugins.pump.tandem.comm
 
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.TimeChangeHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.*
+import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.DateTimeChanged
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogDto
+import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogObject
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpEventType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
@@ -23,13 +25,44 @@ class TandemDataConverter @Inject constructor(
     var pumpStatus: TandemPumpStatus,
     var pumpUtil: TandemPumpUtil) : PumpDataConverter {
 
-    fun convertMessage(message: Message) : Any? {
+    // fun convertMessageToDataCommandResponse(message: Message): DataCommandResponse<Any?> {
+    //
+    //     when(message) {
+    //
+    //         // Battery Level
+    //         is CurrentBatteryV1Response,
+    //         is CurrentBatteryV2Response         -> return getBatteryResponse(message as CurrentBatteryAbstractResponse)
+    //
+    //         // Configuration
+    //         // is ControlIQInfoV1Response,
+    //         // is ControlIQInfoV2Response          -> return getControlIQEnabled(message)
+    //         // is BasalLimitSettingsResponse       -> return message.basalLimit
+    //         // is GlobalMaxBolusSettingsResponse   -> return message.maxBolus
+    //
+    //         // Insulin Level
+    //         is InsulinStatusResponse            -> return getInsulinStatus(message)
+    //
+    //
+    //
+    //
+    //         else                           -> {
+    //             aapsLogger.warn(LTag.PUMPCOMM, "Can't convert Tandem response Message of type: ${message.opCode()} and class: ${message.javaClass.name}")
+    //             return null
+    //         }
+    //     }
+    //
+    //     return null
+    // }
+
+
+
+    fun convertMessageToValue(message: Message) : Any? {
 
         when(message) {
 
             // Battery Level
-            is CurrentBatteryV1Response,
-            is CurrentBatteryV2Response         -> return getBatteryResponse(message as CurrentBatteryAbstractResponse)
+            //is CurrentBatteryV1Response,
+            //is CurrentBatteryV2Response         -> return getBatteryResponse(message as CurrentBatteryAbstractResponse)
 
             // Configuration
             is ControlIQInfoV1Response,
@@ -38,7 +71,7 @@ class TandemDataConverter @Inject constructor(
             is GlobalMaxBolusSettingsResponse   -> return message.maxBolus
 
             // Insulin Level
-            is InsulinStatusResponse            -> return getInsulinStatus(message)
+            //is InsulinStatusResponse            -> return getInsulinStatus(message)
 
 
 
@@ -51,10 +84,25 @@ class TandemDataConverter @Inject constructor(
 
     }
 
-    private fun getInsulinStatus(message: InsulinStatusResponse): DataCommandResponse<Double?>? {
+    fun getInsulinStatus(message: InsulinStatusResponse): DataCommandResponse<Double?> {
         return DataCommandResponse(
             PumpCommandType.GetRemainingInsulin, true, null, message.currentInsulinAmount.toDouble())
     }
+
+    fun getTempBasalRate(message: TempRateResponse): DataCommandResponse<TempBasalPair?> {
+
+        val tempBasal = TempBasalPair()
+
+        tempBasal.insulinRate = message.percentage.toDouble()
+        tempBasal.isActive = message.active
+        tempBasal.durationMinutes = message.duration.toInt()
+        tempBasal.setStartTime(pumpUtil.getTimeFromPumpAsEpochMillis(message.startTime))
+
+        return DataCommandResponse(
+            PumpCommandType.GetTemporaryBasal, true, null, tempBasal)
+    }
+
+
 
     private fun getBasalLimit(message: BasalLimitSettingsResponse): Long {
         return message.basalLimit
@@ -69,7 +117,7 @@ class TandemDataConverter @Inject constructor(
         return false
     }
 
-    private fun getBatteryResponse(message: CurrentBatteryAbstractResponse): DataCommandResponse<Int?>? {
+    fun getBatteryResponse(message: CurrentBatteryAbstractResponse): DataCommandResponse<Int?> {
         return DataCommandResponse(
             PumpCommandType.GetBatteryStatus, true, null, message.currentBatteryIbc)
     }
@@ -94,23 +142,51 @@ class TandemDataConverter @Inject constructor(
 
     fun decodeHistoryLog(historyLogPump: HistoryLog): HistoryLogDto? {
 
-        var historyLog = createHistoryLogDto(historyLogPump)
+        val historyLog = createHistoryLogDto(historyLogPump)
 
         when (historyLogPump) {
 
-            is TimeChangeHistoryLog  ->  {
-                historyLog.subObject = createDateTimeChangeRecord(historyLogPump, true)
-                return historyLog
-            }
+            is TimeChangeHistoryLog            -> historyLog.subObject = createTimeChangeRecord(historyLogPump)
+            is DateChangeHistoryLog            -> historyLog.subObject = createDateChangeRecord(historyLogPump)
+            // one is invalid duplicate ?
+            //is DateChangeResponse,             -> historyLog.subObject = createDateChangeRecord(historyLogPump)
 
-            else  -> return null
+            // not implemented yet
+            is BolexCompletedHistoryLog,
+            is BolusCompletedHistoryLog,
+            is BolusDeliveryHistoryLog,
+            is BolusRequestedMsg1HistoryLog,
+            is BolusRequestedMsg2HistoryLog,
+            is BolusRequestedMsg3HistoryLog,
+
+            // not supported
+            is CGMHistoryLog,
+            is BGHistoryLog                    -> historyLog.subObject = null
+            else                               -> historyLog.subObject = null
         }
+
+
+
+        return if (historyLog.subObject==null) null else historyLog
 
     }
 
-    private fun createDateTimeChangeRecord(historyLogPump: TimeChangeHistoryLog, timeChanged: Boolean): DateTimeChanged {
 
-        historyLogPump.timeAfter
+    private fun createDateChangeRecord(historyLogPump: DateChangeHistoryLog): HistoryLogObject? {
+        return createDateTimeChangeRecord(historyLogPump.getDateAfterInstant().toEpochMilli(), false)
+    }
+
+    private fun createDateChangeRecord(historyLogPump: DateChangeResponse): HistoryLogObject? {
+        return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.dateAfter).toEpochMilli(), false)
+    }
+
+    private fun createTimeChangeRecord(historyLogPump: TimeChangeHistoryLog): HistoryLogObject? {
+        return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.timeAfter).toEpochMilli(), true)
+    }
+
+    private fun createDateTimeChangeRecord(dateTime: Long, timeChanged: Boolean): DateTimeChanged {
+
+        //historyLogPump.timeAfter
 
         //return DateTimeChanged()
 

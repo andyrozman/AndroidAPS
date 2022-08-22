@@ -18,6 +18,7 @@ public class CommandResponseAbstract<E> implements CommandResponseInterface {
         this.commandType = commandType;
         this.success = success;
         this.errorDescription = errorDescription;
+        this.value = value;
     }
 
 

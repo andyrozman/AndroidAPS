@@ -44,6 +44,8 @@ abstract class PumpStatus(var pumpType: PumpType) {
     var tempBasalDuration: Int? = 0
     var tempBasalEnd: Long? = null
 
+    var currentTempBasal: TempBasalPair? = null
+
     //var tbr: TempBasalPair
 
     var pumpTime: PumpTimeDifferenceDto? = null

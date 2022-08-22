@@ -2,8 +2,17 @@ package info.nightscout.androidaps.plugins.pump.tandem.database
 
 import androidx.room.TypeConverter
 import info.nightscout.androidaps.plugins.pump.tandem.data.*
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpEventType
 
 class DatabaseConverters {
+
+    @TypeConverter
+    fun toTandemPumpEventType(s: String) = enumValueOf<TandemPumpEventType>(s)
+
+    @TypeConverter
+    fun fromTandemPumpEventType(tandemPumpEventType: TandemPumpEventType) = tandemPumpEventType.name
+
+    // OLD ONES MIGHT NEED TO BE REMOVED
 
     @TypeConverter
     fun toBolusType(s: String) = enumValueOf<BolusType>(s)
@@ -34,6 +43,10 @@ class DatabaseConverters {
 
     @TypeConverter
     fun fromHistoryEntryType(historyEntryType: HistoryEntryType) = historyEntryType.name
+
+
+
+
 
 
     // @TypeConverter

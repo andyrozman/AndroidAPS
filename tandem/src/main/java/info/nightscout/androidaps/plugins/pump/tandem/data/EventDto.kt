@@ -10,11 +10,12 @@ import info.nightscout.androidaps.plugins.pump.tandem.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpEventType
 import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
-
+@Deprecated("Remove with old database")
 sealed class EventObject {
     abstract fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String
 }
 
+@Deprecated("Remove with old database")
 data class EventDto(var id: Int?,
                     var serial: Long,
                     var historyEntryType: HistoryEntryType,

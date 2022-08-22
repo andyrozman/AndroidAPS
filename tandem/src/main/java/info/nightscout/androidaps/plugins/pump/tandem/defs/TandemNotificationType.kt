@@ -8,9 +8,9 @@ import info.nightscout.androidaps.plugins.pump.tandem.R
 /**
  * Created by andy on 01/06/2021.
  */
-enum class TandemPumpNotificationType(override var notificationType: Int,
-                                      override @StringRes val resourceId: Int,
-                                      override val notificationUrgency: Int) : NotificationTypeInterface {
+enum class TandemNotificationType(override var notificationType: Int,
+                                  override @StringRes val resourceId: Int,
+                                  override val notificationUrgency: Int) : NotificationTypeInterface {
 
     InvalidPairingCodeReconfigure(R.string.tandem_notification_wrong_pairing_code, Notification.URGENT),
 

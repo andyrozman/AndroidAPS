@@ -11,7 +11,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetRes
 import com.welie.blessed.BluetoothPeripheral
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
-import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpNotificationType
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemNotificationType
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
@@ -173,7 +173,7 @@ class TandemCommunicationManager constructor(
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, -2)
         pumpUtil.errorType = PumpErrorType.PumpPairInvalidPairCode
 
-        pumpUtil.sendNotification(TandemPumpNotificationType.InvalidPairingCodeReconfigure)
+        pumpUtil.sendNotification(TandemNotificationType.InvalidPairingCodeReconfigure)
 
         this.errorConnecting = true
     }

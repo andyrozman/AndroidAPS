@@ -9,7 +9,7 @@ import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.database.HistoryRecordEntity
-import info.nightscout.androidaps.plugins.pump.tandem.database.YpsoPumpHistory
+import info.nightscout.androidaps.plugins.pump.tandem.database.TandemPumpHistory
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.shared.logging.AAPSLogger
@@ -20,7 +20,7 @@ class TandemHistoryDataProvider @Inject constructor(
     var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger,
     var tandemPumpUtil: TandemPumpUtil,
-    var ypsoPumpHistory: YpsoPumpHistory,
+    var ypsoPumpHistory: TandemPumpHistory,
     var ypsoPumpDataConverter: YpsoPumpDataConverter
 ) : PumpHistoryDataProviderAbstract() {
 
@@ -38,9 +38,10 @@ class TandemHistoryDataProvider @Inject constructor(
         }
 
         for (historyRecordEntity in dbHistoryList) {
-            val domainObject = ypsoPumpHistory.historyMapper.entityToDomain(historyRecordEntity)
-            domainObject.prepareEntryData(resourceHelper = resourceHelper, pumpDataConverter = ypsoPumpDataConverter)
-            outList.add(domainObject)
+            // TODO fix this for TandemDb
+            // val domainObject = ypsoPumpHistory.historyMapper.entityToDomain(historyRecordEntity)
+            // domainObject.prepareEntryData(resourceHelper = resourceHelper, pumpDataConverter = ypsoPumpDataConverter)
+            // outList.add(domainObject)
         }
 
         return outList

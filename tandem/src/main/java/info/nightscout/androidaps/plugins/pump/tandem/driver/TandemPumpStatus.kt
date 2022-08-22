@@ -7,9 +7,9 @@ import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.BasalProfileStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDeviceState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
-import info.nightscout.androidaps.plugins.pump.tandem.comm.data.YpsoPumpStatusEntry
-import info.nightscout.androidaps.plugins.pump.tandem.comm.data.YpsoPumpStatusList
-import info.nightscout.androidaps.plugins.pump.tandem.data.BasalProfileDto
+// import info.nightscout.androidaps.plugins.pump.tandem.comm.data.YpsoPumpStatusEntry
+// import info.nightscout.androidaps.plugins.pump.tandem.comm.data.YpsoPumpStatusList
+// import info.nightscout.androidaps.plugins.pump.tandem.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion

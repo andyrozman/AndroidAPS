@@ -18,13 +18,7 @@ data class HistoryLogDto(var id: Long?,
                          var serial: Long,
                          var pumpEventType: TandemPumpEventType,
                          var sequenceNum: Long,
-                         //var historyEntryType: HistoryEntryType,
                          var dateTimeInMillis: Long,
-                         //var entryType: YpsoPumpEventType,
-
-                         // TODO
-                         //var dateTime: DateTimeDto,
-
                          var subObject: HistoryLogObject? = null,
                          //var subObject2: HistoryLogObject? = null, // this is used only for fake TBR that emulates Pump Start/Stop for now
                          var created: Long = System.currentTimeMillis(),

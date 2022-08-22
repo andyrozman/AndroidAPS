@@ -34,7 +34,7 @@ import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.pump.common.defs.*
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
-import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpStatusRefreshType
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemStatusRefreshType
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
@@ -85,7 +85,7 @@ class TandemPumpPlugin @Inject constructor(
     // variables for handling statuses and history
     private var firstRun = true
     private var isRefresh = false
-    private val statusRefreshMap: MutableMap<YpsoPumpStatusRefreshType?, Long?> = mutableMapOf()
+    private val statusRefreshMap: MutableMap<TandemStatusRefreshType?, Long?> = mutableMapOf()
     private var isInitialized = false
     private var hasTimeDateOrTimeZoneChanged = false
     private var driverMode = PumpDriverMode.Faked // TODO when implementation fully done, default should be automatic
@@ -372,15 +372,15 @@ class TandemPumpPlugin @Inject constructor(
         }
 
         // execute
-        val refreshTypesNeededToReschedule: MutableSet<YpsoPumpStatusRefreshType> = HashSet()
+        val refreshTypesNeededToReschedule: MutableSet<TandemStatusRefreshType> = HashSet()
         for ((key, value) in statusRefresh!!) {
             if (value!! > 0 && System.currentTimeMillis() > value) {
                 when (key) {
-                    YpsoPumpStatusRefreshType.PumpHistory      -> {
+                    TandemStatusRefreshType.PumpHistory      -> {
                         readPumpHistory()
                     }
 
-                    YpsoPumpStatusRefreshType.PumpTime -> {
+                    TandemStatusRefreshType.PumpTime         -> {
                         if (checkTimeAndOptionallySetTime()) {
                             resetDisplay = true
                         }
@@ -388,8 +388,8 @@ class TandemPumpPlugin @Inject constructor(
                         resetTime = true
                     }
 
-                    YpsoPumpStatusRefreshType.BatteryStatus,
-                    YpsoPumpStatusRefreshType.RemainingInsulin -> {
+                    TandemStatusRefreshType.BatteryStatus,
+                    TandemStatusRefreshType.RemainingInsulin -> {
                         pumpConnectionManager.getRemainingInsulin()
                         refreshTypesNeededToReschedule.add(key)
                         resetDisplay = true
@@ -412,7 +412,7 @@ class TandemPumpPlugin @Inject constructor(
         return resetDisplay
     }
 
-    private fun doWeHaveAnyStatusNeededRefereshing(statusRefresh: Map<YpsoPumpStatusRefreshType?, Long?>?): Boolean {
+    private fun doWeHaveAnyStatusNeededRefereshing(statusRefresh: Map<TandemStatusRefreshType?, Long?>?): Boolean {
         for ((_, value) in statusRefresh!!) {
             if (value!! > 0 && System.currentTimeMillis() > value) {
                 return true
@@ -457,11 +457,11 @@ class TandemPumpPlugin @Inject constructor(
 
         // TODO remaining insulin (>50 = 4h; 50-20 = 1h; 15m) -
         pumpConnectionManager.getRemainingInsulin() // (command not available)
-        scheduleNextRefresh(YpsoPumpStatusRefreshType.RemainingInsulin, 10)
+        scheduleNextRefresh(TandemStatusRefreshType.RemainingInsulin, 10)
 
         // TODO remaining power (1h) -
         pumpConnectionManager.getBatteryLevel()
-        scheduleNextRefresh(YpsoPumpStatusRefreshType.BatteryStatus, 20)
+        scheduleNextRefresh(TandemStatusRefreshType.BatteryStatus, 20)
 
         // configuration (once and then if history shows config changes)
         pumpConnectionManager.getConfiguration()
@@ -659,7 +659,7 @@ class TandemPumpPlugin @Inject constructor(
             aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
         } finally {
             setRefreshButtonEnabled(false)
-            scheduleNextRefresh(YpsoPumpStatusRefreshType.PumpTime, 0)
+            scheduleNextRefresh(TandemStatusRefreshType.PumpTime, 0)
         }
 
         return true
@@ -943,7 +943,7 @@ class TandemPumpPlugin @Inject constructor(
 
         //        pumpConnectionManager.getPumpHistory()
 
-        scheduleNextRefresh(YpsoPumpStatusRefreshType.PumpHistory)
+        scheduleNextRefresh(TandemStatusRefreshType.PumpHistory)
 
     }
 
@@ -962,19 +962,19 @@ class TandemPumpPlugin @Inject constructor(
         // )
     }
 
-    private fun scheduleNextRefresh(refreshType: YpsoPumpStatusRefreshType, additionalTimeInMinutes: Int = 0) {
+    private fun scheduleNextRefresh(refreshType: TandemStatusRefreshType, additionalTimeInMinutes: Int = 0) {
         when (refreshType) {
-            YpsoPumpStatusRefreshType.RemainingInsulin -> {
+            TandemStatusRefreshType.RemainingInsulin -> {
                 val remaining = pumpStatus.reservoirRemainingUnits
                 val min: Int
                 min = if (remaining > 50) 4 * 60 else if (remaining > 20) 60 else 15
                 workWithStatusRefresh(StatusRefreshAction.Add, refreshType, getTimeInFutureFromMinutes(min))
             }
 
-            YpsoPumpStatusRefreshType.PumpTime,
+            TandemStatusRefreshType.PumpTime,
                 //YpsoPumpStatusRefreshType.Configuration,
-            YpsoPumpStatusRefreshType.BatteryStatus,
-            YpsoPumpStatusRefreshType.PumpHistory      -> {
+            TandemStatusRefreshType.BatteryStatus,
+            TandemStatusRefreshType.PumpHistory      -> {
                 workWithStatusRefresh(
                     StatusRefreshAction.Add, refreshType,
                     getTimeInFutureFromMinutes(getHistoryRefreshTime() + additionalTimeInMinutes)
@@ -1000,9 +1000,9 @@ class TandemPumpPlugin @Inject constructor(
     @Synchronized
     private fun workWithStatusRefresh(
         action: StatusRefreshAction,  //
-        statusRefreshType: YpsoPumpStatusRefreshType?,  //
+        statusRefreshType: TandemStatusRefreshType?,  //
         time: Long?
-    ): Map<YpsoPumpStatusRefreshType?, Long?>? {
+    ): Map<TandemStatusRefreshType?, Long?>? {
         return when (action) {
             StatusRefreshAction.Add     -> {
                 statusRefreshMap[statusRefreshType] = time

@@ -2,6 +2,7 @@ package info.nightscout.androidaps.plugins.pump.tandem.defs
 
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
 
+@Deprecated("Needs to be removed, together with old database classes.")
 enum class YpsoPumpEventType(val code: Int, val group: PumpHistoryEntryGroup, val resourceId: Int? = null) {
     UNDEFINED(-1, PumpHistoryEntryGroup.Unknown),
     BOLUS_EXTENDED_RUNNING(1, PumpHistoryEntryGroup.Bolus),

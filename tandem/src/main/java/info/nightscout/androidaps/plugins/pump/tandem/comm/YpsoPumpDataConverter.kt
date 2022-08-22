@@ -16,6 +16,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.experimental.and
 
+@Deprecated("Will be removed with old database")
 @Singleton
 class YpsoPumpDataConverter @Inject constructor(
     var pumpStatus: TandemPumpStatus,
