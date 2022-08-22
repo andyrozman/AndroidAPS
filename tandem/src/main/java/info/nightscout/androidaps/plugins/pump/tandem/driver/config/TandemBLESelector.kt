@@ -89,7 +89,7 @@ class TandemBLESelector @Inject constructor(
 
     override fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String) {
 
-        aapsLogger.debug(TAG, "onDeviceSelected: ${bleAddress} ")
+        aapsLogger.debug(TAG, "TANDEMDBG: onDeviceSelected: ${bleAddress} ")
 
         //var addressChanged = false
 
@@ -100,7 +100,7 @@ class TandemBLESelector @Inject constructor(
 
             rxBus.send(EventPumpConnectionParametersChanged())
 
-            aapsLogger.debug(TAG, "DBG: Create TandemPairingManager")
+            aapsLogger.debug(TAG, "TANDEMDBG: Create TandemPairingManager")
 
             tandemPairingManager = TandemPairingManager(context = context,
                                                         aapsLogger = aapsLogger,

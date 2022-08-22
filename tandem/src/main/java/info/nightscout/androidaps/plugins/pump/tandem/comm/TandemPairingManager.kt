@@ -55,6 +55,9 @@ class TandemPairingManager constructor(
 
     fun startPairing() {
         aapsLogger.info(LTag.PUMPCOMM, "start Pairing")
+
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: start Pairing")
+
         createBluetoothHandler()
 
         bluetoothHandler!!.startScan()
@@ -66,6 +69,8 @@ class TandemPairingManager constructor(
 
 
     fun createBluetoothHandler(): TandemBluetoothHandler? {
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: createBluetoothHandler")
+
         if (bluetoothHandler != null) {
             return bluetoothHandler
         }
@@ -75,6 +80,8 @@ class TandemPairingManager constructor(
     }
 
     fun stopBluetoothHandler() {
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: stopBluetoothHandler")
+
         bluetoothHandler!!.stop()
         bluetoothHandler = null
         //return getBluetoothHandler()
@@ -83,9 +90,12 @@ class TandemPairingManager constructor(
     // Pair Status
 
     override fun onReceiveMessage(peripheral: BluetoothPeripheral, message: Message) {
-        aapsLogger.info(LTag.PUMPCOMM, "received message: opCode=${message.opCode()}")
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: received message: opCode=${message.opCode()}")
 
         if (message is ApiVersionResponse) {
+
+            aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: got ApiVersionResponse")
+
             sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 80)
             sp.putString(TandemPumpConst.Prefs.PumpAddress, peripheral.address)
             sp.putString(TandemPumpConst.Prefs.PumpName, peripheral.name)
@@ -97,10 +107,14 @@ class TandemPairingManager constructor(
 
             sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
         } else if (message is TimeSinceResetResponse) {
+            aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: got TimeSinceResetResponse")
+
             sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 90)
             val timeSinceResponse = message
             aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: ${timeSinceResponse}")
         } else if (message is PumpVersionResponse) {
+            aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: got PumpVersionResponse")
+
             sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 100)
             val pumpVersionResponse = message
 
@@ -122,7 +136,7 @@ class TandemPairingManager constructor(
 
     override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral, centralChallenge: CentralChallengeResponse) {
 
-        aapsLogger.info(LTag.PUMPCOMM, "onWaitingForPairingCode:")
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onWaitingForPairingCode:")
 
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 40)
 
@@ -138,6 +152,9 @@ class TandemPairingManager constructor(
     }
 
     override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse) {
+
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onInvalidPairingCode")
+
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
         pumpUtil.errorType = PumpErrorType.PumpPairInvalidPairCode
 
@@ -165,6 +182,9 @@ class TandemPairingManager constructor(
     }
 
     private fun triggerPairDialog(peripheral: BluetoothPeripheral, btAddress: String, challenge: CentralChallengeResponse) {
+
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: triggerPairDialog")
+
         val btName = peripheral.name
         val builder = AlertDialog.Builder(this.context)
         builder.setTitle("Enter pairing code (case-sensitive)")
@@ -195,6 +215,8 @@ class TandemPairingManager constructor(
 
 
     private fun triggerAAPSPairDialog(peripheral: BluetoothPeripheral, btAddress: String, challenge: CentralChallengeResponse) {
+
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: triggerAAPSPairDialog")
 
         val btName = peripheral.name
         var okClicked = false
@@ -247,7 +269,8 @@ class TandemPairingManager constructor(
     //  100 = PumpVersionResponse
 
     override fun onPumpConnected(peripheral: BluetoothPeripheral?) {
-        aapsLogger.info(LTag.PUMPCOMM, "onPumpConnected")
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onPumpConnected")
+
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 70)
 
         sendCommand(peripheral, ApiVersionRequest())
@@ -269,7 +292,7 @@ class TandemPairingManager constructor(
         stringBuilder.append("PumpSerial: ${sp.getString(TandemPumpConst.Prefs.PumpSerial, "-")}\n")
         stringBuilder.append("Pump Version Response: ${sp.getString(TandemPumpConst.Prefs.PumpVersionResponse, "-")} \n")
 
-        aapsLogger.info(LTag.PUMPCOMM, "onPairingStatus: \n ${stringBuilder.toString()}")
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onPairingStatus: \n ${stringBuilder.toString()}")
 
     }
 
