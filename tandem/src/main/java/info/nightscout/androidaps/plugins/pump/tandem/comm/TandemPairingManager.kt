@@ -143,7 +143,7 @@ class TandemPairingManager constructor(
         triggerPairDialog(peripheral, btAddress, centralChallenge)
 
         //triggerAAPSPairDialog(peripheral, btAddress, centralChallenge)
-        
+
     }
 
     override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse) {
