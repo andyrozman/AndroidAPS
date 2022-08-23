@@ -22,6 +22,7 @@ import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemPairingManager
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
 import javax.inject.Inject
 
@@ -102,16 +103,22 @@ class TandemBLESelector @Inject constructor(
 
             aapsLogger.debug(TAG, "TANDEMDBG: Create TandemPairingManager")
 
-            tandemPairingManager = TandemPairingManager(context = context,
-                                                        aapsLogger = aapsLogger,
-                                                        sp = sp,
-                                                        pumpUtil = tandemPumpUtil,
-                                                        btAddress = bleAddress,
-                                                        rxBus = rxBus,
-                                                        resourceHelper = resourceHelper,
-                                                        pumpStatus = pumpStatus,
-                                                        pumpSync = pumpSync)
-            tandemPairingManager!!.startPairing()
+            try {
+                tandemPairingManager = TandemPairingManager(
+                    context = context,
+                    aapsLogger = aapsLogger,
+                    sp = sp,
+                    pumpUtil = tandemPumpUtil,
+                    btAddress = bleAddress,
+                    rxBus = rxBus,
+                    resourceHelper = resourceHelper,
+                    pumpStatus = pumpStatus,
+                    pumpSync = pumpSync
+                )
+                tandemPairingManager!!.startPairing()
+            } catch(ex: Exception) {
+                aapsLogger.error(LTag.PUMPCOMM, "Caught exception trying to pair. Ex: ${ex.message}", ex)
+            }
         //}
 
     }
