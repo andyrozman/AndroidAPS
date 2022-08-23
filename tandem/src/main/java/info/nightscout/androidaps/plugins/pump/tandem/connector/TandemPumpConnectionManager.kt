@@ -11,6 +11,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpConne
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
+import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.util.PumpUtil
@@ -55,6 +56,8 @@ class TandemPumpConnectionManager @Inject constructor(
     private var currentFirmware: TandemPumpApiVersion? = null
     var inConnectMode = false
     var inDisconnectMode = false
+    
+    val TAG = LTag.PUMPCOMM
 
     //var lateinit tandemCommunicationManager: TandemCommunicationManager
 
@@ -64,7 +67,7 @@ class TandemPumpConnectionManager @Inject constructor(
     fun connectToPump(): Boolean {
 
         // TODO handle states
-        aapsLogger.debug(LTag.PUMP, "!!!!!! Connect to Pump")
+        aapsLogger.debug(TAG, "!!!!!! Connect to Pump")
         pumpUtil.driverStatus = PumpDriverState.Connecting
         // pumpUtil.sleepSeconds(15)
 
@@ -87,7 +90,7 @@ class TandemPumpConnectionManager @Inject constructor(
         // Thread thread = new Thread() {
         //     public void run() {
         //         println("Thread Running")
-        //         aapsLogger.debug(LTag.PUMP, "!!!!!! Connect to Pump - Thread running")
+        //         aapsLogger.debug(TAG, "!!!!!! Connect to Pump - Thread running")
         //         ypsopumpUtil.driverStatus = PumpDriverState.Connecting
         //         ypsopumpUtil.sleepSeconds(15)
         //         ypsopumpUtil.driverStatus = PumpDriverState.Connected
@@ -139,7 +142,7 @@ class TandemPumpConnectionManager @Inject constructor(
 //
 //             driverStatus = pumpUtil.driverStatus
 //
-//             aapsLogger.debug(LTag.PUMPCOMM, "connectToPump: " + driverStatus.name)
+//             aapsLogger.debug(TAGCOMM, "connectToPump: " + driverStatus.name)
 //
 //             if (driverStatus == PumpDriverState.Ready || driverStatus == PumpDriverState.ErrorCommunicatingWithPump) {
 //                 timeouted = false
@@ -155,7 +158,7 @@ class TandemPumpConnectionManager @Inject constructor(
 // // //        Thread thread = new Thread() {
 // // //            public void run() {
 // //         println("Thread Running")
-// //         aapsLogger.debug(LTag.PUMP, "!!!!!! Connect to Pump - Thread running")
+// //         aapsLogger.debug(TAG, "!!!!!! Connect to Pump - Thread running")
 // //         ypsopumpUtil.driverStatus = PumpDriverState.Connecting
 // //         ypsopumpUtil.sleepSeconds(15)
 // //         ypsopumpUtil.driverStatus = PumpDriverState.Connected
@@ -212,13 +215,13 @@ class TandemPumpConnectionManager @Inject constructor(
         // when (driverStatus) {
         //     PumpDriverState.NotInitialized,
         //     PumpDriverState.Initialized                -> {
-        //         aapsLogger.warn(LTag.PUMPCOMM, "disconnectFromPump. Pump is in weird state ($driverStatus.name), exiting.")
+        //         aapsLogger.warn(TAGCOMM, "disconnectFromPump. Pump is in weird state ($driverStatus.name), exiting.")
         //         return true;
         //     }
         //
         //     PumpDriverState.ErrorCommunicatingWithPump -> {
         //         val errorType = pumpUtil.errorType
-        //         aapsLogger.warn(LTag.PUMPCOMM, "disconnectFromPump. Pump is in error ($errorType.name), exiting.")
+        //         aapsLogger.warn(TAGCOMM, "disconnectFromPump. Pump is in error ($errorType.name), exiting.")
         //         return true;
         //     }
         //
@@ -228,13 +231,13 @@ class TandemPumpConnectionManager @Inject constructor(
         //     PumpDriverState.Busy,
         //     PumpDriverState.Suspended,
         //     PumpDriverState.Connected                  -> {
-        //         aapsLogger.warn(LTag.PUMPCOMM, "disconnectFromPump. Pump seems to be in unallowed state ($driverStatus.name), exiting and setting to Sleep.")
+        //         aapsLogger.warn(TAGCOMM, "disconnectFromPump. Pump seems to be in unallowed state ($driverStatus.name), exiting and setting to Sleep.")
         //         pumpUtil.driverStatus = PumpDriverState.Sleeping
         //         return;
         //     }
         //
         //     PumpDriverState.Disconnecting              -> {
-        //         aapsLogger.warn(LTag.PUMPCOMM, "disconnectFromPump. Pump is already disconnecting, exiting.")
+        //         aapsLogger.warn(TAGCOMM, "disconnectFromPump. Pump is already disconnecting, exiting.")
         //         return true
         //     }
         //
@@ -261,7 +264,7 @@ class TandemPumpConnectionManager @Inject constructor(
         //
         //     driverStatus = pumpUtil.driverStatus
         //
-        //     aapsLogger.debug(LTag.PUMPCOMM, "disconnectFromPump: " + driverStatus.name)
+        //     aapsLogger.debug(TAGCOMM, "disconnectFromPump: " + driverStatus.name)
         //
         //     if (driverStatus == PumpDriverState.Disconnected || driverStatus == PumpDriverState.Sleeping) {
         //         timeouted = false
@@ -278,7 +281,7 @@ class TandemPumpConnectionManager @Inject constructor(
         // //Thread thread = new Thread() {
         // //  public void run() {
         // println("Thread Running")
-        // aapsLogger.debug(LTag.PUMP, "Disconnect from Pump - Thread running")
+        // aapsLogger.debug(TAG, "Disconnect from Pump - Thread running")
         // ypsopumpUtil.driverStatus = PumpDriverState.Disconnecting
         // ypsopumpUtil.sleepSeconds(20)
         // ypsopumpUtil.driverStatus = PumpDriverState.Sleeping
@@ -288,7 +291,7 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     fun deliverBolus(detailedBolusInfo: DetailedBolusInfo?): ResultCommandResponse? {
-        aapsLogger.error(LTag.PUMP, "deliverBolus command is not available!!!")
+        aapsLogger.error(TAG, "deliverBolus command is not available!!!")
         pumpUtil.currentCommand = PumpCommandType.SetBolus
         val commandResponse = selectedConnector.sendBolus(detailedBolusInfo!!) // TODO refactor this not to use AAPS object
         pumpUtil.resetDriverStatusToConnected()
@@ -297,7 +300,7 @@ class TandemPumpConnectionManager @Inject constructor(
 
     // TODO refactor this not to use AAPS object
     fun getTemporaryBasal(): TempBasalPair? {
-        aapsLogger.error(LTag.PUMP, "getTemporaryBasal command is not available!!!")
+        aapsLogger.error(TAG, "getTemporaryBasal command is not available!!!")
         pumpUtil.currentCommand = PumpCommandType.GetTemporaryBasal
         val commandResponse = selectedConnector.retrieveTemporaryBasal() // TODO refactor this not to use AAPS object
         pumpUtil.resetDriverStatusToConnected()
@@ -306,22 +309,22 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     fun setTemporaryBasal(value: Int, duration: Int): ResultCommandResponse? {
-        aapsLogger.error(LTag.PUMP, "setTemporaryBasal command is not available!!!")
+        aapsLogger.error(TAG, "setTemporaryBasal command is not available!!!")
         pumpUtil.currentCommand = PumpCommandType.SetTemporaryBasal
         val commandResponse = selectedConnector.sendTemporaryBasal(value, duration) // TODO refactor this not to use AAPS object
         pumpUtil.resetDriverStatusToConnected()
         return commandResponse
     }
 
-    fun setBasalProfile(profile: Profile?): ResultCommandResponse? {
-        aapsLogger.error(LTag.PUMP, "setBasalProfile command is not available!!!")
+    fun setBasalProfile(profile: Profile?): ResultCommandResponse {
+        aapsLogger.error(TAG, "setBasalProfile command is not available!!!")
         pumpUtil.currentCommand = PumpCommandType.SetBasalProfile
         val commandResponse = selectedConnector.sendBasalProfile(profile!!) // TODO refactor this not to use AAPS object
         pumpUtil.resetDriverStatusToConnected()
         return commandResponse
     }
 
-    fun sendFakeCommand(commandType: PumpCommandType): ResultCommandResponse? {
+    fun sendFakeCommand(commandType: PumpCommandType): ResultCommandResponse {
         pumpUtil.currentCommand = commandType
         pumpUtil.sleepSeconds(10)
         pumpUtil.resetDriverStatusToConnected()
@@ -337,7 +340,7 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     fun getRemainingInsulin(): Double? {
-        //aapsLogger.error(LTag.PUMP, "getRemainingInsulin command is not available!!!")
+        //aapsLogger.error(TAG, "getRemainingInsulin command is not available!!!")
 
         pumpUtil.currentCommand = PumpCommandType.GetRemainingInsulin
         val commandResponse = selectedConnector.retrieveRemainingInsulin()
@@ -351,7 +354,7 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     fun getBatteryLevel(): Int? {
-        //aapsLogger.error(LTag.PUMP, "getBatteryLevel command is not available!!!")
+        //aapsLogger.error(TAG, "getBatteryLevel command is not available!!!")
 
         pumpUtil.currentCommand = PumpCommandType.GetBatteryStatus
         val commandResponse = selectedConnector.retrieveBatteryStatus()
@@ -403,7 +406,7 @@ class TandemPumpConnectionManager @Inject constructor(
         //     }
         //
         // } else {
-        //     aapsLogger.error(LTag.PUMPCOMM, "Problem reading configuration.")
+        //     aapsLogger.error(TAGCOMM, "Problem reading configuration.")
         //     return
         // }
     }
@@ -414,7 +417,7 @@ class TandemPumpConnectionManager @Inject constructor(
     //         null
 
     fun getBasalProfile(): DoubleArray? {
-        aapsLogger.error(LTag.PUMP, "getBasalProfile command is not available!!!")
+        aapsLogger.error(TAG, "getBasalProfile command is not available!!!")
 
         pumpUtil.currentCommand = PumpCommandType.GetBasalProfile
         val commandResponse = selectedConnector.retrieveBasalProfile()
@@ -423,8 +426,8 @@ class TandemPumpConnectionManager @Inject constructor(
         return if (commandResponse.isSuccess()) commandResponse.value else null
     }
 
-    fun getTime(): DateTimeDto? {
-        aapsLogger.error(LTag.PUMP, "getTime command is not available!!!")
+    fun getTime(): PumpTimeDifferenceDto? {
+        aapsLogger.error(TAG, "getTime command is not available!!!")
 
         pumpUtil.currentCommand = PumpCommandType.GetTime
         val commandResponse = selectedConnector.getTime()
@@ -447,10 +450,10 @@ class TandemPumpConnectionManager @Inject constructor(
 
         selectedConnector = baseConnector //new YpsoPumpDummyConnector(ypsopumpUtil, injector, aapsLogger);
         //this.fabricPrivacy = fabricPrivacy
-        disposable.add(rxBus
-                           .toObservable(EventPumpConfigurationChanged::class.java)
-                           .observeOn(Schedulers.io())
-                           .subscribe({ _ -> resetFirmwareVersion() }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) }
-        )
+        // disposable.add(rxBus
+        //                    .toObservable(EventPumpConfigurationChanged::class.java)
+        //                    .observeOn(Schedulers.io())
+        //                    .subscribe({ _ -> resetFirmwareVersion() }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) }
+        // )
     }
 }

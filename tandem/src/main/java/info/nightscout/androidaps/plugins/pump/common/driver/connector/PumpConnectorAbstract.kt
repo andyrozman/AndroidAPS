@@ -10,6 +10,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.p
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.*
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 
 import info.nightscout.shared.logging.AAPSLogger
 
@@ -83,8 +84,8 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
                                          false, "Command not implemented.", null)
     }
 
-    override fun getTime(): DataCommandResponse<DateTimeDto?> {
-        return DataCommandResponse<DateTimeDto?>(
+    override fun getTime(): DataCommandResponse<PumpTimeDifferenceDto?> {
+        return DataCommandResponse<PumpTimeDifferenceDto?>(
             PumpCommandType.GetTime, false, "Command not implemented.", null)
     }
 

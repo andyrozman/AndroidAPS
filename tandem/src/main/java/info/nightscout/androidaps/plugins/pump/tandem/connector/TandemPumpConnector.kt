@@ -8,7 +8,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
-import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
@@ -54,6 +54,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     var btAddressUsed: String? = null
     var tandemPumpApiVersion: TandemPumpApiVersion = TandemPumpApiVersion.VERSION_2_1
 
+    var TAG = LTag.PUMPCOMM
+
     // TODO Better Error response handling
 
     fun getCommunicationManager(): TandemCommunicationManager {
@@ -63,6 +65,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     override fun connectToPump(): Boolean {
         var newBtAddress = sp.getStringOrNull(TandemPumpConst.Prefs.PumpAddress, null)
+
+        aapsLogger.info(TAG, "TANDEMDBG: connectToPump with ${newBtAddress}")
 
         if (!btAddressUsed.isNullOrEmpty()) {
             if (btAddressUsed.equals(newBtAddress)) {
@@ -92,6 +96,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     override fun disconnectFromPump(): Boolean {
+        aapsLogger.info(TAG, "TANDEMDBG: disconnectFromPump")
+
         getCommunicationManager().disconnect()
         return true
     }
@@ -99,6 +105,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     override fun retrieveFirmwareVersion(): DataCommandResponse<FirmwareVersionInterface?> {
         val version = sp.getStringOrNull(TandemPumpConst.Prefs.PumpApiVersion, null)
+
+        aapsLogger.info(TAG, "TANDEMDBG: retrieveFirmwareVersion ${version}")
 
         if (version!=null) {
             this.tandemPumpApiVersion = TandemPumpApiVersion.valueOf(version)
@@ -248,8 +256,77 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     override fun retrieveBasalProfile(): DataCommandResponse<DoubleArray?> {
         // TODO Connector: retrieveBasalProfile
+        //return super.retrieveBasalProfile()
+
+        // 1. get ProfileStatusRequest, read idpslot0 value
+        // 2. get IDPSettingsRequest(with that value)
+        // 3. read all segments
+
+        var responseMessage: Message? = getCommunicationManager().sendCommand(ProfileStatusRequest())
+
+        var responseText = checkResponse(responseMessage, "ProfileStatusRequest")
+
+        if (responseText!=null) {
+            return DataCommandResponse<DoubleArray?>(PumpCommandType.SetBasalProfile, false, responseText, null)
+        }
+
+        val profileStatusResponse = responseMessage as ProfileStatusResponse
+
+        val idpId = profileStatusResponse.idpSlot0Id
+
+        responseMessage = getCommunicationManager().sendCommand(IDPSettingsRequest(idpId))
+
+        responseText = checkResponse(responseMessage, "ProfileStatusRequest")
+
+        if (responseText!=null) {
+            return DataCommandResponse<DoubleArray?>(PumpCommandType.SetBasalProfile, false, responseText, null)
+        }
+
+        val settings = responseMessage as IDPSettingsResponse
+        for (i in 1..settings.numberOfProfileSegments) {
+            //queue(IDPSegmentRequest(settings.idpId, i))
+        }
+
+        // TODO
+
+        // if (responseMessage!=null && responseMessage is ProfileStatusResponse) {
+        //     aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData for ${commandType}  - Request message: ${requestMessage.javaClass.name}")
+        // } else {
+        //     var ressponseText = if (responseMessage==null) {
+        //         "Response was null (timeout or some other problem), when getting ProfileStatusRequest"
+        //     } else {
+        //         var errorResponse: ErrorResponse = responseMessage as ErrorResponse
+        //         "Received Error Response: ${errorResponse.errorCode.name} on ProfileStatusRequest."
+        //     }
+        //     aapsLogger.info(TAG, "TANDEMDBG: ${ressponseText}")
+        //
+        //     return DataCommandResponse<DoubleArray?>(PumpCommandType.SetBasalProfile, false, ressponseText, null)
+        //
+        // }
+
+
         return super.retrieveBasalProfile()
+
+
     }
+
+    private fun checkResponse(responseMessage: Message?, description: String): String? {
+        return if (responseMessage==null || responseMessage is ErrorResponse) {
+            val ressponseText = if (responseMessage==null) {
+                "Response was null (timeout or some other problem), when getting ${description}"
+            } else {
+                val errorResponse: ErrorResponse = responseMessage as ErrorResponse
+                "Received Error Response: ${errorResponse.errorCode.name} on ${description}."
+            }
+            aapsLogger.info(TAG, "TANDEMDBG: ${ressponseText}")
+
+            ressponseText
+        } else {
+            null
+        }
+    }
+
+
 
     override fun sendBasalProfile(profile: Profile): ResultCommandResponse {
         // TODO Connector: sendBasalProfile
@@ -261,10 +338,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         return super.cancelBolus()
     }
 
-    override fun getTime(): DataCommandResponse<DateTimeDto?> {
+    override fun getTime(): DataCommandResponse<PumpTimeDifferenceDto?> {
         return DataCommandResponse(
-            PumpCommandType.GetTime, true, null, DateTimeDto(GregorianCalendar())
-        )
+            PumpCommandType.GetTime, true, null, pumpStatus.pumpTime)
     }
 
     override fun setTime(): ResultCommandResponse {
@@ -285,10 +361,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                                                 InsulinStatusRequest())
         {  rawContent -> tandemDataConverter.getInsulinStatus(rawContent as InsulinStatusResponse) }
 
-        if (responseData.isSuccess) {
-            pumpStatus.reservoirRemainingUnits = responseData.value!!
-        }
-
         return responseData
     }
 
@@ -299,7 +371,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                                            decode: (responseMessage: Message) -> T
     ): T {
 
+        aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData for ${commandType}  - Request message: ${requestMessage.javaClass.name}")
+
         val responseMessage: Message? = getCommunicationManager().sendCommand(requestMessage)
+
+        aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData: Response: ${responseMessage}")
 
         return if (responseMessage==null) {
             DataCommandResponse(
@@ -309,6 +385,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                 commandType, false, "Error communicating with pump. Error: ${responseMessage.errorCode.name}", null) as T
         } else {
             val response = decode(responseMessage)
+
+            aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData: decoded Response: ${response}")
+
             response
         }
     }

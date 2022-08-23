@@ -77,6 +77,7 @@ dependencies {
     api "com.jwoglom.pumpx2:pumpx2-messages:$jwoglom_pumpx2_version"
     api "com.jwoglom.pumpx2:pumpx2-shared:$jwoglom_pumpx2_version"
     implementation 'com.github.weliem:blessed-android:2.2.0'
+    implementation 'com.jakewharton.timber:timber:5.0.1'
 
     // Not sure if this is still needed
     api "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"

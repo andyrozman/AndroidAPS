@@ -9,6 +9,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.p
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.*
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 
 interface PumpConnectorInterface {
 
@@ -31,7 +32,7 @@ interface PumpConnectorInterface {
     fun retrieveRemainingInsulin(): DataCommandResponse<Double?>
     fun retrieveBatteryStatus(): DataCommandResponse<Int?>
 
-    fun getTime(): DataCommandResponse<DateTimeDto?>
+    fun getTime(): DataCommandResponse<PumpTimeDifferenceDto?>
     fun setTime(): ResultCommandResponse?
 
     fun getPumpHistory(): DataCommandResponse<List<Any>?>

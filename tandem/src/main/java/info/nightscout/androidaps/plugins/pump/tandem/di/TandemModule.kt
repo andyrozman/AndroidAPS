@@ -3,6 +3,7 @@ package info.nightscout.androidaps.dependencyInjection
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import info.nightscout.androidaps.plugins.pump.tandem.TandemPumpFragment
+import info.nightscout.androidaps.plugins.pump.tandem.comm.AAPSTimberTree
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemCommunicationManager
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemPairingManager
@@ -44,5 +45,8 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributesTandemBLESelector(): TandemBLESelector
     @ContributesAndroidInjector abstract fun contributesTandemHistoryDataProvider(): TandemHistoryDataProvider
     @ContributesAndroidInjector abstract fun contributesTandemPumpDriverConfiguration(): TandemPumpDriverConfiguration
+
+    // pumpX2 library
+    //@ContributesAndroidInjector abstract fun contributesAAPSTimberTree(): AAPSTimberTree
 
 }

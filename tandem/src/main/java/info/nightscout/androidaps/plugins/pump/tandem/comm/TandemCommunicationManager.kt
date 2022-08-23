@@ -43,8 +43,12 @@ class TandemCommunicationManager constructor(
 
     var bluetoothHandler: TandemBluetoothHandler? = null
 
+    var TAG = LTag.PUMPBTCOMM
+
 
     fun connect(): Boolean {
+        aapsLogger.info(TAG, "TANDEMDBG: connect() ")
+
         if (bluetoothHandler==null) {
             createBluetoothHandler()
         }
@@ -67,6 +71,8 @@ class TandemCommunicationManager constructor(
 
 
     fun disconnect() {
+        aapsLogger.info(TAG, "TANDEMDBG: disconnect ")
+
         if (bluetoothHandler!=null) {
             bluetoothHandler!!.stop()
         }
@@ -79,13 +85,17 @@ class TandemCommunicationManager constructor(
         if (bluetoothHandler != null) {
             return bluetoothHandler
         }
-
+        aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler ")
         bluetoothHandler = TandemBluetoothHandler.getInstance(context, this)
+        aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler ${bluetoothHandler}")
+
         return bluetoothHandler
     }
 
 
     override fun onInitialPumpConnection(peripheral: BluetoothPeripheral)  {
+        aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler ")
+
         this.peripheral = peripheral
         super.onInitialPumpConnection(peripheral)
     }
@@ -95,7 +105,7 @@ class TandemCommunicationManager constructor(
         this.commandRequestModeRunning = true
         this.commandRequest = request
 
-        aapsLogger.info(LTag.PUMPCOMM, "Sending Request: ${request.opCode()} - ${request.javaClass.name} ")
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: Sending Request: ${request.opCode()} - ${request.javaClass.name} ")
 
         sendCommand(peripheral, request)
 
@@ -114,7 +124,7 @@ class TandemCommunicationManager constructor(
 
 
     override fun onReceiveMessage(peripheral: BluetoothPeripheral, message: Message) {
-        aapsLogger.info(LTag.PUMPCOMM, "Received Response: ${message.opCode()} - ${message.javaClass.name} ")
+        aapsLogger.info(LTag.PUMPBTCOMM, "TANDEMDBG: Received Response: ${message.opCode()} - ${message.javaClass.name} ")
 
         if (inConnectMode)  {
 
@@ -151,7 +161,11 @@ class TandemCommunicationManager constructor(
 
 
     override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: CentralChallengeResponse?) {
+        aapsLogger.info(TAG, "TANDEMDBG: onWaitingForPairingCode ")
+
         val pairingCode = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
+
+        aapsLogger.info(TAG, "TANDEMDBG: onWaitingForPairingCode. Pairing Code: ${pairingCode} ")
 
         if (pairingCode.isNullOrBlank()) {
             aapsLogger.error(LTag.PUMPCOMM, "TandemPump: onWaitingForPairingCode. It seems you Pairing code was not saved.")
@@ -164,7 +178,7 @@ class TandemCommunicationManager constructor(
 
 
     override fun onInvalidPairingCode(peripheral: BluetoothPeripheral?, resp: PumpChallengeResponse?) {
-        aapsLogger.error(LTag.PUMPCOMM, "onInvalidPairingCode() - PairingCode seems to be no longer valid.")
+        aapsLogger.error(TAG, "TANDEMDBG: onInvalidPairingCode() - PairingCode seems to be no longer valid.")
         sendInvalidPairingCodeError()
     }
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.DialogInterface
 import android.os.SystemClock
 import androidx.preference.Preference
+import com.jwoglom.pumpx2.util.timber.DebugTree
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.data.PumpEnactResult
@@ -34,12 +35,14 @@ import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.pump.common.defs.*
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
+import info.nightscout.androidaps.plugins.pump.tandem.comm.AAPSTimberTree
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemStatusRefreshType
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
 import org.joda.time.DateTime
+import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -67,7 +70,6 @@ class TandemPumpPlugin @Inject constructor(
     aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
     pumpSyncStorage: PumpSyncStorage,
-
     var pumpDriverConfiguration: TandemPumpDriverConfiguration
 ) : PumpPluginAbstract(
     PluginDescription() //
@@ -93,6 +95,7 @@ class TandemPumpPlugin @Inject constructor(
     private var driverInitialized = false
     private var pumpAddress: String = ""
     private var pumpBonded: Boolean = false
+    private var aapsTimberTree = AAPSTimberTree(aapsLogger)
 
     override fun onStart() {
         aapsLogger.debug(LTag.PUMP, model().model + " started.")
@@ -137,6 +140,8 @@ class TandemPumpPlugin @Inject constructor(
 
     override fun onStartScheduledPumpActions() {
 
+        Timber.plant(aapsTimberTree)
+
         // disposable.add(rxBus
         //                    .toObservable(EventPreferenceChange::class.java)
         //                    .observeOn(aapsSchedulers.io)
@@ -147,7 +152,6 @@ class TandemPumpPlugin @Inject constructor(
         //                                   }
         //                               }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
 
-        rxBus.send(EventPumpConnectionParametersChanged())
 
 
         disposable.add(rxBus
@@ -156,6 +160,9 @@ class TandemPumpPlugin @Inject constructor(
                            .subscribe({ _ ->
                                           checkInitializationState()
                                       }) { throwable: Throwable? -> fabricPrivacy.logException(throwable!!) })
+
+        rxBus.send(EventPumpConnectionParametersChanged())
+
 
         // TODO fix me repetable start with RxJava
 //        Observable c = Observable.fromCallable(() -> {
@@ -618,7 +625,7 @@ class TandemPumpPlugin @Inject constructor(
 
             if (clock != null) {
                 // TODO check if this works, migneed to use LocalDateTime...
-                pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), clock.toLocalDateTime())
+                //pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), clock.toLocalDateTime())
                 val diff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
 
                 if (diff > 60) {
