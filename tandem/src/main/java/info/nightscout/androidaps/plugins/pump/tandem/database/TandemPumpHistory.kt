@@ -2,10 +2,10 @@ package info.nightscout.androidaps.plugins.pump.tandem.database
 
 import com.google.gson.Gson
 import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.plugins.pump.tandem.data.*
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.DateTimeChanged
+import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogDto
 
-import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpEventType
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpHistoryType
 
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
@@ -14,7 +14,6 @@ import info.nightscout.shared.logging.LTag
 import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
 import java.util.*
-import javax.inject.Inject
 
 // TODO refactor this for Tandem
 class TandemPumpHistory /*@Inject*/ constructor(
@@ -36,16 +35,18 @@ class TandemPumpHistory /*@Inject*/ constructor(
 
     fun createRecord(
         serial: Long,
-        pumpEventType: TandemPumpEventType,
+        historyType: TandemPumpHistoryType,
+        historyTypeIndex: Int,
         sequenceNum: Long,
         dateTimeMillis: Long,
-        tempBasalRecord: TemporaryBasal?,
-        bolusRecord: Bolus?,
-        tdiRecord: TotalDailyInsulin?,
-        basalProfileRecord: BasalProfile?,
-        alarmRecord: Alarm?,
-        configRecord: ConfigurationChanged?,
-        pumpStatusRecord: PumpStatusChanged?,
+        payload: String,
+        // tempBasalRecord: TemporaryBasal?,
+        // bolusRecord: Bolus?,
+        // tdiRecord: TotalDailyInsulin?,
+        // basalProfileRecord: BasalProfile?,
+        // alarmRecord: Alarm?,
+        // configRecord: ConfigurationChanged?,
+        // pumpStatusRecord: PumpStatusChanged?,
         dateTimeRecord: DateTimeChanged?
     ): Single<Long> {
 
@@ -65,18 +66,20 @@ class TandemPumpHistory /*@Inject*/ constructor(
             HistoryRecordEntity(
                 id = sequenceNum,
                 serial = serial,
-                pumpEventType = pumpEventType,
+                historyType = historyType,
+                historyTypeIndex = historyTypeIndex,
                 sequenceNum = sequenceNum,
                 dateTimeMillis = dateTimeMillis,
+                payload = payload,
                 createdAt = currentTimeMillis(),
                 updatedAt = currentTimeMillis(),
-                temporaryBasalRecord = tempBasalRecord,
-                bolusRecord = bolusRecord,
-                tddRecord = tdiRecord,
-                basalProfileRecord = basalProfileRecord,
-                alarmRecord = alarmRecord,
-                configRecord = configRecord,
-                pumpStatusRecord = pumpStatusRecord,
+                // temporaryBasalRecord = tempBasalRecord,
+                // bolusRecord = bolusRecord,
+                // tddRecord = tdiRecord,
+                // basalProfileRecord = basalProfileRecord,
+                // alarmRecord = alarmRecord,
+                // configRecord = configRecord,
+                // pumpStatusRecord = pumpStatusRecord,
                 dateTimeRecord = dateTimeRecord
             )
         ).toSingle { id }
@@ -93,9 +96,9 @@ class TandemPumpHistory /*@Inject*/ constructor(
     //     return pumpHistoryDao.save(entity).toSingle { entity.id }
     // }
 
-    fun getRecords(): Single<List<EventDto>> =
-        pumpHistoryDao.all().map { list -> listOf<EventDto>()
-            //list.map(historyMapper::entityToDomain)
+    fun getRecords(): Single<List<HistoryLogDto>> =
+        pumpHistoryDao.all().map { list -> listOf<HistoryLogDto>()
+                list.map(historyMapper::entityToDomain)
              }
 
     fun getRecordsAfter(time: Long): Single<List<HistoryRecordEntity>> = pumpHistoryDao.allSince(time)
@@ -117,7 +120,7 @@ class TandemPumpHistory /*@Inject*/ constructor(
         return pumpHistoryDao.allSince(atdTime).blockingGet()
     }
 
-    fun insertOrUpdate(event: EventDto): HistoryRecordEntity? {
+    fun insertOrUpdate(event: HistoryLogDto): HistoryRecordEntity? {
         // aapsLogger.debug(LTag.PUMP, prefix + "EventDto to convert = ${gson.toJson(event)}")
         // val entity = historyMapper.domainToEntity(event)
         // var returnEntity: HistoryRecordEntity? = null
@@ -183,26 +186,26 @@ class TandemPumpHistory /*@Inject*/ constructor(
         // var sequenceNum: Long,
         // var dateTimeMillis: Long,
 
-        if (!Objects.equals(dbEntity.bolusRecord, newEntity.bolusRecord))
-            dbEntity.bolusRecord = newEntity.bolusRecord
-
-        if (!Objects.equals(dbEntity.temporaryBasalRecord, newEntity.temporaryBasalRecord))
-            dbEntity.temporaryBasalRecord = newEntity.temporaryBasalRecord
-
-        if (!Objects.equals(dbEntity.tddRecord, newEntity.tddRecord))
-            dbEntity.tddRecord = newEntity.tddRecord
-
-        if (!Objects.equals(dbEntity.basalProfileRecord, newEntity.basalProfileRecord))
-            dbEntity.basalProfileRecord = newEntity.basalProfileRecord
-
-        if (!Objects.equals(dbEntity.alarmRecord, newEntity.alarmRecord))
-            dbEntity.alarmRecord = newEntity.alarmRecord
-
-        if (!Objects.equals(dbEntity.configRecord, newEntity.configRecord))
-            dbEntity.configRecord = newEntity.configRecord
-
-        if (!Objects.equals(dbEntity.pumpStatusRecord, newEntity.pumpStatusRecord))
-            dbEntity.pumpStatusRecord = newEntity.pumpStatusRecord
+        // if (!Objects.equals(dbEntity.bolusRecord, newEntity.bolusRecord))
+        //     dbEntity.bolusRecord = newEntity.bolusRecord
+        //
+        // if (!Objects.equals(dbEntity.temporaryBasalRecord, newEntity.temporaryBasalRecord))
+        //     dbEntity.temporaryBasalRecord = newEntity.temporaryBasalRecord
+        //
+        // if (!Objects.equals(dbEntity.tddRecord, newEntity.tddRecord))
+        //     dbEntity.tddRecord = newEntity.tddRecord
+        //
+        // if (!Objects.equals(dbEntity.basalProfileRecord, newEntity.basalProfileRecord))
+        //     dbEntity.basalProfileRecord = newEntity.basalProfileRecord
+        //
+        // if (!Objects.equals(dbEntity.alarmRecord, newEntity.alarmRecord))
+        //     dbEntity.alarmRecord = newEntity.alarmRecord
+        //
+        // if (!Objects.equals(dbEntity.configRecord, newEntity.configRecord))
+        //     dbEntity.configRecord = newEntity.configRecord
+        //
+        // if (!Objects.equals(dbEntity.pumpStatusRecord, newEntity.pumpStatusRecord))
+        //     dbEntity.pumpStatusRecord = newEntity.pumpStatusRecord
 
         if (!Objects.equals(dbEntity.dateTimeRecord, newEntity.dateTimeRecord))
             dbEntity.dateTimeRecord = newEntity.dateTimeRecord
@@ -222,26 +225,26 @@ class TandemPumpHistory /*@Inject*/ constructor(
         //     entity1.date != entity2.date)
         //     return true
 
-        if (!Objects.equals(entity1.bolusRecord, entity2.bolusRecord) ||
-            !Objects.equals(entity1.temporaryBasalRecord, entity2.temporaryBasalRecord) ||
-            !Objects.equals(entity1.tddRecord, entity2.tddRecord) ||
-            !Objects.equals(entity1.basalProfileRecord, entity2.basalProfileRecord) ||
-            !Objects.equals(entity1.alarmRecord, entity2.alarmRecord) ||
-            !Objects.equals(entity1.configRecord, entity2.configRecord) ||
-            !Objects.equals(entity1.pumpStatusRecord, entity2.pumpStatusRecord) ||
-            !Objects.equals(entity1.dateTimeRecord, entity2.dateTimeRecord))
-            return true
+        // if (!Objects.equals(entity1.bolusRecord, entity2.bolusRecord) ||
+        //     !Objects.equals(entity1.temporaryBasalRecord, entity2.temporaryBasalRecord) ||
+        //     !Objects.equals(entity1.tddRecord, entity2.tddRecord) ||
+        //     !Objects.equals(entity1.basalProfileRecord, entity2.basalProfileRecord) ||
+        //     !Objects.equals(entity1.alarmRecord, entity2.alarmRecord) ||
+        //     !Objects.equals(entity1.configRecord, entity2.configRecord) ||
+        //     !Objects.equals(entity1.pumpStatusRecord, entity2.pumpStatusRecord) ||
+        //     !Objects.equals(entity1.dateTimeRecord, entity2.dateTimeRecord))
+        //     return true
 
         return false
 
     }
 
-    fun getLatestHistoryEntry(serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity? {
-        return pumpHistoryDao.getLatestHistoryEntry(serialNumber, entryType)
-    }
+    // fun getLatestHistoryEntry(serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity? {
+    //     return pumpHistoryDao.getLatestHistoryEntry(serialNumber, entryType)
+    // }
 
-    fun getLatestDeliveryStatusChangedEntry(): HistoryRecordEntity? {
-        return pumpHistoryDao.getLatestDeliveryStatusChanged(pumpStatus.serialNumber!!)
-    }
+    // fun getLatestDeliveryStatusChangedEntry(): HistoryRecordEntity? {
+    //     return pumpHistoryDao.getLatestDeliveryStatusChanged(pumpStatus.serialNumber!!)
+    // }
 
 }

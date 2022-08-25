@@ -9,10 +9,11 @@ import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
+import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.DateTimeChanged
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogDto
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogObject
-import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpEventType
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpHistoryType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
@@ -228,10 +229,12 @@ class TandemDataConverter @Inject constructor(
     fun createHistoryLogDto(historyLogPump: HistoryLog) : HistoryLogDto {
         return HistoryLogDto(id= null,
                              serial = pumpStatus.serialNumber,
-                             pumpEventType = TandemPumpEventType.getByCode(historyLogPump.typeId()),
-                             dateTimeInMillis = historyLogPump.pumpTimeSecInstant.toEpochMilli(),
+                             historyTypeIndex = historyLogPump.typeId(),
+                             historyType = TandemPumpHistoryType.getByCode(historyLogPump.typeId()),
+                             dateTimeMillis = historyLogPump.pumpTimeSecInstant.toEpochMilli(),
                              sequenceNum = historyLogPump.sequenceNum,
-                             subObject = null);
+                             payload = ByteUtil.getCompactString(historyLogPump.cargo),
+                             subObject = null)
     }
 
 

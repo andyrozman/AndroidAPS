@@ -1,7 +1,9 @@
 package info.nightscout.androidaps.plugins.pump.tandem.database
 
 import info.nightscout.androidaps.plugins.pump.tandem.data.*
+import info.nightscout.androidaps.plugins.pump.tandem.data.history.DateTimeChanged
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogDto
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpHistoryType
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
@@ -11,45 +13,40 @@ import javax.inject.Inject
 
 class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var aapsLogger: AAPSLogger) {
 
-    fun domainToEntity(logDto: HistoryLogDto): HistoryRecordEntity? {
-        // TODO implement domainToEntity
-        return null
-    }
+    fun domainToEntity(logDto: HistoryLogDto): HistoryRecordEntity {
 
-    fun entityToDomain(entity: HistoryRecordEntity): HistoryLogDto? {
-        // TODO implement entityToDomain
-        return null
-    }
+        aapsLogger.debug(LTag.PUMP, "HistoryLogDto before entity: \n${tandemPumpUtil.gson.toJson(logDto)}")
 
+        val historyRecordEntity = HistoryRecordEntity(
+            id = if (logDto.id == null) logDto.sequenceNum else logDto.id!!,
+            serial = logDto.serial,
+            historyTypeIndex = logDto.historyTypeIndex,
+            historyType = logDto.historyType,
+            sequenceNum = logDto.sequenceNum,
+            dateTimeMillis = logDto.dateTimeMillis,
+            payload = logDto.payload,
 
-    fun domainToEntity(eventDto: EventDto): HistoryRecordEntity? {
+            // temporaryBasalRecord = null,
+            // bolusRecord = null,
+            // tddRecord = null,
+            // basalProfileRecord = null,
+            // alarmRecord = null,
+            // configRecord = null,
+            // pumpStatusRecord = null,
 
-        // // TODO fix this
-        // aapsLogger.debug(LTag.PUMP, "EventDto before entity: \n${tandemPumpUtil.gson.toJson(eventDto)}")
-        //
-        // val historyRecordEntity = HistoryRecordEntity(
-        //     //id = if (eventDto.id == null) eventDto.eventSequenceNumber.toLong() else eventDto.id!!,
-        //     serial = eventDto.serial,
-        //     // historyRecordType = eventDto.historyEntryType,
-        //     // date = eventDto.dateTime.toATechDate(),
-        //     // entryType = eventDto.entryType,
-        //     // entryTypeAsInt = eventDto.entryTypeAsInt,
-        //     // value1 = eventDto.value1,
-        //     // value2 = eventDto.value2,
-        //     // value3 = eventDto.value3,
-        //     // eventSequenceNumber = eventDto.eventSequenceNumber,
-        //     temporaryBasalRecord = null,
-        //     bolusRecord = null,
-        //     tddRecord = null,
-        //     basalProfileRecord = null,
-        //     alarmRecord = null,
-        //     configRecord = null,
-        //     pumpStatusRecord = null,
-        //     dateTimeRecord = null,
-        //     createdAt = if (eventDto.created == null) System.currentTimeMillis() else eventDto.created!!,
-        //     updatedAt = if (eventDto.updated == null) System.currentTimeMillis() else eventDto.updated!!
-        // )
-        //
+            dateTimeRecord = null,
+
+            createdAt = logDto.created,
+            updatedAt = logDto.updated
+        )
+
+        if (logDto.subObject!=null) {
+            when (logDto.subObject) {
+                is DateTimeChanged -> historyRecordEntity.dateTimeRecord = logDto.subObject as DateTimeChanged
+                else -> aapsLogger.warn(LTag.PUMP, "Unknown subObject: ${logDto.subObject!!.javaClass.name}")
+            }
+        }
+
         // if (eventDto.subObject is Bolus) {
         //     historyRecordEntity.bolusRecord = eventDto.subObject as Bolus
         // } else if (eventDto.subObject is TemporaryBasal) {
@@ -72,29 +69,29 @@ class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var 
         //     historyRecordEntity.temporaryBasalRecord = eventDto.subObject2 as TemporaryBasal
         // }
 
-        return null //historyRecordEntity;
+        //     return null //historyRecordEntity;
+
+
+
+        // TODO implement domainToEntity
+        return historyRecordEntity
     }
 
-    // fun entityToDomain(entity: HistoryRecordEntity): EventDto? {
-    //     return null
+    fun entityToDomain(entity: HistoryRecordEntity): HistoryLogDto {
 
-        // TODO fix this
-        // val eventDto = EventDto(
-        //     //id = entity.id,
-        //     serial = entity.serial,
-        //     // historyEntryType = entity.historyRecordType,
-        //     // dateTime = tandemPumpUtil.toDateTimeDto(entity.date),
-        //     // entryType = entity.entryType,
-        //     // entryTypeAsInt = entity.entryTypeAsInt,
-        //     // value1 = entity.value1,
-        //     // value2 = entity.value2,
-        //     // value3 = entity.value3,
-        //     // eventSequenceNumber = entity.eventSequenceNumber,
-        //     subObject = null,
-        //     subObject2 = null,
-        //     created = entity.createdAt,
-        //     updated = entity.updatedAt
-        // )
+        val historyLogDto = HistoryLogDto(
+            id = entity.id,
+            serial = entity.serial,
+            historyTypeIndex = entity.historyTypeIndex,
+            historyType = entity.historyType,
+            sequenceNum = entity.sequenceNum,
+            dateTimeMillis = entity.dateTimeMillis,
+            payload = entity.payload,
+            subObject = null,
+            created = entity.createdAt,
+            updated = entity.updatedAt
+        )
+
         //
         // // TODO include subObject2 - done, not tested
         //
@@ -120,7 +117,10 @@ class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var 
         //     //eventDto.subObject = entity.dateTimeRecord
         // }
         //
-        // return eventDto;
-//    }
+
+        // TODO extend with new subObject's
+        return historyLogDto
+    }
+
 
 }

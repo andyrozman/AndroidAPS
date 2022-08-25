@@ -2,7 +2,7 @@ package info.nightscout.androidaps.plugins.pump.tandem.defs
 
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
 
-enum class TandemPumpEventType(val code: Int, val group: PumpHistoryEntryGroup, val resourceId: Int? = null) {
+enum class TandemPumpHistoryType(val code: Int, val group: PumpHistoryEntryGroup, val resourceId: Int? = null) {
 
     UNDEFINED(-1, PumpHistoryEntryGroup.Unknown),
 
@@ -97,10 +97,10 @@ enum class TandemPumpEventType(val code: Int, val group: PumpHistoryEntryGroup, 
 
     companion object {
 
-        private var mapByEventId: MutableMap<Int, TandemPumpEventType> = mutableMapOf()
+        private var mapByEventId: MutableMap<Int, TandemPumpHistoryType> = mutableMapOf()
 
         @JvmStatic
-        fun getByCode(code: Int): TandemPumpEventType {
+        fun getByCode(code: Int): TandemPumpHistoryType {
             return if (mapByEventId.containsKey(code)) {
                 mapByEventId[code]!!
             } else {

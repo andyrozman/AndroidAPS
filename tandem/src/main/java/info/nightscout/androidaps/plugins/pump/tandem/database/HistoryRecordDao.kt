@@ -1,7 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.tandem.database
 
 import androidx.room.*
-import info.nightscout.androidaps.plugins.pump.tandem.data.HistoryEntryType
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 
@@ -13,13 +12,13 @@ abstract class HistoryRecordDao {
     @Query("SELECT * from history_records")
     abstract fun all(): Single<List<HistoryRecordEntity>>
 
-    @Query("SELECT * from history_records order by eventSequenceNumber desc")
+    @Query("SELECT * from history_records order by sequenceNum desc")
     abstract fun allBlocking(): List<HistoryRecordEntity>
 
-    @Query("SELECT * from history_records WHERE date >= :since")
+    @Query("SELECT * from history_records WHERE dateTimeMillis >= :since")
     abstract fun allSince(since: Long): Single<List<HistoryRecordEntity>>
 
-    @Query("SELECT * from history_records WHERE date >= :since order by eventSequenceNumber desc")
+    @Query("SELECT * from history_records WHERE dateTimeMillis >= :since order by sequenceNum desc")
     abstract fun allSinceBlocking(since: Long): List<HistoryRecordEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -40,19 +39,19 @@ abstract class HistoryRecordDao {
     @Delete
     abstract fun delete(historyRecordEntity: HistoryRecordEntity): Completable
 
-    @Query(
-        "SELECT * from history_records where serial = :serialNumber and historyRecordType= :entryType " +
-            " and id= (select max(id) from history_records where serial = :serialNumber " +
-            " and historyRecordType= :entryType) "
-    )
-    abstract fun getLatestHistoryEntry(serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity?
+    // @Query(
+    //     "SELECT * from history_records where serial = :serialNumber and historyRecordType= :entryType " +
+    //         " and id= (select max(id) from history_records where serial = :serialNumber " +
+    //         " and historyRecordType= :entryType) "
+    // )
+    // abstract fun getLatestHistoryEntry(serialNumber: Long, entryType: HistoryEntryType): HistoryRecordEntity?
 
-    @Query(
-        "SELECT * from history_records where serial = :serialNumber and historyRecordType='Event' " +
-        " and id= ( select max(id) from history_records where serial = :serialNumber " +
-        "           and historyRecordType='Event' " +
-        "           and (entryType='PUMP_MODE_CHANGED' or entryType='DELIVERY_STATUS_CHANGED')) ")
-    abstract fun getLatestDeliveryStatusChanged(serialNumber: Long): HistoryRecordEntity?
+    // @Query(
+    //     "SELECT * from history_records where serial = :serialNumber and historyRecordType='Event' " +
+    //     " and id= ( select max(id) from history_records where serial = :serialNumber " +
+    //     "           and historyRecordType='Event' " +
+    //     "           and (entryType='PUMP_MODE_CHANGED' or entryType='DELIVERY_STATUS_CHANGED')) ")
+    // abstract fun getLatestDeliveryStatusChanged(serialNumber: Long): HistoryRecordEntity?
 
     //PUMP_MODE_CHANGED, DELIVERY_STATUS_CHANGED
 

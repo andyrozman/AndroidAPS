@@ -125,9 +125,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         val map:  MutableMap<String,String> = mutableMapOf()
 
         try {
-            addToSettings(map, getCommunicationManager().sendCommand(getCorrectRequest(TandemCommandType.ControlIQInfo)))
-            addToSettings(map, getCommunicationManager().sendCommand(BasalLimitSettingsRequest()))
-            addToSettings(map, getCommunicationManager().sendCommand(GlobalMaxBolusSettingsRequest()))
+            addToSettings(TandemPumpSettingType.CONTROL_IQ_ENABLED, map, getCommunicationManager().sendCommand(getCorrectRequest(TandemCommandType.ControlIQInfo)))
+            addToSettings(TandemPumpSettingType.BASAL_LIMIT, map, getCommunicationManager().sendCommand(BasalLimitSettingsRequest()))
+            addToSettings(TandemPumpSettingType.MAX_BOLUS, map, getCommunicationManager().sendCommand(GlobalMaxBolusSettingsRequest()))
 
             return DataCommandResponse(
                 PumpCommandType.GetSettings, true, null, map
@@ -138,27 +138,26 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         }
     }
 
-    private fun addToSettings(settingsMap: MutableMap<String,String>, message: Message?) {
+
+    private fun addToSettings(settingType: TandemPumpSettingType, settingsMap: MutableMap<String,String>, message: Message?) {
 
         // TODO add to Settings
 
         when(message) {
-            is ControlIQInfoV1Response -> {  settingsMap.put(TandemPumpSettingType.CONTROL_IQ_ENABLED.name, message.closedLoopEnabled.toString()) }
-            is ControlIQInfoV2Response -> {  settingsMap.put(TandemPumpSettingType.CONTROL_IQ_ENABLED.name, message.closedLoopEnabled.toString()) }
-            is BasalLimitSettingsResponse -> {  settingsMap.put(TandemPumpSettingType.BASAL_LIMIT.name, message.basalLimit.toString())  }
-            is GlobalMaxBolusSettingsResponse -> {  settingsMap.put(TandemPumpSettingType.MAX_BOLUS.name, message.maxBolus.toString()) }
+            is ControlIQInfoV1Response -> {  settingsMap.put(settingType.name, message.closedLoopEnabled.toString()) }
+            is ControlIQInfoV2Response -> {  settingsMap.put(settingType.name, message.closedLoopEnabled.toString()) }
+            is BasalLimitSettingsResponse -> {  settingsMap.put(settingType.name, message.basalLimit.toString())  }
+            is GlobalMaxBolusSettingsResponse -> {  settingsMap.put(settingType.name, message.maxBolus.toString()) }
             is ErrorResponse -> {
                 aapsLogger.error(LTag.PUMPBTCOMM, "Problem with packets from Tandem: requestedCodeId=${message.requestCodeId}, errorCode: ${message.errorCode}")
                 throw Exception("Problem with packets from Tandem: requestedCodeId=${message.requestCodeId}, errorCode: ${message.errorCode}")
             }
             null -> {
-
+                aapsLogger.error(LTag.PUMPBTCOMM, "Received null response from Tandem for ${settingType.name}")
+                throw Exception("Received null response from Tandem for ${settingType.name}")
             }
         }
     }
-
-
-
 
 
     override fun retrieveBatteryStatus(): DataCommandResponse<Int?> {
@@ -186,23 +185,16 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
-    // override fun retrieveRemainingInsulin(): DataCommandResponse<Double?> {
-    //
-    //     val responseMessage: Message? = getCommunicationManager().sendCommand(InsulinStatusRequest())
-    //
-    //     if (responseMessage==null || responseMessage is ErrorResponse) {
-    //         return DataCommandResponse(
-    //             PumpCommandType.GetRemainingInsulin, false, "Error communicating with pump.", 0.0)
-    //     } else {
-    //         val response = tandemDataConverter.convertMessage(responseMessage) as DataCommandResponse<Double?>
-    //         pumpStatus.reservoirRemainingUnits = response.value!!
-    //
-    //         return response
-    //     }
-    // }
-
     override fun getPumpHistory(): DataCommandResponse<List<Any>?> {
         // TODO Connector: getPumpHistory
+
+
+
+
+
+
+
+
         return DataCommandResponse<List<Any>?>(
             PumpCommandType.GetHistory, false, "Command not implemented.", null)
     }
@@ -240,12 +232,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
     override fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?> {
-        // TODO Connector: retrieveBasalProfile
-        //return super.retrieveBasalProfile()
-
-        // 1. get ProfileStatusRequest, read idpslot0 value
-        // 2. get IDPSettingsRequest(with that value)
-        // 3. read all segments
 
         var responseMessage: Message? = getCommunicationManager().sendCommand(ProfileStatusRequest())
 

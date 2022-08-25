@@ -1,13 +1,12 @@
 package info.nightscout.androidaps.plugins.pump.tandem.data.history
 
 import info.nightscout.androidaps.interfaces.ResourceHelper
-import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryEntry
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemDataConverter
-import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpEventType
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpHistoryType
 import java.util.*
 
 sealed class HistoryLogObject {
@@ -16,9 +15,11 @@ sealed class HistoryLogObject {
 
 data class HistoryLogDto(var id: Long?,
                          var serial: Long,
-                         var pumpEventType: TandemPumpEventType,
+                         var historyTypeIndex: Int,
+                         var historyType: TandemPumpHistoryType,
                          var sequenceNum: Long,
-                         var dateTimeInMillis: Long,
+                         var dateTimeMillis: Long,
+                         var payload: String,
                          var subObject: HistoryLogObject? = null,
                          //var subObject2: HistoryLogObject? = null, // this is used only for fake TBR that emulates Pump Start/Stop for now
                          var created: Long = System.currentTimeMillis(),
@@ -29,14 +30,12 @@ data class HistoryLogDto(var id: Long?,
     lateinit var resolvedType: String
     lateinit var resolvedValue: String
 
-    var dateTimeObject: GregorianCalendar
-
     val dateTimeString: String
         get() = resolvedDate
 
-    fun getDisplayableValue(resourceHelper: ResourceHelper, pumpDataConverter: TandemDataConverter): String {
+    fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
         if (subObject != null) {
-            return subObject!!.getDisplayableValue(resourceHelper, pumpDataConverter)
+            return subObject!!.getDisplayableValue(resourceHelper, dataConverter)
         } else {
             return "???"
         }
@@ -45,6 +44,9 @@ data class HistoryLogDto(var id: Long?,
     override fun prepareEntryData(resourceHelper: ResourceHelper, pumpDataConverter: PumpDataConverter) {
         val tandemPumpDataConverter = pumpDataConverter as TandemDataConverter
 
+        val dateTimeObject = GregorianCalendar()
+        dateTimeObject.timeInMillis = dateTimeMillis
+
         resolvedDate = resourceHelper.gs(R.string.tandem_history_date,
                                          dateTimeObject.get(Calendar.DAY_OF_MONTH),
                                          dateTimeObject.get(Calendar.MONTH),
@@ -52,7 +54,7 @@ data class HistoryLogDto(var id: Long?,
                                          dateTimeObject.get(Calendar.HOUR_OF_DAY),
                                          dateTimeObject.get(Calendar.MINUTE),
                                          dateTimeObject.get(Calendar.SECOND))
-        resolvedType = resourceHelper.gs(pumpEventType.getDescriptionResourceId())
+        resolvedType = resourceHelper.gs(historyType.getDescriptionResourceId())
         resolvedValue = getDisplayableValue(resourceHelper, tandemPumpDataConverter)
     }
 
@@ -62,11 +64,11 @@ data class HistoryLogDto(var id: Long?,
 
     override fun getEntryValue(): String = resolvedValue
 
-    override fun getEntryTypeGroup(): PumpHistoryEntryGroup = pumpEventType.group
+    override fun getEntryTypeGroup(): PumpHistoryEntryGroup = historyType.group
 
     override fun toString(): String {
 
-        var entryTypeFormated = pumpEventType.name
+        var entryTypeFormated = historyType.name
 
         if (entryTypeFormated.length > 24) {
             entryTypeFormated = entryTypeFormated.substring(0, 24)
@@ -90,12 +92,6 @@ data class HistoryLogDto(var id: Long?,
         return (this.sequenceNum - other.sequenceNum).toInt()
     }
 
-    init {
-        dateTimeObject = GregorianCalendar()
-        dateTimeObject.timeInMillis = dateTimeInMillis
-    }
-
-
 }
 
 
@@ -108,7 +104,7 @@ data class DateTimeChanged(var year: Int? = 0,
                            var timeChanged: Boolean
 ): HistoryLogObject() {
 
-    override fun getDisplayableValue(resourceHelper: ResourceHelper, tandemDataConverter: TandemDataConverter): String {
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
         val dt = resourceHelper.gs(R.string.tandem_history_date, day, month, year, hour, minute, second)
         return if (timeChanged) {
             resourceHelper.gs(R.string.tandem_history_time_changed, dt)

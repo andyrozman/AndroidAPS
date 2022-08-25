@@ -114,6 +114,15 @@ any kind of looping (Tandem is extending pump with bolus and hoping something mo
 
 ***
 
+HIstory Support
+----------------
+
+
+
+
+
+***
+
 ### DO EXISTS?
 GetStatus
 
