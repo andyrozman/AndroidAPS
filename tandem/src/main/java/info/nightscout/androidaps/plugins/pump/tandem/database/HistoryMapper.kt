@@ -1,6 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.tandem.database
 
 import info.nightscout.androidaps.plugins.pump.tandem.data.*
+import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogDto
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
@@ -9,6 +10,17 @@ import javax.inject.Inject
 // TODO refactor this for Tandem
 
 class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var aapsLogger: AAPSLogger) {
+
+    fun domainToEntity(logDto: HistoryLogDto): HistoryRecordEntity? {
+        // TODO implement domainToEntity
+        return null
+    }
+
+    fun entityToDomain(entity: HistoryRecordEntity): HistoryLogDto? {
+        // TODO implement entityToDomain
+        return null
+    }
+
 
     fun domainToEntity(eventDto: EventDto): HistoryRecordEntity? {
 
@@ -63,8 +75,8 @@ class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var 
         return null //historyRecordEntity;
     }
 
-    fun entityToDomain(entity: HistoryRecordEntity): EventDto? {
-        return null
+    // fun entityToDomain(entity: HistoryRecordEntity): EventDto? {
+    //     return null
 
         // TODO fix this
         // val eventDto = EventDto(
@@ -109,6 +121,6 @@ class HistoryMapper @Inject constructor(var tandemPumpUtil: TandemPumpUtil, var 
         // }
         //
         // return eventDto;
-    }
+//    }
 
 }

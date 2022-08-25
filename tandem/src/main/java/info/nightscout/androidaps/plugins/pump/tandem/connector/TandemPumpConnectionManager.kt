@@ -369,6 +369,9 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     fun getConfiguration() {
+
+        // TODO getConfiguration
+
         // val command = GetPumpSettings(injector)
         //
         // command.execute(pumpBle = ypsoPumpBLE)
@@ -423,7 +426,7 @@ class TandemPumpConnectionManager @Inject constructor(
         val commandResponse = selectedConnector.retrieveBasalProfile()
         pumpUtil.resetDriverStatusToConnected()
 
-        return if (commandResponse.isSuccess()) commandResponse.value else null
+        return if (commandResponse.isSuccess()) commandResponse.value!!.basalPatterns else null
     }
 
     fun getTime(): PumpTimeDifferenceDto? {

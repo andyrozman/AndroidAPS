@@ -19,6 +19,7 @@ import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemPairingManager
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.shared.logging.AAPSLogger
@@ -88,7 +89,7 @@ class TandemBLESelector @Inject constructor(
         rxBus.send(EventPumpConnectionParametersChanged())
     }
 
-    override fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String) {
+    override fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String, activity: PumpBLEConfigActivity) {
 
         aapsLogger.debug(TAG, "TANDEMDBG: onDeviceSelected: ${bleAddress} ")
 
@@ -113,7 +114,8 @@ class TandemBLESelector @Inject constructor(
                     rxBus = rxBus,
                     resourceHelper = resourceHelper,
                     pumpStatus = pumpStatus,
-                    pumpSync = pumpSync
+                    pumpSync = pumpSync,
+                    activity = activity
                 )
                 tandemPairingManager!!.startPairing()
             } catch(ex: Exception) {
@@ -121,6 +123,10 @@ class TandemBLESelector @Inject constructor(
             }
         //}
 
+    }
+
+    override fun onDeviceSelectedClosesActivity(): Boolean {
+        return false
     }
 
     private fun cleanSP() {

@@ -8,6 +8,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
+import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
@@ -121,15 +122,12 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     override fun retrieveConfiguration(): DataCommandResponse<Map<String,String>?> {
 
-        // TODO
         val map:  MutableMap<String,String> = mutableMapOf()
 
         try {
             addToSettings(map, getCommunicationManager().sendCommand(getCorrectRequest(TandemCommandType.ControlIQInfo)))
             addToSettings(map, getCommunicationManager().sendCommand(BasalLimitSettingsRequest()))
             addToSettings(map, getCommunicationManager().sendCommand(GlobalMaxBolusSettingsRequest()))
-
-            // TODO postProcessConfiguration()
 
             return DataCommandResponse(
                 PumpCommandType.GetSettings, true, null, map
@@ -160,30 +158,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
-    private fun getCorrectRequest(command: TandemCommandType): Message {
-        return when(tandemPumpApiVersion) {
-            TandemPumpApiVersion.VERSION_0_x,
-            TandemPumpApiVersion.VERSION_1_x,
-            TandemPumpApiVersion.VERSION_2_0,
-            TandemPumpApiVersion.VERSION_2_1,
-            TandemPumpApiVersion.VERSION_2_2,
-            TandemPumpApiVersion.VERSION_2_3,
-            TandemPumpApiVersion.VERSION_2_4           -> {
-                when(command) {
-                    TandemCommandType.ControlIQInfo  -> ControlIQInfoV1Request()
-                    TandemCommandType.CurrentBattery -> CurrentBatteryV1Request()
-                }
-            }
 
-            TandemPumpApiVersion.VERSION_2_5_OR_HIGHER -> {
-                when(command) {
-                    TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()
-                    TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
-                }
-            }
-            else -> throw Exception()
-        }
-    }
 
 
     override fun retrieveBatteryStatus(): DataCommandResponse<Int?> {
@@ -198,6 +173,16 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         return responseData
 
+    }
+
+
+    override fun retrieveRemainingInsulin(): DataCommandResponse<Double?> {
+
+        val responseData: DataCommandResponse<Double?> = sendAndReceivePumpData(PumpCommandType.GetRemainingInsulin,
+                                                                                InsulinStatusRequest())
+        {  rawContent -> tandemDataConverter.getInsulinStatus(rawContent as InsulinStatusResponse) }
+
+        return responseData
     }
 
 
@@ -254,7 +239,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         return super.cancelTemporaryBasal()
     }
 
-    override fun retrieveBasalProfile(): DataCommandResponse<DoubleArray?> {
+    override fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?> {
         // TODO Connector: retrieveBasalProfile
         //return super.retrieveBasalProfile()
 
@@ -267,7 +252,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         var responseText = checkResponse(responseMessage, "ProfileStatusRequest")
 
         if (responseText!=null) {
-            return DataCommandResponse<DoubleArray?>(PumpCommandType.SetBasalProfile, false, responseText, null)
+            return DataCommandResponse<BasalProfileDto?>(PumpCommandType.SetBasalProfile, false, responseText, null)
         }
 
         val profileStatusResponse = responseMessage as ProfileStatusResponse
@@ -276,37 +261,28 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         responseMessage = getCommunicationManager().sendCommand(IDPSettingsRequest(idpId))
 
-        responseText = checkResponse(responseMessage, "ProfileStatusRequest")
+        responseText = checkResponse(responseMessage, "IDPSettingsRequest (idpId=${idpId}")
 
         if (responseText!=null) {
-            return DataCommandResponse<DoubleArray?>(PumpCommandType.SetBasalProfile, false, responseText, null)
+            return DataCommandResponse<BasalProfileDto?>(PumpCommandType.SetBasalProfile, false, responseText, null)
         }
+
+        val mapSegments = mutableMapOf<Int,IDPSegmentResponse>()
 
         val settings = responseMessage as IDPSettingsResponse
         for (i in 1..settings.numberOfProfileSegments) {
-            //queue(IDPSegmentRequest(settings.idpId, i))
+            responseMessage = getCommunicationManager().sendCommand(IDPSegmentRequest(settings.idpId, i))
+
+            responseText = checkResponse(responseMessage, "IDPSegmentRequest (idpId=${settings.idpId}, segmentNumber=${i})")
+
+            if (responseText!=null) {
+                return DataCommandResponse<BasalProfileDto?>(PumpCommandType.SetBasalProfile, false, responseText, null)
+            } else {
+                mapSegments.put(i, responseMessage as IDPSegmentResponse)
+            }
         }
 
-        // TODO
-
-        // if (responseMessage!=null && responseMessage is ProfileStatusResponse) {
-        //     aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData for ${commandType}  - Request message: ${requestMessage.javaClass.name}")
-        // } else {
-        //     var ressponseText = if (responseMessage==null) {
-        //         "Response was null (timeout or some other problem), when getting ProfileStatusRequest"
-        //     } else {
-        //         var errorResponse: ErrorResponse = responseMessage as ErrorResponse
-        //         "Received Error Response: ${errorResponse.errorCode.name} on ProfileStatusRequest."
-        //     }
-        //     aapsLogger.info(TAG, "TANDEMDBG: ${ressponseText}")
-        //
-        //     return DataCommandResponse<DoubleArray?>(PumpCommandType.SetBasalProfile, false, ressponseText, null)
-        //
-        // }
-
-
-        return super.retrieveBasalProfile()
-
+        return tandemDataConverter.getBasalProfileResponse(settings, mapSegments)
 
     }
 
@@ -355,14 +331,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
-    override fun retrieveRemainingInsulin(): DataCommandResponse<Double?> {
 
-        val responseData: DataCommandResponse<Double?> = sendAndReceivePumpData(PumpCommandType.GetRemainingInsulin,
-                                                                                InsulinStatusRequest())
-        {  rawContent -> tandemDataConverter.getInsulinStatus(rawContent as InsulinStatusResponse) }
-
-        return responseData
-    }
 
 
 
@@ -393,17 +362,45 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
+    private fun getCorrectRequest(command: TandemCommandType): Message {
+        return when(tandemPumpApiVersion) {
+            TandemPumpApiVersion.VERSION_0_x,
+            TandemPumpApiVersion.VERSION_1_x,
+            TandemPumpApiVersion.VERSION_2_0,
+            TandemPumpApiVersion.VERSION_2_1,
+            TandemPumpApiVersion.VERSION_2_2,
+            TandemPumpApiVersion.VERSION_2_3,
+            TandemPumpApiVersion.VERSION_2_4           -> {
+                when(command) {
+                    TandemCommandType.ControlIQInfo  -> ControlIQInfoV1Request()
+                    TandemCommandType.CurrentBattery -> CurrentBatteryV1Request()
+                }
+            }
+
+            TandemPumpApiVersion.VERSION_2_5_OR_HIGHER -> {
+                when(command) {
+                    TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()
+                    TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
+                }
+            }
+            else -> throw Exception()
+        }
+    }
+
     init {
-        supportedCommandsList = setOf(PumpCommandType.GetFirmwareVersion)
+        supportedCommandsList = setOf(
+            PumpCommandType.GetFirmwareVersion,
+            PumpCommandType.GetRemainingInsulin,
+            PumpCommandType.GetTime,
+            PumpCommandType.GetSettings,
+            PumpCommandType.GetBatteryStatus,
+            PumpCommandType.GetTemporaryBasal,
+        )
     }
 
     override fun getSupportedCommands(): Set<PumpCommandType> {
         return supportedCommandsList
     }
-
-
-
-
 
 
 }

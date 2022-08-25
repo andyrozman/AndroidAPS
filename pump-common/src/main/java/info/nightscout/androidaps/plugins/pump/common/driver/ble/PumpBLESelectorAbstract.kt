@@ -70,6 +70,10 @@ abstract class PumpBLESelectorAbstract constructor(
         Toast.makeText(context, R.string.ble_config_scan_finished, Toast.LENGTH_SHORT).show()
     }
 
+    override fun onDeviceSelectedClosesActivity(): Boolean {
+        return true
+    }
+
     protected fun removeBond(bluetoothDevice: BluetoothDevice): Boolean {
         return try {
             val method = bluetoothDevice.javaClass.getMethod("removeBond")

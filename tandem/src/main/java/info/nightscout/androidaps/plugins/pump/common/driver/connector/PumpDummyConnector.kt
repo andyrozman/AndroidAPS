@@ -3,6 +3,7 @@ package info.nightscout.androidaps.plugins.pump.common.driver.connector
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
+import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
@@ -90,14 +91,14 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
         return successfulResponse.cloneWithNewCommandType(PumpCommandType.CancelTemporaryBasal)
     }
 
-    override fun retrieveBasalProfile(): DataCommandResponse<DoubleArray?> {
+    override fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?> {
         pumpUtil.sleepSeconds(10)
         return if (pumpStatus.basalsByHour==null) {
             DataCommandResponse(
                 PumpCommandType.GetBasalProfile, true, null, null)
         } else {
             DataCommandResponse(
-                PumpCommandType.GetBasalProfile, true, null, pumpStatus.basalsByHour)
+                PumpCommandType.GetBasalProfile, true, null, BasalProfileDto(pumpStatus.basalsByHour))
         }
     }
 

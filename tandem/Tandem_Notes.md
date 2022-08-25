@@ -16,30 +16,32 @@ any kind of looping (Tandem is extending pump with bolus and hoping something mo
         PumpVersionResponse              |       OK-?
     GetHistory                           |
         ...
-    GetBasalProfile                      |
-        ProfileStatusResponse (?)????
-    GetTime                              |
-        TimeSinceResetResponse (?)                WIP-2 
-    GetSettings                          |                                            See down...
-        RemindersResponse,                        NN
-        PumpSettingsResponse,                     NN
-        PumpGlobalsResponse,
-        GlobalMaxBolusSettingsResponse            WIP-2
-        ControlIQInfoV1Response (?)               WIP-2
-        ControlIQInfoV2Response (?)               WIP-2
+    GetBasalProfile                      |       WIP-2
+        ProfileStatusResponse +          |       WIP-2
+        IDPSettingsResponse +            |       WIP-2
+        IDPSegmentResponse               |       WIP-2
+    GetTime                              |       WIP-2
+        TimeSinceResetResponse           |       WIP-2
+    GetSettings                          |       WIP-2
+        RemindersResponse,               |       NN
+        PumpSettingsResponse,            |       NN
+        PumpGlobalsResponse,             |       NN
+        GlobalMaxBolusSettingsResponse   |       WIP-2
+        ControlIQInfoV1Response (?)      |       WIP-2
+        ControlIQInfoV2Response (?)      |       WIP-2
     
-    GetBolus                             |        -
+    GetBolus                             |        ?
         CurrentBolusStatusResponse
         LastBolusStatusV2Response,
-    GetTBR
-        TempRateResponse
+    GetTBR                               |       WIP-2
+        TempRateResponse                 |       WIP-2
     
     
-    GetReservoir                         |        WIP-2
-        InsulinStatusResponse            |        WIP-2
-    GetBatteryLevel                      |        WIP-2
-        CurrentBatteryV1Response (?)     |
-        CurrentBatteryV2Response (?)     |
+    GetReservoir                         |       WIP-2
+        InsulinStatusResponse            |       WIP-2
+    GetBatteryLevel                      |       WIP-2
+        CurrentBatteryV1Response (?)     |       WIP-2
+        CurrentBatteryV2Response (?)     |       WIP-2
     
     GetStatus (is pump running, bolus, tbr running)
         ???

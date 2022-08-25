@@ -4,6 +4,7 @@ import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.*
+import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
@@ -102,6 +103,37 @@ class TandemDataConverter @Inject constructor(
             PumpCommandType.GetTemporaryBasal, true, null, tempBasal)
     }
 
+
+    fun getBasalProfileResponse(settings: IDPSettingsResponse, mapSegments: MutableMap<Int, IDPSegmentResponse>): DataCommandResponse<BasalProfileDto?> {
+
+        val timedMap = mutableMapOf<Int, IDPSegmentResponse>()
+
+        for (segment in mapSegments.values) {
+            val hour = Math.floor(segment.profileStartTime/60.0).toInt()
+
+            if (!timedMap.containsKey(hour)) {
+                timedMap[hour] = segment
+            }
+        }
+
+        var currentSegment: IDPSegmentResponse? = null
+
+        val basalArray: DoubleArray = doubleArrayOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+        for(time in 0..23) {
+            if (timedMap.containsKey(time)) {
+                currentSegment = timedMap.get(time)!!
+            }
+
+            basalArray[time] = if (currentSegment!!.profileBasalRate==0) 0.0 else currentSegment.profileBasalRate/1000.0
+        }
+
+        return DataCommandResponse(
+            PumpCommandType.GetBasalProfile, true, null, BasalProfileDto(basalArray, settings.name))
+
+    }
 
 
     private fun getBasalLimit(message: BasalLimitSettingsResponse): Long {

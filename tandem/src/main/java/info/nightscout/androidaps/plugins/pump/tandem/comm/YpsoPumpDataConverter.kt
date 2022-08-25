@@ -18,7 +18,7 @@ import kotlin.experimental.and
 
 @Deprecated("Will be removed with old database")
 @Singleton
-class YpsoPumpDataConverter @Inject constructor(
+class YpsoPumpDataConverter constructor(
     var pumpStatus: TandemPumpStatus,
     var tandemPumpUtil: TandemPumpUtil,
     var aapsLogger: AAPSLogger

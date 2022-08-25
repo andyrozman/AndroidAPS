@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity
 
 interface PumpBLESelector {
 
@@ -71,7 +72,12 @@ interface PumpBLESelector {
     /**
      * operations when device selected
      */
-    fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String)
+    fun onDeviceSelected(bluetoothDevice: BluetoothDevice, bleAddress: String, deviceName: String, activity: PumpBLEConfigActivity)
+
+    /**
+     * when we select device, do we destroy the activity
+     */
+    fun onDeviceSelectedClosesActivity(): Boolean
 
     /**
      * If pump has no name, this name will be used

@@ -6,6 +6,7 @@ import android.content.DialogInterface
 import android.os.SystemClock
 import android.text.InputType
 import android.widget.EditText
+import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
@@ -26,6 +27,7 @@ import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
+import info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
@@ -48,17 +50,22 @@ class TandemPairingManager constructor(
     var resourceHelper: ResourceHelper,
     var rxBus: RxBus,
     var pumpStatus: TandemPumpStatus,
-    var pumpSync: PumpSync
+    var pumpSync: PumpSync,
+    var activity: PumpBLEConfigActivity
 ) : TandemPump(context, Optional.of(btAddress)) {
+
+    var TAG = LTag.PUMPBTCOMM
 
     var bluetoothHandler: TandemBluetoothHandler? = null
 
     fun startPairing() {
-        aapsLogger.info(LTag.PUMPCOMM, "start Pairing")
+        aapsLogger.info(TAG, "start Pairing")
 
-        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: start Pairing")
+        aapsLogger.info(TAG, "TANDEMDBG: start Pairing")
 
         createBluetoothHandler()
+
+        Toast.makeText(activity, "Staring pairing with Tandem, this can take some time, please don't press anything until its done.", Toast.LENGTH_LONG).show() // TODO
 
         bluetoothHandler!!.startScan()
     }
@@ -69,7 +76,7 @@ class TandemPairingManager constructor(
 
 
     fun createBluetoothHandler(): TandemBluetoothHandler? {
-        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: createBluetoothHandler")
+        aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler")
 
         if (bluetoothHandler != null) {
             return bluetoothHandler
@@ -80,7 +87,7 @@ class TandemPairingManager constructor(
     }
 
     fun stopBluetoothHandler() {
-        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: stopBluetoothHandler")
+        aapsLogger.info(TAG, "TANDEMDBG: stopBluetoothHandler")
 
         bluetoothHandler!!.stop()
         bluetoothHandler = null
@@ -90,11 +97,10 @@ class TandemPairingManager constructor(
     // Pair Status
 
     override fun onReceiveMessage(peripheral: BluetoothPeripheral, message: Message) {
-        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: received message: opCode=${message.opCode()}")
+        aapsLogger.info(TAG, "TANDEMDBG: received message: opCode=${message.opCode()}")
 
         if (message is ApiVersionResponse) {
-
-            aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: got ApiVersionResponse")
+            aapsLogger.info(TAG, "TANDEMDBG: got ApiVersionResponse")
 
             sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 80)
             sp.putString(TandemPumpConst.Prefs.PumpAddress, peripheral.address)
@@ -103,22 +109,22 @@ class TandemPairingManager constructor(
             val apiVersionResponse = message
             val apiVersion = TandemPumpApiVersion.getApiVersionFromResponse(apiVersionResponse)
 
-            aapsLogger.info(LTag.PUMPCOMM, "Api Version: ${apiVersionResponse.majorVersion}.${apiVersionResponse.minorVersion} : ${apiVersion.name} ")
+            aapsLogger.info(TAG, "Api Version: ${apiVersionResponse.majorVersion}.${apiVersionResponse.minorVersion} : ${apiVersion.name} ")
 
             sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
         } else if (message is TimeSinceResetResponse) {
-            aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: got TimeSinceResetResponse")
+            aapsLogger.info(TAG, "TANDEMDBG: got TimeSinceResetResponse")
 
             sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 90)
             val timeSinceResponse = message
-            aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: ${timeSinceResponse}")
+            aapsLogger.info(TAG, "TimeSinceResetResponse: ${timeSinceResponse}")
         } else if (message is PumpVersionResponse) {
-            aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: got PumpVersionResponse")
+            aapsLogger.info(TAG, "TANDEMDBG: got PumpVersionResponse")
 
             sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 100)
             val pumpVersionResponse = message
 
-            aapsLogger.info(LTag.PUMPCOMM, "PumpVersionResponse: ${pumpVersionResponse}")
+            aapsLogger.info(TAG, "PumpVersionResponse: ${pumpVersionResponse}")
 
             sp.putString(TandemPumpConst.Prefs.PumpSerial, "" + pumpVersionResponse.serialNum)
             sp.putString(TandemPumpConst.Prefs.PumpVersionResponse, pumpUtil.gson.toJson(message))
@@ -130,35 +136,49 @@ class TandemPairingManager constructor(
             finalPairingStatus()
 
             rxBus.send(EventPumpConnectionParametersChanged())
+
+            Toast.makeText(activity, "Pairing with Tandem was SUCCESS.", Toast.LENGTH_LONG).show() // TODO
+
+            activity.finish()
         }
 
     }
 
     override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral, centralChallenge: CentralChallengeResponse) {
 
-        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onWaitingForPairingCode:")
+        aapsLogger.info(TAG, "TANDEMDBG: onWaitingForPairingCode:")
 
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 40)
 
-        triggerPairDialog(peripheral, btAddress, centralChallenge)
+        try {
+            // TODO
+            triggerPairDialog(peripheral, btAddress, centralChallenge)
 
-        //triggerAAPSPairDialog(peripheral, btAddress, centralChallenge)
+            //triggerAAPSPairDialog(peripheral, btAddress, centralChallenge)
+        } catch (ex: Exception) {
+            aapsLogger.error(TAG, "Problem showing Pair Dialog. Ex: ${ex.message}", ex)
+        }
+
+
 
     }
 
     override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse) {
 
-        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onInvalidPairingCode")
+        aapsLogger.info(TAG, "TANDEMDBG: onInvalidPairingCode")
 
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
         pumpUtil.errorType = PumpErrorType.PumpPairInvalidPairCode
 
-        aapsLogger.error(LTag.PUMPCOMM, "PairingCode WAS INVALID.")
+        aapsLogger.error(TAG, "PairingCode WAS INVALID.")
 
+        Toast.makeText(activity, "PairingCode WAS INVALID. Try again.", Toast.LENGTH_LONG).show() // TODO
 
         //PumpState.failedPumpConnectionAttempts++
 
         rxBus.send(EventPumpStatusChanged(PumpDriverState.ErrorCommunicatingWithPump))
+
+        activity.finish()
 
         // AlertDialog.Builder(context)
         //     .setTitle("Pump Connection")
@@ -181,7 +201,7 @@ class TandemPairingManager constructor(
         aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: triggerPairDialog")
 
         val btName = peripheral.name
-        val builder = AlertDialog.Builder(this.context)
+        val builder = AlertDialog.Builder(this.activity)
         builder.setTitle("Enter pairing code (case-sensitive)")
         builder.setMessage("Enter the pairing code from Bluetooth Settings > Pair Device to connect to:\n\n$btName ($btAddress)")
 
@@ -271,6 +291,16 @@ class TandemPairingManager constructor(
         sendCommand(peripheral, ApiVersionRequest())
         sendCommand(peripheral, TimeSinceResetRequest())
         sendCommand(peripheral, PumpVersionRequest())
+    }
+
+
+    override fun sendCommand(peripheral: BluetoothPeripheral?, message: Message?) {
+        try {
+            super.sendCommand(peripheral, message)
+        } catch (ex: Exception) {
+            aapsLogger.error(TAG, "TANDEMDBG: Problem sending command to the pump. Ex: ${ex.message}", ex)
+
+        }
     }
 
 

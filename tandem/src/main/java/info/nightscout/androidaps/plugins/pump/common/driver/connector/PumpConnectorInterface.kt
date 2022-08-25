@@ -2,6 +2,7 @@ package info.nightscout.androidaps.plugins.pump.common.driver.connector
 
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
+import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.PumpHistoryEntryInterface
@@ -25,7 +26,7 @@ interface PumpConnectorInterface {
     fun sendTemporaryBasal(value: Int, duration: Int): ResultCommandResponse
     fun cancelTemporaryBasal(): ResultCommandResponse
 
-    fun retrieveBasalProfile(): DataCommandResponse<DoubleArray?>
+    fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?>
     fun sendBasalProfile(profile: Profile): ResultCommandResponse
 
     fun retrieveConfiguration(): DataCommandResponse<Map<String, String>?>

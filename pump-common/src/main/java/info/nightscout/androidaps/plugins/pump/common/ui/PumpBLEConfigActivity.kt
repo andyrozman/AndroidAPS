@@ -111,13 +111,17 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
             if (devicesMap.containsKey(bleAddress)) {
                 aapsLogger.debug(TAG, "Device FOUND in deviceMap: $bleAddress")
                 val bluetoothDevice = devicesMap[bleAddress]
-                bleSelector.onDeviceSelected(bluetoothDevice!!, bleAddress, deviceName)
+                bleSelector.onDeviceSelected(bluetoothDevice!!, bleAddress, deviceName, this)
+
+                if (bleSelector.onDeviceSelectedClosesActivity()) {
+                    finish()
+                }
             } else {
                 aapsLogger.debug(TAG, "Device NOT found in deviceMap: $bleAddress")
+                finish()
             }
-
-            finish()
         }
+
         binding.pumpBleConfigScanStart.setOnClickListener { startLeDeviceScan() }
         binding.pumpBleConfigButtonScanStop.setOnClickListener {
             if (scanning) {
@@ -185,7 +189,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
         if (scanning) {
             stopLeDeviceScan(false)
         }
-        bleSelector.onDestroy()
+        //bleSelector.onDestroy() TODO fix
     }
 
     private fun prepareForScanning() {

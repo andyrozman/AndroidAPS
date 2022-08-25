@@ -55,7 +55,7 @@ android {
 
 buildscript {
     ext {
-        jwoglom_pumpx2_version = '1.1.0'
+        jwoglom_pumpx2_version = '1.1.1'
     }
 }
 

@@ -7,7 +7,6 @@ import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistory
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryText
 import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
 import info.nightscout.androidaps.plugins.pump.tandem.R
-import info.nightscout.androidaps.plugins.pump.tandem.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.database.HistoryRecordEntity
 import info.nightscout.androidaps.plugins.pump.tandem.database.TandemPumpHistory
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
@@ -20,8 +19,7 @@ class TandemHistoryDataProvider @Inject constructor(
     var resourceHelper: ResourceHelper,
     var aapsLogger: AAPSLogger,
     var tandemPumpUtil: TandemPumpUtil,
-    var ypsoPumpHistory: TandemPumpHistory,
-    var ypsoPumpDataConverter: YpsoPumpDataConverter
+    var ypsoPumpHistory: TandemPumpHistory
 ) : PumpHistoryDataProviderAbstract() {
 
     var groupList: List<PumpHistoryEntryGroup> = listOf()

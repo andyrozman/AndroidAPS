@@ -3,6 +3,7 @@ package info.nightscout.androidaps.plugins.pump.common.driver.connector
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
+import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.PumpHistoryEntryInterface
@@ -58,8 +59,8 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
         return unSuccessfulResponse.cloneWithNewCommandType(PumpCommandType.CancelTemporaryBasal)
     }
 
-    override fun retrieveBasalProfile(): DataCommandResponse<DoubleArray?> {
-        return DataCommandResponse<DoubleArray?>(
+    override fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?> {
+        return DataCommandResponse<BasalProfileDto?>(
             PumpCommandType.GetBasalProfile, false, "Command not implemented.", null)
     }
 

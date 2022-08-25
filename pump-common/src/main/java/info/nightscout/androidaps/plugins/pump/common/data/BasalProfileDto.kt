@@ -1,11 +1,14 @@
-package info.nightscout.androidaps.plugins.pump.tandem.data
+package info.nightscout.androidaps.plugins.pump.common.data
 
 import java.util.*
 
-class BasalProfileDto(data: DoubleArray?) {
-    var basalName: String? = null
-    var basalPatterns: DoubleArray?
-
+/**
+ * BasalProfileDto contains info about BasalProfile.
+ *    basalName = name of the pattern
+ *    basalPatterns = array of 24 items, one for each hour
+ */
+class BasalProfileDto(var basalPatterns: DoubleArray?,
+                      var basalName: String? = null) {
 
     fun basalProfileToString(): String {
         val sb = StringBuffer("Basal Profile [")
@@ -27,8 +30,4 @@ class BasalProfileDto(data: DoubleArray?) {
         }
     }
 
-
-    init {
-        basalPatterns = data
-    }
 }

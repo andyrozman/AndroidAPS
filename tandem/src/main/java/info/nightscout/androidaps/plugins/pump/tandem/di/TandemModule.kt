@@ -3,12 +3,8 @@ package info.nightscout.androidaps.dependencyInjection
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import info.nightscout.androidaps.plugins.pump.tandem.TandemPumpFragment
-import info.nightscout.androidaps.plugins.pump.tandem.comm.AAPSTimberTree
-import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemCommunicationManager
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemDataConverter
-import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemPairingManager
 import info.nightscout.androidaps.plugins.pump.tandem.connector.TandemPumpConnectionManager
-import info.nightscout.androidaps.plugins.pump.tandem.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.connector.TandemPumpConnector
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.driver.config.TandemBLESelector
@@ -25,9 +21,8 @@ abstract class TandemModule {
     @ContributesAndroidInjector abstract fun contributeTandemPumpUtil(): TandemPumpUtil
 
     // Data
-    @ContributesAndroidInjector
-    abstract fun contributesYpsoPumpDataConverter(): YpsoPumpDataConverter // TODO remove after history implemented
-
+    //@ContributesAndroidInjector
+    //abstract fun contributesYpsoPumpDataConverter(): YpsoPumpDataConverter // TODO remove after history implemented
 
     // Communication Layer
     @ContributesAndroidInjector abstract fun contributeTandemConnectionManager(): TandemPumpConnectionManager
@@ -36,17 +31,12 @@ abstract class TandemModule {
     //@ContributesAndroidInjector abstract fun contributeTandemPairingManager(): TandemPairingManager
     //@ContributesAndroidInjector abstract fun contributeTandemCommunicationManager(): TandemCommunicationManager
 
-
     // Activites and Fragments
     @ContributesAndroidInjector abstract fun contributesTandemPumpFragment(): TandemPumpFragment
-
 
     // Configuration
     @ContributesAndroidInjector abstract fun contributesTandemBLESelector(): TandemBLESelector
     @ContributesAndroidInjector abstract fun contributesTandemHistoryDataProvider(): TandemHistoryDataProvider
     @ContributesAndroidInjector abstract fun contributesTandemPumpDriverConfiguration(): TandemPumpDriverConfiguration
-
-    // pumpX2 library
-    //@ContributesAndroidInjector abstract fun contributesAAPSTimberTree(): AAPSTimberTree
 
 }
