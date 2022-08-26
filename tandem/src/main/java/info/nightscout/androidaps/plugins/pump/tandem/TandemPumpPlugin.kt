@@ -474,7 +474,7 @@ class TandemPumpPlugin @Inject constructor(
         pumpConnectionManager.getConfiguration()
 
         // TODO read profile (once, later its controlled by isThisProfileSet method)
-        pumpConnectionManager.getBasalProfile()
+        //pumpConnectionManager.getBasalProfile()
 
         pumpStatus.setLastCommunicationToNow()
         setRefreshButtonEnabled(true)

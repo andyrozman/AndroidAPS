@@ -188,7 +188,34 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     override fun getPumpHistory(): DataCommandResponse<List<Any>?> {
         // TODO Connector: getPumpHistory
 
+        HistoryLogStatusRequest()
 
+        var responseMessage: Message? = getCommunicationManager().sendCommand(HistoryLogStatusRequest())
+
+        var responseText = checkResponse(responseMessage, "HistoryLogStatusRequest")
+
+        if (responseText!=null) {
+            return DataCommandResponse<List<Any>?>(PumpCommandType.GetHistory, false, responseText, null)
+        }
+
+        var historyLogStatus = responseMessage as HistoryLogStatusResponse
+
+
+
+
+
+
+        // val profileStatusResponse = responseMessage as ProfileStatusResponse
+        //
+        // val idpId = profileStatusResponse.idpSlot0Id
+        //
+        // responseMessage = getCommunicationManager().sendCommand(IDPSettingsRequest(idpId))
+        //
+        // responseText = checkResponse(responseMessage, "IDPSettingsRequest (idpId=${idpId}")
+        //
+        // if (responseText!=null) {
+        //     return DataCommandResponse<BasalProfileDto?>(PumpCommandType.SetBasalProfile, false, responseText, null)
+        // }
 
 
 

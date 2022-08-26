@@ -426,7 +426,15 @@ class TandemPumpConnectionManager @Inject constructor(
         val commandResponse = selectedConnector.retrieveBasalProfile()
         pumpUtil.resetDriverStatusToConnected()
 
-        return if (commandResponse.isSuccess()) commandResponse.value!!.basalPatterns else null
+        return if (commandResponse.isSuccess()) {
+            val responseValue = commandResponse.value
+
+            if (responseValue==null)
+                null
+            else
+                commandResponse.value!!.basalPatterns
+        }
+        else null
     }
 
     fun getTime(): PumpTimeDifferenceDto? {
