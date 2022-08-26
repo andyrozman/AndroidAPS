@@ -99,6 +99,13 @@ interface PumpBLESelector {
      */
     fun getText(key: PumpBLESelectorText): String
 
+    /**
+     * Get Additional Permissions (if you module needs special BT permissions, need to add them here)
+     *
+     * Normally covered permissions would be: ACCESS_COARSE_LOCATION, BLUETOOTH_CONNECT, BLUETOOTH_SCAN
+     */
+    fun getAdditionalPermissions() : List<String>
+
 }
 
 enum class PumpBLESelectorText {

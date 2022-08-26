@@ -30,7 +30,13 @@ class BlePreCheck @Inject constructor(
         private const val PERMISSION_REQUEST_BLUETOOTH = 30242 // arbitrary.
     }
 
+
     fun prerequisitesCheck(activity: AppCompatActivity): Boolean {
+        return prerequisitesCheck(activity, null)
+    }
+
+
+    fun prerequisitesCheck(activity: AppCompatActivity, additionalPermissions: List<String>?): Boolean {
         if (!activity.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             OKDialog.show(activity, rh.gs(R.string.message), rh.gs(R.string.ble_not_supported))
             return false
@@ -51,6 +57,10 @@ class BlePreCheck @Inject constructor(
                 }
             }
 
+            if (!checkAdditionalPermissions(additionalPermissions, activity)) {
+                return false;
+            }
+
             val bluetoothAdapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
             // Ensures Bluetooth is available on the device and it is enabled. If not,
             // displays a dialog requesting user permission to enable Bluetooth.
@@ -69,6 +79,27 @@ class BlePreCheck @Inject constructor(
                 }
             }
         }
+        return true
+    }
+
+    private fun checkAdditionalPermissions(additionalPermissions: List<String>?, activity: AppCompatActivity): Boolean {
+
+        if (additionalPermissions==null || additionalPermissions.size==0)
+            return true
+
+        val nonPermittedItems = mutableListOf<String>()
+
+        for (permission in additionalPermissions) {
+            if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                nonPermittedItems.add(permission)
+            }
+        }
+
+        if (nonPermittedItems.size > 0) {
+            ActivityCompat.requestPermissions(activity, nonPermittedItems.toTypedArray(), PERMISSION_REQUEST_BLUETOOTH)
+            return false
+        }
+
         return true
     }
 

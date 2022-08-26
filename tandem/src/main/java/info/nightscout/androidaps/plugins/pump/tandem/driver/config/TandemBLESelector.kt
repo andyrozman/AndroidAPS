@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.tandem.driver.config
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanFilter
@@ -171,6 +172,12 @@ class TandemBLESelector @Inject constructor(
         }
 
         return resourceHelper.gs(stringId)
+    }
+
+    override fun getAdditionalPermissions(): List<String> {
+        return listOf(
+            Manifest.permission.BLUETOOTH,
+            Manifest.permission.BLUETOOTH_ADMIN)
     }
 
 }

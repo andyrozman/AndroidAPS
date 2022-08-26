@@ -1,5 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.common.ui
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -10,6 +11,8 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -20,6 +23,7 @@ import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.BaseAdapter
 import android.widget.TextView
+import androidx.core.app.ActivityCompat
 import dagger.android.support.DaggerAppCompatActivity
 import info.nightscout.androidaps.interfaces.ActivePlugin
 import info.nightscout.androidaps.plugins.bus.RxBus
@@ -31,6 +35,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorText
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.utils.ToastUtils
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
@@ -72,12 +77,6 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
         binding = PumpBleConfigActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        if (!blePreCheck.prerequisitesCheck(this)) {
-            aapsLogger.error(TAG, "prerequisitesCheck failed.")
-            finish()
-            return
-        }
-
         // Configuration
         val activePump = activePlugin.activePump
 
@@ -90,6 +89,13 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
             }
         } else {
             throw RuntimeException("PumpBLEConfigActivity can be used only with PumpDriverConfigurationCapable pump driver.")
+        }
+
+        if (!blePreCheck.prerequisitesCheck(this, bleSelector.getAdditionalPermissions())) {
+            aapsLogger.error(TAG, "prerequisitesCheck failed.")
+            ToastUtils.errorToast(context, context.getString(info.nightscout.androidaps.core.R.string.needconnectpermission))
+            finish()
+            return
         }
 
         binding.pumpBleConfigCurrentlySelectedText.text = bleSelector.getText(PumpBLESelectorText.SELECTED_PUMP_TITLE)
@@ -180,8 +186,16 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
     override fun onResume() {
         super.onResume()
         bleSelector.onResume()
-        prepareForScanning()
-        updateCurrentlySelectedBTDevice()
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+            if (bluetoothAdapter?.isEnabled != true) bluetoothAdapter?.enable()
+            prepareForScanning()
+            updateCurrentlySelectedBTDevice()
+        } else {
+            ToastUtils.errorToast(context, context.getString(info.nightscout.androidaps.core.R.string.needconnectpermission))
+            finish()
+        }
+
     }
 
     override fun onDestroy() {
