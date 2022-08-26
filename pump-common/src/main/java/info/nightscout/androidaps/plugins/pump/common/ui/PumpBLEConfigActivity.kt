@@ -203,7 +203,10 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
         if (scanning) {
             stopLeDeviceScan(false)
         }
-        //bleSelector.onDestroy() TODO fix
+
+        if (this::bleSelector.isInitialized) {
+            bleSelector.onDestroy()
+        }
     }
 
     private fun prepareForScanning() {

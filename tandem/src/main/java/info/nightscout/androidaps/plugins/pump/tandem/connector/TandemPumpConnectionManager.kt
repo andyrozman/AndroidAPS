@@ -38,13 +38,10 @@ class TandemPumpConnectionManager @Inject constructor(
     val injector: HasAndroidInjector,
     val aapsLogger: AAPSLogger,
     val rxBus: RxBus,
-    val fabricPrivacy: FabricPrivacy,
+    //val fabricPrivacy: FabricPrivacy,
     val context: Context,
     val tandemDataConverter: TandemDataConverter,
     val tandemPumpConnector: TandemPumpConnector
-
-    //val ypsoPumpBLE: YpsoPumpBLE,
-    //val ypsoPumpHistoryHandler: YpsoPumpHistoryHandler
 ) {
 
     //private val fabricPrivacy: FabricPrivacy
@@ -52,8 +49,8 @@ class TandemPumpConnectionManager @Inject constructor(
         : PumpConnectorInterface
     private val selectedConnector: PumpConnectorInterface
     private val disposable = CompositeDisposable()
-    private var oldFirmware: TandemPumpApiVersion? = null
-    private var currentFirmware: TandemPumpApiVersion? = null
+    //private var oldFirmware: TandemPumpApiVersion? = null
+    //private var currentFirmware: TandemPumpApiVersion? = null
     var inConnectMode = false
     var inDisconnectMode = false
     
@@ -293,7 +290,7 @@ class TandemPumpConnectionManager @Inject constructor(
     fun deliverBolus(detailedBolusInfo: DetailedBolusInfo?): ResultCommandResponse? {
         aapsLogger.error(TAG, "deliverBolus command is not available!!!")
         pumpUtil.currentCommand = PumpCommandType.SetBolus
-        val commandResponse = selectedConnector.sendBolus(detailedBolusInfo!!) // TODO refactor this not to use AAPS object
+        val commandResponse = selectedConnector.sendBolus(detailedBolusInfo!!)
         pumpUtil.resetDriverStatusToConnected()
         return commandResponse
     }
@@ -302,7 +299,7 @@ class TandemPumpConnectionManager @Inject constructor(
     fun getTemporaryBasal(): TempBasalPair? {
         aapsLogger.error(TAG, "getTemporaryBasal command is not available!!!")
         pumpUtil.currentCommand = PumpCommandType.GetTemporaryBasal
-        val commandResponse = selectedConnector.retrieveTemporaryBasal() // TODO refactor this not to use AAPS object
+        val commandResponse = selectedConnector.retrieveTemporaryBasal()
         pumpUtil.resetDriverStatusToConnected()
 
         return if (commandResponse.isSuccess) commandResponse.value else null
@@ -332,6 +329,7 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     fun cancelTemporaryBasal(): Boolean {
+        aapsLogger.error(TAG, "setBasalProfile command is not available!!!")
         pumpUtil.currentCommand = PumpCommandType.CancelTemporaryBasal
         val commandResponse = selectedConnector.cancelTemporaryBasal() // TODO refactor this not to use AAPS object
         pumpUtil.resetDriverStatusToConnected()
@@ -340,7 +338,7 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     fun getRemainingInsulin(): Double? {
-        //aapsLogger.error(TAG, "getRemainingInsulin command is not available!!!")
+        aapsLogger.error(TAG, "getRemainingInsulin command is not available!!!")
 
         pumpUtil.currentCommand = PumpCommandType.GetRemainingInsulin
         val commandResponse = selectedConnector.retrieveRemainingInsulin()
@@ -354,7 +352,7 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     fun getBatteryLevel(): Int? {
-        //aapsLogger.error(TAG, "getBatteryLevel command is not available!!!")
+        aapsLogger.error(TAG, "getBatteryLevel command is not available!!!")
 
         pumpUtil.currentCommand = PumpCommandType.GetBatteryStatus
         val commandResponse = selectedConnector.retrieveBatteryStatus()
@@ -371,6 +369,20 @@ class TandemPumpConnectionManager @Inject constructor(
     fun getConfiguration() {
 
         // TODO getConfiguration
+
+
+        aapsLogger.error(TAG, "getBatteryLevel command is not available!!!")
+
+        pumpUtil.currentCommand = PumpCommandType.GetBatteryStatus
+        val commandResponse = selectedConnector.retrieveConfiguration()
+        pumpUtil.resetDriverStatusToConnected()
+
+        // return if (commandResponse.isSuccess()) {
+        //     //pumpStatus.batteryRemaining = commandResponse.value!!
+        //     //commandResponse.value
+        // }
+        //else null
+
 
         // val command = GetPumpSettings(injector)
         //
@@ -414,10 +426,6 @@ class TandemPumpConnectionManager @Inject constructor(
         // }
     }
 
-    // TODO
-    // val batteryStatus: DataCommandResponse?
-    //     get() =// TODO
-    //         null
 
     fun getBasalProfile(): DoubleArray? {
         aapsLogger.error(TAG, "getBasalProfile command is not available!!!")
@@ -448,7 +456,8 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
     fun setTime(): DateTimeDto? {
-        TODO("Not yet implemented")
+        return null
+        //TODO("Not yet implemented")
     }
 
     init {

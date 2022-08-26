@@ -15,12 +15,15 @@ import androidx.core.content.ContextCompat
 import info.nightscout.androidaps.core.R
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class BlePreCheck @Inject constructor(
     private val context: Context,
+    private val aapsLogger: AAPSLogger,
     private val rh: ResourceHelper
 ) {
 
@@ -84,8 +87,13 @@ class BlePreCheck @Inject constructor(
 
     private fun checkAdditionalPermissions(additionalPermissions: List<String>?, activity: AppCompatActivity): Boolean {
 
-        if (additionalPermissions==null || additionalPermissions.size==0)
+
+        if (additionalPermissions==null || additionalPermissions.size==0) {
+            aapsLogger.info(LTag.PUMP, "ADP: No additional permissions found !")
             return true
+        }
+
+        aapsLogger.info(LTag.PUMP, "ADP: Additional permissions (${additionalPermissions.size}): ${additionalPermissions}")
 
         val nonPermittedItems = mutableListOf<String>()
 
@@ -94,6 +102,8 @@ class BlePreCheck @Inject constructor(
                 nonPermittedItems.add(permission)
             }
         }
+
+        aapsLogger.info(LTag.PUMP, "ADP: Non permited items: ${nonPermittedItems}")
 
         if (nonPermittedItems.size > 0) {
             ActivityCompat.requestPermissions(activity, nonPermittedItems.toTypedArray(), PERMISSION_REQUEST_BLUETOOTH)

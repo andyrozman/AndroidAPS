@@ -188,6 +188,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     override fun getPumpHistory(): DataCommandResponse<List<Any>?> {
         // TODO Connector: getPumpHistory
 
+
+
+
         HistoryLogStatusRequest()
 
         var responseMessage: Message? = getCommunicationManager().sendCommand(HistoryLogStatusRequest())
