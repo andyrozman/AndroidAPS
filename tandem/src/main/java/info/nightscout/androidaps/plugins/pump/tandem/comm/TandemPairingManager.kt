@@ -66,13 +66,21 @@ class TandemPairingManager constructor(
 
         createBluetoothHandler()
 
-        Toast.makeText(context, "Staring pairing with Tandem, this can take some time, please don't press anything until its done.", Toast.LENGTH_LONG).show() // TODO
+        showToast( "Staring pairing with Tandem, this can take some time, please don't press anything until its done.") // TODO
 
         bluetoothHandler!!.startScan()
     }
 
     fun shutdownPairingManager() {
         stopBluetoothHandler()
+    }
+
+    fun showToast(text:String) {
+
+        runOnUiThread {
+            Toast.makeText(context, text, Toast.LENGTH_LONG).show() // TODO
+        }
+
     }
 
 
@@ -138,7 +146,7 @@ class TandemPairingManager constructor(
 
             rxBus.send(EventPumpConnectionParametersChanged())
 
-            Toast.makeText(context, "Pairing with Tandem was SUCCESS.", Toast.LENGTH_LONG).show() // TODO
+            showToast("Pairing with Tandem was SUCCESS.") // TODO
 
             if (finishActivity) {
                 activity.finish()
@@ -177,7 +185,7 @@ class TandemPairingManager constructor(
 
         aapsLogger.error(TAG, "PairingCode WAS INVALID.")
 
-        Toast.makeText(context, "PairingCode WAS INVALID. Try again.", Toast.LENGTH_LONG).show() // TODO
+        showToast("PairingCode WAS INVALID. Try again.") // TODO
 
         //PumpState.failedPumpConnectionAttempts++
 
