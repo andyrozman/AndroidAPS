@@ -119,9 +119,10 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
                 val bluetoothDevice = devicesMap[bleAddress]
                 bleSelector.onDeviceSelected(bluetoothDevice!!, bleAddress, deviceName, this)
 
-                if (bleSelector.onDeviceSelectedClosesActivity()) {
-                    finish()
-                }
+                // if (bleSelector.onDeviceSelectedClosesActivity()) {
+                //     finish()
+                // }
+                finish()  // TODO fix
             } else {
                 aapsLogger.debug(TAG, "Device NOT found in deviceMap: $bleAddress")
                 finish()

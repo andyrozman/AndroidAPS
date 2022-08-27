@@ -57,6 +57,7 @@ class TandemPairingManager constructor(
     var TAG = LTag.PUMPBTCOMM
 
     var bluetoothHandler: TandemBluetoothHandler? = null
+    var finishActivity = false
 
     fun startPairing() {
         aapsLogger.info(TAG, "start Pairing")
@@ -65,7 +66,7 @@ class TandemPairingManager constructor(
 
         createBluetoothHandler()
 
-        Toast.makeText(activity, "Staring pairing with Tandem, this can take some time, please don't press anything until its done.", Toast.LENGTH_LONG).show() // TODO
+        Toast.makeText(context, "Staring pairing with Tandem, this can take some time, please don't press anything until its done.", Toast.LENGTH_LONG).show() // TODO
 
         bluetoothHandler!!.startScan()
     }
@@ -137,9 +138,11 @@ class TandemPairingManager constructor(
 
             rxBus.send(EventPumpConnectionParametersChanged())
 
-            Toast.makeText(activity, "Pairing with Tandem was SUCCESS.", Toast.LENGTH_LONG).show() // TODO
+            Toast.makeText(context, "Pairing with Tandem was SUCCESS.", Toast.LENGTH_LONG).show() // TODO
 
-            activity.finish()
+            if (finishActivity) {
+                activity.finish()
+            }
         }
 
     }
@@ -152,7 +155,9 @@ class TandemPairingManager constructor(
 
         try {
             // TODO
-            triggerPairDialog(peripheral, btAddress, centralChallenge)
+            runOnUiThread {
+                triggerPairDialog(peripheral, btAddress, centralChallenge)
+            }
 
             //triggerAAPSPairDialog(peripheral, btAddress, centralChallenge)
         } catch (ex: Exception) {
@@ -172,13 +177,15 @@ class TandemPairingManager constructor(
 
         aapsLogger.error(TAG, "PairingCode WAS INVALID.")
 
-        Toast.makeText(activity, "PairingCode WAS INVALID. Try again.", Toast.LENGTH_LONG).show() // TODO
+        Toast.makeText(context, "PairingCode WAS INVALID. Try again.", Toast.LENGTH_LONG).show() // TODO
 
         //PumpState.failedPumpConnectionAttempts++
 
         rxBus.send(EventPumpStatusChanged(PumpDriverState.ErrorCommunicatingWithPump))
 
-        activity.finish()
+        if (finishActivity) {
+            activity.finish()
+        }
 
         // AlertDialog.Builder(context)
         //     .setTitle("Pump Connection")
@@ -201,7 +208,7 @@ class TandemPairingManager constructor(
         aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: triggerPairDialog")
 
         val btName = peripheral.name
-        val builder = AlertDialog.Builder(this.activity)
+        val builder = AlertDialog.Builder(this.context)
         builder.setTitle("Enter pairing code (case-sensitive)")
         builder.setMessage("Enter the pairing code from Bluetooth Settings > Pair Device to connect to:\n\n$btName ($btAddress)")
 
