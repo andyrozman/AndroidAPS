@@ -15,40 +15,45 @@ abstract class PumpStatus(var pumpType: PumpType) {
     var lastConnection = 0L
     var previousConnection = 0L // here should be stored last connection of previous session (so needs to be
 
-    // read before lastConnection is modified for first time).
-    // last bolus
+    // bolus
     var lastBolusTime: Date? = null
     var lastBolusAmount: Double? = null
 
     // other pump settings
-    var activeProfileName = "0"
     var reservoirRemainingUnits = 0.0
     var reservoirFullUnits = 0
     var batteryRemaining = 0 // percent, so 0-100
     var batteryVoltage: Double? = null
+    var units: String? = null // Constants.MGDL or Constants.MMOL
 
     // iob
     var iob: String? = null
 
+    // basal profile
+    var basalsByHour: DoubleArray? = null
+    var activeProfileName = "1"
+
     // TDD
     var dailyTotalUnits: Double? = null
     var maxDailyTotalUnits: String? = null
-    var units: String? = null // Constants.MGDL or Constants.MMOL
-    var pumpRunningState = PumpRunningState.Running
-    var basalsByHour: DoubleArray? = null
 
-    // TODO refactor to use TempBasalPair
+    // state
+    var pumpRunningState = PumpRunningState.Running
+
+    // temp basal
+    var currentTempBasal: TempBasalPair? = null
+    var currentTempBasalEstimatedEnd: Long? = null
+
+    // time
+    var pumpTime: PumpTimeDifferenceDto? = null
+
+
+    // TODO refactor to use TempBasalPair - remove this
     var tempBasalStart: Long? = null
     var tempBasalAmount: Double? = 0.0
     var tempBasalPercent: Int? = 100
     var tempBasalDuration: Int? = 0
     var tempBasalEnd: Long? = null
-
-    var currentTempBasal: TempBasalPair? = null
-
-    //var tbr: TempBasalPair
-
-    var pumpTime: PumpTimeDifferenceDto? = null
 
     abstract fun initSettings()
 

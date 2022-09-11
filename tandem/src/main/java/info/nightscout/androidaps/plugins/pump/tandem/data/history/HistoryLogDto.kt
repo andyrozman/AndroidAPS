@@ -1,6 +1,9 @@
 package info.nightscout.androidaps.plugins.pump.tandem.data.history
 
+import androidx.annotation.StringRes
+import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpBolusType
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryEntry
@@ -113,3 +116,121 @@ data class DateTimeChanged(var year: Int? = 0,
         }
     }
 }
+
+
+data class Bolus(var bolusType: PumpBolusType,
+                 var immediateAmount: Double?,
+                 var extendedAmount: Double?,
+                 var durationMin: Int?,
+                 var bolusId: Int?,
+                 var isCancelled: Boolean,
+                 var isRunning: Boolean): HistoryLogObject() {
+
+    constructor(immediateAmount: Double?,
+                bolusId: Int?,
+                isCancelled: Boolean,
+                isRunning: Boolean) : this(PumpBolusType.NORMAL, immediateAmount, null, null, bolusId, isCancelled, isRunning)
+
+    constructor(extendedAmount: Double?,
+                durationMin: Int?,
+                bolusId: Int?,
+                isCancelled: Boolean,
+                isRunning: Boolean) : this(bolusType = PumpBolusType.EXTENDED,
+                                           immediateAmount = null,
+                                           extendedAmount = extendedAmount,
+                                           durationMin = durationMin,
+                                           bolusId = bolusId,
+                                           isCancelled = isCancelled,
+                                           isRunning = isRunning)
+
+    // constructor(immediateAmount: Double?,
+    //             extendedAmount: Double?,
+    //             durationMin: Int?,
+    //             isCalculated: Boolean,
+    //             isCancelled: Boolean,
+    //             isRunning: Boolean) : this(PumpBolusType.COMBINED, immediateAmount, extendedAmount, durationMin, isCalculated, isCancelled, isRunning)
+
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
+        return when (bolusType) {
+            PumpBolusType.NORMAL   -> resourceHelper.gs(bolusType.resourceId, immediateAmount)
+            PumpBolusType.EXTENDED -> resourceHelper.gs(bolusType.resourceId, extendedAmount, durationMin)
+            PumpBolusType.COMBINED -> resourceHelper.gs(bolusType.resourceId, immediateAmount, extendedAmount, durationMin)
+            PumpBolusType.SMB      -> resourceHelper.gs(bolusType.resourceId, immediateAmount)
+            PumpBolusType.PRIME    -> resourceHelper.gs(bolusType.resourceId, immediateAmount)
+        }
+    }
+}
+
+
+data class BasalProfile(var profile: HashMap<Int, BasalProfileEntry>) : HistoryLogObject() {
+
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
+
+        return "";
+        // return resourceHelper.gs(
+        //     R.string.ypsopump_history_basal_profile,
+        //     ypsoPumpDataConverter.convertBasalProfileToString(profile, ", ")
+        // )
+    }
+
+}
+
+data class BasalProfileEntry(var hour: Int,
+                             var rate: Double) : HistoryLogObject() {
+
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
+        return String.format("%02d=%.2f", hour, rate)
+    }
+
+}
+
+
+data class TemporaryBasal(
+    var percent: Int,
+    var minutes: Int,
+    var isRunning: Boolean //,
+    //var temporaryBasalType: PumpSync.TemporaryBasalType = PumpSync.TemporaryBasalType.NORMAL
+) : HistoryLogObject() {
+
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
+        return resourceHelper.gs(R.string.ypsopump_history_tbr, percent, minutes)
+    }
+}
+
+enum class ConfigurationType(@StringRes var stringId: Int) {
+    BolusStepChanged(R.string.ypsopump_config_bolus_step_changed),
+    BolusAmountCapChanged(R.string.ypsopump_config_bolus_amount_cap_changed),
+    BasalAmountCapChanged(R.string.ypsopump_config_basal_amount_cap_changed),
+    BasalProfileChanged(R.string.ypsopump_config_basal_profile_changed)
+}
+
+data class ConfigurationChanged(var configurationType: ConfigurationType,
+                                var value: String) : HistoryLogObject() {
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
+        return resourceHelper.gs(R.string.ypsopump_history_configuration_changed, resourceHelper.gs(configurationType.stringId), value)
+    }
+}
+
+enum class PumpStatusType(@StringRes var stringId: Int) {
+    PumpRunning(R.string.ypsopump_pump_status_type_pump_running),
+    PumpSuspended(R.string.ypsopump_pump_status_type_pump_suspended),
+    Priming(R.string.ypsopump_pump_status_type_priming),
+    Rewind(R.string.ypsopump_pump_status_type_rewind),
+    BatteryRemoved(R.string.ypsopump_pump_status_type_battery_removed)
+}
+
+
+data class PumpStatusChanged(var pumpStatusType: PumpStatusType,
+                             var additonalData: String? = null): HistoryLogObject() {
+
+    override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
+        return if (pumpStatusType == PumpStatusType.Priming) {
+            resourceHelper.gs(pumpStatusType.stringId, additonalData)
+        } else {
+            resourceHelper.gs(pumpStatusType.stringId)
+        }
+    }
+}
+
+
+

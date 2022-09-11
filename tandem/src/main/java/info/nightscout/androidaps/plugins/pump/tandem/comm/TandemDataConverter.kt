@@ -5,11 +5,13 @@ import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.*
 import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpBolusType
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
+import info.nightscout.androidaps.plugins.pump.tandem.data.history.Bolus
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.DateTimeChanged
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogDto
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogObject
@@ -19,6 +21,7 @@ import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
+import org.joda.time.DateTime
 import javax.inject.Inject
 
 class TandemDataConverter @Inject constructor(
@@ -181,12 +184,14 @@ class TandemDataConverter @Inject constructor(
 
             is TimeChangeHistoryLog            -> historyLog.subObject = createTimeChangeRecord(historyLogPump)
             is DateChangeHistoryLog            -> historyLog.subObject = createDateChangeRecord(historyLogPump)
-            // one is invalid duplicate ?
-            //is DateChangeResponse,             -> historyLog.subObject = createDateChangeRecord(historyLogPump)
+
+            // WIP
+            is BolusCompletedHistoryLog        -> historyLog.subObject = createBolusRecord(historyLogPump)
+            is BolexCompletedHistoryLog        -> historyLog.subObject = createBolusRecord(historyLogPump)
 
             // not implemented yet
-            is BolexCompletedHistoryLog,
-            is BolusCompletedHistoryLog,
+
+
             is BolusDeliveryHistoryLog,
             is BolusRequestedMsg1HistoryLog,
             is BolusRequestedMsg2HistoryLog,
@@ -204,26 +209,49 @@ class TandemDataConverter @Inject constructor(
 
     }
 
+    private fun createBolusRecord(bolusLog: BolexCompletedHistoryLog): HistoryLogObject {
 
-    private fun createDateChangeRecord(historyLogPump: DateChangeHistoryLog): HistoryLogObject? {
+        val bolus = Bolus(bolusId = bolusLog.bolusId,
+                          immediateAmount = bolusLog.insulinDelivered.toDouble(),
+                          isCancelled = false,
+                          isRunning = bolusLog.completionStatus == 0  // TODO completionStatus Bolus
+        )
+
+
+
+        return bolus
+
+    }
+
+    private fun createBolusRecord(bolusLog: BolusCompletedHistoryLog): HistoryLogObject {
+
+        val bolus = Bolus(bolusId = bolusLog.bolusId,
+                          immediateAmount = bolusLog.insulinDelivered.toDouble(),
+                          isCancelled = false,
+                          isRunning = bolusLog.completionStatus == 0  // TODO completionStatus Bolus
+        )
+
+        return bolus
+
+    }
+
+    private fun createDateChangeRecord(historyLogPump: DateChangeHistoryLog): HistoryLogObject {
         return createDateTimeChangeRecord(historyLogPump.getDateAfterInstant().toEpochMilli(), false)
     }
 
-    private fun createDateChangeRecord(historyLogPump: DateChangeResponse): HistoryLogObject? {
+    private fun createDateChangeRecord(historyLogPump: DateChangeResponse): HistoryLogObject {
         return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.dateAfter).toEpochMilli(), false)
     }
 
-    private fun createTimeChangeRecord(historyLogPump: TimeChangeHistoryLog): HistoryLogObject? {
+    private fun createTimeChangeRecord(historyLogPump: TimeChangeHistoryLog): HistoryLogObject {
         return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.timeAfter).toEpochMilli(), true)
     }
 
     private fun createDateTimeChangeRecord(dateTime: Long, timeChanged: Boolean): DateTimeChanged {
-
-        //historyLogPump.timeAfter
-
-        //return DateTimeChanged()
-
-        TODO("Not yet implemented")
+        val dt = DateTime().withMillis(dateTime)
+        return DateTimeChanged(year = dt.year, month = dt.monthOfYear, day = dt.dayOfMonth,
+                               hour = dt.hourOfDay, minute = dt.minuteOfHour, second = dt.secondOfMinute,
+                               timeChanged = timeChanged)
     }
 
     fun createHistoryLogDto(historyLogPump: HistoryLog) : HistoryLogDto {

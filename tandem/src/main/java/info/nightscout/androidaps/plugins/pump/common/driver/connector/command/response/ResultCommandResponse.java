@@ -8,8 +8,10 @@ public class ResultCommandResponse extends CommandResponseAbstract<Boolean> {
         super(commandType, success, errorDescription, success);
     }
 
-    public ResultCommandResponse cloneWithNewCommandType(PumpCommandType pumpCommandType) {
-        return new ResultCommandResponse(pumpCommandType, isSuccess(), getErrorDescription());
+    public DataCommandResponse<Boolean> cloneWithNewCommandType(PumpCommandType pumpCommandType) {
+        return new DataCommandResponse<Boolean>(pumpCommandType,
+                isSuccess(),
+                getErrorDescription(),true);
     }
 
 

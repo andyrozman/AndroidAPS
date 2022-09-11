@@ -26,6 +26,8 @@ enum class PumpCommandType(@param:StringRes val resourceId: Int) {
     GetTime(R.string.pump_cmd_desc_get_time),
     SetTime(R.string.pump_cmd_desc_set_time),
 
+    CustomCommand(R.string.pump_cmd_desc_custom),
+
     GetHistory(R.string.pump_cmd_desc_get_history),
     GetHistoryWithParameters(R.string.pump_cmd_desc_get_history_params),
     ;

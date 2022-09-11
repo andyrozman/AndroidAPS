@@ -33,7 +33,7 @@
     <string name="pump_cmd_desc_get_pump_status">Get Pump Status</string>
     <string name="pump_cmd_desc_get_history">Get History</string>
     <string name="pump_cmd_desc_get_history_params">Get History %s</string>
-
+    <string name="pump_cmd_desc_custom">Custom command</string>
 
 
     <!-- Command Errors -->
@@ -122,7 +122,8 @@
     <!-- YpsoPump Error -->
 
     <!-- Tandem UI - 2.5 Forced Open Loop -->
-    <string name="tandem_fol_closed_loop_not_allowed">Closed Loop not available with Firmware less than 2.5</string>
+    <string name="tandem_fol_closed_loop_not_allowed_x2">Closed Loop not available with Firmware less than 2.5</string>
+    <string name="tandem_fol_closed_loop_not_allowed_firmware">Closed Loop not available with Firmware less than 2.5</string>
     <string name="tandem_fol_smb_not_allowed">SMB not available with Firmware less than 2.5</string>
 
     <!-- YpsoPump UI - 1.5 Open Loop commands -->

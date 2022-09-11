@@ -12,10 +12,11 @@ import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.CustomCommandTypeInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.parameters.PumpHistoryFilterInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemCommunicationManager
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemDataConverter
@@ -28,7 +29,6 @@ import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
-import java.util.*
 import javax.inject.Inject
 
 /**
@@ -44,7 +44,6 @@ import javax.inject.Inject
 class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpStatus,
                                               var context: Context,
                                               var tandemPumpUtil: TandemPumpUtil,
-                                              //var pumpStatus: TandemPumpStatus,
                                               injector: HasAndroidInjector,
                                               var sp: SP,
                                               aapsLogger: AAPSLogger,
@@ -141,8 +140,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     private fun addToSettings(settingType: TandemPumpSettingType, settingsMap: MutableMap<String,String>, message: Message?) {
 
-        // TODO add to Settings
-
         when(message) {
             is ControlIQInfoV1Response -> {  settingsMap.put(settingType.name, message.closedLoopEnabled.toString()) }
             is ControlIQInfoV2Response -> {  settingsMap.put(settingType.name, message.closedLoopEnabled.toString()) }
@@ -165,10 +162,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         val responseData: DataCommandResponse<Int?> = sendAndReceivePumpData(PumpCommandType.GetBatteryStatus,
                                                                              getCorrectRequest(TandemCommandType.CurrentBattery))
         {   rawData -> tandemDataConverter.getBatteryResponse(rawData as CurrentBatteryAbstractResponse) }
-
-        if (responseData.isSuccess) {
-            pumpStatus.batteryRemaining = responseData.value!!
-        }
 
         return responseData
 
@@ -230,10 +223,17 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
-    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): ResultCommandResponse {
-        // TODO Connector: sendBolus
+    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<AdditionalResponseDataInterface?> {
+        // TODO V1 Connector: sendBolus
         return super.sendBolus(detailedBolusInfo)
     }
+
+
+    override fun cancelBolus(): DataCommandResponse<AdditionalResponseDataInterface?> {
+        // TODO V1 Connector: cancelBolus
+        return super.cancelBolus()
+    }
+
 
     override fun retrieveTemporaryBasal(): DataCommandResponse<TempBasalPair?> {
 
@@ -251,15 +251,18 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         return responseData
     }
 
-    override fun sendTemporaryBasal(value: Int, duration: Int): ResultCommandResponse {
-        // TODO Connector: sendTemporaryBasal
+
+    override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
+        // TODO V2 Connector: sendTemporaryBasal
         return super.sendTemporaryBasal(value, duration)
     }
 
-    override fun cancelTemporaryBasal(): ResultCommandResponse {
-        // TODO Connector: cancelTemporaryBasal
+
+    override fun cancelTemporaryBasal(): DataCommandResponse<AdditionalResponseDataInterface?> {
+        // TODO V2 Connector: cancelTemporaryBasal
         return super.cancelTemporaryBasal()
     }
+
 
     override fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?> {
 
@@ -302,6 +305,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     }
 
+
     private fun checkResponse(responseMessage: Message?, description: String): String? {
         return if (responseMessage==null || responseMessage is ErrorResponse) {
             val ressponseText = if (responseMessage==null) {
@@ -320,14 +324,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
 
-    override fun sendBasalProfile(profile: Profile): ResultCommandResponse {
-        // TODO Connector: sendBasalProfile
+    override fun sendBasalProfile(profile: Profile): DataCommandResponse<AdditionalResponseDataInterface?> {
+        // TODO V2 Connector: sendBasalProfile
         return super.sendBasalProfile(profile)
-    }
-
-    override fun cancelBolus(): ResultCommandResponse {
-        // TODO Connector: cancelBolus
-        return super.cancelBolus()
     }
 
     override fun getTime(): DataCommandResponse<PumpTimeDifferenceDto?> {
@@ -335,8 +334,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             PumpCommandType.GetTime, true, null, pumpStatus.pumpTime)
     }
 
-    override fun setTime(): ResultCommandResponse {
-        // TODO Connector: setTime
+    override fun setTime(): DataCommandResponse<AdditionalResponseDataInterface?> {
+        // TODO V2 Connector: setTime
         return super.setTime()
     }
 
@@ -346,10 +345,10 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             PumpCommandType.GetHistory, true, null, listOf())
     }
 
-
-
-
-
+    override fun executeCustomCommand(commandType: CustomCommandTypeInterface): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return DataCommandResponse(
+            PumpCommandType.CustomCommand, false, "Command ${commandType.getKey()} not available.", null)
+    }
 
     private inline fun <reified T>  sendAndReceivePumpData(commandType: PumpCommandType,
                                                            requestMessage: Message,

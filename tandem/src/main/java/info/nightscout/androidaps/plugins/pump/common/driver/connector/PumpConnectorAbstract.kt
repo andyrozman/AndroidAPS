@@ -6,12 +6,11 @@ import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.PumpHistoryEntryInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.parameters.PumpHistoryFilterInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.*
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
-import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
 
 import info.nightscout.shared.logging.AAPSLogger
 
@@ -20,6 +19,9 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
 
     var unSuccessfulResponse =
         ResultCommandResponse(PumpCommandType.GetBolus, false, "Command not implemented.")
+
+    var unSuccessfulResponseForSet =
+        DataCommandResponse<AdditionalResponseDataInterface?>(PumpCommandType.SetBolus, false, "Command not implemented.", null)
 
     var unSucessfulDataResponse =
         DataCommandResponse<FirmwareVersionInterface?>(PumpCommandType.GetFirmwareVersion,
@@ -38,12 +40,12 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
                                                        false, "Command not implemented.", null)
     }
 
-    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): ResultCommandResponse {
-        return unSuccessfulResponse.cloneWithNewCommandType(PumpCommandType.SetBolus)
+    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBolus)
     }
 
-    override fun cancelBolus(): ResultCommandResponse {
-        return unSuccessfulResponse.cloneWithNewCommandType(PumpCommandType.CancelBolus)
+    override fun cancelBolus(): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.CancelBolus)
     }
 
     override fun retrieveTemporaryBasal(): DataCommandResponse<TempBasalPair?> {
@@ -51,12 +53,12 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
             PumpCommandType.GetTemporaryBasal, false, "Command not implemented.", null)
     }
 
-    override fun sendTemporaryBasal(value: Int, duration: Int): ResultCommandResponse {
-        return unSuccessfulResponse.cloneWithNewCommandType(PumpCommandType.SetTemporaryBasal)
+    override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTemporaryBasal)
     }
 
-    override fun cancelTemporaryBasal(): ResultCommandResponse {
-        return unSuccessfulResponse.cloneWithNewCommandType(PumpCommandType.CancelTemporaryBasal)
+    override fun cancelTemporaryBasal(): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.CancelTemporaryBasal)
     }
 
     override fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?> {
@@ -64,8 +66,8 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
             PumpCommandType.GetBasalProfile, false, "Command not implemented.", null)
     }
 
-    override fun sendBasalProfile(profile: Profile): ResultCommandResponse {
-        return unSuccessfulResponse.cloneWithNewCommandType(PumpCommandType.SetBasalProfile)
+    override fun sendBasalProfile(profile: Profile): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBasalProfile)
     }
 
 
@@ -77,7 +79,6 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
     override fun retrieveRemainingInsulin(): DataCommandResponse<Double?> {
         return DataCommandResponse<Double?>(
             PumpCommandType.GetRemainingInsulin, false, "Command not implemented.", null)
-
     }
 
     override fun retrieveBatteryStatus(): DataCommandResponse<Int?> {
@@ -90,8 +91,8 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
             PumpCommandType.GetTime, false, "Command not implemented.", null)
     }
 
-    override fun setTime(): ResultCommandResponse {
-        return unSuccessfulResponse.cloneWithNewCommandType(PumpCommandType.SetTime)
+    override fun setTime(): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return unSuccessfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTime)
     }
 
     override fun getPumpHistory(): DataCommandResponse<List<Any>?> {

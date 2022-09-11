@@ -82,6 +82,13 @@
     <string name="pump_settings_error_wrong_max_bolus_set">Wrong Max Bolus set on Pump (must be %1$.2f).</string>
     <string name="pump_settings_error_wrong_max_basal_set">Wrong Max Basal set on Pump (must be %1$.2f).</string>
 
+    <!-- Bolus -->
+    <string name="pump_bolus_normal">Normal Bolus, Amount: %.2f U</string>
+    <string name="pump_bolus_extended">Extended Bolus, Amount: %.2f U, Duration: %d min</string>
+    <string name="pump_bolus_combined">Combined Bolus, Immediate: %.2f U, Extended: %.2f U, Duration: %d min</string>
+    <string name="pump_bolus_smb">SMB Bolus, Amount: %.2f U</string>
+    <string name="pump_bolus_prime">Prime Bolus, Amount: %.2f U</string>
+
     <!-- Pump History -->
     <string name="pump_history_type">Type:</string>
 

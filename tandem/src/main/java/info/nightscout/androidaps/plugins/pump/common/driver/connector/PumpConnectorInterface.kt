@@ -5,12 +5,12 @@ import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.PumpHistoryEntryInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.parameters.PumpHistoryFilterInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.*
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
-import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.CustomCommandTypeInterface
 
 interface PumpConnectorInterface {
 
@@ -19,25 +19,27 @@ interface PumpConnectorInterface {
 
     fun retrieveFirmwareVersion(): DataCommandResponse<FirmwareVersionInterface?>
 
-    fun sendBolus(detailedBolusInfo: DetailedBolusInfo): ResultCommandResponse
-    fun cancelBolus(): ResultCommandResponse
+    fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<AdditionalResponseDataInterface?>  //  ResultCommandResponse
+    fun cancelBolus(): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
 
     fun retrieveTemporaryBasal(): DataCommandResponse<TempBasalPair?>
-    fun sendTemporaryBasal(value: Int, duration: Int): ResultCommandResponse
-    fun cancelTemporaryBasal(): ResultCommandResponse
+    fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
+    fun cancelTemporaryBasal(): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
 
     fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?>
-    fun sendBasalProfile(profile: Profile): ResultCommandResponse
+    fun sendBasalProfile(profile: Profile): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
 
     fun retrieveConfiguration(): DataCommandResponse<Map<String, String>?>
     fun retrieveRemainingInsulin(): DataCommandResponse<Double?>
     fun retrieveBatteryStatus(): DataCommandResponse<Int?>
 
     fun getTime(): DataCommandResponse<PumpTimeDifferenceDto?>
-    fun setTime(): ResultCommandResponse?
+    fun setTime(): DataCommandResponse<AdditionalResponseDataInterface?>
 
     fun getPumpHistory(): DataCommandResponse<List<Any>?>
     fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<Any>?>
+
+    fun executeCustomCommand(commandType: CustomCommandTypeInterface): DataCommandResponse<AdditionalResponseDataInterface?>
 
     fun getSupportedCommands(): Set<PumpCommandType>
 }

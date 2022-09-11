@@ -7,18 +7,17 @@ import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.PumpHistoryEntryInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.parameters.PumpHistoryFilterInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.util.PumpUtil
-import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.CustomCommandTypeInterface
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.shared.logging.AAPSLogger
 import org.joda.time.DateTime
-import java.util.*
 import javax.inject.Singleton
 
 @Singleton
@@ -31,6 +30,10 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
 
     var successfulResponse =
         ResultCommandResponse(PumpCommandType.GetBolus, true, null)
+
+    var successfulResponseForSet =
+        DataCommandResponse<AdditionalResponseDataInterface?>(PumpCommandType.SetBolus, true, null, null)
+
 
     var supportedCommandsList: Set<PumpCommandType>
 
@@ -56,9 +59,9 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
             PumpCommandType.GetFirmwareVersion, true, null, TandemPumpApiVersion.VERSION_2_1)
     }
 
-    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): ResultCommandResponse {
+    override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<AdditionalResponseDataInterface?> {
         pumpUtil.sleepSeconds(10)
-        return successfulResponse.cloneWithNewCommandType(PumpCommandType.SetBolus)
+        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBolus)
     }
 
     override fun retrieveTemporaryBasal(): DataCommandResponse<TempBasalPair?> {
@@ -81,14 +84,14 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
         }
     }
 
-    override fun sendTemporaryBasal(value: Int, duration: Int): ResultCommandResponse {
+    override fun sendTemporaryBasal(value: Int, duration: Int): DataCommandResponse<AdditionalResponseDataInterface?> {
         pumpUtil.sleepSeconds(10)
-        return successfulResponse.cloneWithNewCommandType(PumpCommandType.SetTemporaryBasal)
+        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTemporaryBasal)
     }
 
-    override fun cancelTemporaryBasal(): ResultCommandResponse {
+    override fun cancelTemporaryBasal(): DataCommandResponse<AdditionalResponseDataInterface?> {
         pumpUtil.sleepSeconds(10)
-        return successfulResponse.cloneWithNewCommandType(PumpCommandType.CancelTemporaryBasal)
+        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.CancelTemporaryBasal)
     }
 
     override fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?> {
@@ -102,9 +105,9 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
         }
     }
 
-    override fun sendBasalProfile(profile: Profile): ResultCommandResponse {
+    override fun sendBasalProfile(profile: Profile): DataCommandResponse<AdditionalResponseDataInterface?> {
         pumpUtil.sleepSeconds(10)
-        return successfulResponse.cloneWithNewCommandType(PumpCommandType.SetBasalProfile)
+        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetBasalProfile)
     }
 
     override fun retrieveRemainingInsulin(): DataCommandResponse<Double?> {
@@ -127,8 +130,8 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
             PumpCommandType.GetHistory, true, null, listOf())
     }
 
-    override fun cancelBolus(): ResultCommandResponse {
-        return successfulResponse.cloneWithNewCommandType(PumpCommandType.CancelBolus)
+    override fun cancelBolus(): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.CancelBolus)
     }
 
     override fun getTime(): DataCommandResponse<PumpTimeDifferenceDto?> {
@@ -137,8 +140,8 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
         )
     }
 
-    override fun setTime(): ResultCommandResponse {
-        return successfulResponse.cloneWithNewCommandType(PumpCommandType.SetTime)
+    override fun setTime(): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.SetTime)
     }
 
     override fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<Any>?> {
@@ -146,6 +149,9 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
             PumpCommandType.GetHistory, true, null, listOf())
     }
 
+    override fun executeCustomCommand(commandType: CustomCommandTypeInterface): DataCommandResponse<AdditionalResponseDataInterface?> {
+        return successfulResponseForSet.cloneWithNewCommandType(PumpCommandType.CustomCommand)
+    }
 
     init {
         supportedCommandsList = setOf()

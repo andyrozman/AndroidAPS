@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.DialogInterface
 import android.os.SystemClock
 import androidx.preference.Preference
-import com.jwoglom.pumpx2.util.timber.DebugTree
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.data.PumpEnactResult
@@ -14,7 +13,6 @@ import info.nightscout.androidaps.interfaces.PumpSync.TemporaryBasalType
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.PumpPluginAbstract
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
-import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
@@ -23,7 +21,6 @@ import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonS
 import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
 import info.nightscout.androidaps.plugins.pump.common.utils.ProfileUtil
 import info.nightscout.androidaps.plugins.pump.tandem.connector.TandemPumpConnectionManager
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.driver.config.TandemPumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
@@ -34,6 +31,8 @@ import info.nightscout.androidaps.utils.TimeChangeType
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.pump.common.defs.*
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
 import info.nightscout.androidaps.plugins.pump.tandem.comm.AAPSTimberTree
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemStatusRefreshType
@@ -41,7 +40,6 @@ import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
-import org.joda.time.DateTime
 import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
@@ -63,7 +61,7 @@ class TandemPumpPlugin @Inject constructor(
     sp: SP,
     commandQueue: CommandQueue,
     fabricPrivacy: FabricPrivacy,
-    val ypsopumpUtil: TandemPumpUtil,
+    val tandemUtil: TandemPumpUtil,
     val pumpStatus: TandemPumpStatus,
     dateUtil: DateUtil,
     val pumpConnectionManager: TandemPumpConnectionManager,
@@ -80,7 +78,7 @@ class TandemPumpPlugin @Inject constructor(
         .shortName(R.string.tandem_name_short) //
         .preferencesId(R.xml.pref_tandem)
         .description(R.string.description_pump_tandem),  //
-    PumpType.TANDEM_T_SLIM_X2,
+    PumpType.TANDEM_T_SLIM_X2_BT,
     injector, rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage
 ), Pump, Constraints, PumpDriverConfigurationCapable {
 
@@ -97,8 +95,10 @@ class TandemPumpPlugin @Inject constructor(
     private var pumpBonded: Boolean = false
     private var aapsTimberTree = AAPSTimberTree(aapsLogger)
 
+    private var tandemVersion = "v0.1.20"
+
     override fun onStart() {
-        aapsLogger.debug(LTag.PUMP, model().model + " started.")
+        aapsLogger.debug(LTag.PUMP, model().model + " started - ${tandemVersion}.")
         super.onStart()
     }
 
@@ -140,6 +140,7 @@ class TandemPumpPlugin @Inject constructor(
 
     override fun onStartScheduledPumpActions() {
 
+        // Enable logging in jwoglom's X2 library
         Timber.plant(aapsTimberTree)
 
         // disposable.add(rxBus
@@ -229,7 +230,7 @@ class TandemPumpPlugin @Inject constructor(
 
         //ypsoPumpStatusHandler.loadYpsoPumpStatusList()
 
-        checkInitializationState()
+        //checkInitializationState()
 
     }
 
@@ -255,13 +256,27 @@ class TandemPumpPlugin @Inject constructor(
     override val pumpStatusData: PumpStatus
         get() = pumpStatus
 
+    // TODO: At the moment X2 doesn't support Closed Loop, future pump (t:mobi and t:slim X3) will support it and
+    //  maybe also X2 at later time
     // Constraints interface
     override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
         if (value.value()) {
             value.set(
                 aapsLogger,
-                driverMode == PumpDriverMode.Automatic,
-                rh.gs(R.string.tandem_fol_closed_loop_not_allowed),
+                false, //driverMode == PumpDriverMode.Automatic,
+                rh.gs(R.string.tandem_fol_closed_loop_not_allowed_x2),
+                this
+            )
+        }
+        return value
+    }
+
+    override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
+        if (value.value()) {
+            value.set(
+                aapsLogger,
+                driverMode == PumpDriverMode.Automatic, // TODO
+                rh.gs(R.string.tandem_fol_smb_not_allowed),
                 this
             )
         }
@@ -272,22 +287,11 @@ class TandemPumpPlugin @Inject constructor(
         return pumpDriverConfiguration
     }
 
-    override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
-        if (value.value()) {
-            value.set(
-                aapsLogger,
-                driverMode == PumpDriverMode.Automatic,
-                rh.gs(R.string.tandem_fol_smb_not_allowed),
-                this
-            )
-        }
-        return value
-    }
 
     // Pump Interface
     override fun isInitialized(): Boolean {
-        aapsLogger.debug(LTag.PUMP, "isInitialized - driverInit=$driverInitialized, preventConnect=${ypsopumpUtil.preventConnect}")
-        return driverInitialized && !ypsopumpUtil.preventConnect
+        aapsLogger.debug(LTag.PUMP, "isInitialized - driverInit=$driverInitialized, preventConnect=${tandemUtil.preventConnect}")
+        return driverInitialized && !tandemUtil.preventConnect
         //return pumpStatus.ypsopumpFirmware != null;
     }
 
@@ -298,16 +302,16 @@ class TandemPumpPlugin @Inject constructor(
     }
 
     override fun isConnected(): Boolean {
-        val driverStatus = ypsopumpUtil.driverStatus
+        val driverStatus = tandemUtil.driverStatus
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnected - " + driverStatus.name)
         return driverStatus == PumpDriverState.Ready || driverStatus == PumpDriverState.ExecutingCommand
     }
 
     override fun isConnecting(): Boolean {
-        val driverStatus = ypsopumpUtil.driverStatus
+        val driverStatus = tandemUtil.driverStatus
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
         //return pumpState == PumpDriverState.Connecting;
-        return driverStatus == PumpDriverState.Connecting || driverStatus == PumpDriverState.Connected || driverStatus == PumpDriverState.EncryptCommunication
+        return driverStatus == PumpDriverState.Connecting || /*driverStatus == PumpDriverState.Connected ||*/ driverStatus == PumpDriverState.EncryptCommunication
     }
 
     override fun connect(reason: String) {
@@ -327,8 +331,8 @@ class TandemPumpPlugin @Inject constructor(
 
     override fun isHandshakeInProgress(): Boolean {
         if (displayConnectionMessages)
-            aapsLogger.debug(LTag.PUMP, "isHandshakeInProgress - " + ypsopumpUtil.driverStatus.name)
-        return ypsopumpUtil.driverStatus === PumpDriverState.Connecting
+            aapsLogger.debug(LTag.PUMP, "isHandshakeInProgress - " + tandemUtil.driverStatus.name)
+        return tandemUtil.driverStatus === PumpDriverState.Connecting
     }
 
     override fun finishHandshaking() {
@@ -840,7 +844,7 @@ class TandemPumpPlugin @Inject constructor(
     override fun stopBolusDelivering() {
         bolusDeliveryType = BolusDeliveryType.CancelDelivery
         // TODO if there is command
-        if (isLoggingEnabled) aapsLogger.warn(LTag.PUMP, "MedtronicPumpPlugin::deliverBolus - Stop Bolus Delivery.")
+        if (isLoggingEnabled) aapsLogger.warn(LTag.PUMP, "TandemPumpPlugin::deliverBolus - Stop Bolus Delivery.")
     }
 
     private val isLoggingEnabled: Boolean
@@ -871,9 +875,9 @@ class TandemPumpPlugin @Inject constructor(
                 aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent: Current Basal: duration: " + tbrCurrent.durationMinutes + " min, rate=" + tbrCurrent.insulinRate)
             }
             if (!enforceNew) {
-                if (ypsopumpUtil.isSame(tbrCurrent.insulinRate, percent)) {
+                if (tandemUtil.isSame(tbrCurrent.insulinRate, percent)) {
                     var sameRate = true
-                    if (ypsopumpUtil.isSame(0.0, percent) && durationInMinutes > 0) {
+                    if (tandemUtil.isSame(0.0, percent) && durationInMinutes > 0) {
                         // if rate is 0.0 and duration>0 then the rate is not the same
                         sameRate = false
                     }
@@ -891,7 +895,7 @@ class TandemPumpPlugin @Inject constructor(
 
                 // CANCEL
                 val commandResponse = pumpConnectionManager.cancelTemporaryBasal()
-                if (commandResponse) {
+                if (commandResponse.isSuccess) {
                     aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent - Current TBR cancelled.")
                 } else {
                     aapsLogger.error(logPrefix + "setTempBasalPercent - Cancel TBR failed.")
@@ -1035,8 +1039,8 @@ class TandemPumpPlugin @Inject constructor(
 
     private fun readTBR(): TempBasalPair? {
         val temporaryBasalResponse = pumpConnectionManager.getTemporaryBasal()
-        return if (temporaryBasalResponse!=null) {
-            val tbr = temporaryBasalResponse
+        return if (temporaryBasalResponse.value!=null) {
+            val tbr = temporaryBasalResponse.value!!
 
             // we sometimes get rate returned even if TBR is no longer running
             if (tbr.durationMinutes == 0) {
@@ -1066,7 +1070,7 @@ class TandemPumpPlugin @Inject constructor(
                     .comment(rh.gs(R.string.ypsopump_cmd_cant_read_tbr))
             }
             val commandResponse = pumpConnectionManager.cancelTemporaryBasal()
-            if (commandResponse) {
+            if (commandResponse.isSuccess) {
                 aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - Cancel TBR successful.")
 
                 readPumpHistoryAfterAction(tempBasalInfo = TempBasalPair(0.0, true, 0))
@@ -1117,11 +1121,11 @@ class TandemPumpPlugin @Inject constructor(
         aapsLogger.info(LTag.PUMP, logPrefix + "setNewBasalProfile")
         return try {
             setRefreshButtonEnabled(false)
-            var resultCommandResponse: ResultCommandResponse? //= null
+            var resultCommandResponse: DataCommandResponse<AdditionalResponseDataInterface?>
             var driverModeCurrent = driverMode
 
             if (driverModeCurrent == PumpDriverMode.Faked) {
-                resultCommandResponse = pumpConnectionManager.sendFakeCommand(PumpCommandType.SetBasalProfile)
+                resultCommandResponse = pumpConnectionManager.setBasalProfile(profile)
             } else if (driverModeCurrent == PumpDriverMode.ForcedOpenLoop) {
 
                 aapsLogger.error(LTag.PUMP, "Forced Open Loop: setNewBasalProfile")

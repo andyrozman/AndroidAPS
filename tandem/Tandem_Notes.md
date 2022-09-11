@@ -3,6 +3,20 @@
 At the time of creation of project there were only versions of pump available that don't support
 any kind of looping (Tandem is extending pump with bolus and hoping something more)
 
+### Tandem Slim X2
+For successful looping pump must support at least 2 commands: setting TBR and setting Bolus. At
+the moment (according to official sources), Slim X2 will support only one of them, which will
+make Closed-Loop impossible. So if you have Slim X2, you will be able to Open Loop only (unless
+they add support for TBR too), but you be able to receive all information from the pump and AAPS
+will give you pointers what to do.
+
+Most of work that will be done here, will be precursor for next device (t:Sport or t:Mobi), which
+ will support everything.
+
+
+
+
+
 ***
 
 
@@ -121,6 +135,7 @@ HIstory Support
 
 
 
+
 ***
 
 ### DO EXISTS?
@@ -140,13 +155,29 @@ GetStatus
 Project is not ready to be tested yet, but for some prelimiminary testing 
 here are simple instructions.
 
-1. Download jwoglom's pumpX2 repository
+Prepare X2 Library
+1. Download jwoglom's pumpX2 repository (go into dev branch) - https://github.com/jwoglom/pumpX2
 2. Build sources:  ./gradlew build
 3. Deploy artifacts to local repository: ./gradlew publishToMavenLocal
-4. Download this repository and build AAPS
-5. Deploy to your Phone, recommended to use Android 11 
-6. Follow instructions from developer on what to test. (You need at least Bolus-IQ enabled 
+
+Prepare Test Phone (if you don't have one)
+1. Get a Phone (Android needs to be higher than 9, recommended that version is also lower than 12)
+2. If you have done Objectives before import those settings, if you have Live AAPS you can use
+   that. Change Nightscout URL first (we don't want test setup to send data to NS), then do
+   export, and change URL back
+3. Import old setting
+
+Prepare APS
+1. Download this repository (put it into separate folder than your running/live version) in this
+   branch and build AAPS (name it something like AndroidAPS_Tandem) -
+   https://github.com/andyrozman/AndroidAPS.git  (you neet to checkout andy_tandem branch)
+2. Deploy to your Phone, recommended to use Android < 12
+3. Follow instructions from developer on what to test. (You need at least Bolus-IQ enabled
    version, It needs to have Tandem Pump API at version 2.2)
+4. Easiest way to deploy, is to connect your phone to your computer and run it from Android Studio,
+   you will be able to see what is happening if you look into Logcat tab (logs)
+
+
 
 
 ## History reading
