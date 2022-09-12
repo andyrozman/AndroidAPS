@@ -175,9 +175,10 @@ class TandemBLESelector @Inject constructor(
     }
 
     override fun getAdditionalPermissions(): List<String> {
-        return listOf(
-            Manifest.permission.BLUETOOTH,
-            Manifest.permission.BLUETOOTH_ADMIN)
+        return arrayListOf()
+        // return listOf(
+        //     Manifest.permission.BLUETOOTH,
+        //     Manifest.permission.BLUETOOTH_ADMIN)
     }
 
 }

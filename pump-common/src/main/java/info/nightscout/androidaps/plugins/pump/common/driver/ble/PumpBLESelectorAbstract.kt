@@ -109,4 +109,8 @@ abstract class PumpBLESelectorAbstract constructor(
         }
     }
 
+    override fun getAdditionalPermissions(): List<String> {
+        return arrayListOf()
+    }
+
 }
