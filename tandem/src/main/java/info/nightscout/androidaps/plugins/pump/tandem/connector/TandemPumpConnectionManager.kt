@@ -39,7 +39,6 @@ class TandemPumpConnectionManager @Inject constructor(
     //private val selectedConnector: PumpConnectorInterface
 
     private val dummyConnector: PumpConnectorInterface
-    //private val tandemConnector: TandemPumpConnector
 
     private val disposable = CompositeDisposable()
     //private var oldFirmware: TandemPumpApiVersion? = null
@@ -303,6 +302,8 @@ class TandemPumpConnectionManager @Inject constructor(
     override fun getConnector(commandType: PumpCommandType?): PumpConnectorInterface {
         // TODO extend this when new commands are enabled
         when(commandType) {
+            PumpCommandType.GetBatteryStatus,
+            PumpCommandType.GetTime -> return tandemConnector
             else -> return dummyConnector
         }
     }

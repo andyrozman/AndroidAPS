@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.DialogInterface
 import android.os.SystemClock
 import androidx.preference.Preference
+import com.jwoglom.pumpx2.shared.L
+import com.jwoglom.pumpx2.util.timber.LConfigurator
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.data.PumpEnactResult
@@ -13,14 +15,20 @@ import info.nightscout.androidaps.interfaces.PumpSync.TemporaryBasalType
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.PumpPluginAbstract
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
+import info.nightscout.androidaps.plugins.pump.common.defs.*
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentValuesChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
 import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
 import info.nightscout.androidaps.plugins.pump.common.utils.ProfileUtil
+import info.nightscout.androidaps.plugins.pump.tandem.comm.AAPSTimberTree
 import info.nightscout.androidaps.plugins.pump.tandem.connector.TandemPumpConnectionManager
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemStatusRefreshType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.driver.config.TandemPumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
@@ -29,19 +37,13 @@ import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.TimeChangeType
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
-import info.nightscout.androidaps.interfaces.ResourceHelper
-import info.nightscout.androidaps.plugins.pump.common.defs.*
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
-import info.nightscout.androidaps.plugins.pump.tandem.comm.AAPSTimberTree
-import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemStatusRefreshType
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
 import timber.log.Timber
 import java.util.*
+import java.util.function.Consumer
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -93,12 +95,12 @@ class TandemPumpPlugin @Inject constructor(
     private var driverInitialized = false
     private var pumpAddress: String = ""
     private var pumpBonded: Boolean = false
-    private var aapsTimberTree = AAPSTimberTree(aapsLogger)
 
     private var tandemVersion = "v0.1.20"
+    private var pumpX2Version = com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION
 
     override fun onStart() {
-        aapsLogger.debug(LTag.PUMP, model().model + " started - ${tandemVersion}.")
+        aapsLogger.debug(LTag.PUMP, model().model + " started - ${tandemVersion} (pumpX2 ${pumpX2Version})")
         super.onStart()
     }
 
@@ -139,10 +141,6 @@ class TandemPumpPlugin @Inject constructor(
     }
 
     override fun onStartScheduledPumpActions() {
-
-        // Enable logging in jwoglom's X2 library
-        Timber.plant(aapsTimberTree)
-
         // disposable.add(rxBus
         //                    .toObservable(EventPreferenceChange::class.java)
         //                    .observeOn(aapsSchedulers.io)
@@ -623,57 +621,59 @@ class TandemPumpPlugin @Inject constructor(
     private fun checkTimeAndOptionallySetTime(): Boolean {
         aapsLogger.info(LTag.PUMP, logPrefix + "checkTimeAndOptionallySetTime - Start")
 
-        try {
-
-            val clock = pumpConnectionManager.getTime()
-
-            if (clock != null) {
-                // TODO check if this works, migneed to use LocalDateTime...
-                //pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), clock.toLocalDateTime())
-                val diff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
-
-                if (diff > 60) {
-                    aapsLogger.error(LTag.PUMP, "Time difference between phone and pump is more than 60s ($diff)")
-
-                    // TODO fix this
-
-                    // if (!pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
-                    //     val notification = Notification(Notification.PUMP_PHONE_TIME_DIFF_TOO_BIG, rh.gs(R.string.time_difference_too_big, 60, diff), Notification.INFO, 60)
-                    //     rxBus.send(EventNewNotification(notification))
-                    // } else {
-                    //
-                    //     // TODO setNewTime, different notification
-                    //     val time = pumpConnectionManager.setTime()
-                    //
-                    //     if (time != null) {
-                    //         pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), time.toLocalDateTime())
-                    //
-                    //         val newTimeDiff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
-                    //
-                    //         if (newTimeDiff < 60) {
-                    //             val notification = Notification(
-                    //                 Notification.INSIGHT_DATE_TIME_UPDATED,
-                    //                 rh.gs(R.string.pump_time_updated),
-                    //                 Notification.INFO, 60
-                    //             )
-                    //             rxBus.send(EventNewNotification(notification))
-                    //         } else {
-                    //             aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
-                    //         }
-                    //     } else {
-                    //         aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
-                    //     }
-                    // }
-                }
-            }
-        } catch (ex: Exception) {
-            aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
-        } finally {
-            setRefreshButtonEnabled(false)
-            scheduleNextRefresh(TandemStatusRefreshType.PumpTime, 0)
-        }
-
         return true
+
+        // try {
+        //
+        //     val clock = pumpConnectionManager.getTime()
+        //
+        //     if (clock != null) {
+        //         // TODO check if this works, migneed to use LocalDateTime...
+        //         //pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), clock.toLocalDateTime())
+        //         val diff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
+        //
+        //         if (diff > 60) {
+        //             aapsLogger.error(LTag.PUMP, "Time difference between phone and pump is more than 60s ($diff)")
+        //
+        //             // TODO fix this
+        //
+        //             // if (!pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
+        //             //     val notification = Notification(Notification.PUMP_PHONE_TIME_DIFF_TOO_BIG, rh.gs(R.string.time_difference_too_big, 60, diff), Notification.INFO, 60)
+        //             //     rxBus.send(EventNewNotification(notification))
+        //             // } else {
+        //             //
+        //             //     // TODO setNewTime, different notification
+        //             //     val time = pumpConnectionManager.setTime()
+        //             //
+        //             //     if (time != null) {
+        //             //         pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), time.toLocalDateTime())
+        //             //
+        //             //         val newTimeDiff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
+        //             //
+        //             //         if (newTimeDiff < 60) {
+        //             //             val notification = Notification(
+        //             //                 Notification.INSIGHT_DATE_TIME_UPDATED,
+        //             //                 rh.gs(R.string.pump_time_updated),
+        //             //                 Notification.INFO, 60
+        //             //             )
+        //             //             rxBus.send(EventNewNotification(notification))
+        //             //         } else {
+        //             //             aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
+        //             //         }
+        //             //     } else {
+        //             //         aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
+        //             //     }
+        //             // }
+        //         }
+        //     }
+        // } catch (ex: Exception) {
+        //     aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
+        // } finally {
+        //     setRefreshButtonEnabled(false)
+        //     scheduleNextRefresh(TandemStatusRefreshType.PumpTime, 0)
+        // }
+        //
+        // return true
     }
 
     // TODO progress bar
