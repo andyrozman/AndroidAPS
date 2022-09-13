@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.DialogInterface
 import android.os.SystemClock
 import androidx.preference.Preference
+import com.jwoglom.pumpx2.shared.L
+import com.jwoglom.pumpx2.util.timber.LConfigurator
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.data.PumpEnactResult
@@ -13,14 +15,20 @@ import info.nightscout.androidaps.interfaces.PumpSync.TemporaryBasalType
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.PumpPluginAbstract
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
+import info.nightscout.androidaps.plugins.pump.common.defs.*
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentValuesChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
 import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
 import info.nightscout.androidaps.plugins.pump.common.utils.ProfileUtil
+import info.nightscout.androidaps.plugins.pump.tandem.comm.AAPSTimberTree
 import info.nightscout.androidaps.plugins.pump.tandem.connector.TandemPumpConnectionManager
+import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemStatusRefreshType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.driver.config.TandemPumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
@@ -29,19 +37,13 @@ import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.utils.TimeChangeType
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
-import info.nightscout.androidaps.interfaces.ResourceHelper
-import info.nightscout.androidaps.plugins.pump.common.defs.*
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
-import info.nightscout.androidaps.plugins.pump.tandem.comm.AAPSTimberTree
-import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemStatusRefreshType
 import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
 import timber.log.Timber
 import java.util.*
+import java.util.function.Consumer
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -96,9 +98,10 @@ class TandemPumpPlugin @Inject constructor(
     private var aapsTimberTree = AAPSTimberTree(aapsLogger)
 
     private var tandemVersion = "v0.1.20"
+    private var pumpX2Version = com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION
 
     override fun onStart() {
-        aapsLogger.debug(LTag.PUMP, model().model + " started - ${tandemVersion}.")
+        aapsLogger.debug(LTag.PUMP, model().model + " started - ${tandemVersion} (pumpX2 ${pumpX2Version})")
         super.onStart()
     }
 
@@ -139,9 +142,7 @@ class TandemPumpPlugin @Inject constructor(
     }
 
     override fun onStartScheduledPumpActions() {
-
-        // Enable logging in jwoglom's X2 library
-        Timber.plant(aapsTimberTree)
+        initPumpX2Logging()
 
         // disposable.add(rxBus
         //                    .toObservable(EventPreferenceChange::class.java)
@@ -232,6 +233,18 @@ class TandemPumpPlugin @Inject constructor(
 
         //checkInitializationState()
 
+    }
+
+    private var loggingInitialized = false
+    private fun initPumpX2Logging() {
+        if (loggingInitialized) {
+            return
+        }
+        aapsLogger.debug("Initializing PumpX2 logging")
+        // Enable logging in jwoglom's X2 library
+        Timber.plant(aapsTimberTree)
+        LConfigurator.enableTimber()
+        loggingInitialized = true
     }
 
     private fun checkInitializationState() {
