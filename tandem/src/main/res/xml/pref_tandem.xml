@@ -25,7 +25,7 @@
             android:key="@string/key_tandem_address"
             android:summary=""
             android:title="Tandem Configuration">
-            <intent android:action="info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity" />
+            <intent android:action="info.nightscout.androidaps.plugins.pump.tandem.dialogs.TandemPumpBLEConfigActivity" />
         </Preference>
 
 <!--        <ListPreference-->
