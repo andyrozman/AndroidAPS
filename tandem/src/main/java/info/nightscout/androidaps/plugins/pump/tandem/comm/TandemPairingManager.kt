@@ -8,6 +8,7 @@ import android.text.InputType
 import android.widget.EditText
 import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -19,6 +20,7 @@ import com.jwoglom.pumpx2.pump.messages.response.authentication.PumpChallengeRes
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
+import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.welie.blessed.BluetoothPeripheral
 import info.nightscout.androidaps.extensions.runOnUiThread
 import info.nightscout.androidaps.interfaces.PumpSync
@@ -91,7 +93,7 @@ class TandemPairingManager constructor(
             return bluetoothHandler
         }
 
-        bluetoothHandler = TandemBluetoothHandler.getInstance(context, this)
+        bluetoothHandler = TandemBluetoothHandler.getInstance(context, this, true)
         return bluetoothHandler
     }
 
@@ -153,6 +155,10 @@ class TandemPairingManager constructor(
             }
         }
 
+    }
+
+    override fun onReceiveQualifyingEvent(peripheral: BluetoothPeripheral?, events: MutableSet<QualifyingEvent>?) {
+        aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s", events)
     }
 
     override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral, centralChallenge: CentralChallengeResponse) {
@@ -316,6 +322,11 @@ class TandemPairingManager constructor(
             aapsLogger.error(TAG, "TANDEMDBG: Problem sending command to the pump. Ex: ${ex.message}", ex)
 
         }
+    }
+
+    override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
+        super.onPumpCriticalError(peripheral, reason)
+        aapsLogger.error(TAG, "TANDEMDBUG: CRITICAL ERROR: ${reason}")
     }
 
 

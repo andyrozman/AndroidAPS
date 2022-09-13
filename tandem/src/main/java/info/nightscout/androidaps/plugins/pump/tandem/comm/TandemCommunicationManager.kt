@@ -1,6 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.tandem.comm
 
 import android.content.Context
+import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -8,6 +9,7 @@ import com.jwoglom.pumpx2.pump.messages.response.authentication.CentralChallenge
 import com.jwoglom.pumpx2.pump.messages.response.authentication.PumpChallengeResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
+import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.welie.blessed.BluetoothPeripheral
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
@@ -86,7 +88,8 @@ class TandemCommunicationManager constructor(
             return bluetoothHandler
         }
         aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler ")
-        bluetoothHandler = TandemBluetoothHandler.getInstance(context, this)
+        // Timber initialization is in AAPSTimberTree
+        bluetoothHandler = TandemBluetoothHandler.getInstance(context, this, true);
         aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler ${bluetoothHandler}")
 
         return bluetoothHandler
@@ -159,6 +162,10 @@ class TandemCommunicationManager constructor(
         }
     }
 
+    override fun onReceiveQualifyingEvent(peripheral: BluetoothPeripheral, events: Set<QualifyingEvent>) {
+        aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s", events)
+    }
+
 
     override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral?, centralChallenge: CentralChallengeResponse?) {
         aapsLogger.info(TAG, "TANDEMDBG: onWaitingForPairingCode ")
@@ -182,6 +189,10 @@ class TandemCommunicationManager constructor(
         sendInvalidPairingCodeError()
     }
 
+    override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
+        super.onPumpCriticalError(peripheral, reason)
+            aapsLogger.error(TAG, "TANDEMDBUG: CRITICAL ERROR: ${reason}")
+    }
 
     fun sendInvalidPairingCodeError() {
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, -2)
