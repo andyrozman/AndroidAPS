@@ -8,6 +8,7 @@ import android.text.InputType
 import android.widget.EditText
 import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -19,6 +20,8 @@ import com.jwoglom.pumpx2.pump.messages.response.authentication.PumpChallengeRes
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
+import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
+import com.jwoglom.pumpx2.util.timber.LConfigurator
 import com.welie.blessed.BluetoothPeripheral
 import info.nightscout.androidaps.extensions.runOnUiThread
 import info.nightscout.androidaps.interfaces.PumpSync
@@ -31,16 +34,23 @@ import info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
+import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpNeedsPairingCode
+import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpPairingCodeProvided
 import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpStatusChanged
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
+import info.nightscout.androidaps.utils.ToastUtils
 import info.nightscout.androidaps.utils.alertDialogs.AlertDialogHelper
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
 import java.util.*
 import javax.inject.Inject
 
+// TODO: maybe add some more dialogs in case of success, error
 class TandemPairingManager constructor(
     var context: Context,
     var aapsLogger: AAPSLogger,
@@ -58,6 +68,8 @@ class TandemPairingManager constructor(
 
     var bluetoothHandler: TandemBluetoothHandler? = null
     var finishActivity = false
+
+    private var disposable: CompositeDisposable = CompositeDisposable()
 
     fun startPairing() {
         aapsLogger.info(TAG, "start Pairing")
@@ -85,18 +97,19 @@ class TandemPairingManager constructor(
 
 
     fun createBluetoothHandler(): TandemBluetoothHandler? {
-        aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler")
+        aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler pairing")
 
         if (bluetoothHandler != null) {
             return bluetoothHandler
         }
 
+        LConfigurator.enableTimber()
         bluetoothHandler = TandemBluetoothHandler.getInstance(context, this)
         return bluetoothHandler
     }
 
     fun stopBluetoothHandler() {
-        aapsLogger.info(TAG, "TANDEMDBG: stopBluetoothHandler")
+        aapsLogger.info(TAG, "TANDEMDBG: stopBluetoothHandler pairing")
 
         bluetoothHandler!!.stop()
         bluetoothHandler = null
@@ -155,17 +168,28 @@ class TandemPairingManager constructor(
 
     }
 
+    override fun onReceiveQualifyingEvent(peripheral: BluetoothPeripheral?, events: MutableSet<QualifyingEvent>?) {
+        aapsLogger.info(TAG, "TANDEMDBG: onReceiveQualifyingEvent: %s", events)
+    }
+
     override fun onWaitingForPairingCode(peripheral: BluetoothPeripheral, centralChallenge: CentralChallengeResponse) {
 
         aapsLogger.info(TAG, "TANDEMDBG: onWaitingForPairingCode:")
 
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 40)
 
+        disposable += rxBus
+            .toObservable(EventPumpPairingCodeProvided::class.java)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ hasPairingCode(peripheral, btAddress, centralChallenge, it.pairingCode) }, { aapsLogger.error(TAG, "pumpHasPairingCode disposable error", it) })
+
         try {
             // TODO
-            runOnUiThread {
-                triggerPairDialog(peripheral, btAddress, centralChallenge)
-            }
+
+            rxBus.send(EventPumpNeedsPairingCode(centralChallenge.toString()))
+            // runOnUiThread {
+            //     triggerPairDialog(peripheral, btAddress, centralChallenge)
+            // }
 
             //triggerAAPSPairDialog(peripheral, btAddress, centralChallenge)
         } catch (ex: Exception) {
@@ -174,6 +198,13 @@ class TandemPairingManager constructor(
 
 
 
+    }
+
+    private fun hasPairingCode(peripheral: BluetoothPeripheral, btAddress: String, challenge: CentralChallengeResponse, pairingCode: String) {
+        aapsLogger.info(LTag.PUMPBTCOMM, "hasPairingCode: %s", pairingCode)
+        sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 50)
+        sp.putString(TandemPumpConst.Prefs.PumpPairCode, pairingCode)
+        pair(peripheral, challenge, pairingCode)
     }
 
     override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse) {
@@ -289,6 +320,11 @@ class TandemPairingManager constructor(
     }
 
 
+    override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
+        super.onPumpCriticalError(peripheral, reason)
+        aapsLogger.error(TAG, "TANDEMDBG: CRITICAL ERROR: ${reason}")
+        ToastUtils.showToastInUiThread(context, "Tandem error: ${reason}")
+    }
 
     //  40 = onWaitingForPairingCode
     //  50 pairing code set
@@ -332,7 +368,7 @@ class TandemPairingManager constructor(
         stringBuilder.append("PumpSerial: ${sp.getString(TandemPumpConst.Prefs.PumpSerial, "-")}\n")
         stringBuilder.append("Pump Version Response: ${sp.getString(TandemPumpConst.Prefs.PumpVersionResponse, "-")} \n")
 
-        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onPairingStatus: \n ${stringBuilder.toString()}")
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: onPairingStatus: \n ${stringBuilder.toString()}") // TODO remove this
 
     }
 

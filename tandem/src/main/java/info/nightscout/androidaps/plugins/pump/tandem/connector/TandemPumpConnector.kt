@@ -182,7 +182,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         // TODO Connector: getPumpHistory
 
 
-
+        if (true)
+            return super.getPumpHistory()
 
         HistoryLogStatusRequest()
 

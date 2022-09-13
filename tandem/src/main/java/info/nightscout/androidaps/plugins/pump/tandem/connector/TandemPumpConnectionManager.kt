@@ -61,7 +61,7 @@ class TandemPumpConnectionManager @Inject constructor(
         pumpUtil.driverStatus = PumpDriverState.Connecting
         // pumpUtil.sleepSeconds(15)
 
-        val connected = dummyConnector.connectToPump()
+        val connected = tandemConnector.connectToPump()
 
         if (connected) {
             pumpUtil.driverStatus = PumpDriverState.Connected
@@ -303,7 +303,9 @@ class TandemPumpConnectionManager @Inject constructor(
     override fun getConnector(commandType: PumpCommandType?): PumpConnectorInterface {
         // TODO extend this when new commands are enabled
         when(commandType) {
-            else -> return dummyConnector
+            PumpCommandType.GetBatteryStatus,
+            PumpCommandType.GetTime                -> return tandemConnector
+            else                                   -> return dummyConnector
         }
     }
 

@@ -43,7 +43,7 @@ import org.apache.commons.lang3.StringUtils
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
-class PumpBLEConfigActivity : DaggerAppCompatActivity() {
+open class PumpBLEConfigActivity : DaggerAppCompatActivity() {
 
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var activePlugin: ActivePlugin
@@ -53,15 +53,15 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var rxBus: RxBus
 
-    private lateinit var binding: PumpBleConfigActivityBinding
-    private lateinit var bleSelector: PumpBLESelector
+    protected lateinit var binding: PumpBleConfigActivityBinding
+    protected lateinit var bleSelector: PumpBLESelector
 
     private var settings: ScanSettings? = null
     private var filters: List<ScanFilter>? = null
     private var bleScanner: BluetoothLeScanner? = null
     private var deviceListAdapter = LeDeviceListAdapter()
-    private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
-    private val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
+    protected val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
+    protected val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
     var scanning = false
     private val devicesMap: MutableMap<String, BluetoothDevice> = HashMap()
 
@@ -119,10 +119,9 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
                 val bluetoothDevice = devicesMap[bleAddress]
                 bleSelector.onDeviceSelected(bluetoothDevice!!, bleAddress, deviceName, this)
 
-                // if (bleSelector.onDeviceSelectedClosesActivity()) {
-                //     finish()
-                // }
-                finish()  // TODO fix
+                if (bleSelector.onDeviceSelectedClosesActivity()) {
+                    finish()
+                }
             } else {
                 aapsLogger.debug(TAG, "Device NOT found in deviceMap: $bleAddress")
                 finish()
@@ -160,7 +159,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
         }
     }
 
-    private fun updateCurrentlySelectedBTDevice() {
+    protected fun updateCurrentlySelectedBTDevice() {
         val address = bleSelector.currentlySelectedPumpAddress()
         if (StringUtils.isEmpty(address)) {
             binding.pumpBleConfigCurrentlySelectedPumpName.text = bleSelector.getText(PumpBLESelectorText.NO_SELECTED_PUMP)
@@ -210,7 +209,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
         }
     }
 
-    private fun prepareForScanning() {
+    protected fun prepareForScanning() {
         bleScanner = bluetoothAdapter?.bluetoothLeScanner
         settings = bleSelector.getScanSettings()
         filters = bleSelector.getScanFilters()
