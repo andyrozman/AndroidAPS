@@ -95,7 +95,6 @@ class TandemPumpPlugin @Inject constructor(
     private var driverInitialized = false
     private var pumpAddress: String = ""
     private var pumpBonded: Boolean = false
-    private var aapsTimberTree = AAPSTimberTree(aapsLogger)
 
     private var tandemVersion = "v0.1.20"
     private var pumpX2Version = com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION
@@ -142,8 +141,6 @@ class TandemPumpPlugin @Inject constructor(
     }
 
     override fun onStartScheduledPumpActions() {
-        initPumpX2Logging()
-
         // disposable.add(rxBus
         //                    .toObservable(EventPreferenceChange::class.java)
         //                    .observeOn(aapsSchedulers.io)
@@ -233,18 +230,6 @@ class TandemPumpPlugin @Inject constructor(
 
         //checkInitializationState()
 
-    }
-
-    private var loggingInitialized = false
-    private fun initPumpX2Logging() {
-        if (loggingInitialized) {
-            return
-        }
-        aapsLogger.debug("Initializing PumpX2 logging")
-        // Enable logging in jwoglom's X2 library
-        Timber.plant(aapsTimberTree)
-        LConfigurator.enableTimber()
-        loggingInitialized = true
     }
 
     private fun checkInitializationState() {

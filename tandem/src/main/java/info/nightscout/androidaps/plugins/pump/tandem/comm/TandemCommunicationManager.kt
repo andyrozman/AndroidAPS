@@ -10,6 +10,7 @@ import com.jwoglom.pumpx2.pump.messages.response.authentication.PumpChallengeRes
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
+import com.jwoglom.pumpx2.util.timber.LConfigurator
 import com.welie.blessed.BluetoothPeripheral
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
@@ -88,8 +89,8 @@ class TandemCommunicationManager constructor(
             return bluetoothHandler
         }
         aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler ")
-        // Timber initialization is in AAPSTimberTree
-        bluetoothHandler = TandemBluetoothHandler.getInstance(context, this, true);
+        LConfigurator.enableTimber()
+        bluetoothHandler = TandemBluetoothHandler.getInstance(context, this);
         aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler ${bluetoothHandler}")
 
         return bluetoothHandler

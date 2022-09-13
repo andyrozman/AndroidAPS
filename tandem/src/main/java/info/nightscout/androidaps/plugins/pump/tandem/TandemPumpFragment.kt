@@ -1,14 +1,19 @@
 package info.nightscout.androidaps.plugins.pump.tandem
 
 //import kotlinx.android.synthetic.main.ypsopump_fragment.*
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import com.jwoglom.pumpx2.pump.messages.response.authentication.CentralChallengeResponse
+import com.welie.blessed.BluetoothPeripheral
 import dagger.android.support.DaggerFragment
 import info.nightscout.androidaps.events.EventExtendedBolusChange
 import info.nightscout.androidaps.events.EventTempBasalChange
@@ -34,7 +39,11 @@ import info.nightscout.androidaps.utils.T
 import info.nightscout.androidaps.utils.WarnColors
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.plugins.pump.tandem.event.EventTandemPumpHasPairingCode
+import info.nightscout.androidaps.plugins.pump.tandem.event.EventTandemPumpNeedsPairingCode
+import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
@@ -144,6 +153,10 @@ class TandemPumpFragment : DaggerFragment() {
             .toObservable(EventQueueChanged::class.java)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ updateGUI(PumpUpdateFragmentType.Queue) }, { fabricPrivacy.logException(it) })
+        disposable += rxBus
+            .toObservable(EventTandemPumpNeedsPairingCode::class.java)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ askForPairingCode(it.peripheral, it.btAddress, it.challenge) }, { fabricPrivacy.logException(it) })
 
         updateGUI(PumpUpdateFragmentType.Full)
     }
@@ -308,6 +321,35 @@ class TandemPumpFragment : DaggerFragment() {
                 binding.pumpStatus.text = " " + resourceHelper.gs(pumpDriverState.resourceId)
             }
         }
+    }
+
+    private fun askForPairingCode(peripheral: BluetoothPeripheral, btAddress: String, challenge: CentralChallengeResponse) {
+        aapsLogger.info(LTag.PUMPCOMM, "TANDEMDBG: triggerPairDialog")
+
+        val btName = peripheral.name
+        val builder = AlertDialog.Builder(context)
+        builder.setTitle("Enter pairing code (case-sensitive)")
+        builder.setMessage("Enter the pairing code from Bluetooth Settings > Pair Device to connect to:\n\n$btName ($btAddress)")
+
+        // Set up the input
+        val input = EditText(context)
+        // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
+
+        builder.setView(input)
+
+        // Set up the buttons
+        builder.setPositiveButton("OK") { _, _ ->
+            val pairingCode = input.text.toString()
+            //Timber.i("pairing code inputted: %s", pairingCode)
+            //triggerImmediatePair(peripheral, pairingCode, challenge)
+
+            aapsLogger.info(LTag.PUMPCOMM, "PairingCode provided: ${pairingCode}")
+            rxBus.send(EventTandemPumpHasPairingCode(peripheral, btAddress, challenge, pairingCode))
+
+        }
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+        builder.show()
     }
 
     enum class UpdateGui {
