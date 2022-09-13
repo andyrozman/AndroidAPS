@@ -1,10 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.tandem.comm
 
-import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
-import android.os.Handler
-import android.os.Looper
 import android.os.SystemClock
 import android.text.InputType
 import android.widget.EditText
@@ -32,13 +29,13 @@ import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
+import info.nightscout.androidaps.plugins.pump.common.events.EventPumpNeedsPairingCode
+import info.nightscout.androidaps.plugins.pump.common.events.EventPumpPairingCodeProvided
 import info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpStatusChanged
-import info.nightscout.androidaps.plugins.pump.tandem.event.EventTandemPumpHasPairingCode
-import info.nightscout.androidaps.plugins.pump.tandem.event.EventTandemPumpNeedsPairingCode
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.androidaps.utils.ToastUtils
@@ -50,7 +47,6 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import java.util.*
-import javax.inject.Inject
 
 class TandemPairingManager constructor(
     var context: Context,
@@ -180,12 +176,12 @@ class TandemPairingManager constructor(
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 40)
 
         disposable += rxBus
-            .toObservable(EventTandemPumpHasPairingCode::class.java)
+            .toObservable(EventPumpPairingCodeProvided::class.java)
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ hasPairingCode(it.peripheral, it.btAddress, it.challenge, it.pairingCode) }, { aapsLogger.error(TAG, "pumpHasPairingCode disposable error", it) })
+            .subscribe({ hasPairingCode(peripheral, btAddress, centralChallenge, it.pairingCode) }, { aapsLogger.error(TAG, "pumpHasPairingCode disposable error", it) })
 
         try {
-            rxBus.send(EventTandemPumpNeedsPairingCode(peripheral, btAddress, centralChallenge))
+            rxBus.send(EventPumpNeedsPairingCode(centralChallenge.toString()))
 
             //triggerAAPSPairDialog(peripheral, btAddress, centralChallenge)
         } catch (ex: Exception) {
@@ -232,6 +228,7 @@ class TandemPairingManager constructor(
     }
 
     private fun hasPairingCode(peripheral: BluetoothPeripheral, btAddress: String, challenge: CentralChallengeResponse, pairingCode: String) {
+        aapsLogger.info(LTag.PUMPBTCOMM, "hasPairingCode: %s", pairingCode)
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 50)
         sp.putString(TandemPumpConst.Prefs.PumpPairCode, pairingCode)
         pair(peripheral, challenge, pairingCode)
@@ -270,8 +267,7 @@ class TandemPairingManager constructor(
                 }
             }
             .setNegativeButton(context.getString(R.string.cancel)) { dialog: DialogInterface, _: Int ->
-                if (okClicked) return@setNegativeButton
-                else {
+                {
                     okClicked = true
                     dialog.dismiss()
                     SystemClock.sleep(100)

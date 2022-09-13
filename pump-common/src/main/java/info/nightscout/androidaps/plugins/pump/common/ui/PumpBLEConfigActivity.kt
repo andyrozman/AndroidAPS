@@ -2,6 +2,7 @@ package info.nightscout.androidaps.plugins.pump.common.ui
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -11,19 +12,24 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.SystemClock
+import android.text.InputType
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.BaseAdapter
+import android.widget.EditText
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.android.support.DaggerAppCompatActivity
 import info.nightscout.androidaps.interfaces.ActivePlugin
 import info.nightscout.androidaps.plugins.bus.RxBus
@@ -35,10 +41,17 @@ import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorText
 import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
 import info.nightscout.androidaps.utils.alertDialogs.OKDialog
 import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.plugins.pump.common.events.EventPumpNeedsPairingCode
+import info.nightscout.androidaps.plugins.pump.common.events.EventPumpPairingCodeProvided
 import info.nightscout.androidaps.utils.ToastUtils
+import info.nightscout.androidaps.utils.alertDialogs.AlertDialogHelper
+import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.kotlin.plusAssign
 import org.apache.commons.lang3.StringUtils
 import javax.inject.Inject
 
@@ -52,6 +65,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
     @Inject lateinit var context: Context
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var rxBus: RxBus
+    @Inject lateinit var aapsSchedulers: AapsSchedulers
 
     private lateinit var binding: PumpBleConfigActivityBinding
     private lateinit var bleSelector: PumpBLESelector
@@ -64,6 +78,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
     private val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
     var scanning = false
     private val devicesMap: MutableMap<String, BluetoothDevice> = HashMap()
+    private val disposable = CompositeDisposable()
 
     private val stopScanAfterTimeoutRunnable = Runnable {
         if (scanning) {
@@ -82,7 +97,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
 
         if (activePump is PumpDriverConfigurationCapable) {
             val pumpBLESelector = activePump.getPumpDriverConfiguration().getPumpBLESelector()
-            if (pumpBLESelector==null) {
+            if (pumpBLESelector == null) {
                 throw RuntimeException("PumpBLESelector needs to be implemented for PumpBLEConfigActivity to be used.")
             } else {
                 bleSelector = pumpBLESelector
@@ -122,7 +137,7 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
                 // if (bleSelector.onDeviceSelectedClosesActivity()) {
                 //     finish()
                 // }
-                finish()  // TODO fix
+                // finish()  // TODO fix
             } else {
                 aapsLogger.debug(TAG, "Device NOT found in deviceMap: $bleAddress")
                 finish()
@@ -160,6 +175,63 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
         }
     }
 
+    @Synchronized
+    override fun onPause() {
+        super.onPause()
+        disposable.clear()
+    }
+
+    private fun askForPairingCode(e: EventPumpNeedsPairingCode) {
+        aapsLogger.info(LTag.PUMPCOMM, "askForPairingCode")
+
+        val builder = AlertDialog.Builder(this, R.style.AppTheme)
+        builder.setTitle("Enter pairing code")
+        builder.setMessage(e.instructions)
+
+        // Set up the input
+        val input = EditText(this)
+        // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
+
+        builder.setView(input)
+
+        // Set up the buttons
+        builder.setPositiveButton("OK") { _, _ ->
+            val pairingCode = input.text.toString()
+            //Timber.i("pairing code inputted: %s", pairingCode)
+            //triggerImmediatePair(peripheral, pairingCode, challenge)
+
+            aapsLogger.info(LTag.PUMPCOMM, "PairingCode provided: ${pairingCode}")
+            rxBus.send(EventPumpPairingCodeProvided(pairingCode))
+
+        }
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+        builder.show()
+
+        // val input = EditText(this.context)
+        // // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+        // input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
+        //
+        // MaterialAlertDialogBuilder(context, R.style.DialogTheme)
+        //     .setCustomTitle(AlertDialogHelper.buildCustomTitle(context, "Enter pairing code"))
+        //     .setMessage(e.instructions)
+        //     .setView(input)
+        //     .setPositiveButton(context.getString(R.string.ok)) { dialog: DialogInterface, _: Int ->
+        //
+        //         dialog.dismiss()
+        //         SystemClock.sleep(100)
+        //         val pairingCode = input.text.toString()
+        //         aapsLogger.info(LTag.PUMPCOMM, "PairingCode provided: ${pairingCode}")
+        //         rxBus.send(EventPumpPairingCodeProvided(pairingCode))
+        //     }
+        //     .setNegativeButton(context.getString(R.string.cancel)) { dialog: DialogInterface, _: Int -> {
+        //         dialog.dismiss()
+        //         SystemClock.sleep(100)
+        //     }}
+        //     .show()
+        //     .setCanceledOnTouchOutside(false)
+    }
+
     private fun updateCurrentlySelectedBTDevice() {
         val address = bleSelector.currentlySelectedPumpAddress()
         if (StringUtils.isEmpty(address)) {
@@ -187,6 +259,17 @@ class PumpBLEConfigActivity : DaggerAppCompatActivity() {
     override fun onResume() {
         super.onResume()
         bleSelector.onResume()
+
+        disposable += rxBus
+            .toObservable(EventPumpNeedsPairingCode::class.java)
+            .observeOn(aapsSchedulers.io)
+            .subscribe {
+                Thread {
+                    handler.post {
+                        askForPairingCode(it)
+                    }
+                }.start()
+            }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
             if (bluetoothAdapter?.isEnabled != true) bluetoothAdapter?.enable()
