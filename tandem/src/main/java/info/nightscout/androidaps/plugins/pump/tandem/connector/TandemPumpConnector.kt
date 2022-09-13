@@ -29,6 +29,7 @@ import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
+import org.joda.time.DateTime
 import javax.inject.Inject
 
 /**
@@ -59,6 +60,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     // TODO Better Error response handling
 
     fun getCommunicationManager(): TandemCommunicationManager {
+        if (tandemCommunicationManager == null) {
+            connectToPump()
+        }
         return tandemCommunicationManager!!
     }
 
@@ -330,8 +334,13 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
     override fun getTime(): DataCommandResponse<PumpTimeDifferenceDto?> {
-        return DataCommandResponse(
-            PumpCommandType.GetTime, true, null, pumpStatus.pumpTime)
+        val responseData: DataCommandResponse<PumpTimeDifferenceDto?> = sendAndReceivePumpData(PumpCommandType.GetTime,
+                                                                             TimeSinceResetRequest())
+        {   rawData -> tandemDataConverter.getTime(rawData as TimeSinceResetResponse) }
+
+        return responseData
+        // return DataCommandResponse(
+        //     PumpCommandType.GetTime, true, null, pumpStatus.pumpTime)
     }
 
     override fun setTime(): DataCommandResponse<AdditionalResponseDataInterface?> {

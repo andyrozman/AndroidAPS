@@ -5,6 +5,7 @@ import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.*
 import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
+import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpBolusType
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
@@ -156,6 +157,12 @@ class TandemDataConverter @Inject constructor(
     fun getBatteryResponse(message: CurrentBatteryAbstractResponse): DataCommandResponse<Int?> {
         return DataCommandResponse(
             PumpCommandType.GetBatteryStatus, true, null, message.currentBatteryIbc)
+    }
+
+    fun getTime(message: TimeSinceResetResponse): DataCommandResponse<PumpTimeDifferenceDto?> {
+        return DataCommandResponse(
+            PumpCommandType.GetTime, true, null,
+                PumpTimeDifferenceDto(DateTime.now(), DateTime(pumpUtil.getTimeFromPumpAsEpochMillis(message.timeSinceReset))))
     }
 
 

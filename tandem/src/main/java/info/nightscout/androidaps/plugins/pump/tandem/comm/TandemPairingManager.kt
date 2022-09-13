@@ -94,7 +94,7 @@ class TandemPairingManager constructor(
 
 
     fun createBluetoothHandler(): TandemBluetoothHandler? {
-        aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler")
+        aapsLogger.info(TAG, "TANDEMDBG: createBluetoothHandler pairing")
 
         if (bluetoothHandler != null) {
             return bluetoothHandler
@@ -106,7 +106,7 @@ class TandemPairingManager constructor(
     }
 
     fun stopBluetoothHandler() {
-        aapsLogger.info(TAG, "TANDEMDBG: stopBluetoothHandler")
+        aapsLogger.info(TAG, "TANDEMDBG: stopBluetoothHandler pairing")
 
         bluetoothHandler!!.stop()
         bluetoothHandler = null

@@ -621,57 +621,59 @@ class TandemPumpPlugin @Inject constructor(
     private fun checkTimeAndOptionallySetTime(): Boolean {
         aapsLogger.info(LTag.PUMP, logPrefix + "checkTimeAndOptionallySetTime - Start")
 
-        try {
-
-            val clock = pumpConnectionManager.getTime()
-
-            if (clock != null) {
-                // TODO check if this works, migneed to use LocalDateTime...
-                //pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), clock.toLocalDateTime())
-                val diff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
-
-                if (diff > 60) {
-                    aapsLogger.error(LTag.PUMP, "Time difference between phone and pump is more than 60s ($diff)")
-
-                    // TODO fix this
-
-                    // if (!pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
-                    //     val notification = Notification(Notification.PUMP_PHONE_TIME_DIFF_TOO_BIG, rh.gs(R.string.time_difference_too_big, 60, diff), Notification.INFO, 60)
-                    //     rxBus.send(EventNewNotification(notification))
-                    // } else {
-                    //
-                    //     // TODO setNewTime, different notification
-                    //     val time = pumpConnectionManager.setTime()
-                    //
-                    //     if (time != null) {
-                    //         pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), time.toLocalDateTime())
-                    //
-                    //         val newTimeDiff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
-                    //
-                    //         if (newTimeDiff < 60) {
-                    //             val notification = Notification(
-                    //                 Notification.INSIGHT_DATE_TIME_UPDATED,
-                    //                 rh.gs(R.string.pump_time_updated),
-                    //                 Notification.INFO, 60
-                    //             )
-                    //             rxBus.send(EventNewNotification(notification))
-                    //         } else {
-                    //             aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
-                    //         }
-                    //     } else {
-                    //         aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
-                    //     }
-                    // }
-                }
-            }
-        } catch (ex: Exception) {
-            aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
-        } finally {
-            setRefreshButtonEnabled(false)
-            scheduleNextRefresh(TandemStatusRefreshType.PumpTime, 0)
-        }
-
         return true
+
+        // try {
+        //
+        //     val clock = pumpConnectionManager.getTime()
+        //
+        //     if (clock != null) {
+        //         // TODO check if this works, migneed to use LocalDateTime...
+        //         //pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), clock.toLocalDateTime())
+        //         val diff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
+        //
+        //         if (diff > 60) {
+        //             aapsLogger.error(LTag.PUMP, "Time difference between phone and pump is more than 60s ($diff)")
+        //
+        //             // TODO fix this
+        //
+        //             // if (!pumpStatus.ypsopumpFirmware.isClosedLoopPossible) {
+        //             //     val notification = Notification(Notification.PUMP_PHONE_TIME_DIFF_TOO_BIG, rh.gs(R.string.time_difference_too_big, 60, diff), Notification.INFO, 60)
+        //             //     rxBus.send(EventNewNotification(notification))
+        //             // } else {
+        //             //
+        //             //     // TODO setNewTime, different notification
+        //             //     val time = pumpConnectionManager.setTime()
+        //             //
+        //             //     if (time != null) {
+        //             //         pumpStatus.pumpTime = PumpTimeDifferenceDto(DateTime.now(), time.toLocalDateTime())
+        //             //
+        //             //         val newTimeDiff = Math.abs(pumpStatus.pumpTime!!.timeDifference)
+        //             //
+        //             //         if (newTimeDiff < 60) {
+        //             //             val notification = Notification(
+        //             //                 Notification.INSIGHT_DATE_TIME_UPDATED,
+        //             //                 rh.gs(R.string.pump_time_updated),
+        //             //                 Notification.INFO, 60
+        //             //             )
+        //             //             rxBus.send(EventNewNotification(notification))
+        //             //         } else {
+        //             //             aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
+        //             //         }
+        //             //     } else {
+        //             //         aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
+        //             //     }
+        //             // }
+        //         }
+        //     }
+        // } catch (ex: Exception) {
+        //     aapsLogger.error(LTag.PUMP, "Setting time on pump failed.")
+        // } finally {
+        //     setRefreshButtonEnabled(false)
+        //     scheduleNextRefresh(TandemStatusRefreshType.PumpTime, 0)
+        // }
+        //
+        // return true
     }
 
     // TODO progress bar
