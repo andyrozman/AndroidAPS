@@ -131,7 +131,7 @@ class TandemPumpPlugin @Inject constructor(
 
         pumpStatus.pumpDescription = this.pumpDescription
 
-        // set first YpsoPump Pump Start
+        // set first Tandem Pump Start
         if (!sp.contains(TandemPumpConst.Statistics.FirstPumpStart)) {
             sp.putLong(TandemPumpConst.Statistics.FirstPumpStart, System.currentTimeMillis())
         }
@@ -218,37 +218,16 @@ class TandemPumpPlugin @Inject constructor(
             } while (serviceRunning)
         }.start()
 
-        // val serialNumber = sp.getLong(YpsoPumpConst.Prefs.PumpSerial, 0L)
-        //
-        // sp.remove(YpsoPumpConst.Prefs.PumpSerial)
-        //
-        // if (serialNumber > 0) {
-        //     sp.putString(YpsoPumpConst.Prefs.PumpSerial, "" + serialNumber)
-        // }
-
-        //sp.remove(YpsoPumpConst.Prefs.PumpSerial)
-        //sp.putString(YpsoPumpConst.Prefs.PumpSerial, "" + serialNumber)
-
-        //ypsoPumpStatusHandler.loadYpsoPumpStatusList()
-
-        //checkInitializationState()
+        checkInitializationState()
 
     }
 
     private fun checkInitializationState() {
-
         pumpAddress = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
-        //pumpBonded = sp.getBoolean(TandemPumpConst.Prefs.PumpBonded, false)
 
-        // TODO Tandem doesn't need to be "bonded" but it needs to be sort of paired, having retrived certain data,
-        //  that check needs to be added here
+        val pumpBondStatus = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairStatus, null)
 
-        // driverInitialized = (!pumpAddress.isEmpty())
-
-        // TODO check if  TandemPumpConst.Prefs.PumpPairStatus is 100
-
-
-        driverInitialized = true
+        driverInitialized = ((!pumpAddress.isEmpty()) && (pumpBondStatus.equals("100")))
     }
 
     override val serviceClass: Class<*>?

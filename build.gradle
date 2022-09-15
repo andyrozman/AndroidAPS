@@ -79,6 +79,7 @@ allprojects {
         mavenCentral()
         maven { url "https://maven.google.com" }
         maven { url 'https://jitpack.io' }
+        //maven { url 'https://github.com/andyrozman/AAPS_Tandem_Testing/' }
     }
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
         kotlinOptions {

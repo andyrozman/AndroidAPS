@@ -51,7 +51,7 @@ class TandemDataConverter @Inject constructor(
     //
     //
     //         else                           -> {
-    //             aapsLogger.warn(LTag.PUMPCOMM, "Can't convert Tandem response Message of type: ${message.opCode()} and class: ${message.javaClass.name}")
+    //             aapsLogger.warn(LTag.PUMPCOMM, "Can't convert Tandem response Message of type: ${message.opCode()} and class: ${messageClass.name}")
     //             return null
     //         }
     //     }
@@ -209,6 +209,69 @@ class TandemDataConverter @Inject constructor(
 
     }
 
+    private fun isLogTypeSupported(historyLogPump: HistoryLog): Boolean {
+
+        return false
+        // when (historyLogPump) {
+        //     is BGHistoryLog,
+        //     is CgmCalibrationGxHistoryLog,
+        //     is CgmCalibrationHistoryLog,
+        //     is CgmDataGxHistoryLog,
+        //     is CgmDataSampleHistoryLog,
+        //     is CGMHistoryLog,
+        //     is HypoMinimizerResumeHistoryLog,
+        //     is HypoMinimizerSuspendHistoryLog,
+        //     is IdpActionHistoryLog,
+        //     is IdpActionMsg2HistoryLog,
+        //     is IdpBolusHistoryLog,
+        //     is IdpListHistoryLog,
+        //     is IdpTimeDependentSegmentHistoryLog,
+        //     is LogErasedHistoryLog,
+        //
+        //     is UsbConnectedHistoryLog,
+        //     is UsbDisconnectedHistoryLog,
+        //     is UsbEnumeratedHistoryLog               -> return false
+        //
+        //     is AlarmActivatedHistoryLog,
+        //     is AlertActivatedHistoryLog,
+        //     is BasalDeliveryHistoryLog,
+        //     is BasalRateChangeHistoryLog,
+        //     is BolexActivatedHistoryLog,
+        //     is BolexCompletedHistoryLog,
+        //     is BolusActivatedHistoryLog,
+        //     is BolusCompletedHistoryLog,
+        //     is BolusDeliveryHistoryLog,
+        //     is BolusRequestedMsg1HistoryLog,
+        //     is BolusRequestedMsg2HistoryLog,
+        //     is BolusRequestedMsg3HistoryLog,
+        //     is CannulaFilledHistoryLog,
+        //     is CarbEnteredHistoryLog,
+        //     is CartridgeFilledHistoryLog,
+        //     is ControlIQPcmChangeHistoryLog,
+        //     is ControlIQUserModeChangeHistoryLog,
+        //     is CorrectionDeclinedHistoryLog,
+        //     is DailyBasalHistoryLog,
+        //     is DataLogCorruptionHistoryLog,
+        //     is DateChangeHistoryLog,
+        //     is FactoryResetHistoryLog,
+        //     is NewDayHistoryLog,
+        //     is ParamChangeGlobalSettingsHistoryLog,
+        //     is ParamChangePumpSettingsHistoryLog,
+        //     is ParamChangeReminderHistoryLog,
+        //     is ParamChangeRemSettingsHistoryLog,
+        //     is PumpingResumedHistoryLog,
+        //     is PumpingSuspendedHistoryLog,
+        //     is TempRateActivatedHistoryLog,
+        //     is TempRateCompletedHistoryLog,
+        //     is TimeChangedHistoryLog,
+        //     is TubingFilledHistoryLog,
+        //     is UnknownHistoryLog                       -> return true
+        //     else                                       -> return true
+        // }
+
+    }
+
+
     private fun createBolusRecord(bolusLog: BolexCompletedHistoryLog): HistoryLogObject {
 
         val bolus = Bolus(bolusId = bolusLog.bolusId,
@@ -239,9 +302,9 @@ class TandemDataConverter @Inject constructor(
         return createDateTimeChangeRecord(historyLogPump.getDateAfterInstant().toEpochMilli(), false)
     }
 
-    private fun createDateChangeRecord(historyLogPump: DateChangeResponse): HistoryLogObject {
-        return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.dateAfter).toEpochMilli(), false)
-    }
+    // private fun createDateChangeRecord(historyLogPump: DateChangeResponse): HistoryLogObject {
+    //     return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.dateAfter).toEpochMilli(), false)
+    // }
 
     private fun createTimeChangeRecord(historyLogPump: TimeChangeHistoryLog): HistoryLogObject {
         return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.timeAfter).toEpochMilli(), true)

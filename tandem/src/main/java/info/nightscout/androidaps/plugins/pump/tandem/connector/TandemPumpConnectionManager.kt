@@ -27,7 +27,6 @@ class TandemPumpConnectionManager @Inject constructor(
     injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
     rxBus: RxBus,
-    //val fabricPrivacy: FabricPrivacy,
     context: Context,
     val tandemDataConverter: TandemDataConverter,
     val tandemConnector: TandemPumpConnector
@@ -177,33 +176,12 @@ class TandemPumpConnectionManager @Inject constructor(
 
     override fun disconnectFromPump(): Boolean {
 
-        return dummyConnector.disconnectFromPump()
+        return tandemConnector.disconnectFromPump()
 
         //TODO("Not yet implemented")
         //return false
     }
 
-//     fun executeCommand(parameters: CommandParameters): ResultCommandResponse {
-//
-// //        ypsopumpUtil.setDriverStatus(YpsoDriverStatus.Connecting);
-// //        ypsopumpUtil.sleepSeconds(5);
-// //
-// //        if (connectToPump()) {
-// //
-// //            ypsopumpUtil.setDriverStatus(YpsoDriverStatus.Connected);
-// //
-// //        } else {
-// //
-// //            return CommandResponse.builder().success(false).build();
-// //
-// //        }
-//
-//         // TODO single only ATM
-//         pumpUtil.currentCommand = parameters.commandType
-//         pumpUtil.sleepSeconds(40)
-//         pumpUtil.driverStatus = PumpDriverState.Connected
-//         return true
-//     }
 
     fun disconnectFromPumpX3453(): Boolean {
 
@@ -319,183 +297,8 @@ class TandemPumpConnectionManager @Inject constructor(
     //     //TODO("Not yet implemented")
     // }
 
-    // override fun postProcessTime(value: PumpTimeDifferenceDto?) {
-    //     pumpStatus.pumpTime  = value
-    // }
 
 
-    // fun deliverBolus(detailedBolusInfo: DetailedBolusInfo?): ResultCommandResponse? {
-    //     aapsLogger.error(TAG, "deliverBolus command is not available!!!")
-    //     pumpUtil.currentCommand = PumpCommandType.SetBolus
-    //     val commandResponse = selectedConnector.sendBolus(detailedBolusInfo!!)
-    //     pumpUtil.resetDriverStatusToConnected()
-    //     return commandResponse
-    // }
-
-    // TODO refactor this not to use AAPS object
-    // fun getTemporaryBasal(): TempBasalPair? {
-    //     aapsLogger.error(TAG, "getTemporaryBasal command is not available!!!")
-    //     pumpUtil.currentCommand = PumpCommandType.GetTemporaryBasal
-    //     val commandResponse = selectedConnector.retrieveTemporaryBasal()
-    //     pumpUtil.resetDriverStatusToConnected()
-    //
-    //     return if (commandResponse.isSuccess) commandResponse.value else null
-    // }
-
-    // fun setTemporaryBasal(value: Int, duration: Int): ResultCommandResponse? {
-    //     aapsLogger.error(TAG, "setTemporaryBasal command is not available!!!")
-    //     pumpUtil.currentCommand = PumpCommandType.SetTemporaryBasal
-    //     val commandResponse = selectedConnector.sendTemporaryBasal(value, duration) // TODO refactor this not to use AAPS object
-    //     pumpUtil.resetDriverStatusToConnected()
-    //     return commandResponse
-    // }
-
-    // fun setBasalProfile(profile: Profile?): ResultCommandResponse {
-    //     aapsLogger.error(TAG, "setBasalProfile command is not available!!!")
-    //     pumpUtil.currentCommand = PumpCommandType.SetBasalProfile
-    //     val commandResponse = selectedConnector.sendBasalProfile(profile!!) // TODO refactor this not to use AAPS object
-    //     pumpUtil.resetDriverStatusToConnected()
-    //     return commandResponse
-    // }
-
-    // fun sendFakeCommand(commandType: PumpCommandType): ResultCommandResponse {
-    //     pumpUtil.currentCommand = commandType
-    //     pumpUtil.sleepSeconds(10)
-    //     pumpUtil.resetDriverStatusToConnected()
-    //     return ResultCommandResponse(commandType, true, null)
-    // }
-
-    // fun cancelTemporaryBasal(): Boolean {
-    //     aapsLogger.error(TAG, "setBasalProfile command is not available!!!")
-    //     pumpUtil.currentCommand = PumpCommandType.CancelTemporaryBasal
-    //     val commandResponse = selectedConnector.cancelTemporaryBasal() // TODO refactor this not to use AAPS object
-    //     pumpUtil.resetDriverStatusToConnected()
-    //
-    //     return commandResponse.isSuccess()
-    // }
-
-    // fun getRemainingInsulin(): Double? {
-    //     aapsLogger.error(TAG, "getRemainingInsulin command is not available!!!")
-    //
-    //     pumpUtil.currentCommand = PumpCommandType.GetRemainingInsulin
-    //     val commandResponse = selectedConnector.retrieveRemainingInsulin()
-    //     pumpUtil.resetDriverStatusToConnected()
-    //
-    //     return if (commandResponse.isSuccess()) {
-    //         pumpStatus.reservoirRemainingUnits = commandResponse.value!!
-    //         commandResponse.value
-    //     }
-    //     else null
-    // }
-
-    // fun getBatteryLevel(): Int? {
-    //     aapsLogger.error(TAG, "getBatteryLevel command is not available!!!")
-    //
-    //     pumpUtil.currentCommand = PumpCommandType.GetBatteryStatus
-    //     val commandResponse = selectedConnector.retrieveBatteryStatus()
-    //     pumpUtil.resetDriverStatusToConnected()
-    //
-    //     return if (commandResponse.isSuccess()) {
-    //         pumpStatus.batteryRemaining = commandResponse.value!!
-    //         commandResponse.value
-    //     }
-    //     else null
-    //
-    // }
-
-    // fun getConfiguration() {
-    //
-    //     // TODO getConfiguration
-    //
-    //
-    //     aapsLogger.error(TAG, "getBatteryLevel command is not available!!!")
-    //
-    //     pumpUtil.currentCommand = PumpCommandType.GetBatteryStatus
-    //     val commandResponse = selectedConnector.retrieveConfiguration()
-    //     pumpUtil.resetDriverStatusToConnected()
-
-        // return if (commandResponse.isSuccess()) {
-        //     //pumpStatus.batteryRemaining = commandResponse.value!!
-        //     //commandResponse.value
-        // }
-        //else null
-
-
-        // val command = GetPumpSettings(injector)
-        //
-        // command.execute(pumpBle = ypsoPumpBLE)
-        //
-        // if (command.isSuccessful) {
-        //     val pumpSettings: YpsoPumpSettingsDto? = command.commandResponse
-        //
-        //     if (pumpSettings != null) {
-        //         pumpStatus.lastConfigurationUpdate = System.currentTimeMillis()
-        //
-        //         if (pumpSettings.bolusIncStep != null) {
-        //             pumpStatus.bolusStep = pumpSettings.bolusIncStep!!
-        //             pumpStatus.pumpDescription.bolusStep = pumpStatus.bolusStep
-        //         }
-        //
-        //         if (pumpSettings.basalProfileType != null) {
-        //             pumpStatus.activeProfileName = if (pumpSettings.basalProfileType == YpsoBasalProfileType.BASAL_PROFILE_A) "A" else "B"
-        //
-        //             if (pumpSettings.basalProfileType == YpsoBasalProfileType.BASAL_PROFILE_B) {
-        //                 pumpUtil.sendNotification(
-        //                     notificationType = YpsoPumpNotificationType.PumpIncorrectBasalProfileSelected,
-        //                     "A")
-        //             }
-        //         }
-        //
-        //         if (pumpSettings.bolusAmoutLimit != null) {
-        //             pumpStatus.maxBolus = pumpSettings.bolusIncStep!!
-        //             //pumpStatus.pumpDescription.bolusStep = pumpStatus.bolusStep
-        //         }
-        //
-        //         if (pumpSettings.basalRateLimit != null) {
-        //             pumpStatus.maxBasal = pumpSettings.bolusIncStep!!
-        //             pumpStatus.pumpDescription.basalMaximumRate = pumpStatus.maxBasal!!
-        //         }
-        //     }
-        //
-        // } else {
-        //     aapsLogger.error(TAGCOMM, "Problem reading configuration.")
-        //     return
-        // }
-    //}
-
-
-    // fun getBasalProfile(): DoubleArray? {
-    //     aapsLogger.error(TAG, "getBasalProfile command is not available!!!")
-    //
-    //     pumpUtil.currentCommand = PumpCommandType.GetBasalProfile
-    //     val commandResponse = selectedConnector.retrieveBasalProfile()
-    //     pumpUtil.resetDriverStatusToConnected()
-    //
-    //     return if (commandResponse.isSuccess()) {
-    //         val responseValue = commandResponse.value
-    //
-    //         if (responseValue==null)
-    //             null
-    //         else
-    //             commandResponse.value!!.basalPatterns
-    //     }
-    //     else null
-    // }
-
-    // fun getTime(): PumpTimeDifferenceDto? {
-    //     aapsLogger.error(TAG, "getTime command is not available!!!")
-    //
-    //     pumpUtil.currentCommand = PumpCommandType.GetTime
-    //     val commandResponse = selectedConnector.getTime()
-    //     pumpUtil.resetDriverStatusToConnected()
-    //
-    //     return if (commandResponse.isSuccess()) commandResponse.value else null
-    // }
-
-    // fun setTime(): DateTimeDto? {
-    //     return null
-    //     //TODO("Not yet implemented")
-    // }
 
     init {
         // TODO this can be changed, since we have only one connector
