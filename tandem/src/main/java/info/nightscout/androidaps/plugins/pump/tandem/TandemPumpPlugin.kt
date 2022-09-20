@@ -96,7 +96,7 @@ class TandemPumpPlugin @Inject constructor(
     private var aapsTimberTree = AAPSTimberTree(aapsLogger)
 
     private var pumpX2Version = com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION
-    private var tandemVersion = "v0.2.1"
+    private var tandemVersion = "v0.2.3"
 
     override fun onStart() {
         aapsLogger.debug(LTag.PUMP, model().model + " started - ${tandemVersion} (pumpX2 ${pumpX2Version})")
