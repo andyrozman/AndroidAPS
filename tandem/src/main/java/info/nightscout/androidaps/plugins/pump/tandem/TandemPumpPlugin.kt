@@ -1070,7 +1070,7 @@ class TandemPumpPlugin @Inject constructor(
     }
 
     override fun serialNumber(): String {
-        return if (pumpStatus.serialNumber == null) "" else pumpStatus.serialNumber!!.toString()
+        return if (pumpStatus.serialNumber == null) "" else pumpStatus.serialNumber.toString()
     }
 
     //    @NotNull @Override
