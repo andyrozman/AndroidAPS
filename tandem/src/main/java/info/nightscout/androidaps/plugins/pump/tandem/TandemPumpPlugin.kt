@@ -225,10 +225,10 @@ class TandemPumpPlugin @Inject constructor(
     private fun checkInitializationState() {
         pumpAddress = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
 
-        val pumpBondStatus = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairStatus, null)
+        val pumpBondStatus = sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
 
         driverInitialized = (!pumpAddress.isEmpty() &&
-            pumpBondStatus.equals("100") &&
+            pumpBondStatus == 100 &&
             !tandemUtil.preventConnect)
     }
 
