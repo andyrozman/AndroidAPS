@@ -227,7 +227,9 @@ class TandemPumpPlugin @Inject constructor(
 
         val pumpBondStatus = sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairStatus, null)
 
-        driverInitialized = ((!pumpAddress.isEmpty()) && (pumpBondStatus.equals("100")))
+        driverInitialized = (!pumpAddress.isEmpty() &&
+            pumpBondStatus.equals("100") &&
+            !tandemUtil.preventConnect)
     }
 
     override val serviceClass: Class<*>?
@@ -458,7 +460,7 @@ class TandemPumpPlugin @Inject constructor(
         pumpConnectionManager.getConfiguration()
 
         // TODO read profile (once, later its controlled by isThisProfileSet method)
-        //pumpConnectionManager.getBasalProfile()
+        pumpConnectionManager.getBasalProfile()
 
         pumpStatus.setLastCommunicationToNow()
         setRefreshButtonEnabled(true)

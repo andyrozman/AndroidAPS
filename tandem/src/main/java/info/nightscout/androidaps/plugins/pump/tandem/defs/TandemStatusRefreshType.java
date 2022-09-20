@@ -8,11 +8,11 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.Pump
 
 public enum TandemStatusRefreshType {
 
-    PumpHistory(5, null), //
+    PumpHistory(5, PumpCommandType.GetHistory), //
     //Configuration(0, null), //
-    RemainingInsulin(-1, null /*MedtronicCommandType.GetRemainingInsulin*/), //
-    BatteryStatus(55, null /*MedtronicCommandType.GetBatteryStatus*/), //
-    PumpTime(60, null /*MedtronicCommandType.GetRealTimeClock*/) //
+    RemainingInsulin(-1, PumpCommandType.GetRemainingInsulin), //
+    BatteryStatus(55, PumpCommandType.GetBatteryStatus), //
+    PumpTime(60, PumpCommandType.GetTime) //
     ;
 
     private final int refreshTime;

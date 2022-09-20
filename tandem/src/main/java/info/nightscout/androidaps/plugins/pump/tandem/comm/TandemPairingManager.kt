@@ -201,7 +201,7 @@ class TandemPairingManager constructor(
     }
 
     private fun hasPairingCode(peripheral: BluetoothPeripheral, btAddress: String, challenge: CentralChallengeResponse, pairingCode: String) {
-        aapsLogger.info(LTag.PUMPBTCOMM, "hasPairingCode: %s", pairingCode)
+        aapsLogger.info(LTag.PUMPBTCOMM, "Device ${btAddress} hasPairingCode: ${pairingCode}")
         sp.putInt(TandemPumpConst.Prefs.PumpPairStatus, 50)
         sp.putString(TandemPumpConst.Prefs.PumpPairCode, pairingCode)
         pair(peripheral, challenge, pairingCode)

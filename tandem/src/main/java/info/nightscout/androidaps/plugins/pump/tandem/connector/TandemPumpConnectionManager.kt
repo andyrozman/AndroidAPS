@@ -281,15 +281,26 @@ class TandemPumpConnectionManager @Inject constructor(
     override fun getConnector(commandType: PumpCommandType?): PumpConnectorInterface {
         // TODO extend this when new commands are enabled
         when(commandType) {
+            //PumpCommandType.GetBasalProfile        -> return tandemConnector
+            //PumpCommandType.GetRemainingInsulin    -> return tandemConnector
+            //PumpCommandType.GetSettings            -> return tandemConnector
+
             PumpCommandType.GetBatteryStatus,
             PumpCommandType.GetTime                -> return tandemConnector
             else                                   -> return dummyConnector
         }
     }
 
-    override fun postProcessConfiguration(value: Map<String, String>?) {
+    override fun postProcessConfiguration(valueMap: Map<String, String>?) {
         // TODO
         //TODO("Not yet implemented")
+        if (valueMap!=null) {
+            for (entry in valueMap.entries) {
+                aapsLogger.info(TAG, "TANDEMDBG: Settings ${entry.key} = ${entry.value}")
+            }
+        } else {
+            aapsLogger.warn(TAG, "TANDEMDBG: No settings found.")
+        }
     }
 
     // override fun postProcessBasalProfile(value: BasalProfileDto) {
