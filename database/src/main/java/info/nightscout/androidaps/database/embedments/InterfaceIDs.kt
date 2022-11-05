@@ -43,6 +43,7 @@ data class InterfaceIDs(
         YPSOPUMP,
         MDI,
         DIACONN_G8,
+        EOPATCH2,
         USER,
         CACHE;
 

@@ -19,7 +19,7 @@ import info.nightscout.androidaps.plugins.iob.iobCobCalculator.IobCobOref1Worker
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.IobCobOrefWorker
 import info.nightscout.androidaps.plugins.iob.iobCobCalculator.events.EventNewHistoryData
 import info.nightscout.androidaps.plugins.sensitivity.SensitivityOref1Plugin
-import info.nightscout.androidaps.receivers.DataWorker
+import info.nightscout.androidaps.receivers.DataWorkerStorage
 import info.nightscout.androidaps.utils.DateUtil
 import info.nightscout.androidaps.utils.FabricPrivacy
 import info.nightscout.androidaps.interfaces.ResourceHelper
@@ -42,7 +42,7 @@ class CalculationWorkflow @Inject constructor(
     private val fabricPrivacy: FabricPrivacy,
     private val dateUtil: DateUtil,
     private val sensitivityOref1Plugin: SensitivityOref1Plugin,
-    private val dataWorker: DataWorker,
+    private val dataWorkerStorage: DataWorkerStorage,
     private val activePlugin: ActivePlugin
 ) {
 
@@ -60,12 +60,13 @@ class CalculationWorkflow @Inject constructor(
     private val overviewData: OverviewData
         get() = (iobCobCalculator as IobCobCalculatorPlugin).overviewData
 
-    enum class ProgressData(val pass: Int, val percentOfTotal: Int) {
+    enum class ProgressData(private val pass: Int, val percentOfTotal: Int) {
         PREPARE_BASAL_DATA(0, 5),
         PREPARE_TEMPORARY_TARGET_DATA(1, 5),
         PREPARE_TREATMENTS_DATA(2, 5),
-        IOB_COB_OREF(3, 75),
-        PREPARE_IOB_AUTOSENS_DATA(4, 10);
+        IOB_COB_OREF(3, 74),
+        PREPARE_IOB_AUTOSENS_DATA(4, 10),
+        DRAW(5, 1);
 
         fun finalPercent(progress: Int): Int {
             var total = 0
@@ -150,17 +151,17 @@ class CalculationWorkflow @Inject constructor(
         WorkManager.getInstance(context)
             .beginUniqueWork(
                 job, ExistingWorkPolicy.REPLACE,
-                if (bgDataReload) OneTimeWorkRequest.Builder(LoadBgDataWorker::class.java).setInputData(dataWorker.storeInputData(LoadBgDataWorker.LoadBgData(iobCobCalculator, end))).build()
+                if (bgDataReload) OneTimeWorkRequest.Builder(LoadBgDataWorker::class.java).setInputData(dataWorkerStorage.storeInputData(LoadBgDataWorker.LoadBgData(iobCobCalculator, end))).build()
                 else OneTimeWorkRequest.Builder(DummyWorker::class.java).build()
             )
             .then(
                 OneTimeWorkRequest.Builder(PrepareBucketedDataWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(PrepareBucketedDataWorker.PrepareBucketedData(iobCobCalculator, overviewData)))
+                    .setInputData(dataWorkerStorage.storeInputData(PrepareBucketedDataWorker.PrepareBucketedData(iobCobCalculator, overviewData)))
                     .build()
             )
             .then(
                 OneTimeWorkRequest.Builder(PrepareBgDataWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(PrepareBgDataWorker.PrepareBgData(iobCobCalculator, overviewData)))
+                    .setInputData(dataWorkerStorage.storeInputData(PrepareBgDataWorker.PrepareBgData(iobCobCalculator, overviewData)))
                     .build()
             )
             .then(
@@ -170,17 +171,17 @@ class CalculationWorkflow @Inject constructor(
             )
             .then(
                 OneTimeWorkRequest.Builder(PrepareTreatmentsDataWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(PrepareTreatmentsDataWorker.PrepareTreatmentsData(overviewData)))
+                    .setInputData(dataWorkerStorage.storeInputData(PrepareTreatmentsDataWorker.PrepareTreatmentsData(overviewData)))
                     .build()
             )
             .then(
                 OneTimeWorkRequest.Builder(PrepareBasalDataWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(PrepareBasalDataWorker.PrepareBasalData(iobCobCalculator, overviewData)))
+                    .setInputData(dataWorkerStorage.storeInputData(PrepareBasalDataWorker.PrepareBasalData(iobCobCalculator, overviewData)))
                     .build()
             )
             .then(
                 OneTimeWorkRequest.Builder(PrepareTemporaryTargetDataWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(PrepareTemporaryTargetDataWorker.PrepareTemporaryTargetData(overviewData)))
+                    .setInputData(dataWorkerStorage.storeInputData(PrepareTemporaryTargetDataWorker.PrepareTemporaryTargetData(overviewData)))
                     .build()
             )
             .then(
@@ -191,17 +192,17 @@ class CalculationWorkflow @Inject constructor(
             .then(
                 if (sensitivityOref1Plugin.isEnabled())
                     OneTimeWorkRequest.Builder(IobCobOref1Worker::class.java)
-                        .setInputData(dataWorker.storeInputData(IobCobOref1Worker.IobCobOref1WorkerData(injector, iobCobCalculator, from, end, limitDataToOldestAvailable, cause)))
+                        .setInputData(dataWorkerStorage.storeInputData(IobCobOref1Worker.IobCobOref1WorkerData(injector, iobCobCalculator, from, end, limitDataToOldestAvailable, cause)))
                         .build()
                 else
                     OneTimeWorkRequest.Builder(IobCobOrefWorker::class.java)
-                        .setInputData(dataWorker.storeInputData(IobCobOrefWorker.IobCobOrefWorkerData(injector, iobCobCalculator, from, end, limitDataToOldestAvailable, cause)))
+                        .setInputData(dataWorkerStorage.storeInputData(IobCobOrefWorker.IobCobOrefWorkerData(injector, iobCobCalculator, from, end, limitDataToOldestAvailable, cause)))
                         .build()
             )
             .then(OneTimeWorkRequest.Builder(UpdateIobCobSensWorker::class.java).build())
             .then(
                 OneTimeWorkRequest.Builder(PrepareIobAutosensGraphDataWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(PrepareIobAutosensGraphDataWorker.PrepareIobAutosensData(iobCobCalculator, overviewData)))
+                    .setInputData(dataWorkerStorage.storeInputData(PrepareIobAutosensGraphDataWorker.PrepareIobAutosensData(iobCobCalculator, overviewData)))
                     .build()
             )
             .then(
@@ -212,13 +213,13 @@ class CalculationWorkflow @Inject constructor(
             .then(
                 runLoop,
                 OneTimeWorkRequest.Builder(InvokeLoopWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(InvokeLoopWorker.InvokeLoopData(cause)))
+                    .setInputData(dataWorkerStorage.storeInputData(InvokeLoopWorker.InvokeLoopData(cause)))
                     .build()
             )
             .then(
                 runLoop,
                 OneTimeWorkRequest.Builder(PreparePredictionsWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(PreparePredictionsWorker.PreparePredictionsData(overviewData)))
+                    .setInputData(dataWorkerStorage.storeInputData(PreparePredictionsWorker.PreparePredictionsData(overviewData)))
                     .build()
             )
             .then(
@@ -237,7 +238,7 @@ class CalculationWorkflow @Inject constructor(
             .beginUniqueWork(
                 MAIN_CALCULATION, ExistingWorkPolicy.APPEND,
                 OneTimeWorkRequest.Builder(PrepareTreatmentsDataWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(PrepareTreatmentsDataWorker.PrepareTreatmentsData(overviewData)))
+                    .setInputData(dataWorkerStorage.storeInputData(PrepareTreatmentsDataWorker.PrepareTreatmentsData(overviewData)))
                     .build()
             )
             .then(
@@ -253,12 +254,12 @@ class CalculationWorkflow @Inject constructor(
             .beginUniqueWork(
                 MAIN_CALCULATION, ExistingWorkPolicy.APPEND,
                 OneTimeWorkRequest.Builder(PrepareBucketedDataWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(PrepareBucketedDataWorker.PrepareBucketedData(iobCobCalculator, overviewData)))
+                    .setInputData(dataWorkerStorage.storeInputData(PrepareBucketedDataWorker.PrepareBucketedData(iobCobCalculator, overviewData)))
                     .build()
             )
             .then(
                 OneTimeWorkRequest.Builder(PrepareBgDataWorker::class.java)
-                    .setInputData(dataWorker.storeInputData(PrepareBgDataWorker.PrepareBgData(iobCobCalculator, overviewData)))
+                    .setInputData(dataWorkerStorage.storeInputData(PrepareBgDataWorker.PrepareBgData(iobCobCalculator, overviewData)))
                     .build()
             )
             .then(
