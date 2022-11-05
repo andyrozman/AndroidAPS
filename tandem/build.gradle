@@ -63,7 +63,7 @@ buildscript {
 dependencies {
 
     implementation project(':core')
-    implementation project(':pump-common')
+    implementation project(':pump:pump-common')
     implementation project(':shared')
 
     // Database dependencies

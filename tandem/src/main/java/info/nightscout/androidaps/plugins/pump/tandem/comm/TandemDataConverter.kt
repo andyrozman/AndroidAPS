@@ -181,7 +181,7 @@ class TandemDataConverter @Inject constructor(
 
         when (historyLogPump) {
 
-            is TimeChangeHistoryLog            -> historyLog.subObject = createTimeChangeRecord(historyLogPump)
+            //is TimeChangeHistoryLog            -> historyLog.subObject = createTimeChangeRecord(historyLogPump)
             is DateChangeHistoryLog            -> historyLog.subObject = createDateChangeRecord(historyLogPump)
 
             // WIP
@@ -305,9 +305,9 @@ class TandemDataConverter @Inject constructor(
     //     return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.dateAfter).toEpochMilli(), false)
     // }
 
-    private fun createTimeChangeRecord(historyLogPump: TimeChangeHistoryLog): HistoryLogObject {
-        return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.timeAfter).toEpochMilli(), true)
-    }
+    // private fun createTimeChangeRecord(historyLogPump: TimeChangeHistoryLog): HistoryLogObject {
+    //     return createDateTimeChangeRecord(Dates.fromJan12008EpochDaysToDate(historyLogPump.timeAfter).toEpochMilli(), true)
+    // }
 
     private fun createDateTimeChangeRecord(dateTime: Long, timeChanged: Boolean): DateTimeChanged {
         val dt = DateTime().withMillis(dateTime)
