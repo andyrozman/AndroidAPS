@@ -62,9 +62,10 @@ buildscript {
 
 dependencies {
 
+    implementation project(':libraries')
     implementation project(':core')
-    implementation project(':pump:pump-common')
     implementation project(':shared')
+    implementation project(':pump:pump-common')
 
     // Database dependencies
     api "androidx.room:room-ktx:$room_version"
