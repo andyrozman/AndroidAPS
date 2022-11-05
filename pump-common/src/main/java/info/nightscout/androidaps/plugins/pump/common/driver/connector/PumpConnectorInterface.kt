@@ -9,6 +9,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.p
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.*
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.CustomCommandTypeInterface
 
@@ -29,7 +30,7 @@ interface PumpConnectorInterface {
     fun retrieveBasalProfile(): DataCommandResponse<BasalProfileDto?>
     fun sendBasalProfile(profile: Profile): DataCommandResponse<AdditionalResponseDataInterface?>  //ResultCommandResponse
 
-    fun retrieveConfiguration(): DataCommandResponse<Map<String, String>?>
+    fun retrieveConfiguration(): DataCommandResponse<MutableMap<PumpConfigurationTypeInterface, Any>?>
     fun retrieveRemainingInsulin(): DataCommandResponse<Double?>
     fun retrieveBatteryStatus(): DataCommandResponse<Int?>
 

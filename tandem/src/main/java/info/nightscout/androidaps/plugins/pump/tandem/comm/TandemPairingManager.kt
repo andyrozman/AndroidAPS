@@ -36,7 +36,7 @@ import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpNeedsPairingCode
 import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpPairingCodeProvided
-import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpStatusChanged
+import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpDriverStateChanged
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.androidaps.utils.ToastUtils
@@ -48,7 +48,6 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import java.util.*
-import javax.inject.Inject
 
 // TODO: maybe add some more dialogs in case of success, error
 class TandemPairingManager constructor(
@@ -220,7 +219,7 @@ class TandemPairingManager constructor(
 
         //PumpState.failedPumpConnectionAttempts++
 
-        rxBus.send(EventPumpStatusChanged(PumpDriverState.ErrorCommunicatingWithPump))
+        rxBus.send(EventPumpDriverStateChanged(PumpDriverState.ErrorCommunicatingWithPump))
 
         if (finishActivity) {
             activity.finish()

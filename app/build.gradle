@@ -111,7 +111,7 @@ android {
         buildConfigField "String", "REMOTE", '"' + generateGitRemote() + '"'
         buildConfigField "String", "HEAD", '"' + generateGitBuild() + '"'
         buildConfigField "String", "COMMITTED", '"' + allCommitted() + '"'
-	    buildConfigField "String", "DEV_DATE", '"20.09.2022"'
+	    buildConfigField "String", "DEV_DATE", '"22.09.2022"'
 	    buildConfigField "String", "DEV_VERSION", '"3.1.0.3-dev-b"'
     }
 

@@ -10,6 +10,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.p
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.*
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
 
 import info.nightscout.shared.logging.AAPSLogger
@@ -24,8 +25,9 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
         DataCommandResponse<AdditionalResponseDataInterface?>(PumpCommandType.SetBolus, false, "Command not implemented.", null)
 
     var unSucessfulDataResponse =
-        DataCommandResponse<FirmwareVersionInterface?>(PumpCommandType.GetFirmwareVersion,
-                                                                                 false, "Command not implemented.", null)
+        DataCommandResponse<FirmwareVersionInterface?>(
+            PumpCommandType.GetFirmwareVersion,
+            false, "Command not implemented.", null)
 
     override fun connectToPump(): Boolean {
         return false
@@ -36,8 +38,9 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
     }
 
     override fun retrieveFirmwareVersion(): DataCommandResponse<FirmwareVersionInterface?> {
-        return DataCommandResponse<FirmwareVersionInterface?>(PumpCommandType.GetFirmwareVersion,
-                                                       false, "Command not implemented.", null)
+        return DataCommandResponse<FirmwareVersionInterface?>(
+            PumpCommandType.GetFirmwareVersion,
+            false, "Command not implemented.", null)
     }
 
     override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<AdditionalResponseDataInterface?> {
@@ -71,8 +74,8 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
     }
 
 
-    override fun retrieveConfiguration(): DataCommandResponse<Map<String, String>?> {
-        return DataCommandResponse<Map<String, String>?>(
+    override fun retrieveConfiguration(): DataCommandResponse<MutableMap<PumpConfigurationTypeInterface, Any>?> {
+        return DataCommandResponse<MutableMap<PumpConfigurationTypeInterface, Any>?>(
             PumpCommandType.GetSettings, false, "Command not implemented.", null)
     }
 
@@ -82,8 +85,9 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
     }
 
     override fun retrieveBatteryStatus(): DataCommandResponse<Int?> {
-        return DataCommandResponse<Int?>(PumpCommandType.GetBatteryStatus,
-                                         false, "Command not implemented.", null)
+        return DataCommandResponse<Int?>(
+            PumpCommandType.GetBatteryStatus,
+            false, "Command not implemented.", null)
     }
 
     override fun getTime(): DataCommandResponse<PumpTimeDifferenceDto?> {
@@ -102,7 +106,7 @@ abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,
 
     override fun getFilteredPumpHistory(filter: PumpHistoryFilterInterface): DataCommandResponse<List<Any>?> {
         return DataCommandResponse<List<Any>?>(
-            PumpCommandType.GetHistoryWithParameters,false, "Command not implemented.", null)
+            PumpCommandType.GetHistoryWithParameters, false, "Command not implemented.", null)
     }
 
 

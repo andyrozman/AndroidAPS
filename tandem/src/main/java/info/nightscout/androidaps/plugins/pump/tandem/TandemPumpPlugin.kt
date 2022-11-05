@@ -40,7 +40,6 @@ import info.nightscout.androidaps.utils.rx.AapsSchedulers
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
-import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -230,6 +229,8 @@ class TandemPumpPlugin @Inject constructor(
         driverInitialized = (!pumpAddress.isEmpty() &&
             pumpBondStatus == 100 &&
             !tandemUtil.preventConnect)
+
+        aapsLogger.info(LTag.PUMP, "TANDEMDBG: initialization status: $driverInitialized");
     }
 
     override val serviceClass: Class<*>?
@@ -273,7 +274,7 @@ class TandemPumpPlugin @Inject constructor(
     // Pump Interface
     override fun isInitialized(): Boolean {
         aapsLogger.debug(LTag.PUMP, "isInitialized - driverInit=$driverInitialized, preventConnect=${tandemUtil.preventConnect}")
-        return driverInitialized && !tandemUtil.preventConnect
+        return driverInitialized //&& !tandemUtil.preventConnect
         //return pumpStatus.ypsopumpFirmware != null;
     }
 
@@ -284,12 +285,17 @@ class TandemPumpPlugin @Inject constructor(
     }
 
     override fun isConnected(): Boolean {
+        if (!driverInitialized)
+            return false;
         val driverStatus = tandemUtil.driverStatus
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnected - " + driverStatus.name)
         return driverStatus == PumpDriverState.Ready || driverStatus == PumpDriverState.ExecutingCommand
     }
 
     override fun isConnecting(): Boolean {
+        if (!driverInitialized)
+            return false;
+
         val driverStatus = tandemUtil.driverStatus
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
         //return pumpState == PumpDriverState.Connecting;
@@ -297,21 +303,31 @@ class TandemPumpPlugin @Inject constructor(
     }
 
     override fun connect(reason: String) {
+        if (!driverInitialized)
+            return;
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "connect (reason=$reason).")
         pumpConnectionManager.connectToPump() //deviceMac = pumpAddress, deviceBonded = pumpBonded)
     }
 
     override fun disconnect(reason: String) {
+        if (!driverInitialized)
+            return;
+
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "disconnect (reason=$reason).")
         pumpConnectionManager.disconnectFromPump()
     }
 
     override fun stopConnecting() {
+        if (!driverInitialized)
+            return;
         if (displayConnectionMessages)
             aapsLogger.debug(LTag.PUMP, "stopConnecting [PumpPluginAbstract] - default (empty) implementation.")
     }
 
     override fun isHandshakeInProgress(): Boolean {
+        if (!driverInitialized)
+            return false;
+
         if (displayConnectionMessages)
             aapsLogger.debug(LTag.PUMP, "isHandshakeInProgress - " + tandemUtil.driverStatus.name)
         return tandemUtil.driverStatus === PumpDriverState.Connecting
@@ -526,6 +542,9 @@ class TandemPumpPlugin @Inject constructor(
 
     override fun isThisProfileSet(profile: Profile): Boolean {
         aapsLogger.debug(LTag.PUMP, "isThisProfileSet ")
+
+        if (!isInitialized)
+            return true
 
         // if (driverMode == PumpDriverMode.Faked) {
         //     //this.profile = profile  // TODO remove this later

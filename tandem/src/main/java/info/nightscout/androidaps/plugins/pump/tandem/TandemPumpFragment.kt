@@ -1,7 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.tandem
 
 //import kotlinx.android.synthetic.main.ypsopump_fragment.*
-import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -20,11 +19,10 @@ import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpUpdateFragmentType
 import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentValuesChanged
 import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
-import info.nightscout.androidaps.plugins.pump.common.ui.PumpHistoryActivity
 import info.nightscout.androidaps.plugins.pump.tandem.databinding.TandemFragmentBinding
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
-import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpStatusChanged
+import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpDriverStateChanged
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
 import info.nightscout.androidaps.queue.Callback
 import info.nightscout.androidaps.queue.events.EventQueueChanged
@@ -125,7 +123,7 @@ class TandemPumpFragment : DaggerFragment() {
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ binding.pumpRefresh.isEnabled = it.newState }, { fabricPrivacy.logException(it) })
         disposable += rxBus
-            .toObservable(EventPumpStatusChanged::class.java)
+            .toObservable(EventPumpDriverStateChanged::class.java)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ updatePumpStatus(it.driverStatus) }, { fabricPrivacy.logException(it) })
         disposable += rxBus

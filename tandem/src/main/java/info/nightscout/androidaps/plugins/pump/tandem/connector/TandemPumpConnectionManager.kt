@@ -4,6 +4,7 @@ import android.content.Context
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.connector.PumpConnectionManager
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpConnectorInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
@@ -286,12 +287,12 @@ class TandemPumpConnectionManager @Inject constructor(
             //PumpCommandType.GetSettings            -> return tandemConnector
 
             PumpCommandType.GetBatteryStatus,
-            PumpCommandType.GetTime                -> return tandemConnector
-            else                                   -> return dummyConnector
+            PumpCommandType.GetTime -> return tandemConnector
+            else                    -> return dummyConnector
         }
     }
 
-    override fun postProcessConfiguration(valueMap: Map<String, String>?) {
+    override fun postProcessConfiguration(valueMap: MutableMap<PumpConfigurationTypeInterface, Any>??) {
         // TODO
         //TODO("Not yet implemented")
         if (valueMap!=null) {

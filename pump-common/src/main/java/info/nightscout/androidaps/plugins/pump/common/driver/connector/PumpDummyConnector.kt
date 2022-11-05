@@ -6,16 +6,15 @@ import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.parameters.PumpHistoryFilterInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
-import info.nightscout.androidaps.plugins.pump.common.util.PumpUtil
+import info.nightscout.androidaps.plugins.pump.common.utils.PumpUtil
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.CustomCommandTypeInterface
-import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
 import info.nightscout.shared.logging.AAPSLogger
 import org.joda.time.DateTime
 import javax.inject.Singleton
@@ -54,10 +53,10 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
         return true
     }
 
-    override fun retrieveFirmwareVersion(): DataCommandResponse<FirmwareVersionInterface?> {
-        return DataCommandResponse(
-            PumpCommandType.GetFirmwareVersion, true, null, TandemPumpApiVersion.VERSION_2_1)
-    }
+    // override fun retrieveFirmwareVersion(): DataCommandResponse<FirmwareVersionInterface?> {
+    //     return DataCommandResponse(
+    //         PumpCommandType.GetFirmwareVersion, true, null, TandemPumpApiVersion.VERSION_2_1)
+    // }
 
     override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<AdditionalResponseDataInterface?> {
         pumpUtil.sleepSeconds(10)
@@ -66,7 +65,7 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
 
     override fun retrieveTemporaryBasal(): DataCommandResponse<TempBasalPair?> {
         pumpUtil.sleepSeconds(10)
-
+            // TODO legacyMode
         return if (pumpStatus.tempBasalStart == null ||
             pumpStatus.tempBasalEnd == null ||
             System.currentTimeMillis() > pumpStatus.tempBasalEnd!!) {
@@ -115,9 +114,9 @@ open class PumpDummyConnector(var pumpStatus: PumpStatus,
             PumpCommandType.GetRemainingInsulin, true, null, 100.0)
     }
 
-    override fun retrieveConfiguration(): DataCommandResponse<Map<String,String>?> {
+    override fun retrieveConfiguration(): DataCommandResponse<MutableMap<PumpConfigurationTypeInterface, Any>?> {
         return DataCommandResponse(
-            PumpCommandType.GetSettings, true, null, mapOf())
+            PumpCommandType.GetSettings, true, null, mutableMapOf())
     }
 
     override fun retrieveBatteryStatus(): DataCommandResponse<Int?> {

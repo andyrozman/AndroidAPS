@@ -10,6 +10,7 @@ import info.nightscout.androidaps.data.DetailedBolusInfo
 import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
@@ -119,9 +120,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
-    override fun retrieveConfiguration(): DataCommandResponse<Map<String,String>?> {
+    override fun retrieveConfiguration(): DataCommandResponse<MutableMap<PumpConfigurationTypeInterface, Any>?> {
 
-        val map:  MutableMap<String,String> = mutableMapOf()
+        val map:  MutableMap<PumpConfigurationTypeInterface, Any> = mutableMapOf()
 
         try {
             addToSettings(TandemPumpSettingType.CONTROL_IQ_ENABLED, map, getCommunicationManager().sendCommand(getCorrectRequest(TandemCommandType.ControlIQInfo)))
@@ -138,13 +139,13 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     }
 
 
-    private fun addToSettings(settingType: TandemPumpSettingType, settingsMap: MutableMap<String,String>, message: Message?) {
+    private fun addToSettings(settingType: TandemPumpSettingType, settingsMap: MutableMap<PumpConfigurationTypeInterface, Any>, message: Message?) {
 
         when(message) {
-            is ControlIQInfoV1Response -> {  settingsMap.put(settingType.name, message.closedLoopEnabled.toString()) }
-            is ControlIQInfoV2Response -> {  settingsMap.put(settingType.name, message.closedLoopEnabled.toString()) }
-            is BasalLimitSettingsResponse -> {  settingsMap.put(settingType.name, message.basalLimit.toString())  }
-            is GlobalMaxBolusSettingsResponse -> {  settingsMap.put(settingType.name, message.maxBolus.toString()) }
+            is ControlIQInfoV1Response -> {  settingsMap.put(settingType, message.closedLoopEnabled) }
+            is ControlIQInfoV2Response -> {  settingsMap.put(settingType, message.closedLoopEnabled) }
+            is BasalLimitSettingsResponse -> {  settingsMap.put(settingType, message.basalLimit)  }
+            is GlobalMaxBolusSettingsResponse -> {  settingsMap.put(settingType, message.maxBolus) }
             is ErrorResponse -> {
                 aapsLogger.error(LTag.PUMPBTCOMM, "Problem with packets from Tandem: requestedCodeId=${message.requestCodeId}, errorCode: ${message.errorCode}")
                 throw Exception("Problem with packets from Tandem: requestedCodeId=${message.requestCodeId}, errorCode: ${message.errorCode}")
@@ -159,8 +160,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     override fun retrieveBatteryStatus(): DataCommandResponse<Int?> {
 
-        val responseData: DataCommandResponse<Int?> = sendAndReceivePumpData(PumpCommandType.GetBatteryStatus,
-                                                                             getCorrectRequest(TandemCommandType.CurrentBattery))
+        val responseData: DataCommandResponse<Int?> = sendAndReceivePumpData(
+            PumpCommandType.GetBatteryStatus,
+            getCorrectRequest(TandemCommandType.CurrentBattery))
         {   rawData -> tandemDataConverter.getBatteryResponse(rawData as CurrentBatteryAbstractResponse) }
 
         return responseData
@@ -170,8 +172,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     override fun retrieveRemainingInsulin(): DataCommandResponse<Double?> {
 
-        val responseData: DataCommandResponse<Double?> = sendAndReceivePumpData(PumpCommandType.GetRemainingInsulin,
-                                                                                InsulinStatusRequest())
+        val responseData: DataCommandResponse<Double?> = sendAndReceivePumpData(
+            PumpCommandType.GetRemainingInsulin,
+            InsulinStatusRequest())
         {  rawContent -> tandemDataConverter.getInsulinStatus(rawContent as InsulinStatusResponse) }
 
         return responseData
@@ -238,8 +241,9 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     override fun retrieveTemporaryBasal(): DataCommandResponse<TempBasalPair?> {
 
-        val responseData: DataCommandResponse<TempBasalPair?> = sendAndReceivePumpData(PumpCommandType.GetTemporaryBasal,
-                                                                                TempRateRequest())
+        val responseData: DataCommandResponse<TempBasalPair?> = sendAndReceivePumpData(
+            PumpCommandType.GetTemporaryBasal,
+            TempRateRequest())
         {  rawContent -> tandemDataConverter.getTempBasalRate(rawContent as TempRateResponse) }
 
         if (responseData.isSuccess) {

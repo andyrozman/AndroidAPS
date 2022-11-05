@@ -1,22 +1,19 @@
-package info.nightscout.androidaps.plugins.pump.common.util
+package info.nightscout.androidaps.plugins.pump.common.utils
 
 import android.content.Context
 import com.google.gson.GsonBuilder
+import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
 import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
-import info.nightscout.androidaps.plugins.pump.tandem.event.EventPumpStatusChanged
-import info.nightscout.androidaps.interfaces.ResourceHelper
+import info.nightscout.androidaps.plugins.pump.common.defs.NotificationTypeInterface
+import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
+import info.nightscout.androidaps.plugins.pump.common.events.EventPumpDriverStateChanged
 import info.nightscout.androidaps.plugins.general.overview.events.EventNewNotification
 import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
-import info.nightscout.androidaps.plugins.pump.common.defs.NotificationTypeInterface
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
-import javax.inject.Inject
-import javax.inject.Singleton
-
 
 open class PumpUtil constructor(
     val aapsLogger: AAPSLogger,
@@ -94,7 +91,7 @@ open class PumpUtil constructor(
                 driverStatusInternal = driverStatusIn!!
                 this.pumpCommandType = null
                 //aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus: " + driverStatusInternal);
-                rxBus.send(EventPumpStatusChanged(driverStatusInternal))
+                rxBus.send(EventPumpDriverStateChanged(driverStatusInternal))
             }
 
             StatusChange.GetCommand -> return this.pumpCommandType
@@ -102,7 +99,7 @@ open class PumpUtil constructor(
             StatusChange.SetCommand -> {
                 driverStatusInternal = driverStatusIn!!
                 this.pumpCommandType = pumpCommandType
-                rxBus.send(EventPumpStatusChanged(driverStatusInternal))
+                rxBus.send(EventPumpDriverStateChanged(driverStatusInternal))
             }
 
             StatusChange.GetError   -> return errorTypeInternal
@@ -111,7 +108,7 @@ open class PumpUtil constructor(
                 errorTypeInternal = pumpErrorType!!
                 this.pumpCommandType = null
                 driverStatusInternal = PumpDriverState.ErrorCommunicatingWithPump
-                rxBus.send(EventPumpStatusChanged(driverStatusInternal))
+                rxBus.send(EventPumpDriverStateChanged(driverStatusInternal))
             }
         }
         return null

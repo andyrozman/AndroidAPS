@@ -11,11 +11,12 @@ import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpConnectorInterface
 import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
 import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.CustomCommandTypeInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
-import info.nightscout.androidaps.plugins.pump.common.util.PumpUtil
+import info.nightscout.androidaps.plugins.pump.common.utils.PumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import info.nightscout.shared.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
@@ -61,8 +62,7 @@ abstract class PumpConnectionManager constructor(
 
     abstract fun getConnector(commandType: PumpCommandType?): PumpConnectorInterface
 
-    abstract fun postProcessConfiguration(value: Map<String, String>?)
-
+    abstract fun postProcessConfiguration(value: MutableMap<PumpConfigurationTypeInterface, Any>?)
 
 
     fun connectToPumpX(): Boolean {
@@ -371,9 +371,9 @@ abstract class PumpConnectionManager constructor(
     }
 
 
-    fun getConfiguration(): DataCommandResponse<Map<String, String>?> {
+    fun getConfiguration(): DataCommandResponse<MutableMap<PumpConfigurationTypeInterface, Any>?> {
 
-        val responseData: DataCommandResponse<Map<String, String>?> = getConnectorData(PumpCommandType.GetSettings)
+        val responseData: DataCommandResponse<MutableMap<PumpConfigurationTypeInterface, Any>?> = getConnectorData(PumpCommandType.GetSettings)
         {
             getConnector(PumpCommandType.GetSettings).retrieveConfiguration()
         }

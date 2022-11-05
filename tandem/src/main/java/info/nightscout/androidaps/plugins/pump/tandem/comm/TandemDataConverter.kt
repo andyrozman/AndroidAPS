@@ -5,7 +5,6 @@ import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.*
 import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpBolusType
 import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
@@ -197,7 +196,7 @@ class TandemDataConverter @Inject constructor(
             is BolusRequestedMsg2HistoryLog,
             is BolusRequestedMsg3HistoryLog,
 
-            // not supported
+            // not supported (and won't be supported)
             is CGMHistoryLog,
             is BGHistoryLog                    -> historyLog.subObject = null
             else                               -> historyLog.subObject = null

@@ -1,7 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.common.defs
 
 import androidx.annotation.StringRes
-import info.nightscout.androidaps.plugins.pump.tandem.R
+import info.nightscout.androidaps.plugins.pump.common.R
 
 /**
  * Created by andy on 14/05/2018.

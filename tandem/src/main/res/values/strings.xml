@@ -14,27 +14,6 @@
     <string name="pump_last_bolus" translatable="false">%1$.1f %2$s (%3$s)</string>
     <string name="pump_firmware_open_loop_only">%s (Open-Loop only)</string>
 
-    <!-- Commands -->
-    <string name="pump_cmd_desc_get_settings">Get Settings</string>
-    <string name="pump_cmd_desc_get_firmware">Get Pump Firmware</string>
-    <string name="pump_cmd_desc_get_basal_profile">Get Basal Profile</string>
-    <string name="pump_cmd_desc_set_basal_profile">Set Basal Profile</string>
-    <string name="pump_cmd_desc_get_tbr">Get Temporary Basal</string>
-    <string name="pump_cmd_desc_cancel_tbr">Cancel Temporary Basal</string>
-    <string name="pump_cmd_desc_set_tbr">Set Temporary Basal</string>
-    <string name="pump_cmd_desc_set_bolus">Set Bolus</string>
-    <string name="pump_cmd_desc_get_bolus">Get Bolus</string>
-    <string name="pump_cmd_desc_cancel_bolus">Cancel Bolus</string>
-
-    <string name="pump_cmd_desc_get_remaining_insulin">Get Remaining Insulin</string>
-    <string name="pump_cmd_desc_get_battery_status">Get Battery Status</string>
-    <string name="pump_cmd_desc_get_time">Get Time</string>
-    <string name="pump_cmd_desc_set_time">Set Time</string>
-    <string name="pump_cmd_desc_get_pump_status">Get Pump Status</string>
-    <string name="pump_cmd_desc_get_history">Get History</string>
-    <string name="pump_cmd_desc_get_history_params">Get History %s</string>
-    <string name="pump_cmd_desc_custom">Custom command</string>
-
 
     <!-- Command Errors -->
     <string name="ypsopump_cmd_bolus_could_not_be_delivered_no_insulin">Bolus could not be delivered, because available insulin amount (%1$.2f) is less than bolus required (%2$.2f).</string>

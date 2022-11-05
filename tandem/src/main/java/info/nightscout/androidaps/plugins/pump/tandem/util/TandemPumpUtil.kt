@@ -5,10 +5,9 @@ import android.util.Log
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import info.nightscout.androidaps.plugins.bus.RxBus
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.interfaces.ResourceHelper
-import info.nightscout.androidaps.plugins.pump.common.util.PumpUtil
+import info.nightscout.androidaps.plugins.pump.common.utils.PumpUtil
 import info.nightscout.shared.logging.AAPSLogger
 import java.nio.ByteBuffer
 import java.security.MessageDigest
