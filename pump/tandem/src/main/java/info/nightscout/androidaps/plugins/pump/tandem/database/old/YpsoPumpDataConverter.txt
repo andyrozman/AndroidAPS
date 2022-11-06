@@ -1,0 +1,320 @@
+package info.nightscout.androidaps.plugins.pump.tandem.comm
+
+import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
+import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
+import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
+import info.nightscout.androidaps.plugins.pump.tandem.data.*
+import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpEventType
+import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpEventType.*
+import TandemPumpStatus
+import TandemPumpUtil
+import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.shared.logging.LTag
+import org.joda.time.DateTime
+import java.util.*
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.experimental.and
+
+@Deprecated("Will be removed with old database")
+@Singleton
+class YpsoPumpDataConverter constructor(
+    var pumpStatus: TandemPumpStatus,
+    var tandemPumpUtil: TandemPumpUtil,
+    var aapsLogger: AAPSLogger
+) : PumpDataConverter {
+
+    private val YPSOPUMP_10_MASTER_VERSIONS = Regex("^[a-zA-Z]?01\\.0[01]\\.[0-9][0-9]$")
+
+    // fun convertReadResult(uuid: String, data: ByteArray): Any? {
+    //
+    //     aapsLogger.debug(LTag.PUMPBTCOMM, "Data Received: [uid=" + uuid + ", data=" + ByteUtil.getHex(data) + "]")
+    //
+    //     val characteristic: YpsoGattCharacteristic = YpsoGattCharacteristic.lookup(uuid)
+    //
+    //
+    //     return when (characteristic) {
+    //         YpsoGattCharacteristic.MASTER_SOFTWARE_VERSION -> decodeMasterSoftwareVersion(data)
+    //         YpsoGattCharacteristic.SYSTEM_DATE             -> decodeDate(data)
+    //         YpsoGattCharacteristic.SYSTEM_TIME             -> decodeTime(data)
+    //         YpsoGattCharacteristic.ALARM_ENTRY_COUNT,
+    //         YpsoGattCharacteristic.EVENT_ENTRY_COUNT,
+    //         YpsoGattCharacteristic.SYSTEM_ENTRY_COUNT,
+    //         YpsoGattCharacteristic.ALARM_ENTRY_VALUE,
+    //         YpsoGattCharacteristic.EVENT_ENTRY_VALUE,
+    //         YpsoGattCharacteristic.SETTINGS_VALUE,
+    //         YpsoGattCharacteristic.SUPERVISOR_SOFTWARE_VERSION,
+    //         YpsoGattCharacteristic.SYSTEM_ENTRY_VALUE      -> decodeUnsupportedEntry(characteristic, data)
+    //
+    //         else                                           -> {
+    //             aapsLogger.debug(LTag.PUMPBTCOMM, "Unknown uuid value: " + uuid)
+    //             null
+    //         }
+    //     }
+    // }
+
+    // private fun decodeUnsupportedEntry(characteristic: YpsoGattCharacteristic, data: ByteArray): Any? {
+    //     aapsLogger.error(LTag.PUMPBTCOMM, "Unsupported Entry: ")
+    //     return null;
+    // }
+
+    // fun decodeMasterSoftwareVersion(data: ByteArray): YpsoPumpFirmware {
+    //     val versionString = ByteUtil.getString(data)
+    //
+    //     aapsLogger.debug(LTag.PUMPBTCOMM, "Decoded Master Software Version: As string: " + versionString)
+    //
+    //     if (StringUtils.isBlank(versionString)) {
+    //         return YpsoPumpFirmware.Unknown
+    //     }
+    //     return if (versionString != null) {
+    //         if (versionString.matches(YPSOPUMP_10_MASTER_VERSIONS)) {
+    //             YpsoPumpFirmware.VERSION_1_0
+    //         } else
+    //             YpsoPumpFirmware.VERSION_1_5
+    //     } else
+    //         YpsoPumpFirmware.Unknown
+    // }
+
+    fun decodeDate(data: ByteArray): DateTimeDto {
+        val dt = DateTimeDto()
+        //dt.year = getCharValueAsNumber(data, 2)
+        dt.year = ByteUtil.toInt(data[1], data[0])
+        dt.month = ByteUtil.toInt(data[2])
+        dt.day = ByteUtil.toInt(data[3])
+
+        aapsLogger.debug(LTag.PUMPBTCOMM, "Decoded Date: " + dt.toString())
+
+        return dt
+    }
+
+    fun decodeTime(data: ByteArray): DateTimeDto {
+        val dt = DateTimeDto()
+        dt.hour = byteToInt(data, 0, 1)
+        dt.minute = ByteUtil.toInt(data[1])
+        dt.second = ByteUtil.toInt(data[2])
+
+        aapsLogger.debug(LTag.PUMPBTCOMM, "Decoded Time: " + dt.toString())
+
+        return dt
+    }
+
+//    protected fun getCharValueAsNumber(paBuffer: ByteArray, piLength: Int): Int {
+//        return getCharValueAsNumber(paBuffer, 0, piLength)
+//    }
+//
+//    protected fun getCharValueAsNumber(paBuffer: ByteArray, piStart: Int, piLength: Int): Int {
+//        var num = 0
+//        for (num2 in piLength - 1 downTo -1 + 1) {
+//            num = num shl 8
+//            num = num.toInt() or (paBuffer[num2 + piStart] and 0xFF.toByte()).toInt()
+//        }
+//        return num
+//    }
+
+    fun decodeEvent(data: ByteArray, historyEntryType: HistoryEntryType): EventDto? {
+        var eventDto: EventDto?
+        // firmware should always be there, but if its not we default to 1.5
+        if (true) { //pumpStatus.ypsopumpFirmware == info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpFirmware.VERSION_1_5) {
+
+            val date = DateTime(2000, 1, 1, 0, 0)
+                .plusSeconds(byteToInt(data, 0, 4))
+
+            var entryTypeInt = byteToInt(data, 4, 1);
+            var entryType = YpsoPumpEventType.getByCode(entryTypeInt)
+
+            eventDto = EventDto(
+                null,
+                pumpStatus.serialNumber!!,
+                historyEntryType,
+                DateTimeDto(date.year, date.monthOfYear, date.dayOfMonth, date.hourOfDay, date.minuteOfHour, date.secondOfMinute),
+                entryType,
+                entryTypeInt,
+                byteToInt(data, 5, 2),
+                byteToInt(data, 7, 2),
+                byteToInt(data, 9, 2),
+                byteToInt(data, 11, 4)
+                //byteToInt(data, 15, 2)
+            )
+        } else {
+            val year = 2000 + (data[0] and 0xFF.toByte())
+            val month = (data[1] and 0xFF.toByte()).toInt()
+            val day = (data[2] and 0xFF.toByte()).toInt()
+            val hour = (data[3] and 0xFF.toByte()).toInt()
+            val minute = (data[4] and 0xFF.toByte()).toInt()
+            val second = (data[5] and 0xFF.toByte()).toInt()
+
+            val entryTypeInt = byteToInt(data, 10, 1);
+            val entryType = YpsoPumpEventType.getByCode(entryTypeInt)
+
+            eventDto = EventDto(
+                null,
+                pumpStatus.serialNumber!!,
+                historyEntryType,
+                DateTimeDto(year, month, day, hour, minute, second),
+                entryType,
+                entryTypeInt,
+                byteToInt(data, 11, 2),
+                byteToInt(data, 13, 2),
+                byteToInt(data, 15, 2),
+                byteToInt(data, 6, 2),
+                //byteToInt(data, 8, 2)
+            )
+        }
+
+        when (eventDto.entryType) {
+            BASAL_PROFILE_A_PATTERN_CHANGED,
+            BASAL_PROFILE_B_PATTERN_CHANGED -> eventDto.subObject = BasalProfileEntry(
+                hour = eventDto.value1,
+                rate = eventDto.value2 / 100.0)
+            DAILY_TOTAL_INSULIN             -> eventDto.subObject = TotalDailyInsulin((((eventDto.value2 shl 16) + eventDto.value1) * 1.0) / 100.0)
+            DATE_CHANGED                    -> eventDto.subObject = DateTimeChanged(2000 + eventDto.value3,
+                eventDto.value2,
+                eventDto.value1,
+                eventDto.dateTime.hour,
+                eventDto.dateTime.minute,
+                eventDto.dateTime.second,
+                false)
+            TIME_CHANGED                    -> eventDto.subObject = DateTimeChanged(eventDto.dateTime.year,
+                eventDto.dateTime.month,
+                eventDto.dateTime.day,
+                eventDto.value1,
+                eventDto.value2,
+                eventDto.value3,
+                true)
+
+            BOLUS_NORMAL,
+            BOLUS_NORMAL_RUNNING,
+            BOLUS_NORMAL_ABORT,
+            BOLUS_BLIND,
+            BOLUS_BLIND_RUNNING,
+            BOLUS_BLIND_ABORT               -> {
+                eventDto.subObject = Bolus(eventDto.value1 / 100.0,
+                    false,
+                    eventDto.entryType == BOLUS_NORMAL_ABORT || eventDto.entryType == BOLUS_BLIND_ABORT,
+                    eventDto.entryType == BOLUS_NORMAL_RUNNING || eventDto.entryType == BOLUS_BLIND_RUNNING)
+            }
+
+            BOLUS_EXTENDED,
+            BOLUS_EXTENDED_RUNNING,
+            BOLUS_EXTENDED_ABORT            -> {
+                eventDto.subObject = Bolus(eventDto.value1 / 100.0,
+                    eventDto.value2,
+                    false,
+                    eventDto.entryType == BOLUS_NORMAL_ABORT || eventDto.entryType == BOLUS_BLIND_ABORT,
+                    eventDto.entryType == BOLUS_EXTENDED_RUNNING)
+            }
+
+            BOLUS_COMBINED_RUNNING,
+            BOLUS_COMBINED,
+            BOLUS_COMBINED_ABORT            -> {
+                eventDto.subObject = Bolus(eventDto.value2 / 100.0,
+                    (eventDto.value1 - eventDto.value2) / 100.0,
+                    eventDto.value3,
+                    false,
+                    eventDto.entryType == BOLUS_NORMAL_ABORT || eventDto.entryType == BOLUS_BLIND_ABORT,
+                    eventDto.entryType == BOLUS_COMBINED_RUNNING)
+            }
+
+            TEMPORARY_BASAL,
+            TEMPORARY_BASAL_RUNNING,
+            TEMPORARY_BASAL_ABORT           -> {
+                eventDto.subObject = TemporaryBasal(
+                    eventDto.value1,
+                    eventDto.value2,
+                    eventDto.entryType == TEMPORARY_BASAL_RUNNING)
+            }
+
+            ALARM_BATTERY_REMOVED           -> eventDto.subObject = Alarm(AlarmType.BatteryRemoved)
+            ALARM_BATTERY_EMPTY             -> eventDto.subObject = Alarm(AlarmType.BatteryEmpty, eventDto.value1)
+            ALARM_REUSABLE_ERROR            -> eventDto.subObject = Alarm(AlarmType.ReusableError, eventDto.value1, eventDto.value2, eventDto.value3)
+            ALARM_NO_CARTRIDGE              -> eventDto.subObject = Alarm(AlarmType.NoCartridge)
+            ALARM_CARTRIDGE_EMPTY           -> eventDto.subObject = Alarm(AlarmType.CartridgeEmpty)
+            ALARM_OCCLUSION                 -> eventDto.subObject = Alarm(AlarmType.Occlusion, eventDto.value1)
+            ALARM_AUTO_STOP                 -> eventDto.subObject = Alarm(AlarmType.AutoStop)
+            ALARM_LIPO_DISCHARGED           -> eventDto.subObject = Alarm(AlarmType.LipoDischarged, eventDto.value1)
+            ALARM_BATTERY_REJECTED          -> eventDto.subObject = Alarm(AlarmType.BatteryRejected, eventDto.value1)
+
+            BOLUS_STEP_CHANGED              -> {
+                val step = eventDto.value1 / 100.0
+                eventDto.subObject = ConfigurationChanged(ConfigurationType.BolusStepChanged, "" + step)
+            }
+
+            BASAL_RATE_CAP_CHANGED,
+            BOLUS_AMOUNT_CAP_CHANGED        -> {
+                val cap = String.format(Locale.ROOT, "NEW=%.2f;OLD=%.2f", eventDto.value1 / 100.0, eventDto.value2 / 100.0)
+                eventDto.subObject = ConfigurationChanged(if (eventDto.entryType == BOLUS_AMOUNT_CAP_CHANGED) ConfigurationType.BolusAmountCapChanged else ConfigurationType.BasalAmountCapChanged,
+                    "" + cap)
+            }
+
+            PUMP_MODE_CHANGED,
+            DELIVERY_STATUS_CHANGED         -> {
+                val isRunning = (eventDto.value1 == 10)
+
+                eventDto.subObject = if (isRunning) PumpStatusChanged(PumpStatusType.PumpRunning)
+                else PumpStatusChanged(PumpStatusType.PumpSuspended)
+            }
+
+            BATTERY_REMOVED                 -> eventDto.subObject = PumpStatusChanged(PumpStatusType.BatteryRemoved)
+            BASAL_PROFILE_SWITCHED          -> eventDto.subObject = ConfigurationChanged(ConfigurationType.BasalProfileChanged,
+                if (eventDto.value1 == 3) "A" else "B")
+
+            PRIMING,
+            CANNULA_PRIMING                 -> {
+                val priming = String.format(Locale.ROOT, "AMOUNT=%.2f;MOTION_STATUS=%d", eventDto.value1 / 100.0, eventDto.value2)
+                val priming2 = String.format(Locale.ROOT, "%.2f", eventDto.value1 / 100.0)
+                eventDto.subObject = PumpStatusChanged(PumpStatusType.Priming, priming2)
+//                val piEventTypeId2 = if (ypsoPumpVersion == eYpsoPumpVersion.YpsoPump_15 &&
+//                        ypsoPumpEventType == eYpsoPumpEventType.PRIMING_FINISHED) 23 else if (ypsoPumpVersion != eYpsoPumpVersion.YpsoPump_15 ||
+//                        ypsoPumpEventType != eYpsoPumpEventType.CANNULA_PRIMING_FINISHED) 20 else 24
+            }
+
+            REWIND                          -> {
+                val rewind = String.format(Locale.ROOT, "VALUE_1=%d;VALUE_2=%d;VALUE_3=%d", eventDto.value1, eventDto.value2, eventDto.value2)
+                eventDto.subObject = PumpStatusChanged(PumpStatusType.Rewind, rewind)
+            }
+
+            UNDEFINED                       -> {
+                aapsLogger.error(LTag.PUMPBTCOMM, "Unknown event type: ${eventDto.entryTypeAsInt}. Object: " + tandemPumpUtil.gson.toJson(eventDto) + ", Data: " + ByteUtil.getHex(data))
+            }
+
+            else                            -> {
+                aapsLogger.error(LTag.PUMPBTCOMM, "Event Type ${eventDto.entryType} is not supported.")
+            }
+
+//            BOLUS_DELAYED_BACKUP ->
+//            BOLUS_COMBINED_BACKUP ->
+//            BASAL_PROFILE_TEMP_BACKUP ->
+        }
+
+        return eventDto
+    }
+
+    fun byteToInt(data: ByteArray, start: Int, length: Int): Int {
+        if (length == 1) {
+            return ByteUtil.toInt(data[start])
+        } else if (length == 2) {
+            return ByteUtil.toInt(data[start], data[start + 1], ByteUtil.BitConversion.LITTLE_ENDIAN)
+        } else if (length == 3) {
+            return ByteUtil.toInt(data[start], data[start + 1], data[start + 2], ByteUtil.BitConversion.LITTLE_ENDIAN)
+        } else if (length == 4) {
+            return ByteUtil.toInt(data[start], data[start + 1], data[start + 2], data[start + 3], ByteUtil.BitConversion.LITTLE_ENDIAN)
+        } else {
+            aapsLogger.error(LTag.PUMPBTCOMM, "byteToInt, length $length not supported.")
+            return 0
+        }
+    }
+
+    fun convertBasalProfileToString(patterns: HashMap<Int, BasalProfileEntry>, delimiter: String) : String {
+        var stringBuilder: StringBuilder = java.lang.StringBuilder()
+
+        var template = "%02d=%.2f" + delimiter
+
+        for (index in 0..23) {
+            val pattern = patterns.get(index);
+            stringBuilder.append(String.format(template, pattern!!.hour, pattern.rate))
+        }
+
+        return stringBuilder.substring(0, stringBuilder.length-(delimiter.length));
+    }
+
+}

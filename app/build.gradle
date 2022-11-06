@@ -200,7 +200,7 @@ dependencies {
     implementation project(':pump:omnipod-dash')
     implementation project(':automation')
     implementation project(':openhumans')
-    implementation project(':tandem')
+    implementation project(':pump:tandem')
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 
