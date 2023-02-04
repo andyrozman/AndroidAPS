@@ -1133,4 +1133,16 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         _binding ?: return
         binding.notifications.let { notificationStore.updateNotifications(it) }
     }
+
+
+    var useNewRibbonColors = false
+
+    fun getBackgroundColor(scheme: OverviewColorScheme): Int {
+        return rh.gc(scheme.getBackground(useNewRibbonColors))
+    }
+
+    fun getTextColor(scheme: OverviewColorScheme): Int {
+        return rh.gc(scheme.getTextColor(useNewRibbonColors))
+    }
+
 }

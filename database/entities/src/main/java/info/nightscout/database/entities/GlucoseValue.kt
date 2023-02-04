@@ -96,6 +96,8 @@ data class GlucoseValue(
         DEXCOM_G5_XDRIP("DexcomG5"),
         DEXCOM_G6_NATIVE_XDRIP("G6 Native"),
         DEXCOM_G5_NATIVE_XDRIP("G5 Native"),
+        DEXCOM_G6_XDRIP("G6"),
+        //DEXCOM_G5_XDRIP("G5"),
         DEXCOM_G6_G5_NATIVE_XDRIP("G6 Native / G5 Native"),
         LIBRE_1_NET("Network libre"),
         LIBRE_1_BLUE("BlueReader"),
