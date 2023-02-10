@@ -10,10 +10,7 @@ import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.r
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
 import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
-import info.nightscout.androidaps.plugins.pump.tandem.data.history.Bolus
-import info.nightscout.androidaps.plugins.pump.tandem.data.history.DateTimeChanged
-import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogDto
-import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogObject
+import info.nightscout.androidaps.plugins.pump.tandem.data.history.*
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpHistoryType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
@@ -177,68 +174,82 @@ class TandemDataConverter @Inject constructor(
 
     fun decodeHistoryLog(historyLogPump: HistoryLog): HistoryLogDto? {
 
+        if (!isLogTypeSupported(historyLogPump)) {
+            return null
+        }
+
         val historyLog = createHistoryLogDto(historyLogPump)
 
         when (historyLogPump) {
 
-            // Date Time
+            // Date Time - WIP
             is TimeChangedHistoryLog            -> historyLog.subObject = createTimeChangeRecord(historyLogPump)
             is DateChangeHistoryLog            -> historyLog.subObject = createDateChangeRecord(historyLogPump)
 
             // Bolus - WIP
             is BolusCompletedHistoryLog        -> historyLog.subObject = createBolusRecord(historyLogPump)
             is BolexCompletedHistoryLog        -> historyLog.subObject = createBolusRecord(historyLogPump)
+            is BolexActivatedHistoryLog        -> historyLog.subObject = createBolusRecord(historyLogPump)
+            is BolusActivatedHistoryLog        -> historyLog.subObject = createBolusRecord(historyLogPump)
+
+            // Pump Status Changes - WIP
+            is PumpingResumedHistoryLog        -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpRunning)
+            is PumpingSuspendedHistoryLog      -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpSuspended, historyLogPump.reason)
+
+            // TBR
+            is TempRateActivatedHistoryLog     -> historyLog.subObject = createTBRRecord(historyLogPump)
+            is TempRateCompletedHistoryLog     -> historyLog.subObject = createTBRRecord(historyLogPump)
+
+            // Alarm/Alert
+            is AlarmActivatedHistoryLog        -> historyLog.subObject = createAlarmRecord(historyLogPump)
+            is AlertActivatedHistoryLog        -> historyLog.subObject = createAlertRecord(historyLogPump)
+
 
             // not implemented yet
 
             // Bolus
             is BolusDeliveryHistoryLog,
+            //is BolexActivatedHistoryLog,
+            //is BolusActivatedHistoryLog,
+            is CarbEnteredHistoryLog,
+
+            // Bolus Delivery
             is BolusRequestedMsg1HistoryLog,
             is BolusRequestedMsg2HistoryLog,
             is BolusRequestedMsg3HistoryLog,
 
-            // NEW
-            is AlarmActivatedHistoryLog,
-            is     AlertActivatedHistoryLog,
-            is     BasalDeliveryHistoryLog,
-            is     BasalRateChangeHistoryLog,
-            is     BGHistoryLog,
-            is     BolexActivatedHistoryLog,
-            is     BolusActivatedHistoryLog,
-            is     BolusDeliveryHistoryLog,
-            is     BolusRequestedMsg1HistoryLog,
-            is     BolusRequestedMsg2HistoryLog,
-            is     BolusRequestedMsg3HistoryLog,
-            is     CannulaFilledHistoryLog,
-            is     CarbEnteredHistoryLog,
-            is     CartridgeFilledHistoryLog,
+            // Basal
+            is BasalDeliveryHistoryLog,
+            is BasalRateChangeHistoryLog,
 
-            is  ControlIQPcmChangeHistoryLog,
-            is  ControlIQUserModeChangeHistoryLog,
+
+
+            // Configuration Changes
+            is ParamChangeGlobalSettingsHistoryLog,
+            is ParamChangePumpSettingsHistoryLog,
+
+            // Pump Status Changes
+            is CannulaFilledHistoryLog,
+            is CartridgeFilledHistoryLog,
+            is TubingFilledHistoryLog,
+
+
+
+
             is  CorrectionDeclinedHistoryLog,
             is  DailyBasalHistoryLog,
             is  DataLogCorruptionHistoryLog,
             is  FactoryResetHistoryLog,
             is  HypoMinimizerResumeHistoryLog,
             is  HypoMinimizerSuspendHistoryLog,
-            is  IdpActionHistoryLog,
-            is  IdpActionMsg2HistoryLog,
-            is  IdpBolusHistoryLog,
-            is  IdpListHistoryLog,
-            is  IdpTimeDependentSegmentHistoryLog,
+
 
             is  LogErasedHistoryLog,
             is  NewDayHistoryLog,
-            is  ParamChangeGlobalSettingsHistoryLog,
-            is  ParamChangePumpSettingsHistoryLog,
-            is  ParamChangeReminderHistoryLog,
-            is  ParamChangeRemSettingsHistoryLog,
-            is  PumpingResumedHistoryLog,
-            is  PumpingSuspendedHistoryLog,
-            is  TempRateActivatedHistoryLog,
-            is  TempRateCompletedHistoryLog,
+
+
+
             //is  ,
-            is  TubingFilledHistoryLog,
             is  UnknownHistoryLog,
 
 
@@ -246,15 +257,7 @@ class TandemDataConverter @Inject constructor(
 
 
             // not supported (and won't be supported)
-            is  UsbConnectedHistoryLog,
-            is  UsbDisconnectedHistoryLog,
-            is  UsbEnumeratedHistoryLog,
-            is CgmCalibrationGxHistoryLog,
-            is CgmCalibrationHistoryLog,
-            is CgmDataGxHistoryLog,
-            is CgmDataSampleHistoryLog,
-            is CGMHistoryLog,
-            is BGHistoryLog                    -> historyLog.subObject = null
+                    -> historyLog.subObject = null
             else                               -> historyLog.subObject = null
         }
 
@@ -264,65 +267,31 @@ class TandemDataConverter @Inject constructor(
 
     }
 
+
     private fun isLogTypeSupported(historyLogPump: HistoryLog): Boolean {
 
-        return false
-        // when (historyLogPump) {
-        //     is BGHistoryLog,
-        //     is CgmCalibrationGxHistoryLog,
-        //     is CgmCalibrationHistoryLog,
-        //     is CgmDataGxHistoryLog,
-        //     is CgmDataSampleHistoryLog,
-        //     is CGMHistoryLog,
-        //     is HypoMinimizerResumeHistoryLog,
-        //     is HypoMinimizerSuspendHistoryLog,
-        //     is IdpActionHistoryLog,
-        //     is IdpActionMsg2HistoryLog,
-        //     is IdpBolusHistoryLog,
-        //     is IdpListHistoryLog,
-        //     is IdpTimeDependentSegmentHistoryLog,
-        //     is LogErasedHistoryLog,
-        //
-        //     is UsbConnectedHistoryLog,
-        //     is UsbDisconnectedHistoryLog,
-        //     is UsbEnumeratedHistoryLog               -> return false
-        //
-        //     is AlarmActivatedHistoryLog,
-        //     is AlertActivatedHistoryLog,
-        //     is BasalDeliveryHistoryLog,
-        //     is BasalRateChangeHistoryLog,
-        //     is BolexActivatedHistoryLog,
-        //     is BolexCompletedHistoryLog,
-        //     is BolusActivatedHistoryLog,
-        //     is BolusCompletedHistoryLog,
-        //     is BolusDeliveryHistoryLog,
-        //     is BolusRequestedMsg1HistoryLog,
-        //     is BolusRequestedMsg2HistoryLog,
-        //     is BolusRequestedMsg3HistoryLog,
-        //     is CannulaFilledHistoryLog,
-        //     is CarbEnteredHistoryLog,
-        //     is CartridgeFilledHistoryLog,
-        //     is ControlIQPcmChangeHistoryLog,
-        //     is ControlIQUserModeChangeHistoryLog,
-        //     is CorrectionDeclinedHistoryLog,
-        //     is DailyBasalHistoryLog,
-        //     is DataLogCorruptionHistoryLog,
-        //     is DateChangeHistoryLog,
-        //     is FactoryResetHistoryLog,
-        //     is NewDayHistoryLog,
-        //     is ParamChangeGlobalSettingsHistoryLog,
-        //     is ParamChangePumpSettingsHistoryLog,
-        //     is ParamChangeReminderHistoryLog,
-        //     is ParamChangeRemSettingsHistoryLog,
-        //     is PumpingResumedHistoryLog,
-        //     is PumpingSuspendedHistoryLog,
-        //     is TempRateActivatedHistoryLog,
-        //     is TempRateCompletedHistoryLog,
-        //     is TimeChangedHistoryLog,
-        //     is TubingFilledHistoryLog,
-        //     is UnknownHistoryLog                       -> return true
-        //     else                                       -> return true
-        // }
+        when (historyLogPump) {
+            is IdpActionHistoryLog,
+            is IdpActionMsg2HistoryLog,
+            is IdpBolusHistoryLog,
+            is IdpListHistoryLog,
+            is IdpTimeDependentSegmentHistoryLog,
+            is UsbConnectedHistoryLog,
+            is UsbDisconnectedHistoryLog,
+            is UsbEnumeratedHistoryLog,
+            is CgmCalibrationGxHistoryLog,
+            is CgmCalibrationHistoryLog,
+            is CgmDataGxHistoryLog,
+            is CgmDataSampleHistoryLog,
+            is CGMHistoryLog,
+            is ParamChangeReminderHistoryLog,
+            is ParamChangeRemSettingsHistoryLog,
+            is  ControlIQPcmChangeHistoryLog,
+            is  ControlIQUserModeChangeHistoryLog,
+            is BGHistoryLog                             -> return false
+
+            else                                        -> return true
+        }
 
     }
 
@@ -341,6 +310,35 @@ class TandemDataConverter @Inject constructor(
 
     }
 
+    private fun createBolusRecord(historyLogPump: BolusActivatedHistoryLog): HistoryLogObject? {
+        TODO("Not yet implemented")
+    }
+
+    private fun createBolusRecord(historyLogPump: BolexActivatedHistoryLog): HistoryLogObject? {
+        TODO("Not yet implemented")
+    }
+
+
+    private fun createTBRRecord(historyLogPump: TempRateActivatedHistoryLog): HistoryLogObject? {
+
+        return null
+        // return TemporaryBasal()
+        // historyLogPump.duration
+        // TODO("Not yet implemented")
+    }
+
+
+    private fun createTBRRecord(historyLogPump: TempRateCompletedHistoryLog): HistoryLogObject? {
+        // TODO("Not yet implemented")
+        //return TemporaryBasal(historyLogPump.)
+        return null
+    }
+
+
+
+
+
+
     private fun createBolusRecord(bolusLog: BolusCompletedHistoryLog): HistoryLogObject {
 
         val bolus = Bolus(bolusId = bolusLog.bolusId,
@@ -352,6 +350,17 @@ class TandemDataConverter @Inject constructor(
         return bolus
 
     }
+
+
+    private fun createAlertRecord(historyLogPump: AlertActivatedHistoryLog): HistoryLogObject? {
+        TODO("Not yet implemented")
+    }
+
+    private fun createAlarmRecord(historyLogPump: AlarmActivatedHistoryLog): HistoryLogObject? {
+        TODO("Not yet implemented")
+    }
+
+
 
     private fun createDateChangeRecord(historyLogPump: DateChangeHistoryLog): HistoryLogObject {
         return createDateTimeChangeRecord(historyLogPump.getDateAfterInstant().toEpochMilli(), false)

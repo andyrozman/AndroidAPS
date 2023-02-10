@@ -9,39 +9,6 @@ apply from: "${project.rootDir}/core/android_module_dependencies.gradle"
 apply from: "${project.rootDir}/core/test_dependencies.gradle"
 apply from: "${project.rootDir}/core/jacoco_global.gradle"
 
-
-//plugins {
-//    id 'com.android.library'
-//    id 'org.jetbrains.kotlin.android'
-//}
-
-//android {
-//    compileSdk 32
-//
-//    defaultConfig {
-//        minSdk 23
-//        targetSdk 32
-//
-//        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-//        consumerProguardFiles "consumer-rules.pro"
-//    }
-//
-//    buildTypes {
-//        release {
-//            minifyEnabled false
-//            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-//        }
-//    }
-//    compileOptions {
-//        sourceCompatibility JavaVersion.VERSION_1_8
-//        targetCompatibility JavaVersion.VERSION_1_8
-//    }
-//    kotlinOptions {
-//        jvmTarget = '1.8'
-//    }
-//}
-
-
 android {
     namespace 'info.nightscout.androidaps.plugins.pump.tandem'
     defaultConfig {
@@ -83,8 +50,8 @@ dependencies {
     implementation 'com.jakewharton.timber:timber:5.0.1'
 
     // Not sure if this is still needed
-    api "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    //api "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     //implementation 'com.github.guepardoapps:kulid:1.1.2.0'
-    testImplementation 'org.mockito:mockito-inline:2.13.0'
-    testImplementation 'org.powermock:powermock-mockito-release-full:1.5.4'
+    //testImplementation 'org.mockito:mockito-inline:2.13.0'
+    //testImplementation 'org.powermock:powermock-mockito-release-full:1.5.4'
 }

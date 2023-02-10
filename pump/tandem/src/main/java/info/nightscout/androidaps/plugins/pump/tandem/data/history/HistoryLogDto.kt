@@ -220,6 +220,7 @@ enum class PumpStatusType(@StringRes var stringId: Int) {
 
 
 data class PumpStatusChanged(var pumpStatusType: PumpStatusType,
+                             var reason: Int? = null,
                              var additonalData: String? = null): HistoryLogObject() {
 
     override fun getDisplayableValue(resourceHelper: ResourceHelper, dataConverter: TandemDataConverter): String {
