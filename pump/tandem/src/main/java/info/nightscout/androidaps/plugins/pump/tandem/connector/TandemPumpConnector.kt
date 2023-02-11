@@ -6,19 +6,18 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.*
 import com.jwoglom.pumpx2.pump.messages.response.ErrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.data.DetailedBolusInfo
-import info.nightscout.androidaps.interfaces.Profile
 import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
-import info.nightscout.androidaps.plugins.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
-import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.CustomCommandTypeInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.FirmwareVersionInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.parameters.PumpHistoryFilterInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
+import info.nightscout.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.pump.common.defs.TempBasalPair
+import info.nightscout.pump.common.driver.connector.PumpDummyConnector
+
+import info.nightscout.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemCommunicationManager
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemCommandType
@@ -27,8 +26,10 @@ import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpSettingType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
-import info.nightscout.shared.logging.AAPSLogger
-import info.nightscout.shared.logging.LTag
+import info.nightscout.interfaces.profile.Profile
+import info.nightscout.interfaces.pump.DetailedBolusInfo
+import info.nightscout.rx.logging.AAPSLogger
+import info.nightscout.rx.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
 import javax.inject.Inject
 

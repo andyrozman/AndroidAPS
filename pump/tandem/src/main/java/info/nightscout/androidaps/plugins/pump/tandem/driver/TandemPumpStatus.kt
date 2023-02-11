@@ -1,18 +1,15 @@
 package info.nightscout.androidaps.plugins.pump.tandem.driver
 
-import info.nightscout.androidaps.interfaces.Profile
-import info.nightscout.androidaps.interfaces.PumpDescription
-import info.nightscout.androidaps.plugins.bus.RxBus
-import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
-import info.nightscout.androidaps.plugins.pump.common.defs.BasalProfileStatus
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpDeviceState
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpType
-// import info.nightscout.androidaps.plugins.pump.tandem.comm.data.YpsoPumpStatusEntry
-// import info.nightscout.androidaps.plugins.pump.tandem.comm.data.YpsoPumpStatusList
-// import info.nightscout.androidaps.plugins.pump.tandem.data.BasalProfileDto
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
-import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpApiVersion
+import info.nightscout.interfaces.profile.Profile
+import info.nightscout.interfaces.pump.defs.PumpDescription
+import info.nightscout.interfaces.pump.defs.PumpType
+import info.nightscout.pump.common.data.PumpStatus
+import info.nightscout.pump.common.defs.BasalProfileStatus
+import info.nightscout.pump.core.defs.PumpDeviceState
+import info.nightscout.rx.bus.RxBus
+import info.nightscout.shared.interfaces.ResourceHelper
 import info.nightscout.shared.sharedPreferences.SP
 import java.util.*
 import javax.inject.Inject
@@ -25,7 +22,7 @@ import javax.inject.Singleton
 class TandemPumpStatus @Inject constructor(private val resourceHelper: ResourceHelper,
                                            private val sp: SP,
                                            private val rxBus: RxBus
-) : PumpStatus(PumpType.YPSOPUMP) {
+) : PumpStatus(PumpType.TANDEM_T_SLIM_X2_BT) {
 
     lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null

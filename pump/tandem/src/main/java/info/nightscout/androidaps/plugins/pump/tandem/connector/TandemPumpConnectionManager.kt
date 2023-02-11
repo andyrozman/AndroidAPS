@@ -2,19 +2,19 @@ package info.nightscout.androidaps.plugins.pump.tandem.connector
 
 import android.content.Context
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.plugins.bus.RxBus
-import info.nightscout.androidaps.plugins.pump.common.connector.PumpConnectionManager
+import info.nightscout.aaps.pump.common.connector.PumpConnectionManager
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverState
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpConnectorInterface
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.PumpDummyConnector
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
+import info.nightscout.pump.common.driver.connector.PumpConnectorInterface
+import info.nightscout.pump.common.driver.connector.PumpDummyConnector
+import info.nightscout.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
-import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.pump.common.defs.PumpDriverState
+import info.nightscout.rx.bus.RxBus
+import info.nightscout.rx.logging.AAPSLogger
 import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import javax.inject.Inject

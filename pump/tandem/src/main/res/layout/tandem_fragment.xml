@@ -221,7 +221,7 @@
                         android:layout_weight="1.5"
                         android:gravity="end"
                         android:paddingRight="5dp"
-                        android:text="@string/lastconnection_label"
+                        android:text="@string/last_connection_label"
                         android:textSize="14sp" />
 
                     <TextView
@@ -266,7 +266,7 @@
                         android:layout_weight="1.5"
                         android:gravity="end"
                         android:paddingRight="5dp"
-                        android:text="@string/lastbolus_label"
+                        android:text="@string/last_bolus_label"
                         android:textSize="14sp" />
 
                     <TextView
@@ -312,7 +312,7 @@
                         android:layout_weight="1.5"
                         android:gravity="end"
                         android:paddingRight="5dp"
-                        android:text="@string/basebasalrate_label"
+                        android:text="@string/base_basal_rate_label"
                         android:textSize="14sp" />
 
                     <TextView
@@ -528,7 +528,7 @@
                     android:drawableTop="@drawable/ic_pump_history"
                     android:paddingLeft="0dp"
                     android:paddingRight="0dp"
-                    android:text="@string/pumphistory" />
+                    android:text="@string/pump_history" />
 
             </LinearLayout>
 

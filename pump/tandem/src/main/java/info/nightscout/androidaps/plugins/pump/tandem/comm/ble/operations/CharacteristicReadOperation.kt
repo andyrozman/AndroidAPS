@@ -4,9 +4,9 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.os.SystemClock
-import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.pump.tandem.comm.ble.defs.GattStatus
-import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.rx.logging.AAPSLogger
+import info.nightscout.rx.logging.LTag
 import java.util.*
 import java.util.concurrent.TimeUnit
 

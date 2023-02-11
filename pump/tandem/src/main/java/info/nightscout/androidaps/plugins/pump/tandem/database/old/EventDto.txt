@@ -2,14 +2,14 @@ package info.nightscout.androidaps.plugins.pump.tandem.data
 
 import androidx.annotation.StringRes
 import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryEntry
+import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
+import info.nightscout.pump.common.driver.history.PumpDataConverter
+import info.nightscout.pump.common.driver.history.PumpHistoryEntry
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpEventType
 import info.nightscout.androidaps.interfaces.ResourceHelper
-import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
+import info.nightscout.pump.common.data.DateTimeDto
 @Deprecated("Remove with old database")
 sealed class EventObject {
     abstract fun getDisplayableValue(resourceHelper: ResourceHelper, ypsoPumpDataConverter: YpsoPumpDataConverter): String

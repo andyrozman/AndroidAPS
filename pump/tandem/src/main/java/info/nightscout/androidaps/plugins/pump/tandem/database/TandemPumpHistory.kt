@@ -1,7 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.tandem.database
 
 import com.google.gson.Gson
-import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.DateTimeChanged
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogDto
 
@@ -9,8 +8,9 @@ import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpHistoryType
 
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
-import info.nightscout.shared.logging.AAPSLogger
-import info.nightscout.shared.logging.LTag
+import info.nightscout.interfaces.pump.PumpSync
+import info.nightscout.rx.logging.AAPSLogger
+import info.nightscout.rx.logging.LTag
 import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
 import java.util.*

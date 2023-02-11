@@ -1,13 +1,22 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-kapt'
-apply plugin: 'kotlin-allopen'
-apply plugin: 'com.hiya.jacoco-android'
+buildscript {
+    ext {
+        jwoglom_pumpx2_version = '1.1.8'
+    }
+}
 
-apply from: "${project.rootDir}/core/android_dependencies.gradle"
-apply from: "${project.rootDir}/core/android_module_dependencies.gradle"
-apply from: "${project.rootDir}/core/test_dependencies.gradle"
-apply from: "${project.rootDir}/core/jacoco_global.gradle"
+plugins {
+    id 'com.android.library'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+    id 'kotlin-allopen'
+    id 'com.hiya.jacoco-android'
+}
+
+apply from: "${project.rootDir}/core/main/android_dependencies.gradle"
+apply from: "${project.rootDir}/core/main/android_module_dependencies.gradle"
+apply from: "${project.rootDir}/core/main/allopen_dependencies.gradle"
+apply from: "${project.rootDir}/core/main/test_dependencies.gradle"
+apply from: "${project.rootDir}/core/main/jacoco_global.gradle"
 
 android {
     namespace 'info.nightscout.androidaps.plugins.pump.tandem'
@@ -22,18 +31,23 @@ android {
 }
 
 
-buildscript {
-    ext {
-        jwoglom_pumpx2_version = '1.1.8'
-    }
-}
+
 
 
 dependencies {
 
-    implementation project(':libraries')
-    implementation project(':core')
-    implementation project(':shared')
+    //implementation project(':database:entities')
+    //implementation project(':database:impl')
+    implementation project(':app-wear-shared:shared')
+    implementation project(':core:main')
+    implementation project(':core:libraries')
+    implementation project(':core:interfaces')
+    implementation project(':core:utils')
+    implementation project(':core:ui')
+    implementation project(':core:validators')
+
+    //implementation project(':shared')
+    implementation project(':pump:pump-core')
     implementation project(':pump:pump-common')
 
     // Database dependencies

@@ -8,21 +8,22 @@ import android.content.Context
 import android.os.ParcelUuid
 import androidx.annotation.StringRes
 import com.jwoglom.pumpx2.pump.messages.bluetooth.ServiceUUID
-import info.nightscout.androidaps.interfaces.PumpSync
-import info.nightscout.androidaps.plugins.bus.RxBus
-import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelector
-import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelectorText
-import info.nightscout.androidaps.plugins.pump.common.driver.ble.PumpBLESelectorAbstract
-import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
+import info.nightscout.rx.bus.RxBus
+
+import info.nightscout.pump.common.driver.ble.PumpBLESelectorAbstract
+import info.nightscout.pump.common.events.EventPumpConnectionParametersChanged
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
-import info.nightscout.androidaps.interfaces.ResourceHelper
-import info.nightscout.androidaps.plugins.pump.common.ui.PumpBLEConfigActivity
+import info.nightscout.pump.common.ui.PumpBLEConfigActivity
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemPairingManager
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
-import info.nightscout.shared.logging.AAPSLogger
-import info.nightscout.shared.logging.LTag
+import info.nightscout.interfaces.pump.PumpSync
+import info.nightscout.pump.common.driver.ble.PumpBLESelector
+import info.nightscout.pump.common.driver.ble.PumpBLESelectorText
+import info.nightscout.rx.logging.AAPSLogger
+import info.nightscout.rx.logging.LTag
+import info.nightscout.shared.interfaces.ResourceHelper
 import info.nightscout.shared.sharedPreferences.SP
 import javax.inject.Inject
 

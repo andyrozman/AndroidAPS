@@ -1,7 +1,7 @@
 package info.nightscout.androidaps.plugins.pump.common.driver.connector.command.parameters;
 
 
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType;
+import info.nightscout.pump.common.driver.connector.defs.PumpCommandType;
 
 public class BolusCommandParameters extends CommandParameters {
 

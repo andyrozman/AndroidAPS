@@ -3,7 +3,7 @@ package info.nightscout.androidaps.plugins.pump.common.driver.connector.command.
 import java.util.List;
 import java.util.Objects;
 
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType;
+import info.nightscout.pump.common.driver.connector.defs.PumpCommandType;
 
 
 public class CommandParameters {

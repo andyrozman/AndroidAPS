@@ -1,9 +1,9 @@
 package info.nightscout.androidaps.plugins.pump.tandem.defs
 
 import androidx.annotation.StringRes
-import info.nightscout.androidaps.plugins.general.overview.notifications.Notification
 import info.nightscout.androidaps.plugins.pump.common.defs.NotificationTypeInterface
 import info.nightscout.androidaps.plugins.pump.tandem.R
+import info.nightscout.interfaces.notifications.Notification
 
 /**
  * Created by andy on 01/06/2021.

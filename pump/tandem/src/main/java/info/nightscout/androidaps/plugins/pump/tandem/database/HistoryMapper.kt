@@ -3,8 +3,8 @@ package info.nightscout.androidaps.plugins.pump.tandem.database
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.DateTimeChanged
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.HistoryLogDto
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
-import info.nightscout.shared.logging.AAPSLogger
-import info.nightscout.shared.logging.LTag
+import info.nightscout.rx.logging.AAPSLogger
+import info.nightscout.rx.logging.LTag
 import javax.inject.Inject
 
 // TODO refactor this for Tandem

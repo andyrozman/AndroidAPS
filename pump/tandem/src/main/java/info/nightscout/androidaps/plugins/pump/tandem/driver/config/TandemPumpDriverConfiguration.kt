@@ -1,8 +1,8 @@
 package info.nightscout.androidaps.plugins.pump.tandem.driver.config
 
-import info.nightscout.androidaps.plugins.pump.common.driver.PumpBLESelector
-import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfiguration
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryDataProvider
+import info.nightscout.pump.common.driver.PumpDriverConfiguration
+import info.nightscout.pump.common.driver.ble.PumpBLESelector
+import info.nightscout.pump.common.driver.history.PumpHistoryDataProvider
 import javax.inject.Inject
 
 class TandemPumpDriverConfiguration @Inject constructor(

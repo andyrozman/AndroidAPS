@@ -1,14 +1,14 @@
 package info.nightscout.androidaps.plugins.pump.tandem.data.history
 
 import androidx.annotation.StringRes
-import info.nightscout.androidaps.interfaces.ResourceHelper
 import info.nightscout.androidaps.plugins.pump.common.defs.PumpBolusType
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryEntry
+import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
+import info.nightscout.pump.common.driver.history.PumpDataConverter
+import info.nightscout.pump.common.driver.history.PumpHistoryEntry
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.comm.TandemDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpHistoryType
+import info.nightscout.shared.interfaces.ResourceHelper
 import java.util.*
 
 sealed class HistoryLogObject {

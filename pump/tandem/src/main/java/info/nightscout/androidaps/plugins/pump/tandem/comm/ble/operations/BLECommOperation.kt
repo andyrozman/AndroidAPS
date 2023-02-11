@@ -3,9 +3,9 @@ package info.nightscout.androidaps.plugins.pump.tandem.comm.ble.operations
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
-import info.nightscout.shared.logging.LTag
 import info.nightscout.androidaps.plugins.pump.tandem.comm.ble.defs.GattStatus
-import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.rx.logging.AAPSLogger
+import info.nightscout.rx.logging.LTag
 import java.util.*
 import java.util.concurrent.Semaphore
 
@@ -29,7 +29,8 @@ abstract class BLECommOperation(var aapsLogger: AAPSLogger,
 
     open fun gattOperationCompletionCallback(uuid: UUID, value: ByteArray?, gattStatus: GattStatus) {
         if (characteristic!!.uuid != uuid) {
-            aapsLogger.error(LTag.PUMPBTCOMM, String.format(
+            aapsLogger.error(
+                LTag.PUMPBTCOMM, String.format(
                     "Completion callback: UUID does not match! out of sequence? Found: %s, should be %s",
                     characteristic!!.uuid, uuid))
         }

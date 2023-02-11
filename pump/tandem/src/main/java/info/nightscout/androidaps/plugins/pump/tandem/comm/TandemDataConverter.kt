@@ -5,17 +5,19 @@ import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.*
 import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
-import info.nightscout.androidaps.plugins.pump.common.defs.TempBasalPair
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
-import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
+
+import info.nightscout.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.androidaps.plugins.pump.tandem.data.history.*
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemPumpHistoryType
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
-import info.nightscout.shared.logging.AAPSLogger
-import info.nightscout.shared.logging.LTag
+import info.nightscout.pump.common.defs.TempBasalPair
+import info.nightscout.pump.common.driver.history.PumpDataConverter
+import info.nightscout.pump.core.utils.ByteUtil
+import info.nightscout.rx.logging.AAPSLogger
+import info.nightscout.rx.logging.LTag
+
 import info.nightscout.shared.sharedPreferences.SP
 import org.joda.time.DateTime
 import javax.inject.Inject
@@ -131,7 +133,8 @@ class TandemDataConverter @Inject constructor(
         }
 
         return DataCommandResponse(
-            PumpCommandType.GetBasalProfile, true, null, BasalProfileDto(basalArray, settings.name))
+            PumpCommandType.GetBasalProfile, true, null, BasalProfileDto(basalArray, settings.name)
+        )
 
     }
 

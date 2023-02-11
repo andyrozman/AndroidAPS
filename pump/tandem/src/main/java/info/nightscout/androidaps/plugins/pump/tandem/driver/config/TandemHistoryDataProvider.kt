@@ -1,17 +1,17 @@
 package info.nightscout.androidaps.plugins.pump.tandem.driver.config
 
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpHistoryEntryGroup
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryDataProviderAbstract
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryEntry
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryPeriod
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpHistoryText
-import info.nightscout.androidaps.plugins.pump.common.utils.DateTimeUtil
+import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
+import info.nightscout.pump.common.driver.history.PumpHistoryDataProviderAbstract
+import info.nightscout.pump.common.driver.history.PumpHistoryEntry
+import info.nightscout.pump.common.driver.history.PumpHistoryPeriod
+import info.nightscout.pump.common.driver.history.PumpHistoryText
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.database.HistoryRecordEntity
 import info.nightscout.androidaps.plugins.pump.tandem.database.TandemPumpHistory
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
-import info.nightscout.androidaps.interfaces.ResourceHelper
-import info.nightscout.shared.logging.AAPSLogger
+import info.nightscout.core.utils.DateTimeUtil
+import info.nightscout.rx.logging.AAPSLogger
+import info.nightscout.shared.interfaces.ResourceHelper
 import javax.inject.Inject
 
 // TODO needs to be fully refactored

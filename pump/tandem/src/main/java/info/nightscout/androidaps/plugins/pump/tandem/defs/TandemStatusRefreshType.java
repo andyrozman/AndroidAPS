@@ -1,6 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.tandem.defs;
 
-import info.nightscout.androidaps.plugins.pump.common.driver.connector.defs.PumpCommandType;
+import info.nightscout.pump.common.driver.connector.defs.PumpCommandType;
 
 /**
  * Created by andy on 04.07.2022.

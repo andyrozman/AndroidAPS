@@ -5,41 +5,51 @@ import android.content.DialogInterface
 import android.os.SystemClock
 import androidx.preference.Preference
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.data.DetailedBolusInfo
-import info.nightscout.androidaps.data.PumpEnactResult
-import info.nightscout.androidaps.events.EventRefreshOverview
-import info.nightscout.androidaps.interfaces.*
-import info.nightscout.androidaps.interfaces.PumpSync.TemporaryBasalType
-import info.nightscout.androidaps.plugins.bus.RxBus
-import info.nightscout.androidaps.plugins.pump.common.PumpPluginAbstract
-import info.nightscout.androidaps.plugins.pump.common.data.PumpStatus
-import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfiguration
-import info.nightscout.androidaps.plugins.pump.common.driver.PumpDriverConfigurationCapable
-import info.nightscout.androidaps.plugins.pump.common.events.EventPumpConnectionParametersChanged
-import info.nightscout.androidaps.plugins.pump.common.events.EventPumpFragmentValuesChanged
-import info.nightscout.androidaps.plugins.pump.common.events.EventRefreshButtonState
-import info.nightscout.androidaps.plugins.pump.common.sync.PumpSyncStorage
-import info.nightscout.androidaps.plugins.pump.common.utils.ProfileUtil
+import info.nightscout.rx.bus.RxBus
+import info.nightscout.pump.common.PumpPluginAbstract
+import info.nightscout.pump.common.data.PumpStatus
+import info.nightscout.pump.common.driver.PumpDriverConfiguration
+import info.nightscout.pump.common.driver.PumpDriverConfigurationCapable
+import info.nightscout.pump.common.events.EventPumpConnectionParametersChanged
+import info.nightscout.pump.common.events.EventPumpFragmentValuesChanged
+import info.nightscout.pump.common.sync.PumpSyncStorage
+import info.nightscout.pump.common.utils.ProfileUtil
 import info.nightscout.androidaps.plugins.pump.tandem.connector.TandemPumpConnectionManager
 import info.nightscout.androidaps.plugins.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.androidaps.plugins.pump.tandem.driver.config.TandemPumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpConst
 import info.nightscout.androidaps.plugins.pump.tandem.util.TandemPumpUtil
-import info.nightscout.androidaps.utils.DateUtil
-import info.nightscout.androidaps.utils.FabricPrivacy
-import info.nightscout.androidaps.utils.TimeChangeType
-import info.nightscout.androidaps.utils.alertDialogs.OKDialog
-import info.nightscout.androidaps.interfaces.ResourceHelper
-import info.nightscout.androidaps.plugins.pump.common.defs.*
+
+import info.nightscout.pump.common.defs.*
+import info.nightscout.aaps.pump.tandem.comm.AAPSTimberTree
+import info.nightscout.androidaps.plugins.pump.common.defs.PumpDriverMode
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.data.AdditionalResponseDataInterface
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.DataCommandResponse
 import info.nightscout.androidaps.plugins.pump.common.driver.connector.command.response.ResultCommandResponse
-import info.nightscout.androidaps.plugins.pump.tandem.comm.AAPSTimberTree
 import info.nightscout.androidaps.plugins.pump.tandem.defs.TandemStatusRefreshType
-import info.nightscout.androidaps.utils.rx.AapsSchedulers
-import info.nightscout.shared.logging.AAPSLogger
-import info.nightscout.shared.logging.LTag
+import info.nightscout.core.ui.dialogs.OKDialog
+import info.nightscout.core.utils.fabric.FabricPrivacy
+import info.nightscout.interfaces.constraints.Constraint
+import info.nightscout.interfaces.constraints.Constraints
+import info.nightscout.interfaces.plugin.ActivePlugin
+import info.nightscout.interfaces.plugin.PluginDescription
+import info.nightscout.interfaces.plugin.PluginType
+import info.nightscout.interfaces.profile.Profile
+import info.nightscout.interfaces.pump.DetailedBolusInfo
+import info.nightscout.interfaces.pump.Pump
+import info.nightscout.interfaces.pump.PumpEnactResult
+import info.nightscout.interfaces.pump.PumpSync
+import info.nightscout.interfaces.pump.defs.PumpType
+import info.nightscout.interfaces.queue.CommandQueue
+import info.nightscout.interfaces.utils.TimeChangeType
+import info.nightscout.rx.AapsSchedulers
+import info.nightscout.rx.events.EventRefreshButtonState
+import info.nightscout.rx.events.EventRefreshOverview
+import info.nightscout.rx.logging.AAPSLogger
+import info.nightscout.rx.logging.LTag
+import info.nightscout.shared.interfaces.ResourceHelper
 import info.nightscout.shared.sharedPreferences.SP
+import info.nightscout.shared.utils.DateUtil
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -106,10 +116,10 @@ class TandemPumpPlugin @Inject constructor(
         super.updatePreferenceSummary(pref)
         if (pref.key == rh.gs(R.string.key_tandem_address)) {
             val value: String? = sp.getStringOrNull(R.string.key_tandem_address, null)
-            pref.summary = value ?: rh.gs(R.string.not_set_short)
+            pref.summary = value ?: rh.gs(info.nightscout.core.ui.R.string.not_set_short)
         } else if (pref.key == rh.gs(R.string.key_tandem_serial)) {
             val value: String? = sp.getStringOrNull(R.string.key_tandem_serial, null)
-            pref.summary = value ?: rh.gs(R.string.not_set_short)
+            pref.summary = value ?: rh.gs(info.nightscout.core.ui.R.string.not_set_short)
         }
         aapsLogger.info(LTag.PUMP, "Preference: $pref")
     }
@@ -724,7 +734,7 @@ class TandemPumpPlugin @Inject constructor(
                 PumpEnactResult(injector).success(true) //
                     .enacted(true) //
                     .bolusDelivered(detailedBolusInfo.insulin) //
-                    .carbsDelivered(detailedBolusInfo.carbs)
+                    //.carbsDelivered(detailedBolusInfo.carbs)   // TODO
             } else {
                 PumpEnactResult(injector) //
                     .success(false) //
@@ -861,7 +871,8 @@ class TandemPumpPlugin @Inject constructor(
     // if false and the same rate is requested enacted=false and success=true is returned and TBR is not changed
     @Synchronized
     override fun setTempBasalPercent(percent: Int, durationInMinutes: Int, profile: Profile,
-                                     enforceNew: Boolean, tbrType: TemporaryBasalType): PumpEnactResult {
+                                     enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType
+    ): PumpEnactResult {
         setRefreshButtonEnabled(false)
         return try {
             aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent: rate: " + percent + "%, duration=" + durationInMinutes)
@@ -933,7 +944,8 @@ class TandemPumpPlugin @Inject constructor(
 
     // TODO setTempBasalAbsolute
     override fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int, profile: Profile,
-                                      enforceNew: Boolean, tbrType: TemporaryBasalType): PumpEnactResult {
+                                      enforceNew: Boolean, tbrType: PumpSync.TemporaryBasalType
+    ): PumpEnactResult {
         aapsLogger.debug(LTag.PUMP, "setTempBasalAbsolute called with a rate of $absoluteRate for $durationInMinutes min.")
         val unroundedPercentage = java.lang.Double.valueOf(absoluteRate / baseBasalRate * 100).toInt()
         // TODO unroundedPercentage needs to be rounded correctly

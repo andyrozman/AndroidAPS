@@ -1,15 +1,15 @@
 package info.nightscout.androidaps.plugins.pump.tandem.comm
 
-import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
-import info.nightscout.androidaps.plugins.pump.common.driver.history.PumpDataConverter
-import info.nightscout.androidaps.plugins.pump.common.utils.ByteUtil
+import info.nightscout.pump.common.data.DateTimeDto
+import info.nightscout.pump.common.driver.history.PumpDataConverter
+import info.nightscout.pump.common.utils.ByteUtil
 import info.nightscout.androidaps.plugins.pump.tandem.data.*
 import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpEventType
 import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpEventType.*
 import TandemPumpStatus
 import TandemPumpUtil
-import info.nightscout.shared.logging.AAPSLogger
-import info.nightscout.shared.logging.LTag
+import info.nightscout.rx.logging.AAPSLogger
+import info.nightscout.rx.logging.LTag
 import org.joda.time.DateTime
 import java.util.*
 import javax.inject.Inject
