@@ -9,7 +9,7 @@
 
     <application>
         <activity
-            android:name="info.nightscout.androidaps.plugins.pump.tandem.dialogs.TandemPumpBLEConfigActivity"
+            android:name="info.nightscout.androidaps.plugins.pump.tandem.info.nightscout.aaps.pump.tandem.ui.TandemPumpBLEConfigActivity"
             android:theme="@style/AppTheme"
             android:exported="false">
             <intent-filter>

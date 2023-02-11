@@ -16,10 +16,10 @@ import info.nightscout.interfaces.plugin.ActivePlugin
 import info.nightscout.pump.common.R
 import info.nightscout.pump.common.databinding.PumpHistoryActivityBinding
 import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
-import info.nightscout.pump.common.driver.PumpDriverConfigurationCapable
-import info.nightscout.pump.common.driver.history.PumpHistoryDataProvider
-import info.nightscout.pump.common.driver.history.PumpHistoryEntry
-import info.nightscout.pump.common.driver.history.PumpHistoryText
+import info.nightscout.aaps.pump.common.driver.PumpDriverConfigurationCapable
+import info.nightscout.aaps.pump.common.driver.history.PumpHistoryDataProvider
+import info.nightscout.aaps.pump.common.driver.history.PumpHistoryEntry
+import info.nightscout.aaps.pump.common.driver.history.PumpHistoryText
 import info.nightscout.rx.logging.AAPSLogger
 import info.nightscout.rx.logging.LTag
 import info.nightscout.shared.interfaces.ResourceHelper

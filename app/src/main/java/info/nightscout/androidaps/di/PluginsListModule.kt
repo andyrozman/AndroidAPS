@@ -65,7 +65,7 @@ import info.nightscout.source.PoctechPlugin
 import info.nightscout.source.RandomBgPlugin
 import info.nightscout.source.TomatoPlugin
 import info.nightscout.source.XdripSourcePlugin
-import info.nightscout.androidaps.plugins.pump.tandem.TandemPumpPlugin
+import info.nightscout.aaps.pump.tandem.TandemPumpPlugin
 import javax.inject.Qualifier
 
 @Suppress("unused")

@@ -27,9 +27,9 @@ import info.nightscout.interfaces.plugin.ActivePlugin
 import info.nightscout.interfaces.pump.BlePreCheck
 import info.nightscout.pump.common.R
 import info.nightscout.pump.common.databinding.PumpBleConfigActivityBinding
-import info.nightscout.pump.common.driver.PumpDriverConfigurationCapable
-import info.nightscout.pump.common.driver.ble.PumpBLESelector
-import info.nightscout.pump.common.driver.ble.PumpBLESelectorText
+import info.nightscout.aaps.pump.common.driver.PumpDriverConfigurationCapable
+import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelector
+import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelectorText
 import info.nightscout.rx.bus.RxBus
 import info.nightscout.rx.logging.AAPSLogger
 import info.nightscout.rx.logging.LTag
