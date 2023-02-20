@@ -1,17 +1,17 @@
 package info.nightscout.aaps.pump.common.driver.connector
 
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
+import info.nightscout.aaps.pump.common.data.BasalProfileDto
 import info.nightscout.aaps.pump.common.driver.connector.commands.data.FirmwareVersionInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.parameters.PumpHistoryFilterInterface
 import info.nightscout.aaps.pump.common.driver.connector.defs.PumpCommandType
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
+import info.nightscout.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDataInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.ResultCommandResponse
 import info.nightscout.interfaces.profile.Profile
 import info.nightscout.interfaces.pump.DetailedBolusInfo
-import info.nightscout.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.aaps.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.pump.common.defs.TempBasalPair
 import info.nightscout.rx.logging.AAPSLogger
 

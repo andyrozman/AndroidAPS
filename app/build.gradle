@@ -111,7 +111,7 @@ android {
     defaultConfig {
         multiDexEnabled true
         versionCode 1500
-        version "tandem-0.2.5-SNAPSHOT"
+        version "tandem-0.2.6-SNAPSHOT"
         buildConfigField "String", "VERSION", '"' + version + '"'
         buildConfigField "String", "BUILDVERSION", '"' + generateGitBuild() + '-' + generateDate() + '"'
         buildConfigField "String", "REMOTE", '"' + generateGitRemote() + '"'

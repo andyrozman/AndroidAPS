@@ -13,7 +13,7 @@ import info.nightscout.core.ui.toast.ToastUtils
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
-import info.nightscout.pump.common.ui.PumpBLEConfigActivity
+import info.nightscout.aaps.pump.common.ui.PumpBLEConfigActivity
 import info.nightscout.rx.AapsSchedulers
 import info.nightscout.rx.logging.LTag
 import javax.inject.Inject

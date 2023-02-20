@@ -1,6 +1,6 @@
 package info.nightscout.androidaps.plugins.pump.common.defs
 
-import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
+import info.nightscout.aaps.pump.common.data.DateTimeDto
 
 interface PumpTimeChangeInterface {
 

@@ -23,9 +23,9 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetRes
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.jwoglom.pumpx2.util.timber.LConfigurator
 import com.welie.blessed.BluetoothPeripheral
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
+import info.nightscout.aaps.pump.common.defs.PumpErrorType
 import info.nightscout.pump.common.defs.PumpDriverState
-import info.nightscout.pump.common.events.EventPumpConnectionParametersChanged
+import info.nightscout.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.aaps.pump.tandem.data.defs.TandemPumpApiVersion
 import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus
@@ -37,7 +37,7 @@ import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
 import info.nightscout.core.ui.dialogs.AlertDialogHelper
 import info.nightscout.core.ui.toast.ToastUtils
 import info.nightscout.interfaces.pump.PumpSync
-import info.nightscout.pump.common.ui.PumpBLEConfigActivity
+import info.nightscout.aaps.pump.common.ui.PumpBLEConfigActivity
 import info.nightscout.rx.bus.RxBus
 import info.nightscout.rx.logging.AAPSLogger
 import info.nightscout.rx.logging.LTag

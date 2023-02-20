@@ -1,6 +1,6 @@
 package info.nightscout.aaps.pump.tandem.data.defs
 
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
+import info.nightscout.aaps.pump.common.defs.PumpConfigurationTypeInterface
 
 enum class TandemPumpSettingType : PumpConfigurationTypeInterface {
     CONTROL_IQ_ENABLED,

@@ -12,8 +12,8 @@ import dagger.android.support.DaggerFragment
 
 import info.nightscout.rx.bus.RxBus
 import info.nightscout.pump.common.defs.PumpDriverState
-import info.nightscout.pump.common.defs.PumpUpdateFragmentType
-import info.nightscout.pump.common.events.EventPumpFragmentValuesChanged
+import info.nightscout.aaps.pump.common.defs.PumpUpdateFragmentType
+import info.nightscout.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import info.nightscout.androidaps.plugins.pump.tandem.databinding.TandemFragmentBinding
 import info.nightscout.aaps.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus

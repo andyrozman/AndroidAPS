@@ -1,4 +1,4 @@
-package info.nightscout.androidaps.plugins.pump.common.di
+package info.nightscout.aaps.pump.common.di
 
 import dagger.Module
 import dagger.Provides

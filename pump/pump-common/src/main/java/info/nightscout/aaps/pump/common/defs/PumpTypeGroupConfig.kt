@@ -1,4 +1,4 @@
-package info.nightscout.pump.common.defs
+package info.nightscout.aaps.pump.common.defs
 
 enum class PumpTypeGroupConfig {
     All,

@@ -1,7 +1,8 @@
 package info.nightscout.pump.common.data
 
+import info.nightscout.aaps.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.interfaces.pump.defs.PumpType
-import info.nightscout.pump.common.defs.PumpRunningState
+import info.nightscout.aaps.pump.common.defs.PumpRunningState
 import info.nightscout.pump.common.defs.TempBasalPair
 import java.util.Date
 

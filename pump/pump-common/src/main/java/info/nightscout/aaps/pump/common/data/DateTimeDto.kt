@@ -1,4 +1,4 @@
-package info.nightscout.androidaps.plugins.pump.common.data
+package info.nightscout.aaps.pump.common.data
 
 import info.nightscout.core.utils.DateTimeUtil
 import org.joda.time.DateTime

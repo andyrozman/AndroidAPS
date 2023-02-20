@@ -3,7 +3,7 @@ package info.nightscout.aaps.pump.tandem.driver.connector
 import android.content.Context
 import dagger.android.HasAndroidInjector
 import info.nightscout.aaps.pump.common.driver.connector.mgr.PumpConnectionManager
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
+import info.nightscout.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDataInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import info.nightscout.aaps.pump.common.driver.connector.PumpConnectorInterface

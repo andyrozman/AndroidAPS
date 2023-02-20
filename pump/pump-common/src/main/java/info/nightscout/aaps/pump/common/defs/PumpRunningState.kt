@@ -1,4 +1,4 @@
-package info.nightscout.pump.common.defs
+package info.nightscout.aaps.pump.common.defs
 
 // TODO there are 3 classes now, that do similar things, sort of, need to define exact rules: PumpDeviceState, PumpDriverState, PumpStatusState
 

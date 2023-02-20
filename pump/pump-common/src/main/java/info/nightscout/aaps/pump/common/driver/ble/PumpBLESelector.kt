@@ -4,7 +4,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
 import android.content.Context
-import info.nightscout.pump.common.ui.PumpBLEConfigActivity
+import info.nightscout.aaps.pump.common.ui.PumpBLEConfigActivity
 
 interface PumpBLESelector {
 

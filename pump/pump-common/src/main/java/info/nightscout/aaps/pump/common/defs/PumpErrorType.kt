@@ -1,4 +1,4 @@
-package info.nightscout.androidaps.plugins.pump.common.defs
+package info.nightscout.aaps.pump.common.defs
 
 import androidx.annotation.StringRes
 import info.nightscout.pump.common.R

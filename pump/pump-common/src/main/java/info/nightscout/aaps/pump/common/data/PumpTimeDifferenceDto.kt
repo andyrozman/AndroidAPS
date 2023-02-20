@@ -1,4 +1,4 @@
-package info.nightscout.pump.common.data
+package info.nightscout.aaps.pump.common.data
 
 import org.joda.time.DateTime
 import org.joda.time.Seconds

@@ -1,13 +1,13 @@
 package info.nightscout.aaps.pump.tandem.data.history
 
 import androidx.annotation.StringRes
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpBolusType
-import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
 import info.nightscout.aaps.pump.common.driver.history.PumpDataConverter
 import info.nightscout.aaps.pump.common.driver.history.PumpHistoryEntry
-import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.aaps.pump.tandem.comm.TandemDataConverter
 import info.nightscout.aaps.pump.tandem.data.defs.TandemPumpHistoryType
+import info.nightscout.aaps.pump.common.defs.PumpBolusType
+import info.nightscout.androidaps.plugins.pump.tandem.R
+import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
 import info.nightscout.shared.interfaces.ResourceHelper
 import java.util.*
 
@@ -187,7 +187,8 @@ data class BasalProfileEntry(var hour: Int,
 data class TemporaryBasal(
     var percent: Int,
     var minutes: Int,
-    var isRunning: Boolean //,
+    var isRunning: Boolean,
+    var tempRateId: Int
     //var temporaryBasalType: PumpSync.TemporaryBasalType = PumpSync.TemporaryBasalType.NORMAL
 ) : HistoryLogObject() {
 

@@ -6,14 +6,14 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.*
 import com.jwoglom.pumpx2.pump.messages.response.ErrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpConfigurationTypeInterface
+import info.nightscout.aaps.pump.common.data.BasalProfileDto
+import info.nightscout.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDataInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.data.FirmwareVersionInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.parameters.PumpHistoryFilterInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
-import info.nightscout.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.aaps.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.pump.common.defs.TempBasalPair
 import info.nightscout.aaps.pump.common.driver.connector.PumpDummyConnector
 

@@ -4,7 +4,7 @@ import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.*
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.*
-import info.nightscout.androidaps.plugins.pump.common.data.BasalProfileDto
+import info.nightscout.aaps.pump.common.data.BasalProfileDto
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 
 import info.nightscout.aaps.pump.common.driver.connector.defs.PumpCommandType
@@ -28,6 +28,9 @@ class TandemDataConverter @Inject constructor(
     var pumpStatus: TandemPumpStatus,
     var pumpUtil: TandemPumpUtil
 ) : PumpDataConverter {
+
+    var tbrMap = HashMap<Int, TemporaryBasal>()
+
 
     // fun convertMessageToDataCommandResponse(message: Message): DataCommandResponse<Any?> {
     //
@@ -187,7 +190,7 @@ class TandemDataConverter @Inject constructor(
         when (historyLogPump) {
 
             // Date Time - WIP
-            is TimeChangedHistoryLog            -> historyLog.subObject = createTimeChangeRecord(historyLogPump)
+            is TimeChangedHistoryLog           -> historyLog.subObject = createTimeChangeRecord(historyLogPump)
             is DateChangeHistoryLog            -> historyLog.subObject = createDateChangeRecord(historyLogPump)
 
             // Bolus - WIP
@@ -290,8 +293,8 @@ class TandemDataConverter @Inject constructor(
             is CGMHistoryLog,
             is ParamChangeReminderHistoryLog,
             is ParamChangeRemSettingsHistoryLog,
-            is  ControlIQPcmChangeHistoryLog,
-            is  ControlIQUserModeChangeHistoryLog,
+            is ControlIQPcmChangeHistoryLog,
+            is ControlIQUserModeChangeHistoryLog,
             is BGHistoryLog                             -> return false
 
             else                                        -> return true
@@ -324,17 +327,30 @@ class TandemDataConverter @Inject constructor(
 
 
     private fun createTBRRecord(historyLogPump: TempRateActivatedHistoryLog): HistoryLogObject? {
+        val temporaryBasal = TemporaryBasal(
+                    percent = historyLogPump.percent.toInt(),
+                    minutes = historyLogPump.duration.toInt(),
+                    isRunning = true,
+                    tempRateId = historyLogPump.tempRateId
+                )
+        tbrMap.put(historyLogPump.tempRateId, temporaryBasal)
 
-        return null
-        // return TemporaryBasal()
-        // historyLogPump.duration
-        // TODO("Not yet implemented")
+        return temporaryBasal
     }
 
 
     private fun createTBRRecord(historyLogPump: TempRateCompletedHistoryLog): HistoryLogObject? {
         // TODO("Not yet implemented")
         //return TemporaryBasal(historyLogPump.)
+
+
+
+
+        historyLogPump.tempRateId
+        historyLogPump.timeLeft
+
+        //TemporaryBasal tbr =
+
         return null
     }
 

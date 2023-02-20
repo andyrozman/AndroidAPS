@@ -2,11 +2,11 @@ package info.nightscout.pump.common.utils
 
 import android.content.Context
 import com.google.gson.GsonBuilder
-import info.nightscout.androidaps.plugins.pump.common.data.DateTimeDto
-import info.nightscout.androidaps.plugins.pump.common.defs.PumpErrorType
-import info.nightscout.androidaps.plugins.pump.common.defs.NotificationTypeInterface
+import info.nightscout.aaps.pump.common.data.DateTimeDto
+import info.nightscout.aaps.pump.common.defs.PumpErrorType
+import info.nightscout.aaps.pump.common.defs.NotificationTypeInterface
 import info.nightscout.aaps.pump.common.driver.connector.defs.PumpCommandType
-import info.nightscout.androidaps.plugins.pump.common.events.EventPumpDriverStateChanged
+import info.nightscout.aaps.pump.common.events.EventPumpDriverStateChanged
 import info.nightscout.core.events.EventNewNotification
 import info.nightscout.interfaces.notifications.Notification
 import info.nightscout.pump.common.defs.PumpDriverState

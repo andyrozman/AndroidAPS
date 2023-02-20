@@ -1,4 +1,4 @@
-package info.nightscout.pump.common.defs;
+package info.nightscout.aaps.pump.common.defs;
 
 /**
  * Created by andy on 1/20/19.

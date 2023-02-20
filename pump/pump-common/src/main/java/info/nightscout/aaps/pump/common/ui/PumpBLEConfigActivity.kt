@@ -1,4 +1,4 @@
-package info.nightscout.pump.common.ui
+package info.nightscout.aaps.pump.common.ui
 
 import android.Manifest
 import android.annotation.SuppressLint

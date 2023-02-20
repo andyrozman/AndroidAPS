@@ -1,4 +1,4 @@
-package info.nightscout.pump.common.ble
+package info.nightscout.aaps.pump.common.ble
 
 import android.bluetooth.BluetoothDevice
 import android.content.Context
@@ -7,7 +7,7 @@ import androidx.annotation.StringRes
 import com.google.gson.Gson
 import dagger.android.DaggerBroadcastReceiver
 import info.nightscout.core.utils.extensions.safeGetParcelableExtra
-import info.nightscout.pump.common.events.EventPumpConnectionParametersChanged
+import info.nightscout.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import info.nightscout.rx.bus.RxBus
 import info.nightscout.rx.logging.AAPSLogger
 import info.nightscout.rx.logging.LTag

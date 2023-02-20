@@ -1,4 +1,4 @@
-package info.nightscout.pump.common.events
+package info.nightscout.aaps.pump.common.events
 
 import info.nightscout.rx.events.Event
 

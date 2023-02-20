@@ -10,8 +10,8 @@ import info.nightscout.pump.common.PumpPluginAbstract
 import info.nightscout.pump.common.data.PumpStatus
 import info.nightscout.aaps.pump.common.driver.PumpDriverConfiguration
 import info.nightscout.aaps.pump.common.driver.PumpDriverConfigurationCapable
-import info.nightscout.pump.common.events.EventPumpConnectionParametersChanged
-import info.nightscout.pump.common.events.EventPumpFragmentValuesChanged
+import info.nightscout.aaps.pump.common.events.EventPumpConnectionParametersChanged
+import info.nightscout.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import info.nightscout.pump.common.sync.PumpSyncStorage
 import info.nightscout.pump.common.utils.ProfileUtil
 import info.nightscout.aaps.pump.tandem.driver.connector.TandemPumpConnectionManager
@@ -23,6 +23,8 @@ import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
 import info.nightscout.pump.common.defs.*
 import info.nightscout.aaps.pump.tandem.comm.AAPSTimberTree
 import info.nightscout.aaps.pump.common.defs.PumpDriverMode
+import info.nightscout.aaps.pump.common.defs.PumpRunningState
+import info.nightscout.aaps.pump.common.defs.PumpUpdateFragmentType
 import info.nightscout.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDataInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.ResultCommandResponse

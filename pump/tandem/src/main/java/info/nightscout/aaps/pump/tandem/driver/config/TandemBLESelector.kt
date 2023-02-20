@@ -11,11 +11,11 @@ import com.jwoglom.pumpx2.pump.messages.bluetooth.ServiceUUID
 import info.nightscout.rx.bus.RxBus
 
 import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelectorAbstract
-import info.nightscout.pump.common.events.EventPumpConnectionParametersChanged
+import info.nightscout.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.aaps.pump.tandem.util.TandemPumpConst
 import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
-import info.nightscout.pump.common.ui.PumpBLEConfigActivity
+import info.nightscout.aaps.pump.common.ui.PumpBLEConfigActivity
 import info.nightscout.aaps.pump.tandem.comm.TandemPairingManager
 import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.interfaces.pump.PumpSync
