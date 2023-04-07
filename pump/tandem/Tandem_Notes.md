@@ -17,7 +17,8 @@ Most of work that will be done here, will be precursor for next device (t:Sport 
 
 CHANGE LOG
 ----------
-
+tandem-0.2.6-SNAPSHOT
+0.2.6 - updated to 3.2.
 0.2.5 - moved and renamed packages
 0.2.4 - Merging with dev-g (9.2.2023)
 0.2.3 - Pairing sort of works, start of history parsing
