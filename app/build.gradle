@@ -111,14 +111,14 @@ android {
     defaultConfig {
         multiDexEnabled true
         versionCode 1500
-        version "tandem-0.2.6-SNAPSHOT"
+        version "tandem-0.2.7-SNAPSHOT"
         buildConfigField "String", "VERSION", '"' + version + '"'
         buildConfigField "String", "BUILDVERSION", '"' + generateGitBuild() + '-' + generateDate() + '"'
         buildConfigField "String", "REMOTE", '"' + generateGitRemote() + '"'
         buildConfigField "String", "HEAD", '"' + generateGitBuild() + '"'
         buildConfigField "String", "COMMITTED", '"' + allCommitted() + '"'
-	buildConfigField "String", "DEV_DATE", '"09.02.2023"'
-	buildConfigField "String", "DEV_VERSION", '"3.1.0.3-dev-g"'
+	buildConfigField "String", "DEV_DATE", '"07.04.2023"'
+	buildConfigField "String", "DEV_VERSION", '"3.2.0-dev-i'
     }
 
     flavorDimensions "standard"
