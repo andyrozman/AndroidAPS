@@ -4,14 +4,14 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import app.aaps.core.interfaces.resources.ResourceHelper
 import com.google.android.material.tabs.TabLayoutMediator
-import dagger.android.support.DaggerAppCompatActivity
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.R
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.databinding.RileylinkStatusBinding
-import info.nightscout.shared.interfaces.ResourceHelper
+import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
 import javax.inject.Inject
 
-class RileyLinkStatusActivity : DaggerAppCompatActivity() {
+class RileyLinkStatusActivity : TranslatedDaggerAppCompatActivity() {
 
     @Inject lateinit var rh: ResourceHelper
 

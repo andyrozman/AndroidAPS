@@ -4,9 +4,9 @@ import androidx.annotation.NonNull;
 
 import org.joda.time.Duration;
 
+import app.aaps.core.utils.pump.ByteUtil;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.communication.message.IRawRepresentable;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.OmnipodConstants;
-import info.nightscout.pump.core.utils.ByteUtil;
 
 public class BolusDeliverySchedule extends DeliverySchedule implements IRawRepresentable {
 
@@ -31,9 +31,9 @@ public class BolusDeliverySchedule extends DeliverySchedule implements IRawRepre
         int multiplier = (int) timeBetweenPulses.getStandardSeconds() * 8;
         int fieldA = pulseCount * multiplier;
 
-        rawData = ByteUtil.concat(rawData, ByteUtil.getBytesFromInt16(fieldA));
-        rawData = ByteUtil.concat(rawData, ByteUtil.getBytesFromInt16(pulseCount));
-        rawData = ByteUtil.concat(rawData, ByteUtil.getBytesFromInt16(pulseCount));
+        rawData = ByteUtil.INSTANCE.concat(rawData, ByteUtil.INSTANCE.getBytesFromInt16(fieldA));
+        rawData = ByteUtil.INSTANCE.concat(rawData, ByteUtil.INSTANCE.getBytesFromInt16(pulseCount));
+        rawData = ByteUtil.INSTANCE.concat(rawData, ByteUtil.INSTANCE.getBytesFromInt16(pulseCount));
         return rawData;
     }
 
@@ -47,7 +47,7 @@ public class BolusDeliverySchedule extends DeliverySchedule implements IRawRepre
         int checksum = 0;
         byte[] rawData = getRawData();
         for (int i = 0; i < rawData.length && i < 7; i++) {
-            checksum += ByteUtil.convertUnsignedByteToInt(rawData[i]);
+            checksum += ByteUtil.INSTANCE.convertUnsignedByteToInt(rawData[i]);
         }
         return checksum;
     }

@@ -2,8 +2,8 @@ package info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.s
 
 import androidx.annotation.NonNull;
 
+import app.aaps.core.utils.pump.ByteUtil;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.communication.message.IRawRepresentable;
-import info.nightscout.pump.core.utils.ByteUtil;
 
 public class BasalTableEntry implements IRawRepresentable {
 
@@ -28,7 +28,7 @@ public class BasalTableEntry implements IRawRepresentable {
     }
 
     public int getChecksum() {
-        int checksumPerSegment = ByteUtil.convertUnsignedByteToInt((byte) pulses) + (pulses >>> 8);
+        int checksumPerSegment = ByteUtil.INSTANCE.convertUnsignedByteToInt((byte) pulses) + (pulses >>> 8);
         return (checksumPerSegment * segments + (alternateSegmentPulse ? segments / 2 : 0));
     }
 

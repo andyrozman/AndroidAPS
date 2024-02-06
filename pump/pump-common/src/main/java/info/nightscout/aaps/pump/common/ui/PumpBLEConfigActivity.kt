@@ -1,44 +1,42 @@
-package info.nightscout.aaps.pump.common.ui
+package info.nightscout.pump.common.ui
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
-import android.bluetooth.le.*
+import android.bluetooth.le.BluetoothLeScanner
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.BaseAdapter
 import android.widget.TextView
-import androidx.core.app.ActivityCompat
-import dagger.android.support.DaggerAppCompatActivity
-import info.nightscout.core.ui.dialogs.OKDialog
-import info.nightscout.core.ui.toast.ToastUtils
-import info.nightscout.interfaces.plugin.ActivePlugin
-import info.nightscout.interfaces.pump.BlePreCheck
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.pump.BlePreCheck
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
+import app.aaps.core.ui.dialogs.OKDialog
 import info.nightscout.pump.common.R
 import info.nightscout.pump.common.databinding.PumpBleConfigActivityBinding
-import info.nightscout.aaps.pump.common.driver.PumpDriverConfigurationCapable
-import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelector
-import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelectorText
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.sharedPreferences.SP
+import info.nightscout.pump.common.driver.PumpDriverConfigurationCapable
+import info.nightscout.pump.common.driver.ble.PumpBLESelector
+import info.nightscout.pump.common.driver.ble.PumpBLESelectorText
 import org.apache.commons.lang3.StringUtils
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
-open class PumpBLEConfigActivity : DaggerAppCompatActivity() {
+class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
 
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var sp: SP
@@ -47,15 +45,15 @@ open class PumpBLEConfigActivity : DaggerAppCompatActivity() {
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var rxBus: RxBus
 
-    protected lateinit var binding: PumpBleConfigActivityBinding
-    protected lateinit var bleSelector: PumpBLESelector
+    private lateinit var binding: PumpBleConfigActivityBinding
+    private lateinit var bleSelector: PumpBLESelector
 
     private var settings: ScanSettings? = null
     private var filters: List<ScanFilter>? = null
     private var bleScanner: BluetoothLeScanner? = null
     private var deviceListAdapter = LeDeviceListAdapter()
-    protected val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
-    protected val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
+    private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
+    private val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
     var scanning = false
     private val devicesMap: MutableMap<String, BluetoothDevice> = HashMap()
 
@@ -127,7 +125,7 @@ open class PumpBLEConfigActivity : DaggerAppCompatActivity() {
                 finish()
             }
 
-            
+            finish()
         }
         binding.pumpBleConfigScanStart.setOnClickListener { startLeDeviceScan() }
         binding.pumpBleConfigButtonScanStop.setOnClickListener {
@@ -160,7 +158,7 @@ open class PumpBLEConfigActivity : DaggerAppCompatActivity() {
         }
     }
 
-    protected fun updateCurrentlySelectedBTDevice() {
+    private fun updateCurrentlySelectedBTDevice() {
         val address = bleSelector.currentlySelectedPumpAddress()
         if (StringUtils.isEmpty(address)) {
             binding.pumpBleConfigCurrentlySelectedPumpName.text = bleSelector.getText(PumpBLESelectorText.NO_SELECTED_PUMP)
@@ -351,11 +349,13 @@ open class PumpBLEConfigActivity : DaggerAppCompatActivity() {
     }
 
     internal class ViewHolder {
+
         var deviceName: TextView? = null
         var deviceAddress: TextView? = null
     }
 
     companion object {
+
         private val TAG = LTag.PUMPBTCOMM
         private const val SCAN_PERIOD_MILLIS: Long = 15000
     }

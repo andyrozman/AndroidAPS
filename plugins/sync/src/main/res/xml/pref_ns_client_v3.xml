@@ -8,7 +8,7 @@
         android:title="@string/ns_client_internal_title"
         app:initialExpandedChildrenCount="0">
 
-        <info.nightscout.core.validators.ValidatingEditTextPreference
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="https://{YOUR-SITE}.azurewebsites.net"
             android:dialogMessage="@string/ns_client_url_dialog_message"
             android:inputType="textUri"
@@ -17,7 +17,7 @@
             android:title="@string/ns_client_url_title"
             validate:testType="httpsUrl" />
 
-        <info.nightscout.core.validators.ValidatingEditTextPreference
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:dialogMessage="@string/nsclient_token_dialog_message"
             android:dialogTitle="@string/nsclient_token_dialog_title"
             android:inputType="textPassword"
@@ -42,9 +42,8 @@
                 android:summary="@string/ns_upload_summary"
                 android:title="@string/ns_upload" />
 
-            <SwitchPreference
-                android:defaultValue="false"
-                android:key="@string/key_do_ns_upload"
+            <app.aaps.core.keys.AdaptiveSwitchPreference
+                android:key="@string/key_do_bg_ns_upload"
                 android:title="@string/do_ns_upload_title" />
 
             <SwitchPreference
@@ -101,7 +100,8 @@
                 android:summary="@string/ns_receive_tbr_eb_summary"
                 android:title="@string/ns_receive_tbr_eb" />
 
-        </androidx.preference.PreferenceScreen>>
+        </androidx.preference.PreferenceScreen>
+        >
 
         <androidx.preference.PreferenceScreen
             android:key="@string/ns_alarm_options"
@@ -115,7 +115,7 @@
                 android:key="@string/key_ns_announcements"
                 android:title="@string/ns_announcements" />
 
-            <info.nightscout.core.validators.ValidatingEditTextPreference
+            <app.aaps.core.validators.ValidatingEditTextPreference
                 android:defaultValue="16"
                 android:digits="0123456789"
                 android:inputType="number"
@@ -128,7 +128,7 @@
                 validate:minNumber="15"
                 validate:testType="numericRange" />
 
-            <info.nightscout.core.validators.ValidatingEditTextPreference
+            <app.aaps.core.validators.ValidatingEditTextPreference
                 android:defaultValue="31"
                 android:digits="0123456789"
                 android:inputType="number"

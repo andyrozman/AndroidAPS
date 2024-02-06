@@ -5,6 +5,12 @@ import android.app.AlarmManager.AlarmClockInfo
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.notifications.Notification
+import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventDismissNotification
+import app.aaps.core.interfaces.utils.DateUtil
 import info.nightscout.androidaps.plugins.pump.eopatch.EoPatchRxBus
 import info.nightscout.androidaps.plugins.pump.eopatch.OsAlarmReceiver
 import info.nightscout.androidaps.plugins.pump.eopatch.alarm.AlarmCode.Companion.getUri
@@ -12,11 +18,6 @@ import info.nightscout.androidaps.plugins.pump.eopatch.ble.IPreferenceManager
 import info.nightscout.androidaps.plugins.pump.eopatch.code.PatchLifecycle
 import info.nightscout.androidaps.plugins.pump.eopatch.core.code.PatchAeCode
 import info.nightscout.androidaps.plugins.pump.eopatch.event.EventEoPatchAlarm
-import info.nightscout.interfaces.notifications.Notification
-import info.nightscout.rx.AapsSchedulers
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.rx.events.EventDismissNotification
-import info.nightscout.rx.logging.AAPSLogger
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -26,6 +27,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 interface IAlarmRegistry {
+
     fun add(alarmCode: AlarmCode, triggerAfter: Long, isFirst: Boolean = false): Maybe<AlarmCode>
     fun add(patchAeCodes: Set<PatchAeCode>)
     fun remove(alarmCode: AlarmCode): Maybe<AlarmCode>
@@ -33,11 +35,13 @@ interface IAlarmRegistry {
 
 @Singleton
 class AlarmRegistry @Inject constructor() : IAlarmRegistry {
+
     @Inject lateinit var mContext: Context
     @Inject lateinit var pm: IPreferenceManager
     @Inject lateinit var rxBus: RxBus
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var aapsSchedulers: AapsSchedulers
+    @Inject lateinit var dateUtil: DateUtil
 
     private lateinit var mOsAlarmManager: AlarmManager
     private var mDisposable: Disposable? = null
@@ -48,19 +52,21 @@ class AlarmRegistry @Inject constructor() : IAlarmRegistry {
         mDisposable = pm.observePatchLifeCycle()
             .observeOn(aapsSchedulers.main)
             .subscribe {
-                when(it){
+                when (it) {
                     PatchLifecycle.REMOVE_NEEDLE_CAP -> {
                         val triggerAfter = pm.getPatchConfig().patchWakeupTimestamp + TimeUnit.HOURS.toMillis(1) - System.currentTimeMillis()
                         compositeDisposable.add(add(AlarmCode.A020, triggerAfter).subscribe())
                     }
-                    PatchLifecycle.ACTIVATED -> {
+
+                    PatchLifecycle.ACTIVATED         -> {
 
                     }
-                    PatchLifecycle.SHUTDOWN -> {
+
+                    PatchLifecycle.SHUTDOWN          -> {
                         val sources = ArrayList<Maybe<*>>()
                         sources.add(Maybe.just(true))
-                        pm.getAlarms().occurred.let{ occurredAlarms ->
-                            if(occurredAlarms.isNotEmpty()){
+                        pm.getAlarms().occurred.let { occurredAlarms ->
+                            if (occurredAlarms.isNotEmpty()) {
                                 occurredAlarms.keys.forEach { alarmCode ->
                                     sources.add(
                                         Maybe.just(alarmCode)
@@ -70,30 +76,30 @@ class AlarmRegistry @Inject constructor() : IAlarmRegistry {
                                 }
                             }
                         }
-                        pm.getAlarms().registered.let{ registeredAlarms ->
-                            if(registeredAlarms.isNotEmpty()){
+                        pm.getAlarms().registered.let { registeredAlarms ->
+                            if (registeredAlarms.isNotEmpty()) {
                                 registeredAlarms.keys.forEach { alarmCode ->
                                     sources.add(remove(alarmCode))
                                 }
                             }
                         }
                         compositeDisposable.add(Maybe.concat(sources)
-                            .subscribe {
-                                pm.getAlarms().clear()
-                                pm.flushAlarms()
-                            }
+                                                    .subscribe {
+                                                        pm.getAlarms().clear()
+                                                        pm.flushAlarms()
+                                                    }
                         )
                     }
 
-                    else -> Unit
+                    else                             -> Unit
                 }
             }
     }
 
     override fun add(alarmCode: AlarmCode, triggerAfter: Long, isFirst: Boolean): Maybe<AlarmCode> {
-        if(pm.getAlarms().occurred.containsKey(alarmCode)){
+        if (pm.getAlarms().occurred.containsKey(alarmCode)) {
             return Maybe.just(alarmCode)
-        }else {
+        } else {
             val triggerTimeMilli = System.currentTimeMillis() + triggerAfter
             pm.getAlarms().register(alarmCode, triggerAfter)
             pm.flushAlarms()
@@ -108,32 +114,34 @@ class AlarmRegistry @Inject constructor() : IAlarmRegistry {
     override fun add(patchAeCodes: Set<PatchAeCode>) {
         compositeDisposable.add(
             Observable.fromIterable(patchAeCodes)
-               .filter{patchAeCodeItem ->  AlarmCode.findByPatchAeCode(patchAeCodeItem.aeValue) != null}
-               .observeOn(aapsSchedulers.main)
-               .filter { aeCodes -> AlarmCode.findByPatchAeCode(aeCodes.aeValue) != null }
-               .flatMapMaybe{aeCodeResponse -> add(AlarmCode.findByPatchAeCode(aeCodeResponse.aeValue)!!, 0L, true)}
-               .subscribe()
+                .filter { patchAeCodeItem -> AlarmCode.findByPatchAeCode(patchAeCodeItem.aeValue) != null }
+                .observeOn(aapsSchedulers.main)
+                .filter { aeCodes -> AlarmCode.findByPatchAeCode(aeCodes.aeValue) != null }
+                .flatMapMaybe { aeCodeResponse -> add(AlarmCode.findByPatchAeCode(aeCodeResponse.aeValue)!!, 0L, true) }
+                .subscribe()
         )
     }
 
     private fun registerOsAlarm(alarmCode: AlarmCode, triggerTime: Long): Maybe<AlarmCode> {
         return Maybe.fromCallable {
             cancelOsAlarmInternal(alarmCode)
-            val pendingIntent = createPendingIntent(alarmCode, 0)
-            mOsAlarmManager.setAlarmClock(AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
-            alarmCode
+            createPendingIntent(alarmCode, 0)?.let { pendingIntent ->
+                aapsLogger.debug("[${alarmCode}] OS Alarm added. ${dateUtil.toISOString(triggerTime)}")
+                mOsAlarmManager.setAlarmClock(AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
+                alarmCode
+            }
         }
     }
 
     override fun remove(alarmCode: AlarmCode): Maybe<AlarmCode> {
-        return if(pm.getAlarms().registered.containsKey(alarmCode)) {
+        return if (pm.getAlarms().registered.containsKey(alarmCode)) {
             cancelOsAlarms(alarmCode)
                 .doOnSuccess {
                     pm.getAlarms().unregister(alarmCode)
                     pm.flushAlarms()
                 }
                 .map { alarmCode }
-        }else{
+        } else {
             Maybe.just(alarmCode)
         }
     }

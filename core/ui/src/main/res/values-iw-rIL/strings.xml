@@ -33,7 +33,7 @@
     <string name="result">תוצאה</string>
     <string name="settings">הגדרות</string>
     <string name="statuslights">אורות חיווי</string>
-    <string name="do_ns_upload_title">טוען נתוני סוכר ל-Nightscout</string>
+    <string name="do_ns_upload_title">שלח נתוני סוכר לנייטסקאוט</string>
     <string name="configbuilder_insulin">אינסולין</string>
     <string name="value_unavailable_short">לא זמין</string>
     <string name="master_password">סיסמה ראשית</string>
@@ -94,7 +94,7 @@
     <string name="suspendloop">השהיית הלולאה</string>
     <string name="duration_min_label">משך [min]</string>
     <string name="notification">התראה</string>
-    <string name="noprofile">פרופיל Nightscout טרם נטען</string>
+    <string name="noprofile">פרופיל הנייטסקאוט טרם נטען</string>
     <string name="exists">קיים</string>
     <string name="notexists">לא קיים</string>
     <string name="glucose">גלוקוז</string>
@@ -164,7 +164,7 @@
     <string name="isf_short">ISF</string>
     <string name="canceling_tbr_failed">ביטול בזאלי זמני נכשל</string>
     <string name="canceling_eb_failed">ביטול בולוס ממושך נכשל</string>
-    <string name="virtualpump_uploadstatus_title">העלה את סטטוס המשאבה לנייטסקאוט או ל-Tidepool</string>
+    <string name="virtualpump_uploadstatus_title">שלח את סטטוס המשאבה לנייטסקאוט או ל-Tidepool</string>
     <string name="suspendloop_label">השבתת \\ השהיית לולאה</string>
     <string name="iob_label">אינסולין פעיל בגוף (IOB)</string>
     <!--    Protection-->
@@ -376,6 +376,9 @@
     <string name="carbs_g">פחמימות %1$d גרם</string>
     <string name="extended_bolus_u_min">בולוס מושהה %1$.2f יח\' %2$d דק\'</string>
     <string name="load_events">טען אירועים</string>
+    <string name="clear_alarms">מחק התראות</string>
+    <string name="deactivate">השבתה</string>
+    <string name="update_time">עדכון שעה</string>
     <string name="load_history">טען היסטוריה %1$d</string>
     <string name="load_tdds">טען מינונים יומיים כוללים</string>
     <string name="set_profile">הגדר פרופיל</string>
@@ -421,6 +424,7 @@
     <string name="autotune_ic_warning">בפרופיל הנבחר יש %1$d ערכי יחס פחמימות. הכיוונון האוטומטי ישתמש ב-%2$.2f גר\'\\יח\'</string>
     <string name="autotune_isf_warning">בפרופיל הנבחר יש %1$d ערכי יחס תיקון. הכיוונון האוטומטי ישתמש ב-%2$.1f %3$s\\יח\'</string>
     <string name="autotune_error">שגיאה בנתוני הקלט, נסו להפעיל בשנית או שנסו לצמצם את מספר הימים</string>
+    <string name="autotune_error_more_days">שגיאה בנתוני הקלט, נסו לצמצם את מספר הימים</string>
     <string name="autotune_warning_during_run">חישוב הכוונון האוטומטי התחיל, אנא התאזרו בסבלנות</string>
     <string name="autotune_warning_after_run">בדקו היטב את התוצאות לפני השימוש בהן!</string>
     <string name="autotune_partial_result">יום תוצאה חלקי %1$d / %2$d מכוון</string>
@@ -453,6 +457,7 @@
     <string name="cobvsiob">פחמ\' פעילות לעומת אינ\' פעיל</string>
     <string name="slowabsorptiondetected"><![CDATA[<font color=\'%1$s\'>!!!!!! זוהתה ספיגת פחמימות איטית: %2$d%% מהזמן הצפוי. הערכת כמות הפחמימות הפעילות עלולה להיות ביתר ולכן תיתכן הזרקת אינסולין עודפת !!!!!!</font>]]></string>
     <string name="partialboluswizard">ספק את חלק זה מתוצאת אשף הבולוס [%]</string>
+    <string name="partialboluswizard_reset_time">סף זמן נתונים ישנים [דק\']</string>
     <string name="bolus_constraint_applied_warn">מגבלת בולוס יושמה: %1$.2f עד %2$.2f יח\'</string>
     <string name="bolus_recorded_only">בולוס רשום בלבד (לא מוזרק על ידי המשאבה)</string>
     <string name="advisoralarm">הפעל התראה כשצריכים לאכול</string>
@@ -515,13 +520,13 @@
     <string name="password_cleared">סיסמה נמחקה!</string>
     <string name="pairing">מצמד</string>
     <string name="initializing">מאתחל...</string>
+    <string name="secs" comment="second short">%1$d שניות</string>
     <!--    Constraints-->
     <string name="limitingbasalratio">מגביל את הקצב הבזאלי המרבי ל-%1$.2f יח\' לשעה בגלל %2$s</string>
     <string name="pumplimit">מגבלת משאבה</string>
     <string name="limitingpercentrate">מגביל את אחוז הקצב הבזאלי המרבי ל-%1$d%% בגלל %2$s</string>
     <string name="itmustbepositivevalue">זה חייב להיות ערך חיובי</string>
     <string name="limitingbolus">מגביל בולוס ל-%1$.1f יח\' בגלל %2$s</string>
-    <!-- Locale -->
     <!--    Dialogs-->
     <string name="confirmation">אישור</string>
     <string name="message">הודעה</string>
@@ -581,4 +586,23 @@
     <string name="cleanup_db_confirm">אתם בטוחים שברצונכם לנקות את מסד הנתונים? \nפעולה זו תמחק את הנתונים הישנים מ-3 החודשים האחרונים.</string>
     <string name="cleanup_db_confirm_sync">האם ברצונכם לנקות את מסד הנתונים?\nשינויים הנמצאים במעקב ונתונים היסטוריים הישנים מ-3 חודשים יימחקו.\nפעולה זו תזרז משמעותית את מהירות הסינכרון המלא.</string>
     <string name="cleared_entries">רשומות שנמחקו</string>
+    <!--    Weekday-->
+    <string name="weekday_sunday_short">א׳</string>
+    <string name="weekday_saturday_short">ש\'</string>
+    <string name="weekday_friday_short">ו׳</string>
+    <string name="weekday_thursday_short">ה\'</string>
+    <string name="weekday_wednesday_short">ד\'</string>
+    <string name="weekday_tuesday_short">ג\'</string>
+    <string name="weekday_monday_short">ב\'</string>
+    <!-- WeekdayPicker -->
+    <string name="monday_short">ב\'</string>
+    <string name="tuesday_short">ג\'</string>
+    <string name="wednesday_short">ד\'</string>
+    <string name="thursday_short">ה\'</string>
+    <string name="friday_short">ו\'</string>
+    <string name="saturday_short">ש\'</string>
+    <string name="sunday_short">א\'</string>
+    <!--    DecimalFormatterImpl -->
+    <string name="format_insulin_units1">%1$.1f יח\'</string>
+    <string name="format_insulin_units">%1$.2f יח\'</string>
 </resources>

@@ -4,9 +4,13 @@
 
     <uses-feature android:name="android.hardware.type.watch" />
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="com.google.android.permission.PROVIDE_BACKGROUND" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
 
     <uses-sdk tools:overrideLibrary="androidx.wear.tiles" />
 
@@ -66,106 +70,6 @@
             <intent-filter>
                 <action android:name="android.service.wallpaper.WallpaperService" />
                 <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE" />
-            </intent-filter>
-        </service>
-
-        <service
-            android:name=".watchfaces.AapsWatchface"
-            android:allowEmbedded="true"
-            android:exported="false"
-            android:label="@string/label_watchface"
-            android:permission="android.permission.BIND_WALLPAPER">
-            <meta-data
-                android:name="android.service.wallpaper"
-                android:resource="@xml/watch_face" />
-            <meta-data
-                android:name="com.google.android.wearable.watchface.preview"
-                android:resource="@drawable/watchface_graph" />
-            <meta-data
-                android:name="com.google.android.wearable.watchface.wearableConfigurationAction"
-                android:value="watch_face_configuration_home" />
-
-            <intent-filter>
-                <action android:name="android.service.wallpaper.WallpaperService" />
-                <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE" />
-
-                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
-                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
-            </intent-filter>
-        </service>
-
-        <service
-            android:name=".watchfaces.AapsV2Watchface"
-            android:allowEmbedded="true"
-            android:exported="false"
-            android:label="@string/label_watchface_v2"
-            android:permission="android.permission.BIND_WALLPAPER">
-            <meta-data
-                android:name="android.service.wallpaper"
-                android:resource="@xml/watch_face" />
-            <meta-data
-                android:name="com.google.android.wearable.watchface.preview"
-                android:resource="@drawable/watchface_graph_2" />
-            <meta-data
-                android:name="com.google.android.wearable.watchface.wearableConfigurationAction"
-                android:value="watch_face_configuration_home2" />
-
-            <intent-filter>
-                <action android:name="android.service.wallpaper.WallpaperService" />
-                <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE" />
-
-                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
-                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
-            </intent-filter>
-        </service>
-
-        <service
-            android:name=".watchfaces.CockpitWatchface"
-            android:allowEmbedded="true"
-            android:exported="false"
-            android:label="@string/label_watchface_cockpit"
-            android:permission="android.permission.BIND_WALLPAPER">
-            <meta-data
-                android:name="android.service.wallpaper"
-                android:resource="@xml/watch_face" />
-            <meta-data
-                android:name="com.google.android.wearable.watchface.preview"
-                android:resource="@drawable/watchface_cockpit" />
-            <meta-data
-                android:name="com.google.android.wearable.watchface.wearableConfigurationAction"
-                android:value="watch_face_configuration_cockpit" />
-
-            <intent-filter>
-                <action android:name="android.service.wallpaper.WallpaperService" />
-                <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE" />
-
-                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
-                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
-            </intent-filter>
-        </service>
-
-        <service
-            android:name=".watchfaces.SteampunkWatchface"
-            android:allowEmbedded="true"
-            android:exported="false"
-            android:label="@string/label_watchface_steampunk"
-            android:permission="android.permission.BIND_WALLPAPER">
-            <meta-data
-                android:name="android.service.wallpaper"
-                android:resource="@xml/watch_face" />
-            <meta-data
-                android:name="com.google.android.wearable.watchface.preview"
-                android:resource="@drawable/watchface_steampunk" />
-            <meta-data
-                android:name="com.google.android.wearable.watchface.wearableConfigurationAction"
-                android:value="watch_face_configuration_steampunk" />
-
-            <intent-filter>
-                <action android:name="android.service.wallpaper.WallpaperService" />
-                <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE" />
-
-                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
-                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
             </intent-filter>
         </service>
 
@@ -241,6 +145,31 @@
         </service>
 
         <service
+            android:name=".watchfaces.CustomWatchface"
+            android:allowEmbedded="true"
+            android:exported="false"
+            android:label="@string/label_watchface_custom"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/watch_face" />
+            <meta-data
+                android:name="com.google.android.wearable.watchface.preview"
+                android:resource="@drawable/watchface_custom" />
+            <meta-data
+                android:name="com.google.android.wearable.watchface.wearableConfigurationAction"
+                android:value="watch_face_configuration_custom" />
+
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+                <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE" />
+
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
+            </intent-filter>
+        </service>
+
+        <service
             android:name=".comm.DataLayerListenerServiceWear"
             android:exported="true">
             <intent-filter>
@@ -266,10 +195,24 @@
                     android:pathPrefix="@string/path_rx_bridge"
                     android:scheme="wear" />
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+
+                <data
+                    android:host="*"
+                    android:pathPrefix="@string/path_rx_data_bridge"
+                    android:scheme="wear" />
+            </intent-filter>
         </service>
+
+        <service android:name=".heartrate.HeartRateListener" />
+
+        <service android:name=".wearStepCount.StepCountListener" />
 
         <service
             android:name=".complications.LongStatusComplication"
+            android:exported="true"
             android:icon="@drawable/ic_aaps_full"
             android:label="Full Status"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -287,6 +230,7 @@
 
         <service
             android:name=".complications.LongStatusFlippedComplication"
+            android:exported="true"
             android:icon="@drawable/ic_aaps_full"
             android:label="Full Status (flipped)"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -304,6 +248,7 @@
 
         <service
             android:name=".complications.SgvComplication"
+            android:exported="true"
             android:icon="@drawable/ic_sgv"
             android:label="Blood Glucose"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -321,6 +266,7 @@
 
         <service
             android:name=".complications.BrCobIobComplication"
+            android:exported="true"
             android:icon="@drawable/ic_br_cob_iob"
             android:label="BR, CoB &amp; IoB"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -338,6 +284,7 @@
 
         <service
             android:name=".complications.CobIobComplication"
+            android:exported="true"
             android:icon="@drawable/ic_cob_iob"
             android:label="CoB &amp; IoB"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -355,6 +302,7 @@
 
         <service
             android:name=".complications.CobIconComplication"
+            android:exported="true"
             android:icon="@drawable/ic_carbs"
             android:label="CoB Icon"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -372,6 +320,7 @@
 
         <service
             android:name=".complications.CobDetailedComplication"
+            android:exported="true"
             android:icon="@drawable/ic_cob_detailed"
             android:label="CoB Detailed"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -389,6 +338,7 @@
 
         <service
             android:name=".complications.IobIconComplication"
+            android:exported="true"
             android:icon="@drawable/ic_ins"
             android:label="IoB Icon"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -406,6 +356,7 @@
 
         <service
             android:name=".complications.IobDetailedComplication"
+            android:exported="true"
             android:icon="@drawable/ic_iob_detailed"
             android:label="IoB Detailed"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -423,6 +374,7 @@
 
         <service
             android:name=".complications.UploaderBatteryComplication"
+            android:exported="true"
             android:icon="@drawable/ic_battery_charging_wireless_50"
             android:label="Uploader/Phone Battery"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -440,6 +392,7 @@
 
         <service
             android:name=".complications.WallpaperLightComplication"
+            android:exported="true"
             android:icon="@drawable/ic_aaps_light"
             android:label="Light Wallpaper"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -457,6 +410,7 @@
 
         <service
             android:name=".complications.WallpaperDarkComplication"
+            android:exported="true"
             android:icon="@drawable/ic_aaps_dark"
             android:label="Dark Wallpaper"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -474,6 +428,7 @@
 
         <service
             android:name=".complications.WallpaperGrayComplication"
+            android:exported="true"
             android:icon="@drawable/ic_aaps_gray"
             android:label="Gray Wallpaper"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
@@ -541,6 +496,7 @@
 
         <activity
             android:name=".interaction.menus.MainMenuActivity"
+            android:exported="true"
             android:label="@string/label_actions_activity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -563,6 +519,10 @@
             android:name=".interaction.menus.StatusMenuActivity"
             android:exported="true"
             android:label="@string/menu_status" />
+        <activity
+            android:name=".interaction.menus.PreferenceMenuActivity"
+            android:exported="true"
+            android:label="@string/menu_settings" />
         <activity
             android:name=".interaction.actions.TreatmentActivity"
             android:exported="true"
@@ -601,25 +561,26 @@
             android:name=".interaction.actions.BackgroundActionActivity"
             android:exported="true" />
 
-        <activity android:name=".interaction.ConfigurationActivity">
+        <activity
+            android:name=".interaction.ConfigurationActivity"
+            android:exported="true">
             <intent-filter>
                 <!-- action-name must be equal with name of xml-resource where the configuration is describe -->
                 <action android:name="watch_face_configuration_bigchart" />
                 <action android:name="watch_face_configuration_circle" />
-                <action android:name="watch_face_configuration_cockpit" />
+                <action android:name="watch_face_configuration_custom" />
                 <action android:name="watch_face_configuration_digitalstyle" />
-                <action android:name="watch_face_configuration_home" />
-                <action android:name="watch_face_configuration_home2" />
                 <action android:name="watch_face_configuration_largehome" />
                 <action android:name="watch_face_configuration_nochart" />
-                <action android:name="watch_face_configuration_steampunk" />
 
                 <category android:name="com.google.android.wearable.watchface.category.WEARABLE_CONFIGURATION" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
-        <activity android:name=".interaction.TileConfigurationActivity">
+        <activity
+            android:name=".interaction.TileConfigurationActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="tile_configuration_activity" />
                 <action android:name="tile_configuration_tempt" />
@@ -631,6 +592,7 @@
 
         <activity
             android:name=".interaction.actions.QuickSnoozeActivity"
+            android:exported="true"
             android:icon="@drawable/ic_icon_snooze"
             android:label="@string/snooze_alert"
             android:launchMode="singleTask">

@@ -53,19 +53,20 @@
     <string name="omnipod_common_overview_pod_unique_id">ID unique</string>
     <string name="omnipod_common_overview_lot_number">Numéro de lot</string>
     <string name="omnipod_common_overview_pod_sequence_number">Numéro de série</string>
-    <string name="omnipod_common_overview_pod_expiry_date">Pod Expiré</string>
+    <string name="omnipod_common_overview_pod_expiry_date">Pod expire le</string>
     <string name="omnipod_common_overview_last_connection">Dernière connexion</string>
     <string name="omnipod_common_overview_last_bolus">Dernier bolus</string>
     <string name="omnipod_common_overview_temp_basal_rate">Débit de Basal Temp.</string>
     <string name="omnipod_common_overview_base_basal_rate">Débit de Basal</string>
     <string name="omnipod_common_overview_reservoir">Réservoir</string>
-    <string name="omnipod_common_overview_pod_active_alerts">Activer Alertes Pod</string>
+    <string name="omnipod_common_overview_pod_active_alerts">Dernières alertes Pod</string>
     <string name="omnipod_common_overview_firmware_version">Version du firmware</string>
     <string name="omnipod_common_overview_time_on_pod">Heure du Pod</string>
     <string name="omnipod_common_overview_temp_basal_value">%1$.2fU/h @%2$s (%3$d/%4$d minutes)</string>
     <string name="omnipod_common_overview_reservoir_value">%1$.2f U restantes</string>
     <string name="omnipod_common_overview_reservoir_value_over50">Plus de 50 U restantes</string>
     <string name="omnipod_common_overview_errors">Erreurs</string>
+    <string name="omnipod_common_uncertain">incertain</string>
     <!-- Omnipod - Wizard Base -->
     <string name="omnipod_common_wizard_button_cancel">Annuler</string>
     <string name="omnipod_common_wizard_button_finish">Terminer</string>
@@ -82,7 +83,7 @@
     <string name="omnipod_common_pod_activation_wizard_attach_pod_text">Préparez le site d\'injection. Enlevez la protection de l\'aiguille et le support adhésif et collez le Pod sur le site d\'injection.\n\nSi la canule est visible, appuyez sur <b>Annuler</b> et jetez votre Pod.\n\nAppuyez sur <b>Suivant</b> pour insérer la canule et démarrer l\'injection de la basal.</string>
     <string name="omnipod_common_pod_activation_wizard_attach_pod_confirm_insert_cannula_text">Lorsque vous appuyez sur <b>OK</b>, la canule sera insérée. Assurez-vous d\'avoir collé le Pod sur le site de perfusion.</string>
     <string name="omnipod_common_pod_activation_wizard_insert_cannula_title">Insérer canule</string>
-    <string name="omnipod_common_pod_activation_wizard_insert_cannula_text">Tentative de définir le schéma de basal et d\'insertion de la canule.\n\nUne fois la canule correctement insérée, appuyez sur <b>Suivant</b>.</string>
+    <string name="omnipod_common_pod_activation_wizard_insert_cannula_text">Tentative pour définir le schéma de basal et d\'insertion de la canule.\n\nUne fois la canule correctement insérée, appuyez sur <b>Suivant</b>.</string>
     <string name="omnipod_common_pod_activation_wizard_pod_activated_title">Pod activé</string>
     <string name="omnipod_common_pod_activation_wizard_pod_activated_text">Le Pod est maintenant actif.\n\nVos débits de basal ont été programmés et la canule a été insérée.\n\nVeuillez vérifier que la canule a été insérée correctement et remplacez le Pod si vous pensez que ce n\'est pas le cas.</string>
     <!-- Omnipod - Pod Deactivation Wizard -->
@@ -104,7 +105,11 @@
     <string name="omnipod_common_preferences_suspend_delivery_button_enabled">Montrer le bouton \"Suspendre\" dans l\'onglet Omnipod</string>
     <string name="omnipod_common_preferences_time_change_enabled">Changement d\'heure ou fuseau horaire Activé</string>
     <string name="omnipod_common_preferences_expiration_reminder_enabled">Rappel d\'expiration activé</string>
-    <string name="omnipod_common_preferences_expiration_reminder_hours_before_shutdown">Heures avant arrêt</string>
+    <string name="omnipod_common_preferences_expiration_reminder_enabled_summary">Lorsque cette option est activée, le pod sonnera quand le temps spécifié est atteint</string>
+    <string name="omnipod_common_preferences_expiration_reminder_hours_before_expiry">Rappel nombre d\'heures avant l\'expiration (72 heures)</string>
+    <string name="omnipod_common_preferences_expiration_alarm_enabled">Alerte d\'expiration activée</string>
+    <string name="omnipod_common_preferences_expiration_alarm_enabled_summary">Lorsque cette option est activée, le pod sonnera lorsque le temps spécifié est atteint et 1 heure avant l\'arrêt définitif</string>
+    <string name="omnipod_common_preferences_expiration_alarm_hours_before_shutdown">Alerte nombre d\'heures avant l\'arrêt (80 heures)</string>
     <string name="omnipod_common_preferences_low_reservoir_alert_enabled">Alerte Réservoir bas activée</string>
     <string name="omnipod_common_preferences_low_reservoir_alert_units">Nombre d\'unités</string>
     <string name="omnipod_common_preferences_automatically_silence_alerts">Rendre automatiquement silencieuses les alertes Pod</string>
@@ -120,6 +125,7 @@
     <string name="omnipod_common_pod_status_waiting_for_activation">Configuration en cours (en attente d\'activation du Pod)</string>
     <string name="omnipod_common_pod_status_waiting_for_cannula_insertion">Configuration en cours (en attente d\'insertion de canule)</string>
     <string name="omnipod_common_pod_status_running">En cours d\'exécution</string>
+    <string name="omnipod_common_pod_status_normal">Normal</string>
     <string name="omnipod_common_pod_status_suspended">Suspendu</string>
     <string name="omnipod_common_pod_status_pod_fault">Défaut Pod</string>
     <string name="omnipod_common_pod_status_activation_time_exceeded">Délai d\'activation dépassé</string>

@@ -51,6 +51,7 @@
     <string name="extended_bolus">Verzögerter Bolus</string>
     <string name="paused">Pausiert</string>
     <string name="tdd_total">TDD Gesamt</string>
+    <string name="tdd_old_data">Veraltete Daten</string>
     <string name="goingtodeliver">Werde %1$.2f IE abgeben</string>
     <string name="waitingforpump">Warte auf Pumpe</string>
     <string name="androidaps_start">AAPS gestartet</string>
@@ -164,8 +165,11 @@
     <string name="isf_short">ISF</string>
     <string name="canceling_tbr_failed">Abbruch der temporären Basalrate fehlgeschlagen</string>
     <string name="canceling_eb_failed">Der Abbruch des erweiterten Bolus ist fehlgeschlagen</string>
+    <string name="virtualpump_uploadstatus_title">Status zu NS oder Tidepool hochladen</string>
     <string name="suspendloop_label">Deaktiviere/Pausiere den Loop</string>
     <string name="iob_label">Aktives Insulin (IOB)</string>
+    <string name="loopstatus_targets">ZIELE:</string>
+    <string name="loopstatus_OAPS_result">OAPS ERGEBNIS:</string>
     <!--    Protection-->
     <string name="wrongpassword">Falsches Passwort</string>
     <string name="wrongpin">Falsche PIN</string>
@@ -375,6 +379,9 @@
     <string name="carbs_g">KH %1$d g</string>
     <string name="extended_bolus_u_min">VERLÄNGERTER BOLUS %1$.2f IE %2$d min</string>
     <string name="load_events">Lade Ereignisse</string>
+    <string name="clear_alarms">ALARME LÖSCHEN</string>
+    <string name="deactivate">DEAKTIVIEREN</string>
+    <string name="update_time">ZEIT AKTUALIEREN</string>
     <string name="load_history">HISTORIE LADEN %1$d</string>
     <string name="load_tdds">Lade TDDs</string>
     <string name="set_profile">PROFIL SETZEN</string>
@@ -420,6 +427,7 @@
     <string name="autotune_ic_warning">Ausgewähltes Profil hat %1$d IC-Werte. Autotune wird %2$.2f g/U verwenden</string>
     <string name="autotune_isf_warning">Ausgewähltes Profil hat %1$d ISF-Werte. Autotune wird %2$.1f %3$s/U verwenden</string>
     <string name="autotune_error">Fehler in den Eingabedaten, versuche erneut Autotune auszuführen oder reduziere die Anzahl der Tage</string>
+    <string name="autotune_error_more_days">Fehler in den Eingabedaten, erhöhe die Anzahl der Tage</string>
     <string name="autotune_warning_during_run">Autotune Berechnung gestartet, bitte gedulde Dich einen Moment</string>
     <string name="autotune_warning_after_run">Überprüfe die Ergebnisse sorgfältig, bevor Du sie verwendest!</string>
     <string name="autotune_partial_result">Teilergebnistag %1$d / %2$d angepasst</string>
@@ -452,10 +460,13 @@
     <string name="cobvsiob">COB vs IOB</string>
     <string name="slowabsorptiondetected"><![CDATA[<font color=\'%1$s\'>!!!!! Langsamer Kohlenhydrat-Abbau erkannt: %2$d%% der Zeit. Überprüfe Deine Berechnung. COB könnte zu hoch sein und deswegen zu viel Insulin abgegeben werden!!!!!</font>]]></string>
     <string name="partialboluswizard">Abgabe von [%] des Ergebnisses des Bolus-Rechners</string>
+    <string name="partialboluswizard_reset_time">Schwellenwert für alte Glykämie [min]</string>
     <string name="bolus_constraint_applied_warn">Bolus Einschränkung angewendet: %1$.2f U bis %2$.2f U</string>
     <string name="bolus_recorded_only">Bolus wird nur aufgezeichnet (Die Pumpe gibt kein Insulin ab!)</string>
     <string name="advisoralarm">Alarmiere mich, wenn es Zeit zum Essen ist. </string>
     <string name="no_action_selected">Keine Aktion ausgewählt, nichts wird geschehen.</string>
+    <string name="carb_equal_zero_no_action">Kohlenhydrate = 0. Keine Aktion!</string>
+    <string name="wizard_no_insulin_required">Kein Insulin erforderlich!</string>
     <string name="wizard_no_actual_bg">Kein aktueller BG liegt als Basis zur Berechnung vor!</string>
     <string name="wizard_no_active_profile">Kein aktives Profil gesetzt!</string>
     <string name="wizard_no_cob">Unbekannter COB! BG-Wert fehlt oder wurde App vor kurzem neu gestartet?</string>
@@ -514,13 +525,13 @@
     <string name="password_cleared">Passwort gelöscht!</string>
     <string name="pairing">Koppeln</string>
     <string name="initializing">Initialisierung...</string>
+    <string name="secs" comment="second short">%1$d s</string>
     <!--    Constraints-->
     <string name="limitingbasalratio">Begrenzung der max. Basalrate auf %1$.2f IE/h wegen %2$s</string>
     <string name="pumplimit">Limit der Pumpe</string>
     <string name="limitingpercentrate">Begrenzung des max. Prozentsatzes auf %1$d%% wegen %2$s</string>
     <string name="itmustbepositivevalue">Es muss ein positiver Wert sein.</string>
     <string name="limitingbolus">Begrenze Bolusmenge auf %1$.1f IE wegen %2$s</string>
-    <!-- Locale -->
     <!--    Dialogs-->
     <string name="confirmation">Bestätigung</string>
     <string name="message">Nachricht</string>
@@ -574,4 +585,23 @@
     <string name="cleanup_db_confirm">Möchten Sie die Datenbank bereinigen?\nEs werden gespeicherte Änderungen und historische Daten gelöscht, die älter als 3 Monate sind.</string>
     <string name="cleanup_db_confirm_sync">Möchten Sie die Datenbank bereinigen?\nEs werden gespeicherte Änderungen und historische Daten gelöscht, die älter als 3 Monate sind.\nDies beschleunigt die vollständige Synchronisierung dramatisch.</string>
     <string name="cleared_entries">Gelöschte Einträge</string>
+    <!--    Weekday-->
+    <string name="weekday_sunday_short">So</string>
+    <string name="weekday_saturday_short">Sa</string>
+    <string name="weekday_friday_short">Fr</string>
+    <string name="weekday_thursday_short">Do</string>
+    <string name="weekday_wednesday_short">Mi</string>
+    <string name="weekday_tuesday_short">Di</string>
+    <string name="weekday_monday_short">Mo</string>
+    <!-- WeekdayPicker -->
+    <string name="monday_short">Mo</string>
+    <string name="tuesday_short">Di</string>
+    <string name="wednesday_short">Mi</string>
+    <string name="thursday_short">Do</string>
+    <string name="friday_short">Fr</string>
+    <string name="saturday_short">Sa</string>
+    <string name="sunday_short">So</string>
+    <!--    DecimalFormatterImpl -->
+    <string name="format_insulin_units1">%1$.1f IE</string>
+    <string name="format_insulin_units">%1$.2f IE</string>
 </resources>

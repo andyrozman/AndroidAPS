@@ -8,6 +8,18 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import app.aaps.core.data.model.TE;
+import app.aaps.core.data.pump.defs.PumpType;
+import app.aaps.core.interfaces.pump.DetailedBolusInfo;
+import app.aaps.core.interfaces.pump.PumpSync;
+import app.aaps.core.interfaces.resources.ResourceHelper;
+import app.aaps.core.interfaces.rx.AapsSchedulers;
+import app.aaps.core.interfaces.rx.bus.RxBus;
+import app.aaps.core.interfaces.rx.events.EventCustomActionsChanged;
+import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged;
+import app.aaps.core.interfaces.rx.events.EventRefreshOverview;
+import app.aaps.core.interfaces.sharedPreferences.SP;
+import app.aaps.core.interfaces.utils.DateUtil;
 import info.nightscout.androidaps.plugins.pump.eopatch.R;
 import info.nightscout.androidaps.plugins.pump.eopatch.RxAction;
 import info.nightscout.androidaps.plugins.pump.eopatch.alarm.AlarmCode;
@@ -37,17 +49,6 @@ import info.nightscout.androidaps.plugins.pump.eopatch.vo.PatchConfig;
 import info.nightscout.androidaps.plugins.pump.eopatch.vo.PatchLifecycleEvent;
 import info.nightscout.androidaps.plugins.pump.eopatch.vo.PatchState;
 import info.nightscout.androidaps.plugins.pump.eopatch.vo.TempBasal;
-import info.nightscout.interfaces.pump.DetailedBolusInfo;
-import info.nightscout.interfaces.pump.PumpSync;
-import info.nightscout.interfaces.pump.defs.PumpType;
-import info.nightscout.rx.AapsSchedulers;
-import info.nightscout.rx.bus.RxBus;
-import info.nightscout.rx.events.EventCustomActionsChanged;
-import info.nightscout.rx.events.EventPumpStatusChanged;
-import info.nightscout.rx.events.EventRefreshOverview;
-import info.nightscout.shared.interfaces.ResourceHelper;
-import info.nightscout.shared.sharedPreferences.SP;
-import info.nightscout.shared.utils.DateUtil;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
@@ -57,6 +58,7 @@ import io.reactivex.rxjava3.disposables.Disposable;
 @Singleton
 public class PatchManager implements IPatchManager {
 
+    private final CompositeDisposable mCompositeDisposable = new CompositeDisposable();
     @Inject PatchManagerImpl patchManager;
     @Inject IPreferenceManager pm;
     @Inject ResourceHelper resourceHelper;
@@ -68,9 +70,7 @@ public class PatchManager implements IPatchManager {
     @Inject RxAction rxAction;
     @Inject AapsSchedulers aapsSchedulers;
     @Inject IAlarmRegistry alarmRegistry;
-
     private IPatchScanner patchScanner;
-    private final CompositeDisposable mCompositeDisposable = new CompositeDisposable();
     private Disposable mConnectingDisposable = null;
 
     @Inject
@@ -254,7 +254,7 @@ public class PatchManager implements IPatchManager {
                         Thread.sleep(1000);
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
                                 System.currentTimeMillis(),
-                                DetailedBolusInfo.EventType.CANNULA_CHANGE,
+                                TE.Type.CANNULA_CHANGE,
                                 null,
                                 null,
                                 PumpType.EOFLOW_EOPATCH2,
@@ -262,7 +262,7 @@ public class PatchManager implements IPatchManager {
                         );
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
                                 System.currentTimeMillis(),
-                                DetailedBolusInfo.EventType.INSULIN_CHANGE,
+                                TE.Type.INSULIN_CHANGE,
                                 null,
                                 null,
                                 PumpType.EOFLOW_EOPATCH2,

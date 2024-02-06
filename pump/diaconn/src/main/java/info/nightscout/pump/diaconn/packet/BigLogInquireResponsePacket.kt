@@ -1,14 +1,23 @@
 package info.nightscout.pump.diaconn.packet
 
 import android.content.Context
+import app.aaps.core.data.model.TE
+import app.aaps.core.data.pump.defs.PumpDescription
+import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.data.time.T
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.pump.DetailedBolusInfoStorage
+import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.pump.TemporaryBasalStorage
+import app.aaps.core.interfaces.pump.defs.determineCorrectBasalSize
+import app.aaps.core.interfaces.pump.defs.fillFor
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.shared.impl.extensions.safeGetPackageInfo
 import dagger.android.HasAndroidInjector
-import info.nightscout.interfaces.plugin.ActivePlugin
-import info.nightscout.interfaces.pump.DetailedBolusInfo
-import info.nightscout.interfaces.pump.DetailedBolusInfoStorage
-import info.nightscout.interfaces.pump.PumpSync
-import info.nightscout.interfaces.pump.TemporaryBasalStorage
-import info.nightscout.interfaces.pump.defs.PumpDescription
-import info.nightscout.interfaces.pump.defs.PumpType
 import info.nightscout.pump.diaconn.DiaconnG8Pump
 import info.nightscout.pump.diaconn.R
 import info.nightscout.pump.diaconn.api.ApiResponse
@@ -45,13 +54,6 @@ import info.nightscout.pump.diaconn.pumplog.LogSuspendV2
 import info.nightscout.pump.diaconn.pumplog.LogTbStartV3
 import info.nightscout.pump.diaconn.pumplog.LogTbStopV3
 import info.nightscout.pump.diaconn.pumplog.PumpLogUtil
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.rx.events.EventPumpStatusChanged
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.extensions.safeGetPackageInfo
-import info.nightscout.shared.interfaces.ResourceHelper
-import info.nightscout.shared.sharedPreferences.SP
-import info.nightscout.shared.utils.T
 import org.apache.commons.lang3.time.DateUtils
 import org.joda.time.DateTime
 import retrofit2.Call
@@ -79,7 +81,7 @@ class BigLogInquireResponsePacket(
     @Inject lateinit var context: Context
 
     var result = 0// 조회결과
-    private var pumpDesc = PumpDescription(PumpType.DIACONN_G8)
+    private var pumpDesc = PumpDescription().fillFor(PumpType.DIACONN_G8)
 
     init {
         msgType = 0xb2.toByte()
@@ -151,7 +153,7 @@ class BigLogInquireResponsePacket(
 
                 when (pumpLogKind) {
 
-                    LogInjectMealSuccess.LOG_KIND -> {
+                    LogInjectMealSuccess.LOG_KIND     -> {
                         val logItem = LogInjectMealSuccess.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -186,7 +188,7 @@ class BigLogInquireResponsePacket(
                         status = "MEAL_BOLUS_SUCCESS" + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjectMealFail.LOG_KIND -> {
+                    LogInjectMealFail.LOG_KIND        -> {
                         val logItem = LogInjectMealFail.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -221,7 +223,7 @@ class BigLogInquireResponsePacket(
                         status = "MEAL_BOLUS_FAIL " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjectNormalSuccess.LOG_KIND -> {
+                    LogInjectNormalSuccess.LOG_KIND   -> {
                         val logItem = LogInjectNormalSuccess.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
 
@@ -257,7 +259,7 @@ class BigLogInquireResponsePacket(
                         status = "BOLUS_SUCCESS" + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjectNormalFail.LOG_KIND -> {
+                    LogInjectNormalFail.LOG_KIND      -> {
                         val logItem = LogInjectNormalFail.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -295,7 +297,7 @@ class BigLogInquireResponsePacket(
                         status = "BOLUS_FAIL " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogSetSquareInjection.LOG_KIND -> {
+                    LogSetSquareInjection.LOG_KIND    -> {
                         val logItem = LogSetSquareInjection.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -326,7 +328,7 @@ class BigLogInquireResponsePacket(
                         status = "EXTENDED_BOLUS_START " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjectSquareSuccess.LOG_KIND -> {
+                    LogInjectSquareSuccess.LOG_KIND   -> {
                         val logItem = LogInjectSquareSuccess.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -343,7 +345,7 @@ class BigLogInquireResponsePacket(
                         status = "EXTENDED_BOLUS_END " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjectSquareFail.LOG_KIND -> {
+                    LogInjectSquareFail.LOG_KIND      -> {
                         val logItem = LogInjectSquareFail.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -371,7 +373,7 @@ class BigLogInquireResponsePacket(
                         status = "EXTENDED_BOLUS_FAIL " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogSetDualInjection.LOG_KIND -> {
+                    LogSetDualInjection.LOG_KIND      -> {
                         val logItem = LogSetDualInjection.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -405,7 +407,7 @@ class BigLogInquireResponsePacket(
                         status = "DUAL_EXTENDED_START " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjectionDualNormal.LOG_KIND -> {
+                    LogInjectionDualNormal.LOG_KIND   -> {
                         val logItem = LogInjectionDualNormal.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -445,7 +447,7 @@ class BigLogInquireResponsePacket(
                         status = "DUAL_BOLUS" + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjectDualSuccess.LOG_KIND -> {
+                    LogInjectDualSuccess.LOG_KIND     -> {
                         val logItem = LogInjectDualSuccess.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -464,7 +466,7 @@ class BigLogInquireResponsePacket(
                         status = "DUAL_BOLUS_SQUARE_SUCCESS " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjectDualFail.LOG_KIND -> {
+                    LogInjectDualFail.LOG_KIND        -> {
                         val logItem = LogInjectDualFail.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -493,7 +495,7 @@ class BigLogInquireResponsePacket(
                         status = "DUAL_BOLUS FAIL " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjection1HourBasal.LOG_KIND -> {
+                    LogInjection1HourBasal.LOG_KIND   -> {
                         val logItem = LogInjection1HourBasal.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -509,7 +511,7 @@ class BigLogInquireResponsePacket(
                         status = "1HOUR BASAL " + dateUtil.dateAndTimeString(logDateTime)
                     }
 
-                    LogSuspendV2.LOG_KIND -> {
+                    LogSuspendV2.LOG_KIND             -> {
                         val logItem = LogSuspendV2.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -524,7 +526,7 @@ class BigLogInquireResponsePacket(
                         status = "SUSPEND " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogSuspendReleaseV2.LOG_KIND -> {
+                    LogSuspendReleaseV2.LOG_KIND      -> {
                         val logItem = LogSuspendReleaseV2.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -547,7 +549,7 @@ class BigLogInquireResponsePacket(
                         if (sp.getBoolean(R.string.key_diaconn_g8_loginsulinchange, true)) {
                             val newRecord = pumpSync.insertTherapyEventIfNewWithTimestamp(
                                 timestamp = logDateTime,
-                                type = DetailedBolusInfo.EventType.INSULIN_CHANGE,
+                                type = TE.Type.INSULIN_CHANGE,
                                 pumpId = logDateTime,
                                 pumpType = PumpType.DIACONN_G8,
                                 pumpSerial = diaconnG8Pump.serialNo.toString()
@@ -568,7 +570,7 @@ class BigLogInquireResponsePacket(
                         status = "INSULIN_CHANGE " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogChangeTubeSuccess.LOG_KIND -> {
+                    LogChangeTubeSuccess.LOG_KIND     -> {
                         val logItem = LogChangeTubeSuccess.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -576,7 +578,7 @@ class BigLogInquireResponsePacket(
                         if (sp.getBoolean(R.string.key_diaconn_g8_logtubechange, true)) {
                             val newRecord = pumpSync.insertTherapyEventIfNewWithTimestamp(
                                 timestamp = logDateTime,
-                                type = DetailedBolusInfo.EventType.NOTE,
+                                type = TE.Type.NOTE,
                                 note = rh.gs(R.string.diaconn_g8_logtubeprime, logItem.primeAmount / 100.0),
                                 pumpId = logDateTime,
                                 pumpType = PumpType.DIACONN_G8,
@@ -600,7 +602,7 @@ class BigLogInquireResponsePacket(
                         status = "TUBE_CHANGE " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjection1Day.LOG_KIND -> { // Daily Bolus Log
+                    LogInjection1Day.LOG_KIND         -> { // Daily Bolus Log
                         val logItem = LogInjection1Day.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -614,21 +616,21 @@ class BigLogInquireResponsePacket(
                         var recordMap: MutableMap<String, Double> = mutableMapOf("dummy" to 0.0)
 
                         if (dailyMaxValInfo.containsKey(recordDateStr)) {
-                            recordMap = dailyMaxValInfo[recordDateStr]!!
+                            recordMap = dailyMaxValInfo.getValue(recordDateStr)
                         } else {
                             recordMap["bolus"] = 0.0
                             recordMap["basal"] = 0.0
                             dailyMaxValInfo[recordDateStr] = recordMap
                         }
 
-                        if (diaconnG8HistoryRecord.dailyBolus > recordMap["bolus"]!!) {
+                        if (diaconnG8HistoryRecord.dailyBolus > recordMap.getValue("bolus")) {
                             recordMap["bolus"] = diaconnG8HistoryRecord.dailyBolus
                         } else {
-                            diaconnG8HistoryRecord.dailyBolus = recordMap["bolus"]!!
+                            diaconnG8HistoryRecord.dailyBolus = recordMap.getValue("bolus")
                         }
 
-                        if (recordMap["basal"]!! > 0.0) {
-                            diaconnG8HistoryRecord.dailyBasal = recordMap["basal"]!!
+                        if (recordMap.getValue("basal") > 0.0) {
+                            diaconnG8HistoryRecord.dailyBasal = recordMap.getValue("basal")
                         }
                         diaconnG8HistoryRecord.lognum = logNum
                         diaconnG8HistoryRecord.wrappingCount = wrappingCount
@@ -649,7 +651,7 @@ class BigLogInquireResponsePacket(
                         status = "DAILY_BOLUS " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogInjection1DayBasal.LOG_KIND -> { // Daily Basal Log
+                    LogInjection1DayBasal.LOG_KIND    -> { // Daily Basal Log
                         val logItem = LogInjection1DayBasal.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -663,21 +665,21 @@ class BigLogInquireResponsePacket(
                         var recordMap: MutableMap<String, Double> = mutableMapOf("dummy" to 0.0)
 
                         if (dailyMaxValInfo.containsKey(recordDateStr)) {
-                            recordMap = dailyMaxValInfo[recordDateStr]!!
+                            recordMap = dailyMaxValInfo.getValue(recordDateStr)
                         } else {
                             recordMap["bolus"] = 0.0
                             recordMap["basal"] = 0.0
                             dailyMaxValInfo[recordDateStr] = recordMap
                         }
 
-                        if (diaconnG8HistoryRecord.dailyBasal > recordMap["basal"]!!) {
+                        if (diaconnG8HistoryRecord.dailyBasal > recordMap.getValue("basal")) {
                             recordMap["basal"] = diaconnG8HistoryRecord.dailyBasal
                         } else {
-                            diaconnG8HistoryRecord.dailyBasal = recordMap["basal"]!!
+                            diaconnG8HistoryRecord.dailyBasal = recordMap.getValue("basal")
                         }
 
-                        if (recordMap["bolus"]!! > 0.0) {
-                            diaconnG8HistoryRecord.dailyBolus = recordMap["bolus"]!!
+                        if (recordMap.getValue("bolus") > 0.0) {
+                            diaconnG8HistoryRecord.dailyBolus = recordMap.getValue("bolus")
                         }
                         diaconnG8HistoryRecord.lognum = logNum
                         diaconnG8HistoryRecord.wrappingCount = wrappingCount
@@ -698,7 +700,7 @@ class BigLogInquireResponsePacket(
                         status = "DAILY_BASAL " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogChangeNeedleSuccess.LOG_KIND -> {
+                    LogChangeNeedleSuccess.LOG_KIND   -> {
                         val logItem = LogChangeNeedleSuccess.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -706,7 +708,7 @@ class BigLogInquireResponsePacket(
                         if (sp.getBoolean(R.string.key_diaconn_g8_logneedlechange, true)) {
                             val newRecord = pumpSync.insertTherapyEventIfNewWithTimestamp(
                                 timestamp = logDateTime,
-                                type = DetailedBolusInfo.EventType.CANNULA_CHANGE,
+                                type = TE.Type.CANNULA_CHANGE,
                                 pumpId = logDateTime,
                                 pumpType = PumpType.DIACONN_G8,
                                 pumpSerial = diaconnG8Pump.serialNo.toString()
@@ -728,7 +730,7 @@ class BigLogInquireResponsePacket(
                         status = "NEEDLE_CHANGE " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogTbStartV3.LOG_KIND -> {
+                    LogTbStartV3.LOG_KIND             -> {
                         val logItem = LogTbStartV3.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
 
@@ -772,7 +774,7 @@ class BigLogInquireResponsePacket(
                         status = "TEMP_START " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogTbStopV3.LOG_KIND -> {
+                    LogTbStopV3.LOG_KIND              -> {
                         val logItem = LogTbStopV3.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -806,7 +808,7 @@ class BigLogInquireResponsePacket(
                         status = "TEMP_STOP " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogAlarmBattery.LOG_KIND -> { // BATTERY SHORTAGE ALARM
+                    LogAlarmBattery.LOG_KIND          -> { // BATTERY SHORTAGE ALARM
                         val logItem = LogAlarmBattery.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
                         val logStartDate = DateUtils.parseDate(logItem.dttm, "yyyy-MM-dd HH:mm:ss")
@@ -822,7 +824,7 @@ class BigLogInquireResponsePacket(
                         status = "BATTERY_ALARM " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogAlarmBlock.LOG_KIND -> { // INJECTION BLOCKED ALARM
+                    LogAlarmBlock.LOG_KIND            -> { // INJECTION BLOCKED ALARM
                         val logItem = LogAlarmBlock.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
 
@@ -840,7 +842,7 @@ class BigLogInquireResponsePacket(
                         status = "BLOCK_ALARM " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogAlarmShortAge.LOG_KIND -> { // INSULIN SHORTAGE ALARM
+                    LogAlarmShortAge.LOG_KIND         -> { // INSULIN SHORTAGE ALARM
                         val logItem = LogAlarmShortAge.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
 
@@ -858,7 +860,7 @@ class BigLogInquireResponsePacket(
                         status = "SHORT_AGE_ALARM " + dateUtil.timeString(logDateTime)
                     }
 
-                    LogResetSysV3.LOG_KIND -> {
+                    LogResetSysV3.LOG_KIND            -> {
                         val logItem = LogResetSysV3.parse(logDataToHexString)
                         aapsLogger.debug(LTag.PUMPCOMM, "$logItem ")
 
@@ -873,7 +875,7 @@ class BigLogInquireResponsePacket(
                             if (sp.getBoolean(R.string.key_diaconn_g8_logbatterychange, true)) {
                                 val newRecord = pumpSync.insertTherapyEventIfNewWithTimestamp(
                                     timestamp = logDateTime,
-                                    type = DetailedBolusInfo.EventType.PUMP_BATTERY_CHANGE,
+                                    type = TE.Type.PUMP_BATTERY_CHANGE,
                                     pumpId = logDateTime,
                                     pumpType = PumpType.DIACONN_G8,
                                     pumpSerial = diaconnG8Pump.serialNo.toString()
@@ -887,7 +889,7 @@ class BigLogInquireResponsePacket(
                         status = "RESET " + dateUtil.timeString(logDateTime)
                     }
 
-                    else                                 -> {
+                    else                              -> {
                         status = rh.gs(R.string.diaconn_g8_logsyncinprogress)
                         rxBus.send(EventPumpStatusChanged(status))
                         continue

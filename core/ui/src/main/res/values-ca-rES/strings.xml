@@ -355,6 +355,7 @@
     <string name="partialboluswizard">Lliurar aquesta part del resultat del càlcul [%]</string>
     <string name="advisoralarm">Executar alarma quan sigui hora de menjar</string>
     <string name="no_action_selected">Cap acció sel·leccionada, no passarà res</string>
+    <string name="quickwizard">Assistent</string>
     <!--    Preferences-->
     <string name="teenage">Adolescent</string>
     <string name="adult">Adult</string>
@@ -390,7 +391,6 @@
     <string name="limitingpercentrate">Limitant percentatge màx a %1$d%% a causa de %2$s</string>
     <string name="itmustbepositivevalue">ha de ser un valor positiu</string>
     <string name="limitingbolus">Limitant bolus a %1$.1f U a causa de %2$s</string>
-    <!-- Locale -->
     <!--    Dialogs-->
     <string name="confirmation">Confirmació</string>
     <string name="message">Missatge</string>
@@ -420,6 +420,7 @@
     <!-- SmsCommunicator -->
     <string name="smscommunicator_missingsmspermission">Falta permís SMS</string>
     <!-- About -->
+    <string name="fabric_upload_disabled">Enviament de logs d\'error desactivat!</string>
     <plurals name="days">
         <item quantity="one">%1$d dia</item>
         <item quantity="other">%1$d dies</item>
@@ -433,4 +434,20 @@
         <item quantity="other">%1$d minuts</item>
     </plurals>
     <!--    Maintenance-->
+    <!--    Weekday-->
+    <string name="weekday_saturday_short">Ds</string>
+    <string name="weekday_friday_short">Dv</string>
+    <string name="weekday_thursday_short">Dj</string>
+    <string name="weekday_wednesday_short">Dc</string>
+    <string name="weekday_tuesday_short">Dt</string>
+    <string name="weekday_monday_short">Dl</string>
+    <!-- WeekdayPicker -->
+    <string name="monday_short">Dl</string>
+    <string name="tuesday_short">Dt</string>
+    <string name="wednesday_short">Dc</string>
+    <string name="thursday_short">Dj</string>
+    <string name="friday_short">Dv</string>
+    <string name="saturday_short">Ds</string>
+    <string name="sunday_short">Dg</string>
+    <!--    DecimalFormatterImpl -->
 </resources>

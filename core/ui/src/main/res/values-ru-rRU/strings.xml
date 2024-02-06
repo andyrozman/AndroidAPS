@@ -6,9 +6,9 @@
     <string name="profile_set_ok">базальный профиль помпы обновлен</string>
     <string name="invalid_input">введенные данные неверны</string>
     <string name="bolus_delivering">Подается болюс %1$.2f ед</string>
-    <string name="constraint_applied">применено ограничение!</string>
+    <string name="constraint_applied">Применено ограничение!</string>
     <string name="tempbasals_iobtotal_label_string">Общий IOB:</string>
-    <string name="tt_label">Врем цель (TT)</string>
+    <string name="tt_label">ВЦ</string>
     <string name="pump_unreachable">Помпа недоступна</string>
     <string name="insulin_unit_shortname">Ед</string>
     <string name="pump_base_basal_rate">%1$.2f ед/ч</string>
@@ -23,14 +23,14 @@
     <string name="mgdl">мг/дл</string>
     <string name="mmol">ммоль/л</string>
     <string name="save">Сохранить</string>
-    <string name="snooze">Отложить</string>
+    <string name="snooze">Убрать оповещение</string>
     <string name="virtual_pump">Виртуальная помпа</string>
-    <string name="constraints">ограничения</string>
+    <string name="constraints">Ограничения</string>
     <string name="superbolus">Суперболюс</string>
     <string name="pump_paused">Помпа приостановлена</string>
     <string name="and">И</string>
     <string name="patient_name_default" comment="This is default patient display name, when user does not provide real one">Пользователь</string>
-    <string name="result">результат</string>
+    <string name="result">Результат</string>
     <string name="settings">Настройки</string>
     <string name="statuslights">Индикаторы состояния</string>
     <string name="do_ns_upload_title">Выгружать (передавать данные) ГК в Nightscout</string>
@@ -40,7 +40,7 @@
     <string name="ue_export_to_csv">Экспорт пользовательских записей в Excel (csv)</string>
     <string name="confirm">Подтверждаю</string>
     <string name="pump">Помпа</string>
-    <string name="missed_bg_readings">Пропущенные данные СК</string>
+    <string name="missed_bg_readings">Пропущенные данные ГК</string>
     <string name="treatments_iob_label_string">IOB акт инс:</string>
     <string name="mute5min">Отключить уведомления на 5 минут</string>
     <string name="mute">Отключить звук</string>
@@ -49,10 +49,11 @@
     <string name="extendedbolusdeliveryerror">Ошибка подачи пролонгированного болюса</string>
     <string name="aps_mode_title">Режим APS</string>
     <string name="extended_bolus">Пролонгированный болюс</string>
-    <string name="paused">на паузе</string>
+    <string name="paused">На паузе</string>
     <string name="tdd_total">Суммарный суточный инсулин TDD</string>
+    <string name="tdd_old_data">Старые данные</string>
     <string name="goingtodeliver">Будет подано %1$.2f ед инс</string>
-    <string name="waitingforpump">ожидание помпы</string>
+    <string name="waitingforpump">Ожидание помпы</string>
     <string name="androidaps_start">AAPS запущен</string>
     <string name="formatsignedinsulinunits">%1$+.2f ед</string>
     <string name="format_carbs">%1$d гр</string>
@@ -60,18 +61,18 @@
     <string name="format_mins">%1$d мин</string>
     <string name="objectives">Цели</string>
     <string name="please_wait">Подождите…</string>
-    <string name="stop">стоп</string>
+    <string name="stop">Стоп</string>
     <string name="carbs">Углеводы</string>
     <string name="invalid_profile">Недопустимый профиль!</string>
     <string name="no_profile_set">ПРОФИЛЬ НЕ ЗАДАН</string>
     <string name="active"><![CDATA[Активен]]></string>
-    <string name="date">дата</string>
+    <string name="date">Дата</string>
     <string name="units_label">единицы</string>
     <string name="dia_label">DIA (время действия инсулина)</string>
     <string name="ic_label">Углеводный коэффициент IC (ГУ/ед. инс)</string>
     <string name="isf_label">ISF (чувствительность к инсулину)</string>
     <string name="basal_label">базал</string>
-    <string name="target_label">Целевое значение СК:</string>
+    <string name="target_label">Целевое значение ГК:</string>
     <string name="dia_long_label">Продолжительность действия инсулина</string>
     <string name="ic_long_label">Углеводный коэффициент IC (ГУ/ед. инс.)</string>
     <string name="isf_long_label">Фактор Чувствительности к Инсулину (ISF)</string>
@@ -86,10 +87,10 @@
     <string name="pump_time_updated">Время на помпе обновлено</string>
     <string name="exit">Выйти</string>
     <string name="removerecord">Удалить запись</string>
-    <string name="loopisdisabled">Зцикл не работает</string>
+    <string name="loopisdisabled">Цикл не работает</string>
     <string name="alarm">Оповещения об опасности</string>
-    <string name="disableloop">Деактивировать цикличность</string>
-    <string name="enableloop">Активировать цикличность</string>
+    <string name="disableloop">Деактивировать цикл</string>
+    <string name="enableloop">Активировать цикл</string>
     <string name="resumeloop">Возобновить цикл</string>
     <string name="suspendloop">Приостановить цикл</string>
     <string name="duration_min_label">Длительность (мин)</string>
@@ -98,8 +99,8 @@
     <string name="exists">существует</string>
     <string name="notexists">не существует</string>
     <string name="glucose">Гликемия</string>
-    <string name="iob">IOB акт инс</string>
-    <string name="cob">АктУгл COB</string>
+    <string name="iob">IOB (актИнс)</string>
+    <string name="cob">COB (актУгл)</string>
     <string name="name_short">Имя:</string>
     <string name="time">Время</string>
     <string name="ns_wifi_ssids">SSID для Wi-Fi</string>
@@ -117,7 +118,7 @@
     <string name="duration_label">Длительность действия</string>
     <string name="shortgramm">грамм</string>
     <string name="pumpsuspended">Работа помпы остановлена</string>
-    <string name="notconfigured">Не сконфигурировано</string>
+    <string name="notconfigured">Не настроено</string>
     <string name="loopsuspended">ЗЦ остановлен</string>
     <string name="trend_arrow">Стрелка тренда</string>
     <string name="a11y_autosens_label">Auto sens</string>
@@ -157,7 +158,7 @@
     <string name="overview_insulin_label">Инсулин</string>
     <string name="stoptemptarget">Остановить врем цель</string>
     <string name="closedloop">Замкнутый цикл</string>
-    <string name="openloop">открытый цикл</string>
+    <string name="openloop">Открытый цикл</string>
     <string name="lowglucosesuspend">Приостановка помпы на низкой ГК</string>
     <string name="dia">Время действия инсулина DIA</string>
     <string name="ic_short">IC углкоэф ГУ/инс</string>
@@ -167,6 +168,14 @@
     <string name="virtualpump_uploadstatus_title">Передавать статус помпы в NS или Tidepool</string>
     <string name="suspendloop_label">Отключенный/приостановленный цикл</string>
     <string name="iob_label">Активный инсулин (IOB)</string>
+    <string name="loopstatus_targets">ЦЕЛИ:</string>
+    <string name="loopstatus_OAPS_result">РЕЗУЛЬТАТ: OAPS:</string>
+    <string name="extended_bolus_data_point_graph">%1$.2f ед ( %2$.2f ед/ч )</string>
+    <string name="temp_basal_tsf_fake_extended">%1$.2f ед ( %2$.2f ед/ч)@%3$s</string>
+    <string name="temp_basal_tsf_absolute">%1$.2f ед/ч @%2$s</string>
+    <string name="temp_basal_tsf_percent">%1$.0f %% @%2$s</string>
+    <string name="extended_bolus_full">ПБ%1$.2f ед/ @%2$s%3$s%4$s мин</string>
+    <string name="extended_bolus_medium">%1$.2f ед/ч %2$s%3$s</string>
     <!--    Protection-->
     <string name="wrongpassword">Неверный пароль</string>
     <string name="wrongpin">Неверный PIN-код</string>
@@ -335,6 +344,7 @@
     <string name="uel_export_settings">ЭКСПОРТИРОВАТЬ НАСТРОЙКИ</string>
     <string name="uel_import_settings">ИМПОРТИРОВАТЬ НАСТРОЙКИ</string>
     <string name="uel_reset_databases">СБРОСИТЬ БАЗЫ ДАННЫХ</string>
+    <string name="uel_reset_aps_results">СБРОС РЕЗУЛЬТАТОВ APS</string>
     <string name="uel_cleanup_databases">ОЧИСТКА ДАННЫХ</string>
     <string name="uel_export_databases">ЭКСПОРТИРОВАТЬ БАЗЫ ДАННЫХ</string>
     <string name="uel_import_databases">ИМПОРТИРОВАТЬ БАЗЫ ДАННЫХ</string>
@@ -376,6 +386,9 @@
     <string name="carbs_g">УГЛ %1$d г</string>
     <string name="extended_bolus_u_min">Пролонгированный болюс %1$.2f ед %2$d мин</string>
     <string name="load_events">ЗАГРУЗИТЬ СОБЫТИЯ</string>
+    <string name="clear_alarms">ОЧИСТИТЬ ОПОВЕЩЕНИЯ</string>
+    <string name="deactivate">ДЕАКТИВИРОВАТЬ</string>
+    <string name="update_time">ВРЕМЯ ОБНОВЛЕНИЯ</string>
     <string name="load_history">ЗАГРУЗИТЬ ИСТОРИЮ %1$d</string>
     <string name="load_tdds">ЗАГРУЗИТЬ СУТ ДОЗЫ</string>
     <string name="set_profile">ЗАДАТЬ ПРОФИЛЬ</string>
@@ -421,6 +434,7 @@
     <string name="autotune_ic_warning">Выбранный профиль имеет %1$d значений IC. Автоматически будет использоваться %2$.2f г/ед</string>
     <string name="autotune_isf_warning">Выбранный профиль имеет %1$d значений ISF. Автоматически будет использоваться %2$.1f%3$s/ед</string>
     <string name="autotune_error">Ошибка ввода данных, попробуйте запустить снова autotune или уменьшить количество дней</string>
+    <string name="autotune_error_more_days">Ошибка в данных, увеличьте количество дней</string>
     <string name="autotune_warning_during_run">Идет настройка автоматизации, ждите</string>
     <string name="autotune_warning_after_run">Перед использованием внимательно проверьте результаты!</string>
     <string name="autotune_partial_result">Частичный результат дня %1$d / %2$d с отладкой</string>
@@ -453,10 +467,13 @@
     <string name="cobvsiob">угл COB к инс IOB</string>
     <string name="slowabsorptiondetected"><![CDATA[<font color=\'%1$s\'>!!!!! Обнаружено медленное всасывание углеводов: %2$d%% времени. Еще раз проверьте свои расчеты. Возможно акт углеводы COB вне диапазона и может быть подано больше инсулина!!!!!</font>]]></string>
     <string name="partialboluswizard">Подать эту часть рекомендации мастера болюса [%]</string>
+    <string name="partialboluswizard_reset_time">Пороговое время для устаревшей ГК [min]</string>
     <string name="bolus_constraint_applied_warn">Применено ограничение болюса: %1$.2f ед. до %2$.2f ед.</string>
     <string name="bolus_recorded_only">Болюс будет только записан (без подачи помпой)</string>
     <string name="advisoralarm">Напомнить о еде</string>
     <string name="no_action_selected">Действие не выбрано, ничего не произойдет</string>
+    <string name="carb_equal_zero_no_action">Carbs = 0. Никаких мер не принято!</string>
+    <string name="wizard_no_insulin_required">Инсулин не требуется!</string>
     <string name="wizard_no_actual_bg">Нет данных ГК для основы расчета!</string>
     <string name="wizard_no_active_profile">Активный профиль не установлен!</string>
     <string name="wizard_no_cob">Неизвестный COB! Отсутствуют данные ГК или приложения недавно перезапущено?</string>
@@ -515,19 +532,19 @@
     <string name="password_cleared">Пароль сброшен!</string>
     <string name="pairing">Сопряжение</string>
     <string name="initializing">инициализация...</string>
+    <string name="secs" comment="second short">%1$d с</string>
     <!--    Constraints-->
     <string name="limitingbasalratio">Макс базальный уровень ограничен до %1$.2f ед/ч вследствие %2$s</string>
     <string name="pumplimit">лимит помпы</string>
     <string name="limitingpercentrate">Макс процент базала ограничен до %1$d%% ед/ч вследствие %2$s</string>
     <string name="itmustbepositivevalue">величина должна быть положительной</string>
     <string name="limitingbolus">Макс уровень болюса ограничен до %1$.1f ед вследствие %2$s</string>
-    <!-- Locale -->
     <!--    Dialogs-->
     <string name="confirmation">Подтверждение</string>
     <string name="message">Сообщение</string>
     <string name="ok">OK</string>
     <string name="cancel">Отменить</string>
-    <string name="dismiss">ОТКЛОНИТЬ</string>
+    <string name="dismiss">УБРАТЬ</string>
     <string name="yes">Да</string>
     <string name="no">Нет</string>
     <string name="close">Закрыть</string>
@@ -581,4 +598,23 @@
     <string name="cleanup_db_confirm">Вы хотите очистить базу данных?\nЭто удалит отслеживаемые изменения и данные старше 3 месяцев.</string>
     <string name="cleanup_db_confirm_sync">Вы хотите очистить базу данных?\nЭто удалит отслеживаемые изменения и данные старше 3 месяцев.\nчто позволит значительно ускорить полную синхронизацию.</string>
     <string name="cleared_entries">Удалённые записи</string>
+    <!--    Weekday-->
+    <string name="weekday_sunday_short">Вс</string>
+    <string name="weekday_saturday_short">Сб</string>
+    <string name="weekday_friday_short">Пт</string>
+    <string name="weekday_thursday_short">Чт</string>
+    <string name="weekday_wednesday_short">Ср</string>
+    <string name="weekday_tuesday_short">Вт</string>
+    <string name="weekday_monday_short">Пн</string>
+    <!-- WeekdayPicker -->
+    <string name="monday_short">Пн</string>
+    <string name="tuesday_short">Вт</string>
+    <string name="wednesday_short">Ср</string>
+    <string name="thursday_short">Чт</string>
+    <string name="friday_short">Пт</string>
+    <string name="saturday_short">Сб</string>
+    <string name="sunday_short">Вс</string>
+    <!--    DecimalFormatterImpl -->
+    <string name="format_insulin_units1">%1$.1fед</string>
+    <string name="format_insulin_units">%1$.2f ед</string>
 </resources>

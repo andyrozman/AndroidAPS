@@ -2,18 +2,18 @@ package info.nightscout.androidaps.plugins.pump.omnipod.common.ui.wizard.common.
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import dagger.android.HasAndroidInjector
-import info.nightscout.interfaces.pump.PumpEnactResult
-import info.nightscout.rx.AapsSchedulers
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.objects.Instantiator
+import app.aaps.core.interfaces.pump.PumpEnactResult
+import app.aaps.core.interfaces.rx.AapsSchedulers
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.kotlin.subscribeBy
 
 abstract class ActionViewModelBase(
-    protected val injector: HasAndroidInjector,
+    protected val instantiator: Instantiator,
     protected val logger: AAPSLogger,
     private val aapsSchedulers: AapsSchedulers
 ) : ViewModelBase() {
@@ -40,7 +40,7 @@ abstract class ActionViewModelBase(
                     logger.error(LTag.PUMP, "Caught exception in while executing action in ActionViewModelBase", throwable)
                     _isActionExecutingLiveData.postValue(false)
                     _actionResultLiveData.postValue(
-                        PumpEnactResult(injector).success(false).comment(
+                        instantiator.providePumpEnactResult().success(false).comment(
                             throwable.message ?: "Caught exception in while executing action in ActionViewModelBase"
                         )
                     )

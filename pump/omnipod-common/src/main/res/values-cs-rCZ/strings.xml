@@ -66,6 +66,7 @@
     <string name="omnipod_common_overview_reservoir_value">Zbývá %1$.2f U</string>
     <string name="omnipod_common_overview_reservoir_value_over50">Zbývá více než 50 U</string>
     <string name="omnipod_common_overview_errors">Chyby</string>
+    <string name="omnipod_common_uncertain">neznámé</string>
     <!-- Omnipod - Wizard Base -->
     <string name="omnipod_common_wizard_button_cancel">Zrušit</string>
     <string name="omnipod_common_wizard_button_finish">Konec</string>
@@ -104,7 +105,11 @@
     <string name="omnipod_common_preferences_suspend_delivery_button_enabled">Zobrazit tlačítko „Pozastavit dodávku“ na záložce Omnipod</string>
     <string name="omnipod_common_preferences_time_change_enabled">Detekce letního času / časového pásma povolena</string>
     <string name="omnipod_common_preferences_expiration_reminder_enabled">Připomenutí vypršení platnosti povoleno</string>
-    <string name="omnipod_common_preferences_expiration_reminder_hours_before_shutdown">Hodiny před vypnutím</string>
+    <string name="omnipod_common_preferences_expiration_reminder_enabled_summary">Pokud je povoleno, pod bude pípat, když bude dosaženo zadaného času</string>
+    <string name="omnipod_common_preferences_expiration_reminder_hours_before_expiry">Připomenutí v hodinách před vypršením platnosti (72 hodin)</string>
+    <string name="omnipod_common_preferences_expiration_alarm_enabled">Upozornění na vypršení platnosti povoleno</string>
+    <string name="omnipod_common_preferences_expiration_alarm_enabled_summary">Pokud je povoleno, pod bude pípat, když bude dosaženo zadaného času a 1 hodinu před vypnutím</string>
+    <string name="omnipod_common_preferences_expiration_alarm_hours_before_shutdown">Upozornění v hodinách před vypnutím (80 hodin)</string>
     <string name="omnipod_common_preferences_low_reservoir_alert_enabled">Upozornění na nízký stav zásobníku povoleno</string>
     <string name="omnipod_common_preferences_low_reservoir_alert_units">Počet jednotek</string>
     <string name="omnipod_common_preferences_automatically_silence_alerts">Automaticky potvrzovat výstrahy Podu</string>
@@ -120,6 +125,7 @@
     <string name="omnipod_common_pod_status_waiting_for_activation">Probíhá nastavování (čeká se na aktivaci Podu)</string>
     <string name="omnipod_common_pod_status_waiting_for_cannula_insertion">Probíhá nastavování (čeká se na aplikaci kanyly)</string>
     <string name="omnipod_common_pod_status_running">Běží</string>
+    <string name="omnipod_common_pod_status_normal">Normální</string>
     <string name="omnipod_common_pod_status_suspended">Pozastaveno</string>
     <string name="omnipod_common_pod_status_pod_fault">Chyba Podu</string>
     <string name="omnipod_common_pod_status_activation_time_exceeded">Byl překročen čas aktivace</string>

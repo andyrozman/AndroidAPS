@@ -4,11 +4,11 @@ import androidx.annotation.NonNull;
 
 import java.util.Collections;
 
+import app.aaps.core.utils.pump.ByteUtil;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.communication.message.NonceResyncableMessageBlock;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.AlertSet;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.AlertSlot;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.MessageBlockType;
-import info.nightscout.pump.core.utils.ByteUtil;
 
 public class AcknowledgeAlertsCommand extends NonceResyncableMessageBlock {
 
@@ -31,8 +31,8 @@ public class AcknowledgeAlertsCommand extends NonceResyncableMessageBlock {
     }
 
     private void encode() {
-        encodedData = ByteUtil.getBytesFromInt(nonce);
-        encodedData = ByteUtil.concat(encodedData, alerts.getRawValue());
+        encodedData = ByteUtil.INSTANCE.getBytesFromInt(nonce);
+        encodedData = ByteUtil.INSTANCE.concat(encodedData, alerts.getRawValue());
     }
 
     @Override

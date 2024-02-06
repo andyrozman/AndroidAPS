@@ -66,6 +66,7 @@
     <string name="omnipod_common_overview_reservoir_value">%1$.2f Ü kaldı</string>
     <string name="omnipod_common_overview_reservoir_value_over50">50 Ü üzeri</string>
     <string name="omnipod_common_overview_errors">Hatalar</string>
+    <string name="omnipod_common_uncertain">belirsiz</string>
     <!-- Omnipod - Wizard Base -->
     <string name="omnipod_common_wizard_button_cancel">İptal</string>
     <string name="omnipod_common_wizard_button_finish">Bitti</string>
@@ -104,7 +105,11 @@
     <string name="omnipod_common_preferences_suspend_delivery_button_enabled">Omnipod sekmesinde İletimi Askıya Al düğmesini göster</string>
     <string name="omnipod_common_preferences_time_change_enabled">DST/Saat dilimi algılamayı etkinleştir</string>
     <string name="omnipod_common_preferences_expiration_reminder_enabled">Süre sonu hatırlatıcısını etkinleştir</string>
-    <string name="omnipod_common_preferences_expiration_reminder_hours_before_shutdown">Kapanmadan kaç saat önce?</string>
+    <string name="omnipod_common_preferences_expiration_reminder_enabled_summary">Etkinleştirirseniz, belirtilen süreye ulaşıldığında pod bip sesi çıkarır</string>
+    <string name="omnipod_common_preferences_expiration_reminder_hours_before_expiry">Süre bitiminden önce hatırlatma (72 Saat)</string>
+    <string name="omnipod_common_preferences_expiration_alarm_enabled">Süre sonu alarmını etkinleştir</string>
+    <string name="omnipod_common_preferences_expiration_alarm_enabled_summary">Etkinleştirildiğinde, pompa kapanmadan 1 saat önce pod bip sesi çıkarır</string>
+    <string name="omnipod_common_preferences_expiration_alarm_hours_before_shutdown">Pompa kapanmadan önce uyar (80 Saat)</string>
     <string name="omnipod_common_preferences_low_reservoir_alert_enabled">Düşük rezervuar uyarısını etkinleştir</string>
     <string name="omnipod_common_preferences_low_reservoir_alert_units">Ünite</string>
     <string name="omnipod_common_preferences_automatically_silence_alerts">Pod uyarılarını otomatik olarak sustur</string>
@@ -120,6 +125,7 @@
     <string name="omnipod_common_pod_status_waiting_for_activation">Kurulum devam ediyor (Pod aktivasyonu bekleniyor)</string>
     <string name="omnipod_common_pod_status_waiting_for_cannula_insertion">Kurulum devam ediyor (kanül yerleştirme bekleniyor)</string>
     <string name="omnipod_common_pod_status_running">Çalışıyor</string>
+    <string name="omnipod_common_pod_status_normal">Normal</string>
     <string name="omnipod_common_pod_status_suspended">Askıya Alındı</string>
     <string name="omnipod_common_pod_status_pod_fault">Pod Hatası</string>
     <string name="omnipod_common_pod_status_activation_time_exceeded">Aktivasyon süresi aşıldı</string>

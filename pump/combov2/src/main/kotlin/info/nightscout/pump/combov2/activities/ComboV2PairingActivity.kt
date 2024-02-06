@@ -9,6 +9,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -16,16 +17,18 @@ import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import dagger.android.support.DaggerAppCompatActivity
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.resources.ResourceHelper
 import info.nightscout.comboctl.base.BasicProgressStage
+import info.nightscout.comboctl.base.PAIRING_PIN_SIZE
 import info.nightscout.comboctl.base.PairingPIN
-import info.nightscout.core.ui.dialogs.OKDialog
+import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
+import app.aaps.core.ui.dialogs.OKDialog
+import app.aaps.core.ui.toast.ToastUtils
 import info.nightscout.pump.combov2.ComboV2Plugin
 import info.nightscout.pump.combov2.R
 import info.nightscout.pump.combov2.databinding.Combov2PairingActivityBinding
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.interfaces.ResourceHelper
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
@@ -40,6 +43,7 @@ private class BluetoothPermissionChecks(
     private val permissions: List<String>,
     private val aapsLogger: AAPSLogger
 ) {
+
     private val activityResultLauncher: ActivityResultLauncher<Array<String>>
     private var waitForCompletion: CompletableJob? = null
 
@@ -72,7 +76,7 @@ private class BluetoothPermissionChecks(
     }
 }
 
-class ComboV2PairingActivity : DaggerAppCompatActivity() {
+class ComboV2PairingActivity : TranslatedDaggerAppCompatActivity() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var rh: ResourceHelper
@@ -97,7 +101,8 @@ class ComboV2PairingActivity : DaggerAppCompatActivity() {
                     aapsLogger.info(LTag.PUMP, "User rejected discovery request; cancelling pairing")
                     combov2Plugin.cancelPairing()
                 }
-                else -> Unit
+
+                else                     -> Unit
             }
         }
         combov2Plugin.customDiscoveryActivityStartCallback = { intent ->
@@ -108,7 +113,12 @@ class ComboV2PairingActivity : DaggerAppCompatActivity() {
         }
 
         val binding: Combov2PairingActivityBinding = DataBindingUtil.setContentView(
-            this, R.layout.combov2_pairing_activity)
+            this, R.layout.combov2_pairing_activity
+        )
+
+        title = rh.gs(R.string.combov2_pair_with_pump_title)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
 
         val thisActivity = this
 
@@ -173,7 +183,7 @@ class ComboV2PairingActivity : DaggerAppCompatActivity() {
                                     }
                                 }
 
-                                else -> {
+                                else                                     -> {
                                     binding.combov2PairingSectionCannotPairDriverNotInitialized.visibility = View.GONE
                                     setupUi(binding)
                                     uiInitialized = true
@@ -184,13 +194,13 @@ class ComboV2PairingActivity : DaggerAppCompatActivity() {
                     .launchIn(this)
             }
         }
-    }
-
-    override fun onBackPressed() {
-        aapsLogger.info(LTag.PUMP, "User pressed the back button; cancelling any ongoing pairing")
-        combov2Plugin.cancelPairing()
-        @Suppress("DEPRECATION")
-        super.onBackPressed()
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                aapsLogger.info(LTag.PUMP, "User pressed the back button; cancelling any ongoing pairing")
+                combov2Plugin.cancelPairing()
+                finish()
+            }
+        })
     }
 
     override fun onDestroy() {
@@ -297,6 +307,7 @@ class ComboV2PairingActivity : DaggerAppCompatActivity() {
                             // code above turned this into "123 4".
                             4, 8 ->
                                 it + 1
+
                             else ->
                                 it
                         }
@@ -309,6 +320,7 @@ class ComboV2PairingActivity : DaggerAppCompatActivity() {
                             // this into "123".
                             4, 8 ->
                                 it - 1
+
                             else ->
                                 it
                         }
@@ -334,9 +346,13 @@ class ComboV2PairingActivity : DaggerAppCompatActivity() {
             // We need to skip whitespaces since the
             // TextWatcher above inserts some.
             val pinString = binding.combov2PinEntryEdit.text.replace(whitespaceRemovalRegex, "")
+            if (pinString.length != PAIRING_PIN_SIZE) {
+                ToastUtils.showToastInUiThread(this, rh.gs(R.string.combov2_pairing_invalid_pin_length, PAIRING_PIN_SIZE, pinString.length))
+                return@setOnClickListener
+            }
             runBlocking {
-                val PIN = PairingPIN(pinString.map { it - '0' }.toIntArray())
-                combov2Plugin.providePairingPIN(PIN)
+                val pin = PairingPIN(pinString.map { it - '0' }.toIntArray())
+                combov2Plugin.providePairingPIN(pin)
             }
         }
 
@@ -364,39 +380,40 @@ class ComboV2PairingActivity : DaggerAppCompatActivity() {
                     BasicProgressStage.Idle,
                     BasicProgressStage.Finished,
                     is BasicProgressStage.Aborted -> View.GONE
-                    else -> View.VISIBLE
+
+                    else                          -> View.VISIBLE
                 }
 
                 if (stage is BasicProgressStage.Aborted) {
                     binding.combov2PairingAbortedReasonText.text = when (stage) {
                         is BasicProgressStage.Cancelled -> rh.gs(R.string.combov2_pairing_cancelled)
-                        is BasicProgressStage.Timeout -> rh.gs(R.string.combov2_pairing_combo_scan_timeout_reached)
-                        is BasicProgressStage.Error -> rh.gs(R.string.combov2_pairing_failed_due_to_error, stage.cause.toString())
-                        else -> rh.gs(R.string.combov2_pairing_aborted_unknown_reasons)
+                        is BasicProgressStage.Timeout   -> rh.gs(R.string.combov2_pairing_combo_scan_timeout_reached)
+                        is BasicProgressStage.Error     -> rh.gs(R.string.combov2_pairing_failed_due_to_error, stage.cause.toString())
+                        else                            -> rh.gs(R.string.combov2_pairing_aborted_unknown_reasons)
                     }
                 }
 
-                binding.combov2CurrentPairingStepDesc.text = when (val progStage = stage) {
-                    BasicProgressStage.ScanningForPumpStage ->
+                binding.combov2CurrentPairingStepDesc.text = when (stage) {
+                    BasicProgressStage.ScanningForPumpStage           ->
                         rh.gs(R.string.combov2_scanning_for_pump)
 
-                    is BasicProgressStage.EstablishingBtConnection -> {
+                    is BasicProgressStage.EstablishingBtConnection    -> {
                         rh.gs(
                             R.string.combov2_establishing_bt_connection,
-                            progStage.currentAttemptNr
+                            stage.currentAttemptNr
                         )
                     }
 
-                    BasicProgressStage.PerformingConnectionHandshake ->
+                    BasicProgressStage.PerformingConnectionHandshake  ->
                         rh.gs(R.string.combov2_pairing_performing_handshake)
 
-                    BasicProgressStage.ComboPairingKeyAndPinRequested  ->
+                    BasicProgressStage.ComboPairingKeyAndPinRequested ->
                         rh.gs(R.string.combov2_pairing_pump_requests_pin)
 
-                    BasicProgressStage.ComboPairingFinishing ->
+                    BasicProgressStage.ComboPairingFinishing          ->
                         rh.gs(R.string.combov2_pairing_finishing)
 
-                    else -> ""
+                    else                                              -> ""
                 }
 
                 if (stage == BasicProgressStage.ComboPairingKeyAndPinRequested) {

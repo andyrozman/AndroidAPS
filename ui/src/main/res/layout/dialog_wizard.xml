@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:focusableInTouchMode="true"
-    tools:context="info.nightscout.ui.dialogs.InsulinDialog">
+    tools:context=".dialogs.InsulinDialog">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -39,6 +39,43 @@
         </RelativeLayout>
 
         <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="10dp"
+            android:background="?attr/dialogTitleBackground"
+            android:gravity="center_horizontal"
+            android:orientation="horizontal"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp">
+
+            <TextView
+                android:id="@+id/total"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="2.35U 28g"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                tools:ignore="HardcodedText" />
+
+            <TextView
+                android:id="@+id/percent_used"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="50%"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:textColor="?attr/bolusColor"
+                tools:ignore="HardcodedText" />
+
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/spacer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -65,7 +102,7 @@
                     android:textAppearance="@style/TextAppearance.AppCompat.Small"
                     android:textStyle="bold" />
 
-                <info.nightscout.core.ui.elements.NumberPicker
+                <app.aaps.core.ui.elements.NumberPicker
                     android:id="@+id/bg_input"
                     android:layout_width="130dp"
                     android:layout_height="40dp"
@@ -99,7 +136,7 @@
                     android:textAppearance="@style/TextAppearance.AppCompat.Small"
                     android:textStyle="bold" />
 
-                <info.nightscout.core.ui.elements.NumberPicker
+                <app.aaps.core.ui.elements.NumberPicker
                     android:id="@+id/carbs_input"
                     android:layout_width="130dp"
                     android:layout_height="40dp"
@@ -154,7 +191,7 @@
 
                 </LinearLayout>
 
-                <info.nightscout.core.ui.elements.NumberPicker
+                <app.aaps.core.ui.elements.NumberPicker
                     android:id="@+id/correction_input"
                     android:layout_width="130dp"
                     android:layout_height="40dp"
@@ -173,44 +210,60 @@
 
             </TableRow>
 
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/carb_time_input_label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:padding="10dp"
+                        android:text="@string/carb_time_label"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                        android:textStyle="bold" />
+
+                    <CheckBox
+                        android:id="@+id/alarm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:checked="false"
+                        android:contentDescription="@string/a11y_set_carb_timer"
+                        android:drawableEnd="@drawable/ic_access_alarm_24dp"
+                        android:layoutDirection="rtl"
+                        android:padding="2dp" />
+
+                </LinearLayout>
+
+                <app.aaps.core.ui.elements.NumberPicker
+                    android:id="@+id/carb_time_input"
+                    android:layout_width="130dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center_horizontal"
+                    app:contentDescription="carb time" />
+
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:gravity="start"
+                    android:padding="5dp"
+                    android:text="@string/unit_minute_short"
+                    android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            </TableRow>
+
         </TableLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="5dp"
-            android:layout_marginEnd="10dp"
-            android:background="?attr/dialogTitleBackground"
-            android:gravity="center_horizontal"
-            android:orientation="horizontal"
-            android:paddingTop="5dp"
-            android:paddingBottom="5dp">
-
-            <TextView
-                android:id="@+id/total"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:text="2.35U 28g"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                tools:ignore="HardcodedText" />
-
-            <TextView
-                android:id="@+id/percent_used"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:text="50%"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:textColor="?attr/bolusColor"
-                tools:ignore="HardcodedText" />
-
-        </LinearLayout>
 
         <include
             android:id="@+id/notes_layout"
@@ -284,31 +337,6 @@
 
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/done_background"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:layout_gravity="center_vertical"
-            android:background="@android:color/transparent"
-            android:orientation="horizontal"
-            android:paddingStart="5dp"
-            android:paddingEnd="5dp">
-
-            <CheckBox
-                android:id="@+id/calculation_checkbox"
-                android:layout_width="wrap_content"
-                android:layout_height="fill_parent"
-                android:layout_gravity="center_vertical"
-                android:checked="false"
-                android:contentDescription="@string/show_calculation"
-                android:drawableEnd="@drawable/ic_visibility" />
-
-            <include
-                android:id="@+id/okcancel"
-                layout="@layout/okcancel" />
-
-        </LinearLayout>
-
         <View
             android:id="@+id/delimiter"
             android:layout_width="fill_parent"
@@ -323,53 +351,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/carb_time_input_label"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center_vertical"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="2dp"
-                    android:text="@string/carb_time_label"
-                    android:textAppearance="@style/TextAppearance.AppCompat.Small"
-                    android:textStyle="bold" />
-
-                <CheckBox
-                    android:id="@+id/alarm"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:checked="false"
-                    android:contentDescription="@string/a11y_set_carb_timer"
-                    android:drawableEnd="@drawable/ic_access_alarm_24dp"
-                    android:layoutDirection="rtl"
-                    android:padding="2dp" />
-
-                <info.nightscout.core.ui.elements.NumberPicker
-                    android:id="@+id/carb_time_input"
-                    android:layout_width="130dp"
-                    android:layout_height="40dp"
-                    android:layout_gravity="center"
-                    app:contentDescription="carb time" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:gravity="start"
-                    android:padding="5dp"
-                    android:text="@string/unit_minute_short"
-                    android:textAppearance="?android:attr/textAppearanceSmall" />
-
-            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -680,6 +661,31 @@
                 </TableRow>
 
             </TableLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/done_background"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_gravity="center_vertical"
+            android:background="@android:color/transparent"
+            android:orientation="horizontal"
+            android:paddingStart="5dp"
+            android:paddingEnd="5dp">
+
+            <CheckBox
+                android:id="@+id/calculation_checkbox"
+                android:layout_width="wrap_content"
+                android:layout_height="fill_parent"
+                android:layout_gravity="center_vertical"
+                android:checked="false"
+                android:contentDescription="@string/show_calculation"
+                android:drawableEnd="@drawable/ic_visibility" />
+
+            <include
+                android:id="@+id/okcancel"
+                layout="@layout/okcancel" />
 
         </LinearLayout>
 

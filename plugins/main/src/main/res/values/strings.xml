@@ -31,6 +31,10 @@
     <string name="smscommunicator_otp_reset_header">Reset Authenticators</string>
     <string name="smscommunicator_otp_install_info">On each follower phone install Authenticator app that support RFC 6238 TOTP tokens. Popular free apps are:\n • Authy\n • Google Authenticator\n • LastPass Authenticator\n • FreeOTP Authenticator</string>
     <string name="smscommunicator_otp_reset_warning">By resetting authenticator you make all already provisioned authenticators invalid. You will need to set up them again!</string>
+    <string name="smscommunicator_otp_verification_ok">OK</string>
+    <string name="smscommunicator_otp_verification_ivalid_size">INVALID SIZE!</string>
+    <string name="smscommunicator_otp_verification_wrong_pin">WRONG PIN</string>
+    <string name="smscommunicator_otp_verification_wrong_otp">WRONG OTP</string>
     <string name="sms_wrong_code">Wrong code. Command cancelled.</string>
     <string name="sms_timeout_while_waiting">Timeout while waiting for finish of previous pump communication</string>
     <string name="smscommunicator_allowednumbers">Allowed phone numbers</string>
@@ -112,11 +116,7 @@
     <string name="sms_wrong_tbr_duration">TBR duration must be a multiple of %1$d minutes and greater than 0.</string>
     <string name="a11y_otp_qr_code">QR Code for setup one time password</string>
 
-    <string name="xdrip_status_detailed_iob_title">Show detailed IOB</string>
-    <string name="xdrip_status_detailed_iob_summary">Break down IOB into bolus and basal IOB on the watchface</string>
     <string name="disabled_loop">Loop Disabled</string>
-    <string name="xdrip_status_show_bgi_title">Show BGI</string>
-    <string name="xdrip_status_show_bgi_summary">Add BGI to status line</string>
 
     <!-- Food-->
     <string name="food_short">Food</string>
@@ -168,6 +168,8 @@
     <string name="dia_short">DIA</string>
     <string name="target_short">TARG</string>
     <string name="basal_short">BAS</string>
+    <string name="isf_dynamic_label">Your algorithm can provide dynamic calculation of ISF. Values below are used only as a fallback in case of missing data</string>
+    <string name="ic_dynamic_label">Your algorithm can provide dynamic calculation of IC. Values below are used only as a fallback in case of missing data</string>
 
     <!-- Actions -->
     <string name="actions">Actions</string>
@@ -190,18 +192,9 @@
     <string name="patch_pump">Patch pump</string>
 
     <!-- Overview -->
-    <string name="key_show_calibration_button" translatable="false">show_calibration_button</string>
-    <string name="key_show_cgm_button" translatable="false">show_cgm_button</string>
-    <string name="key_show_carbs_button" translatable="false">show_carbs_button</string>
-    <string name="key_show_wizard_button" translatable="false">show_wizard_button</string>
-    <string name="key_show_insulin_button" translatable="false">show_insulin_button</string>
-    <string name="key_show_treatment_button" translatable="false">show_treatment_button</string>
     <string name="key_statuslights_copy_ns" translatable="false">statuslights_copy_ns</string>
     <string name="key_statuslights_overview_advanced" translatable="false">statuslights_overview_advanced</string>
-    <string name="key_keep_screen_on" translatable="false">keep_screen_on</string>
-    <string name="key_short_tabtitles" translatable="false">short_tabtitles</string>
 
-    <string name="key_show_statuslights" translatable="false">show_statuslights</string>
     <string name="show_statuslights">Show status lights on home screen</string>
     <string name="statuslights_cage_warning">Threshold warning cannula age [h]</string>
     <string name="statuslights_cage_critical">Threshold critical cannula age [h]</string>
@@ -209,19 +202,13 @@
     <string name="statuslights_iage_critical">Threshold critical insulin age [h]</string>
     <string name="statuslights_sage_warning">Threshold warning sensor age [h]</string>
     <string name="statuslights_sage_critical">Threshold critical sensor age [h]</string>
-    <string name="key_statuslights_sbat_warning" translatable="false">statuslights_sbat_warning</string>
     <string name="statuslights_sbat_warning">Threshold warning sensor battery level [%]</string>
-    <string name="key_statuslights_sbat_critical" translatable="false">statuslights_sbat_critical</string>
     <string name="statuslights_sbat_critical">Threshold critical sensor battery level [%]</string>
     <string name="statuslights_bage_warning">Threshold warning pump battery age [h]</string>
     <string name="statuslights_bage_critical">Threshold critical pump battery age [h]</string>
-    <string name="key_statuslights_res_warning" translatable="false">statuslights_res_warning</string>
     <string name="statuslights_res_warning">Threshold warning reservoir level [U]</string>
-    <string name="key_statuslights_res_critical" translatable="false">statuslights_res_critical</string>
     <string name="statuslights_res_critical">Threshold critical reservoir level [U]</string>
-    <string name="key_statuslights_bat_warning" translatable="false">statuslights_bat_warning</string>
     <string name="statuslights_bat_warning">Threshold warning pump battery level [%]</string>
-    <string name="key_statuslights_bat_critical" translatable="false">statuslights_bat_critical</string>
     <string name="statuslights_bat_critical">Threshold critical pump battery level [%]</string>
     <string name="statuslights_copy_ns">Copy settings from NS</string>
     <string name="a11y_graph">graph</string>
@@ -271,13 +258,14 @@
     <string name="button1">Button 1</string>
     <string name="button2">Button 2</string>
     <string name="button3">Button 3</string>
-    <string name="prefs_range_title">Range for Visualization</string>
+    <string name="prefs_range_title">Range for visualization</string>
     <string name="prefs_range_summary">High and low mark for the charts in Overview and Smartwatch</string>
     <string name="low_mark">LOW mark</string>
     <string name="high_mark">HIGH mark</string>
     <string name="short_tabtitles">Shorten tab titles</string>
     <string name="overview_show_notes_field_in_dialogs_title">Show notes field in treatment dialogs</string>
     <string name="deliverpartofboluswizard">Bolus wizard performs calculation but only this part of calculated insulin is delivered. Useful with SMB algorithm.</string>
+    <string name="deliver_part_of_boluswizard_reset_time">Deliver full bolus (100%) if glycemia is older than</string>
     <string name="enable_bolus_advisor">Enable bolus advisor</string>
     <string name="enable_bolus_advisor_summary">Use reminder to start eating later instead of wizard result during high glycemia ("pre-bolus")</string>
     <string name="enablesuperbolus">Enable superbolus in wizard</string>
@@ -288,18 +276,19 @@
 
     <!--    OverviewMenu-->
     <string name="key_graph_config" translatable="false">graphconfig</string>
-
     <string name="overview_show_predictions">Predictions</string>
     <string name="overview_show_treatments">Treatments</string>
+    <string name="overview_show_heartRate">Heart Rate</string>
     <string name="overview_show_deviation_slope">Deviation slope</string>
     <string name="overview_show_activity">Activity</string>
     <string name="overview_show_bgi">Blood Glucose Impact</string>
-    <string name="overview_show_sensitivity">Sensitivity</string>
+    <string name="overview_show_sensitivity">Sensitivity change</string>
     <string name="overview_show_deviations">Deviations</string>
     <string name="overview_show_cob">Carbs On Board</string>
     <string name="overview_show_iob">Insulin On Board</string>
     <string name="overview_show_basals">Basals</string>
     <string name="overview_show_abs_insulin">Absolute insulin</string>
+    <string name="overview_show_variable_sens">Variable sensitivity</string>
     <string name="prediction_shortname">PRED</string>
     <string name="basal_shortname">BAS</string>
     <string name="deviation_shortname">DEV</string>
@@ -308,13 +297,14 @@
     <string name="abs_insulin_shortname">ABS</string>
     <string name="devslope_shortname">DEVSLOPE</string>
     <string name="treatments_shortname">TREAT</string>
-    <string name="sensitivity_shortname">SENS</string>
+    <string name="heartRate_shortname">HR</string>
+    <string name="sensitivity_shortname">SENS%</string>
+    <string name="variable_sensitivity_shortname">VSENS</string>
     <string name="graph_scale">Graph scale</string>
     <string name="graph_menu_divider_header">Graph</string>
+    <string name="temp_basal_overview_short_name">T:</string>
 
     <!-- Skins -->
-    <string name="key_skin" translatable="false">skin</string>
-
     <string name="classic_description">Original skin</string>
     <string name="lowres_description">Low Resolution skin</string>
     <string name="buttonson_description">Buttons are always displayed on bottom of screen</string>
@@ -327,70 +317,12 @@
     <string name="send_logfiles">Send today\'s log files to developers along with this time. Unexpected situation.</string>
     <string name="iob_cob_calculator" translatable="false">IobCobCalculator</string>
 
-    <!--    Wear-->
-    <string name="wear_shortname">WEAR</string>
-    <string name="description_wear">Monitor and control AAPS using your WearOS watch.</string>
-    <string name="no_watch_connected">(No Watch Connected)</string>
-    <string name="pump_status">Pump status</string>
-    <string name="loop_status">Loop status</string>
-    <string name="wizard_result">Calc. Wizard:\nInsulin: %1$.2fU\nCarbs: %2$dg</string>
-    <string name="quick_wizard_not_available">Selected quickwizard no longer available, please refresh your tile</string>
-    <string name="quick_wizard_message">QuickWizard: %1$s\nInsulin: %2$.2fU\nCarbs: %3$dg</string>
-    <string name="wear_action_tempt_preset_error">Temptarget unknown preset: %1$s</string>
-    <string name="wear_action_tempt_cancel_message">Cancelling running Temp-Targets?</string>
-    <string name="wear_action_tempt_unit_error">Different units used on watch and phone!</string>
-    <string name="wear_action_tempt_zero_message">Zero-Temp-Target - cancelling running Temp-Targets?</string>
-    <string name="wear_action_tempt_min_bg_error">Min-BG out of range!</string>
-    <string name="wear_action_tempt_max_bg_error">Max-BG out of range!</string>
-    <string name="wear_action_tempt_manual_range_message">Temptarget:\nMin: %1$s\nMax: %2$s\nDuration: %3$s</string>
-    <string name="wear_action_tempt_manual_message">Temptarget:\nTarget: %1$s\nDuration: %2$s</string>
-    <string name="wear_action_tempt_preset_message">Temptarget:\nReason: %1$s\nTarget: %2$s\nDuration: %3$s</string>
-    <string name="no_success">not successful - please check phone</string>
-    <string name="wear_settings">Wear settings</string>
-    <string name="wearcontrol_title">Controls from Watch</string>
-    <string name="wearcontrol_summary">Set Temp-Targets and enter Treatments from the watch.</string>
-    <string name="wear_wizard_settings_summary">Calculations included in the Wizard result:</string>
-    <string name="wear_display_settings">Display Settings</string>
-    <string name="wear_general_settings">General Settings</string>
-    <string name="wear_detailed_delta_title">Show detailed delta</string>
-    <string name="wear_detailed_delta_summary">Show delta with one more decimal place</string>
-    <string name="wear_notifysmb_title">Notify on SMB</string>
-    <string name="wear_notifysmb_summary">Show SMB on the watch like a standard bolus.</string>
-    <string name="wear_predictions_summary">Show the predictions on the watchface.</string>
-    <string name="wear_predictions_title">Predictions</string>
-    <string name="resend_all_data">Resend All Data</string>
-    <string name="open_settings_on_wear">Open Settings on Wear</string>
-
     <!--    PersistentNotification-->
     <string name="ongoingnotificaction" translatable="false">Ongoing Notification</string>
     <string name="description_persistent_notification">Shows an ongoing notification with a short overview of what your loop is doing</string>
     <string name="old_data">OLD DATA</string>
-    <string name="pump_fetching_data">trying to fetch data from pump.</string>
-    <string name="pump_old_data">TDD: Still old data! Cannot load from pump.</string>
-    <string name="grams_short">g</string>
-    <string name="hour_short">h</string>
-    <string name="no_active_profile">No active profile switch!</string>
-    <string name="profile_message">Profile:\n\nTimeshift: %1$\nPercentage: %2$d%%\"</string>
-    <string name="key_wear_predictions" translatable="false">wear_predictions</string>
-    <string name="tdd_line">%1$.2fU %1$.0f%%</string>
-    <string name="no_profile">No profile loaded</string>
-    <string name="aps_only">Only apply in APS mode!</string>
-    <string name="last_aps_result_na">Last result not available!</string>
-    <string name="loop_status_closed">CLOSED LOOP</string>
-    <string name="loop_status_open">OPEN LOOP</string>
-    <string name="loop_status_disabled">LOOP DISABLED</string>
-    <string name="aps">APS</string>
-    <string name="last_run">Last run</string>
-    <string name="last_enact">Last Enact</string>
-    <string name="today">Today</string>
-    <string name="weighted">weighted</string>
-    <string name="target_only_aps_mode">Targets only apply in APS mode!</string>
-    <string name="no_history">No history data!</string>    
-    <string name="units_short">U</string>
-    <string name="temp_target">Temp Target</string>
-    <string name="until">until</string>
-    <string name="default_range">DEFAULT RANGE</string>
-    <string name="target">target</string>
-    <string name="rate_duration">Rate: %1$.2fU/h (%2$.2f%%) \nDuration %3$d min</string>
+    <string name="overview_show_steps">Steps</string>
+    <string name="steps_shortname">STEPS</string>
+    <string name="simple_mode_enabled">Simple mode enabled</string>
 
 </resources>

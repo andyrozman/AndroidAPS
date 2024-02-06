@@ -6,6 +6,39 @@ import android.content.ServiceConnection
 import android.os.IBinder
 import android.os.SystemClock
 import androidx.preference.Preference
+import app.aaps.core.data.model.BS
+import app.aaps.core.data.plugin.PluginDescription
+import app.aaps.core.data.plugin.PluginType
+import app.aaps.core.data.pump.defs.ManufacturerType
+import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.data.pump.defs.TimeChangeType
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.Notification
+import app.aaps.core.interfaces.objects.Instantiator
+import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.pump.Pump
+import app.aaps.core.interfaces.pump.PumpEnactResult
+import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.pump.PumpSync.TemporaryBasalType
+import app.aaps.core.interfaces.pump.actions.CustomAction
+import app.aaps.core.interfaces.pump.actions.CustomActionType
+import app.aaps.core.interfaces.pump.defs.determineCorrectBasalSize
+import app.aaps.core.interfaces.queue.CommandQueue
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
+import app.aaps.core.interfaces.rx.events.EventRefreshOverview
+import app.aaps.core.interfaces.rx.events.EventSWRLStatus
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.interfaces.ui.UiInteraction
+import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.interfaces.utils.DecimalFormatter
+import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.utils.DateTimeUtil
 import dagger.android.HasAndroidInjector
 import info.nightscout.androidaps.plugins.pump.common.events.EventRileyLinkDeviceStatusChange
 import info.nightscout.androidaps.plugins.pump.common.hw.rileylink.RileyLinkConst
@@ -37,40 +70,11 @@ import info.nightscout.androidaps.plugins.pump.medtronic.service.RileyLinkMedtro
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicConst
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil.Companion.isSame
-import info.nightscout.core.utils.DateTimeUtil
-import info.nightscout.core.utils.fabric.FabricPrivacy
-import info.nightscout.interfaces.notifications.Notification
-import info.nightscout.interfaces.plugin.ActivePlugin
-import info.nightscout.interfaces.plugin.PluginDescription
-import info.nightscout.interfaces.plugin.PluginType
-import info.nightscout.interfaces.profile.Profile
-import info.nightscout.interfaces.pump.DetailedBolusInfo
-import info.nightscout.interfaces.pump.Pump
-import info.nightscout.interfaces.pump.PumpEnactResult
-import info.nightscout.interfaces.pump.PumpSync
-import info.nightscout.interfaces.pump.PumpSync.TemporaryBasalType
-import info.nightscout.interfaces.pump.actions.CustomAction
-import info.nightscout.interfaces.pump.actions.CustomActionType
-import info.nightscout.interfaces.pump.defs.ManufacturerType
-import info.nightscout.interfaces.pump.defs.PumpType
-import info.nightscout.interfaces.queue.CommandQueue
-import info.nightscout.interfaces.ui.UiInteraction
-import info.nightscout.interfaces.utils.TimeChangeType
 import info.nightscout.pump.common.data.PumpStatus
 import info.nightscout.pump.common.defs.PumpDriverState
 import info.nightscout.pump.common.sync.PumpDbEntryTBR
 import info.nightscout.pump.common.sync.PumpSyncStorage
 import info.nightscout.pump.common.utils.ProfileUtil
-import info.nightscout.rx.AapsSchedulers
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.rx.events.EventRefreshButtonState
-import info.nightscout.rx.events.EventRefreshOverview
-import info.nightscout.rx.events.EventSWRLStatus
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.interfaces.ResourceHelper
-import info.nightscout.shared.sharedPreferences.SP
-import info.nightscout.shared.utils.DateUtil
 import org.joda.time.LocalDateTime
 import java.util.Calendar
 import java.util.GregorianCalendar
@@ -87,7 +91,7 @@ import kotlin.math.floor
  */
 @Singleton
 class MedtronicPumpPlugin @Inject constructor(
-    injector: HasAndroidInjector,
+    private val injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
     rxBus: RxBus,
     context: Context,
@@ -105,18 +109,20 @@ class MedtronicPumpPlugin @Inject constructor(
     dateUtil: DateUtil,
     aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
-    pumpSyncStorage: PumpSyncStorage
+    pumpSyncStorage: PumpSyncStorage,
+    decimalFormatter: DecimalFormatter,
+    instantiator: Instantiator
 ) : info.nightscout.pump.common.PumpPluginAbstract(
     PluginDescription() //
         .mainType(PluginType.PUMP) //
         .fragmentClass(MedtronicFragment::class.java.name) //
-        .pluginIcon(info.nightscout.core.ui.R.drawable.ic_veo_128)
+        .pluginIcon(app.aaps.core.ui.R.drawable.ic_veo_128)
         .pluginName(R.string.medtronic_name) //
         .shortName(R.string.medtronic_name_short) //
         .preferencesId(R.xml.pref_medtronic)
         .description(R.string.description_pump_medtronic),  //
     PumpType.MEDTRONIC_522_722,  // we default to most basic model, correct model from config is loaded later
-    injector, rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage
+    rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage, decimalFormatter, instantiator
 ), Pump, RileyLinkPumpDevice, info.nightscout.pump.common.sync.PumpSyncEntriesCreator {
 
     private var rileyLinkMedtronicService: RileyLinkMedtronicService? = null
@@ -170,7 +176,7 @@ class MedtronicPumpPlugin @Inject constructor(
         super.updatePreferenceSummary(pref)
         if (pref.key == rh.gs(info.nightscout.androidaps.plugins.pump.common.hw.rileylink.R.string.key_rileylink_mac_address)) {
             val value = sp.getStringOrNull(info.nightscout.androidaps.plugins.pump.common.hw.rileylink.R.string.key_rileylink_mac_address, null)
-            pref.summary = value ?: rh.gs(info.nightscout.core.ui.R.string.not_set_short)
+            pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
         }
     }
 
@@ -182,7 +188,6 @@ class MedtronicPumpPlugin @Inject constructor(
         medtronicPumpStatus.lastDataTime = medtronicPumpStatus.lastConnection
         medtronicPumpStatus.previousConnection = medtronicPumpStatus.lastConnection
 
-        //if (rileyLinkMedtronicService != null) rileyLinkMedtronicService.verifyConfiguration();
         aapsLogger.debug(LTag.PUMP, "initPumpStatusData: $medtronicPumpStatus")
 
         // this is only thing that can change, by being configured
@@ -592,7 +597,7 @@ class MedtronicPumpPlugin @Inject constructor(
         aapsLogger.info(LTag.PUMP, "MedtronicPumpPlugin::deliverBolus - " + BolusDeliveryType.DeliveryPrepared)
         setRefreshButtonEnabled(false)
         if (detailedBolusInfo.insulin > medtronicPumpStatus.reservoirRemainingUnits) {
-            return PumpEnactResult(injector) //
+            return instantiator.providePumpEnactResult() //
                 .success(false) //
                 .enacted(false) //
                 .comment(
@@ -633,7 +638,7 @@ class MedtronicPumpPlugin @Inject constructor(
 
             // LOG.debug("MedtronicPumpPlugin::deliverBolus - Response: {}", response);
             return if (response == null || !response) {
-                PumpEnactResult(injector) //
+                instantiator.providePumpEnactResult() //
                     .success(bolusDeliveryType == BolusDeliveryType.CancelDelivery) //
                     .enacted(false) //
                     .comment(R.string.medtronic_cmd_bolus_could_not_be_delivered)
@@ -642,7 +647,7 @@ class MedtronicPumpPlugin @Inject constructor(
                     // LOG.debug("MedtronicPumpPlugin::deliverBolus - Delivery Canceled after Bolus started.");
                     Thread {
                         SystemClock.sleep(2000)
-                        uiInteraction.runAlarm(rh.gs(R.string.medtronic_cmd_cancel_bolus_not_supported), rh.gs(R.string.medtronic_warning), info.nightscout.core.ui.R.raw.boluserror)
+                        uiInteraction.runAlarm(rh.gs(R.string.medtronic_cmd_cancel_bolus_not_supported), rh.gs(R.string.medtronic_warning), app.aaps.core.ui.R.raw.boluserror)
                     }.start()
                 }
                 val now = System.currentTimeMillis()
@@ -653,14 +658,14 @@ class MedtronicPumpPlugin @Inject constructor(
 
                 // we subtract insulin, exact amount will be visible with next remainingInsulin update.
                 medtronicPumpStatus.reservoirRemainingUnits = medtronicPumpStatus.reservoirRemainingUnits - detailedBolusInfo.insulin
-                incrementStatistics(if (detailedBolusInfo.bolusType === DetailedBolusInfo.BolusType.SMB) MedtronicConst.Statistics.SMBBoluses else MedtronicConst.Statistics.StandardBoluses)
+                incrementStatistics(if (detailedBolusInfo.bolusType === BS.Type.SMB) MedtronicConst.Statistics.SMBBoluses else MedtronicConst.Statistics.StandardBoluses)
 
                 // calculate time for bolus and set driver to busy for that time
                 val bolusTime = (detailedBolusInfo.insulin * 42.0).toInt()
                 val time = now + bolusTime * 1000
                 busyTimestamps.add(time)
                 setEnableCustomAction(MedtronicCustomActionType.ClearBolusBlock, true)
-                PumpEnactResult(injector).success(true).enacted(true).bolusDelivered(detailedBolusInfo.insulin)
+                instantiator.providePumpEnactResult().success(true).enacted(true).bolusDelivered(detailedBolusInfo.insulin)
             }
         } finally {
             finishAction("Bolus")
@@ -674,8 +679,8 @@ class MedtronicPumpPlugin @Inject constructor(
     private fun setNotReachable(isBolus: Boolean, success: Boolean): PumpEnactResult {
         setRefreshButtonEnabled(true)
         if (isBolus) bolusDeliveryType = BolusDeliveryType.Idle
-        return if (success) PumpEnactResult(injector).success(true).enacted(false)
-        else PumpEnactResult(injector).success(false).enacted(false).comment(R.string.medtronic_pump_status_pump_unreachable)
+        return if (success) instantiator.providePumpEnactResult().success(true).enacted(false)
+        else instantiator.providePumpEnactResult().success(false).enacted(false).comment(R.string.medtronic_pump_status_pump_unreachable)
     }
 
     override fun stopBolusDelivering() {
@@ -698,7 +703,7 @@ class MedtronicPumpPlugin @Inject constructor(
         setRefreshButtonEnabled(false)
         if (isPumpNotReachable) {
             setRefreshButtonEnabled(true)
-            return PumpEnactResult(injector) //
+            return instantiator.providePumpEnactResult() //
                 .success(false) //
                 .enacted(false) //
                 .comment(R.string.medtronic_pump_status_pump_unreachable)
@@ -711,7 +716,7 @@ class MedtronicPumpPlugin @Inject constructor(
         if (tbrCurrent == null) {
             aapsLogger.warn(LTag.PUMP, logPrefix + "setTempBasalAbsolute - Could not read current TBR, canceling operation.")
             finishAction("TBR")
-            return PumpEnactResult(injector).success(false).enacted(false)
+            return instantiator.providePumpEnactResult().success(false).enacted(false)
                 .comment(R.string.medtronic_cmd_cant_read_tbr)
         } else {
             aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalAbsolute: Current Basal: duration: " + tbrCurrent.durationMinutes + " min, rate=" + tbrCurrent.insulinRate)
@@ -726,7 +731,7 @@ class MedtronicPumpPlugin @Inject constructor(
                 if (sameRate) {
                     aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalAbsolute - No enforceNew and same rate. Exiting.")
                     finishAction("TBR")
-                    return PumpEnactResult(injector).success(true).enacted(false)
+                    return instantiator.providePumpEnactResult().success(true).enacted(false)
                 }
             }
             // if not the same rate, we cancel and start new
@@ -742,7 +747,7 @@ class MedtronicPumpPlugin @Inject constructor(
             if (response == null || !response) {
                 aapsLogger.error(logPrefix + "setTempBasalAbsolute - Cancel TBR failed.")
                 finishAction("TBR")
-                return PumpEnactResult(injector).success(false).enacted(false)
+                return instantiator.providePumpEnactResult().success(false).enacted(false)
                     .comment(R.string.medtronic_cmd_cant_cancel_tbr_stop_op)
             } else {
                 //cancelTBRWithTemporaryId()
@@ -759,7 +764,7 @@ class MedtronicPumpPlugin @Inject constructor(
         aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalAbsolute - setTBR. Response: " + response)
         return if (response == null || !response) {
             finishAction("TBR")
-            PumpEnactResult(injector).success(false).enacted(false) //
+            instantiator.providePumpEnactResult().success(false).enacted(false) //
                 .comment(R.string.medtronic_cmd_tbr_could_not_be_delivered)
         } else {
             medtronicPumpStatus.tempBasalStart = System.currentTimeMillis()
@@ -773,7 +778,7 @@ class MedtronicPumpPlugin @Inject constructor(
 
             incrementStatistics(MedtronicConst.Statistics.TBRsSet)
             finishAction("TBR")
-            PumpEnactResult(injector).success(true).enacted(true) //
+            instantiator.providePumpEnactResult().success(true).enacted(true) //
                 .absolute(absoluteRate).duration(durationInMinutes)
         }
     }
@@ -1019,7 +1024,7 @@ class MedtronicPumpPlugin @Inject constructor(
         aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - started")
         if (isPumpNotReachable) {
             setRefreshButtonEnabled(true)
-            return PumpEnactResult(injector) //
+            return instantiator.providePumpEnactResult() //
                 .success(false) //
                 .enacted(false) //
                 .comment(R.string.medtronic_pump_status_pump_unreachable)
@@ -1031,12 +1036,12 @@ class MedtronicPumpPlugin @Inject constructor(
             if (tbrCurrent.insulinRate > 0.0f && tbrCurrent.durationMinutes == 0) {
                 aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - TBR already canceled.")
                 finishAction("TBR")
-                return PumpEnactResult(injector).success(true).enacted(false)
+                return instantiator.providePumpEnactResult().success(true).enacted(false)
             }
         } else {
             aapsLogger.warn(LTag.PUMP, logPrefix + "cancelTempBasal - Could not read current TBR, canceling operation.")
             finishAction("TBR")
-            return PumpEnactResult(injector).success(false).enacted(false)
+            return instantiator.providePumpEnactResult().success(false).enacted(false)
                 .comment(R.string.medtronic_cmd_cant_read_tbr)
         }
         val responseTask2 = rileyLinkMedtronicService?.medtronicUIComm?.executeCommand(MedtronicCommandType.CancelTBR)
@@ -1044,7 +1049,7 @@ class MedtronicPumpPlugin @Inject constructor(
         finishAction("TBR")
         return if (response == null || !response) {
             aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - Cancel TBR failed.")
-            PumpEnactResult(injector).success(false).enacted(false) //
+            instantiator.providePumpEnactResult().success(false).enacted(false) //
                 .comment(R.string.medtronic_cmd_cant_cancel_tbr)
         } else {
             aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - Cancel TBR successful.")
@@ -1080,7 +1085,7 @@ class MedtronicPumpPlugin @Inject constructor(
 
             //cancelTBRWithTemporaryId()
 
-            PumpEnactResult(injector).success(true).enacted(true) //
+            instantiator.providePumpEnactResult().success(true).enacted(true) //
                 .isTempCancel(true)
         }
     }
@@ -1103,7 +1108,7 @@ class MedtronicPumpPlugin @Inject constructor(
 
         // this shouldn't be needed, but let's do check if profile setting we are setting is same as current one
         if (isProfileSame(profile)) {
-            return PumpEnactResult(injector) //
+            return instantiator.providePumpEnactResult() //
                 .success(true) //
                 .enacted(false) //
                 .comment(R.string.medtronic_cmd_basal_profile_not_set_is_same)
@@ -1111,7 +1116,7 @@ class MedtronicPumpPlugin @Inject constructor(
         setRefreshButtonEnabled(false)
         if (isPumpNotReachable) {
             setRefreshButtonEnabled(true)
-            return PumpEnactResult(injector) //
+            return instantiator.providePumpEnactResult() //
                 .success(false) //
                 .enacted(false) //
                 .comment(R.string.medtronic_pump_status_pump_unreachable)
@@ -1121,7 +1126,7 @@ class MedtronicPumpPlugin @Inject constructor(
         aapsLogger.debug("Basal Profile: $basalProfile")
         val profileInvalid = isProfileValid(basalProfile)
         if (profileInvalid != null) {
-            return PumpEnactResult(injector) //
+            return instantiator.providePumpEnactResult() //
                 .success(false) //
                 .enacted(false) //
                 .comment(rh.gs(R.string.medtronic_cmd_set_profile_pattern_overflow, profileInvalid))
@@ -1133,10 +1138,10 @@ class MedtronicPumpPlugin @Inject constructor(
         val response = responseTask?.result as Boolean?
         aapsLogger.info(LTag.PUMP, logPrefix + "Basal Profile was set: " + response)
         return if (response == null || !response) {
-            PumpEnactResult(injector).success(false).enacted(false) //
+            instantiator.providePumpEnactResult().success(false).enacted(false) //
                 .comment(R.string.medtronic_cmd_basal_profile_could_not_be_set)
         } else {
-            PumpEnactResult(injector).success(true).enacted(true)
+            instantiator.providePumpEnactResult().success(true).enacted(true)
         }
     }
 
@@ -1169,13 +1174,14 @@ class MedtronicPumpPlugin @Inject constructor(
     private var customActions: List<CustomAction>? = null
     private val customActionWakeUpAndTune = CustomAction(
         R.string.medtronic_custom_action_wake_and_tune,
-        MedtronicCustomActionType.WakeUpAndTune
+        MedtronicCustomActionType.WakeUpAndTune,
+        app.aaps.core.ui.R.drawable.ic_actions_profileswitch
     )
     private val customActionClearBolusBlock = CustomAction(
-        R.string.medtronic_custom_action_clear_bolus_block, MedtronicCustomActionType.ClearBolusBlock, false
+        R.string.medtronic_custom_action_clear_bolus_block, MedtronicCustomActionType.ClearBolusBlock, app.aaps.core.ui.R.drawable.ic_actions_profileswitch, false
     )
     private val customActionResetRLConfig = CustomAction(
-        R.string.medtronic_custom_action_reset_rileylink, MedtronicCustomActionType.ResetRileyLinkConfiguration, true
+        R.string.medtronic_custom_action_reset_rileylink, MedtronicCustomActionType.ResetRileyLinkConfiguration, app.aaps.core.ui.R.drawable.ic_actions_profileswitch, true
     )
 
     override fun getCustomActions(): List<CustomAction>? {
@@ -1195,7 +1201,7 @@ class MedtronicPumpPlugin @Inject constructor(
                 if (rileyLinkMedtronicService?.verifyConfiguration() == true) {
                     serviceTaskExecutor.startTask(WakeAndTuneTask(injector))
                 } else {
-                    uiInteraction.runAlarm(rh.gs(R.string.medtronic_error_operation_not_possible_no_configuration), rh.gs(R.string.medtronic_warning), info.nightscout.core.ui.R.raw.boluserror)
+                    uiInteraction.runAlarm(rh.gs(R.string.medtronic_error_operation_not_possible_no_configuration), rh.gs(R.string.medtronic_warning), app.aaps.core.ui.R.raw.boluserror)
                 }
             }
 

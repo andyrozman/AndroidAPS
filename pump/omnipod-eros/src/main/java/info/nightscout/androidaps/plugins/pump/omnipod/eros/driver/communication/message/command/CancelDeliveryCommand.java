@@ -2,11 +2,11 @@ package info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.communicatio
 
 import java.util.EnumSet;
 
+import app.aaps.core.utils.pump.ByteUtil;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.communication.message.NonceResyncableMessageBlock;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.BeepType;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.DeliveryType;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.MessageBlockType;
-import info.nightscout.pump.core.utils.ByteUtil;
 
 public class CancelDeliveryCommand extends NonceResyncableMessageBlock {
 
@@ -32,7 +32,7 @@ public class CancelDeliveryCommand extends NonceResyncableMessageBlock {
 
     private void encode() {
         encodedData = new byte[5];
-        System.arraycopy(ByteUtil.getBytesFromInt(nonce), 0, encodedData, 0, 4);
+        System.arraycopy(ByteUtil.INSTANCE.getBytesFromInt(nonce), 0, encodedData, 0, 4);
         byte beepTypeValue = beepType.getValue();
         if (beepTypeValue > 8) {
             beepTypeValue = 0;

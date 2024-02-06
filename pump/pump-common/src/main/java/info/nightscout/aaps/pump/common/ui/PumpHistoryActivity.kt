@@ -1,4 +1,4 @@
-package info.nightscout.aaps.pump.common.ui
+package info.nightscout.pump.common.ui
 
 import android.content.Context
 import android.os.Bundle
@@ -11,21 +11,20 @@ import android.widget.ArrayAdapter
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import dagger.android.support.DaggerAppCompatActivity
-import info.nightscout.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
 import info.nightscout.pump.common.R
 import info.nightscout.pump.common.databinding.PumpHistoryActivityBinding
 import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
-import info.nightscout.aaps.pump.common.driver.PumpDriverConfigurationCapable
-import info.nightscout.aaps.pump.common.driver.history.PumpHistoryDataProvider
-import info.nightscout.aaps.pump.common.driver.history.PumpHistoryEntry
-import info.nightscout.aaps.pump.common.driver.history.PumpHistoryText
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.interfaces.ResourceHelper
+import info.nightscout.pump.common.driver.PumpDriverConfigurationCapable
+import info.nightscout.pump.common.driver.history.PumpHistoryDataProvider
+import info.nightscout.pump.common.driver.history.PumpHistoryEntry
+import info.nightscout.pump.common.driver.history.PumpHistoryText
 import javax.inject.Inject
 
-class PumpHistoryActivity : DaggerAppCompatActivity() {
+class PumpHistoryActivity : TranslatedDaggerAppCompatActivity() {
 
     @Inject lateinit var resourceHelper: ResourceHelper
     @Inject lateinit var aapsLogger: AAPSLogger
@@ -112,7 +111,7 @@ class PumpHistoryActivity : DaggerAppCompatActivity() {
         binding.pumpHistoryRecyclerView.adapter = recyclerViewAdapter
         binding.pumpHistoryStatus.visibility = View.GONE
         typeListFull = getTypeList(historyDataProvider.getAllowedPumpHistoryGroups())
-        val spinnerAdapter = ArrayAdapter(this, info.nightscout.core.ui.R.layout.spinner_centered, typeListFull!!)
+        val spinnerAdapter = ArrayAdapter(this, app.aaps.core.ui.R.layout.spinner_centered, typeListFull!!)
 
         binding.pumpHistoryText.text = historyDataProvider.getText(PumpHistoryText.PUMP_HISTORY)
 
@@ -209,6 +208,7 @@ class PumpHistoryActivity : DaggerAppCompatActivity() {
     }
 
     companion object {
+
         var showingType: TypeList? = null
         var selectedGroup = PumpHistoryEntryGroup.All
     }

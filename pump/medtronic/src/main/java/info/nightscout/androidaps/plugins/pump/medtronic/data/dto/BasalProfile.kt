@@ -1,11 +1,12 @@
 package info.nightscout.androidaps.plugins.pump.medtronic.data.dto
 
+import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.pump.defs.determineCorrectBasalSize
+import app.aaps.core.utils.pump.ByteUtil
 import com.google.gson.annotations.Expose
-import info.nightscout.interfaces.pump.defs.PumpType
 import info.nightscout.androidaps.plugins.pump.medtronic.util.MedtronicUtil
-import info.nightscout.pump.core.utils.ByteUtil
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
 import org.joda.time.Instant
 import java.util.Locale
 
@@ -54,10 +55,6 @@ class BasalProfile {
 
     private fun setRawData(data: ByteArray): Boolean {
         var dataInternal: ByteArray = data
-        // if (dataInternal == null) {
-        //     aapsLogger.error(LTag.PUMPCOMM, "setRawData: buffer is null!")
-        //     return false
-        // }
 
         // if we have just one entry through all day it looks like just length 1
         if (dataInternal.size == 1) {
@@ -102,8 +99,11 @@ class BasalProfile {
             val startString = entry.startTime!!.toString("HH:mm")
             // this doesn't work
             aapsLogger.debug(
-                LTag.PUMPCOMM, String.format(Locale.ENGLISH, "Entry %d, rate=%.3f (%s), start=%s (0x%02X)", i + 1, entry.rate,
-                                             ByteUtil.getHex(entry.rate_raw), startString, entry.startTime_raw))
+                LTag.PUMPCOMM, String.format(
+                    Locale.ENGLISH, "Entry %d, rate=%.3f (%s), start=%s (0x%02X)", i + 1, entry.rate,
+                    ByteUtil.getHex(entry.rate_raw), startString, entry.startTime_raw
+                )
+            )
         }
     }
 
@@ -142,8 +142,11 @@ class BasalProfile {
         val entries = getEntries()
         if (entries.size == 0) {
             aapsLogger.warn(
-                LTag.PUMPCOMM, String.format(Locale.ENGLISH, "getEntryForTime(%s): table is empty",
-                                             `when`.toDateTime().toLocalTime().toString("HH:mm")))
+                LTag.PUMPCOMM, String.format(
+                    Locale.ENGLISH, "getEntryForTime(%s): table is empty",
+                    `when`.toDateTime().toLocalTime().toString("HH:mm")
+                )
+            )
             return rval
         }
         // Log.w(TAG,"Assuming first entry");
@@ -159,8 +162,11 @@ class BasalProfile {
             val entry = entries[i]
             if (DEBUG_BASALPROFILE) {
                 aapsLogger.debug(
-                    LTag.PUMPCOMM, String.format(Locale.ENGLISH, "Comparing 'now'=%s to entry 'start time'=%s", `when`.toDateTime().toLocalTime()
-                    .toString("HH:mm"), entry.startTime!!.toString("HH:mm")))
+                    LTag.PUMPCOMM, String.format(
+                        Locale.ENGLISH, "Comparing 'now'=%s to entry 'start time'=%s", `when`.toDateTime().toLocalTime()
+                            .toString("HH:mm"), entry.startTime!!.toString("HH:mm")
+                    )
+                )
             }
             if (localMillis >= entry.startTime!!.millisOfDay) {
                 rval = entry
@@ -177,9 +183,12 @@ class BasalProfile {
         }
         if (DEBUG_BASALPROFILE) {
             aapsLogger.debug(
-                LTag.PUMPCOMM, String.format(Locale.ENGLISH, "getEntryForTime(%s): Returning entry: rate=%.3f (%s), start=%s (%d)", `when`
-                .toDateTime().toLocalTime().toString("HH:mm"), rval.rate, ByteUtil.getHex(rval.rate_raw),
-                                             rval.startTime!!.toString("HH:mm"), rval.startTime_raw))
+                LTag.PUMPCOMM, String.format(
+                    Locale.ENGLISH, "getEntryForTime(%s): Returning entry: rate=%.3f (%s), start=%s (%d)", `when`
+                        .toDateTime().toLocalTime().toString("HH:mm"), rval.rate, ByteUtil.getHex(rval.rate_raw),
+                    rval.startTime!!.toString("HH:mm"), rval.startTime_raw
+                )
+            )
         }
         return rval
     }// readUnsignedByte(mRawData[i]);

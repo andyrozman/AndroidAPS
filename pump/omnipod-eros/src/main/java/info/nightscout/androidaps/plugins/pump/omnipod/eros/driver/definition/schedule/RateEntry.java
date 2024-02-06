@@ -2,14 +2,16 @@ package info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.s
 
 import static info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.OmnipodConstants.BASAL_STEP_DURATION;
 
+import androidx.annotation.NonNull;
+
 import org.joda.time.Duration;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import app.aaps.core.utils.pump.ByteUtil;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.communication.message.IRawRepresentable;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.OmnipodConstants;
-import info.nightscout.pump.core.utils.ByteUtil;
 
 public class RateEntry implements IRawRepresentable {
 
@@ -67,16 +69,16 @@ public class RateEntry implements IRawRepresentable {
     @Override
     public byte[] getRawData() {
         byte[] rawData = new byte[0];
-        rawData = ByteUtil.concat(rawData, ByteUtil.getBytesFromInt16((int) Math.round(totalPulses * 10)));
+        rawData = ByteUtil.INSTANCE.concat(rawData, ByteUtil.INSTANCE.getBytesFromInt16((int) Math.round(totalPulses * 10)));
         if (totalPulses == 0) {
-            rawData = ByteUtil.concat(rawData, ByteUtil.getBytesFromInt((int) (delayBetweenPulsesInSeconds * 1000 * 1000)));
+            rawData = ByteUtil.INSTANCE.concat(rawData, ByteUtil.INSTANCE.getBytesFromInt((int) (delayBetweenPulsesInSeconds * 1000 * 1000)));
         } else {
-            rawData = ByteUtil.concat(rawData, ByteUtil.getBytesFromInt((int) (delayBetweenPulsesInSeconds * 1000 * 100)));
+            rawData = ByteUtil.INSTANCE.concat(rawData, ByteUtil.INSTANCE.getBytesFromInt((int) (delayBetweenPulsesInSeconds * 1000 * 100)));
         }
         return rawData;
     }
 
-    @Override
+    @NonNull @Override
     public String toString() {
         return "RateEntry{" +
                 "totalPulses=" + totalPulses +

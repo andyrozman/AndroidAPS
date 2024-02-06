@@ -1,7 +1,13 @@
 package info.nightscout.androidaps.plugins.pump.omnipod.dash.ui.wizard.activation.viewmodel.action
 
 import androidx.annotation.StringRes
-import dagger.android.HasAndroidInjector
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.objects.Instantiator
+import app.aaps.core.interfaces.pump.PumpEnactResult
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.interfaces.sharedPreferences.SP
 import info.nightscout.androidaps.plugins.pump.omnipod.common.definition.OmnipodCommandType
 import info.nightscout.androidaps.plugins.pump.omnipod.common.ui.wizard.activation.viewmodel.action.InitializePodViewModel
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.R
@@ -12,12 +18,6 @@ import info.nightscout.androidaps.plugins.pump.omnipod.dash.history.DashHistory
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.history.data.InitialResult
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.history.data.ResolvedResult
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.util.I8n
-import info.nightscout.interfaces.pump.PumpEnactResult
-import info.nightscout.rx.AapsSchedulers
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.interfaces.ResourceHelper
-import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.kotlin.subscribeBy
@@ -25,7 +25,7 @@ import javax.inject.Inject
 
 class DashInitializePodViewModel @Inject constructor(
     private val omnipodManager: OmnipodDashManager,
-    injector: HasAndroidInjector,
+    instantiator: Instantiator,
     logger: AAPSLogger,
     private val sp: SP,
     private val podStateManager: OmnipodDashPodStateManager,
@@ -33,7 +33,7 @@ class DashInitializePodViewModel @Inject constructor(
     private val history: DashHistory,
     aapsSchedulers: AapsSchedulers
 
-) : InitializePodViewModel(injector, logger, aapsSchedulers) {
+) : InitializePodViewModel(instantiator, logger, aapsSchedulers) {
 
     override fun isPodInAlarm(): Boolean = false // TODO
 
@@ -65,14 +65,14 @@ class DashInitializePodViewModel @Inject constructor(
                     onError = { throwable ->
                         logger.error(LTag.PUMP, "Error in Pod activation part 1", throwable)
                         source.onSuccess(
-                            PumpEnactResult(injector)
+                            instantiator.providePumpEnactResult()
                                 .success(false)
                                 .comment(I8n.textFromException(throwable, rh))
                         )
                     },
                     onComplete = {
                         logger.debug("Pod activation part 1 completed")
-                        source.onSuccess(PumpEnactResult(injector).success(true))
+                        source.onSuccess(instantiator.providePumpEnactResult().success(true))
                     }
                 )
         }

@@ -3,26 +3,28 @@ package info.nightscout.androidaps.plugins.pump.eopatch.ble.task;
 
 import android.os.SystemClock;
 
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import app.aaps.core.data.ue.Action;
+import app.aaps.core.data.ue.Sources;
+import app.aaps.core.interfaces.logging.AAPSLogger;
+import app.aaps.core.interfaces.logging.LTag;
+import app.aaps.core.interfaces.logging.UserEntryLogger;
+import app.aaps.core.interfaces.pump.PumpSync;
+import app.aaps.core.interfaces.queue.Callback;
+import app.aaps.core.interfaces.queue.Command;
+import app.aaps.core.interfaces.queue.CommandQueue;
 import info.nightscout.androidaps.plugins.pump.eopatch.alarm.AlarmCode;
 import info.nightscout.androidaps.plugins.pump.eopatch.alarm.IAlarmRegistry;
 import info.nightscout.androidaps.plugins.pump.eopatch.ble.IPreferenceManager;
 import info.nightscout.androidaps.plugins.pump.eopatch.core.api.BasalPause;
 import info.nightscout.androidaps.plugins.pump.eopatch.core.response.PatchBooleanResponse;
 import info.nightscout.androidaps.plugins.pump.eopatch.vo.PatchState;
-import info.nightscout.interfaces.logging.UserEntryLogger;
-import info.nightscout.interfaces.pump.PumpSync;
-import info.nightscout.interfaces.queue.Callback;
-import info.nightscout.interfaces.queue.Command;
-import info.nightscout.interfaces.queue.CommandQueue;
-import info.nightscout.interfaces.userEntry.UserEntryMapper;
-import info.nightscout.rx.logging.AAPSLogger;
-import info.nightscout.rx.logging.LTag;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
@@ -49,59 +51,59 @@ public class PauseBasalTask extends BolusTask {
         BASAL_PAUSE = new BasalPause();
     }
 
-    private Observable<Boolean> getBolusSubject(){
+    private Observable<Boolean> getBolusSubject() {
         return bolusCheckSubject.hide();
     }
 
-    private Observable<Boolean> getExtendedBolusSubject(){
+    private Observable<Boolean> getExtendedBolusSubject() {
         return extendedBolusCheckSubject.hide();
     }
 
-    private Observable<Boolean> getBasalSubject(){
+    private Observable<Boolean> getBasalSubject() {
         return basalCheckSubject.hide();
     }
 
     public Single<PatchBooleanResponse> pause(float pauseDurationHour, long pausedTimestamp, @Nullable AlarmCode alarmCode) {
         PatchState patchState = pm.getPatchState();
 
-        if(patchState.isNormalBasalPaused())
+        if (patchState.isNormalBasalPaused())
             return Single.just(new PatchBooleanResponse(true));
 
         enqueue(TaskFunc.UPDATE_CONNECTION);
 
         if (commandQueue.isRunning(Command.CommandType.BOLUS)) {
-            uel.log(UserEntryMapper.Action.CANCEL_BOLUS, UserEntryMapper.Sources.EOPatch2);
+            uel.log(Action.CANCEL_BOLUS, Sources.EOPatch2, "", new ArrayList<>());
             commandQueue.cancelAllBoluses(null);
             SystemClock.sleep(650);
         }
         bolusCheckSubject.onNext(true);
 
         if (pumpSync.expectedPumpState().getExtendedBolus() != null) {
-            uel.log(UserEntryMapper.Action.CANCEL_EXTENDED_BOLUS, UserEntryMapper.Sources.EOPatch2);
+            uel.log(Action.CANCEL_EXTENDED_BOLUS, Sources.EOPatch2, "", new ArrayList<>());
             commandQueue.cancelExtended(new Callback() {
                 @Override
                 public void run() {
                     extendedBolusCheckSubject.onNext(true);
                 }
             });
-        }else{
+        } else {
             extendedBolusCheckSubject.onNext(true);
         }
 
         if (pumpSync.expectedPumpState().getTemporaryBasal() != null) {
-            uel.log(UserEntryMapper.Action.CANCEL_TEMP_BASAL, UserEntryMapper.Sources.EOPatch2);
+            uel.log(Action.CANCEL_TEMP_BASAL, Sources.EOPatch2, "", new ArrayList<>());
             commandQueue.cancelTempBasal(true, new Callback() {
                 @Override
                 public void run() {
                     basalCheckSubject.onNext(true);
                 }
             });
-        }else{
+        } else {
             basalCheckSubject.onNext(true);
         }
 
         return Observable.zip(getBolusSubject(), getExtendedBolusSubject(), getBasalSubject(),
-                    (bolusReady, extendedBolusReady, basalReady) -> (bolusReady && extendedBolusReady && basalReady))
+                        (bolusReady, extendedBolusReady, basalReady) -> (bolusReady && extendedBolusReady && basalReady))
                 .filter(ready -> ready)
                 .flatMap(v -> isReady())
                 .concatMapSingle(v -> getSuspendedTime(pausedTimestamp))
@@ -115,7 +117,7 @@ public class PauseBasalTask extends BolusTask {
     }
 
     private Single<PatchBooleanResponse> pauseBasal(float pauseDurationHour, @Nullable AlarmCode alarmCode) {
-        if(alarmCode == null)  {
+        if (alarmCode == null) {
             return BASAL_PAUSE.pause(pauseDurationHour)
                     .doOnSuccess(this::checkResponse)
                     .doOnSuccess(v -> onBasalPaused(pauseDurationHour, null));
@@ -131,8 +133,7 @@ public class PauseBasalTask extends BolusTask {
         if (!pm.getNormalBasalManager().isSuspended()) {
             if (alarmCode != null) {
                 pm.getPatchConfig().updateNormalBasalPausedSilently();
-            }
-            else {
+            } else {
                 pm.getPatchConfig().updateNormalBasalPaused(pauseDurationHour);
             }
             pm.getNormalBasalManager().updateBasalSuspended();
@@ -140,8 +141,8 @@ public class PauseBasalTask extends BolusTask {
             pm.flushNormalBasalManager();
             pm.flushPatchConfig();
 
-            if((alarmCode == null || alarmCode.getType() == AlarmCode.TYPE_ALERT) && pauseDurationHour != 0)
-                alarmRegistry.add(AlarmCode.B001, TimeUnit.MINUTES.toMillis((long)(pauseDurationHour * 60)), false).subscribe();
+            if ((alarmCode == null || alarmCode.getType() == AlarmCode.TYPE_ALERT) && pauseDurationHour != 0)
+                alarmRegistry.add(AlarmCode.B001, TimeUnit.MINUTES.toMillis((long) (pauseDurationHour * 60)), false).subscribe();
         }
 
         enqueue(TaskFunc.UPDATE_CONNECTION);
@@ -152,12 +153,12 @@ public class PauseBasalTask extends BolusTask {
 
         if (ready) {
             disposable = pause(pauseDurationHour, pausedTime, alarmCode)
-                .timeout(TASK_ENQUEUE_TIME_OUT, TimeUnit.SECONDS)
-                .subscribe(v -> {
-                    bolusCheckSubject.onNext(false);
-                    extendedBolusCheckSubject.onNext(false);
-                    basalCheckSubject.onNext(false);
-                });
+                    .timeout(TASK_ENQUEUE_TIME_OUT, TimeUnit.SECONDS)
+                    .subscribe(v -> {
+                        bolusCheckSubject.onNext(false);
+                        extendedBolusCheckSubject.onNext(false);
+                        basalCheckSubject.onNext(false);
+                    });
         }
     }
 }

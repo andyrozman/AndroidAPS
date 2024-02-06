@@ -4,10 +4,10 @@ import androidx.annotation.NonNull;
 
 import org.joda.time.Duration;
 
+import app.aaps.core.utils.pump.ByteUtil;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.communication.message.MessageBlock;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.BeepConfigType;
 import info.nightscout.androidaps.plugins.pump.omnipod.eros.driver.definition.MessageBlockType;
-import info.nightscout.pump.core.utils.ByteUtil;
 
 public class BeepConfigCommand extends MessageBlock {
     private final BeepConfigType beepType;
@@ -34,9 +34,9 @@ public class BeepConfigCommand extends MessageBlock {
 
     private void encode() {
         encodedData = new byte[]{beepType.getValue()};
-        encodedData = ByteUtil.concat(encodedData, (byte) ((basalCompletionBeep ? (1 << 6) : 0) + (basalIntervalBeep.getStandardMinutes() & 0x3f)));
-        encodedData = ByteUtil.concat(encodedData, (byte) ((tempBasalCompletionBeep ? (1 << 6) : 0) + (tempBasalIntervalBeep.getStandardMinutes() & 0x3f)));
-        encodedData = ByteUtil.concat(encodedData, (byte) ((bolusCompletionBeep ? (1 << 6) : 0) + (bolusIntervalBeep.getStandardMinutes() & 0x3f)));
+        encodedData = ByteUtil.INSTANCE.concat(encodedData, (byte) ((basalCompletionBeep ? (1 << 6) : 0) + (basalIntervalBeep.getStandardMinutes() & 0x3f)));
+        encodedData = ByteUtil.INSTANCE.concat(encodedData, (byte) ((tempBasalCompletionBeep ? (1 << 6) : 0) + (tempBasalIntervalBeep.getStandardMinutes() & 0x3f)));
+        encodedData = ByteUtil.INSTANCE.concat(encodedData, (byte) ((bolusCompletionBeep ? (1 << 6) : 0) + (bolusIntervalBeep.getStandardMinutes() & 0x3f)));
     }
 
     @Override

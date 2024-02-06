@@ -51,6 +51,7 @@
     <string name="extended_bolus">Extended bolus</string>
     <string name="paused">Paused</string>
     <string name="tdd_total">TDD Total</string>
+    <string name="tdd_old_data">Old data</string>
     <string name="goingtodeliver">Going to deliver %1$.2f U</string>
     <string name="waitingforpump">Waiting for pump</string>
     <string name="androidaps_start">AAPS started</string>
@@ -168,6 +169,14 @@
     <string name="virtualpump_uploadstatus_title">Upload pump status to NS or Tidepool</string>
     <string name="suspendloop_label">Disabled/Suspended loop</string>
     <string name="iob_label">Insulin on Board (IOB)</string>
+    <string name="loopstatus_targets">TARGETS:</string>
+    <string name="loopstatus_OAPS_result">OAPS RESULT:</string>
+    <string name="extended_bolus_data_point_graph">%1$.2f U ( %2$.2f U/h )</string>
+    <string name="temp_basal_tsf_fake_extended">%1$.2f U/h (%2$.2fE) @%3$s</string>
+    <string name="temp_basal_tsf_absolute">%1$.2f U/h @%2$s</string>
+    <string name="temp_basal_tsf_percent">%1$.0f%% @%2$s</string>
+    <string name="extended_bolus_full">E %1$.2f U/h @%2$s %3$s/%4$s min</string>
+    <string name="extended_bolus_medium">%1$.2f U/h %2$s/%3$s\'</string>
 
     <!--    Protection-->
     <string name="wrongpassword">Wrong password</string>
@@ -349,6 +358,7 @@
     <string name="uel_export_settings">EXPORT SETTINGS</string>
     <string name="uel_import_settings">IMPORT SETTINGS</string>
     <string name="uel_reset_databases">RESET DATABASES</string>
+    <string name="uel_reset_aps_results">RESET APS RESULTS</string>
     <string name="uel_cleanup_databases">CLEANUP DATABASES</string>
     <string name="uel_export_databases">EXPORT DATABASES</string>
     <string name="uel_import_databases">IMPORT DATABASES</string>
@@ -393,6 +403,9 @@
     <string name="carbs_g">CARBS %1$d g</string>
     <string name="extended_bolus_u_min">EXTENDED BOLUS %1$.2f U %2$d min</string>
     <string name="load_events">LOAD EVENTS</string>
+    <string name="clear_alarms">CLEAR ALARMS</string>
+    <string name="deactivate">DEACTIVATE</string>
+    <string name="update_time">UPDATE TIME</string>
     <string name="load_history">LOAD HISTORY %1$d</string>
     <string name="load_tdds">LOAD TDDs</string>
     <string name="set_profile">SET PROFILE</string>
@@ -439,6 +452,7 @@
     <string name="autotune_ic_warning">Selected profile has %1$d IC values. Autotune will use %2$.2f g/U</string>
     <string name="autotune_isf_warning">Selected profile has %1$d ISF values. Autotune will use %2$.1f %3$s/U</string>
     <string name="autotune_error">Error in input data, try to run again autotune or reduce the number of days</string>
+    <string name="autotune_error_more_days">Error in input data, increase the number of days</string>
     <string name="autotune_warning_during_run">Autotune calculation started, please be patient</string>
     <string name="autotune_warning_after_run">Check the results carefully before using it!</string>
     <string name="autotune_partial_result">Partial result day %1$d / %2$d tuned</string>
@@ -463,7 +477,7 @@
     <string name="autotune_log_dia" translatable="false">| %1$4.4s |\t%2$3.1f |\t%3$3.1f |\n</string>
     <string name="autotune_log_ic_isf" translatable="false">| %1$4.4s | %2$3.3f |\t%3$3.3f |\n</string>
     <string name="autotune_log_basal" translatable="false">|\t%1$02.0f\t| %2$3.3f |%3$3.3f\t| %5$.0f%% / %4$d\n</string>
-    <string name="autotune_log_sum_basal"  translatable="false">|\t∑\t|\t%1$3.1f |\t%2$3.1f |\n</string>
+    <string name="autotune_log_sum_basal" translatable="false">|\t∑\t|\t%1$3.1f |\t%2$3.1f |\n</string>
     <string name="autotune_run_without_autoswitch">Autotune ran without profile switch</string>
     <string name="autotune_run_with_autoswitch">Autotune ran and profile automatically switched</string>
     <string name="autotune_run_with_error">Error during last Autotune run</string>
@@ -476,17 +490,19 @@
     <string name="info">INFO</string>
 
     <!-- BolusWizard -->
-    <string name="key_usebolusadvisor" translatable="false">use_bolus_advisor</string>
     <string name="bolus_advisor">Bolus advisor</string>
     <string name="bolus_advisor_message">You have high glycemia. Instead of eating now it\'s recommended to wait for better glycemia. Do you want to do a correction bolus now and remind you when it\'s time to eat? In this case no carbs will be recorded and you must use wizard again when we remind you.</string>
 
     <string name="cobvsiob">COB vs IOB</string>
     <string name="slowabsorptiondetected"><![CDATA[<font color=\'%1$s\'>!!!!! Slow carbs absorption detected: %2$d%% of time. Double check your calculation. COB can be overestimated thus more insulin could be given !!!!!</font>]]></string>
     <string name="partialboluswizard">Deliver this part of bolus wizard result [%]</string>
+    <string name="partialboluswizard_reset_time">Old glycemia time threshold [min]</string>
     <string name="bolus_constraint_applied_warn">Bolus constraint applied: %1$.2f U to %2$.2f U</string>
     <string name="bolus_recorded_only">Bolus will be recorded only (not delivered by pump)</string>
     <string name="advisoralarm">Run alarm when is time to eat</string>
     <string name="no_action_selected">No action selected, nothing will happen</string>
+    <string name="carb_equal_zero_no_action">Carbs = 0. No action taken!</string>
+    <string name="wizard_no_insulin_required">No insulin required!</string>
     <string name="wizard_no_actual_bg">No recent BG to base calculation on!</string>
     <string name="wizard_no_active_profile">No active profile set!</string>
     <string name="wizard_no_cob">Unknown COB! BG reading missing or recent app restart?</string>
@@ -549,6 +565,7 @@
     <string name="password_cleared">Password cleared!</string>
     <string name="pairing">Pairing</string>
     <string name="initializing">Initializing ...</string>
+    <string name="secs" comment="second short">%1$d s</string>
 
     <!--    Constraints-->
     <string name="limitingbasalratio">Limiting max basal rate to %1$.2f U/h because of %2$s</string>
@@ -556,9 +573,6 @@
     <string name="limitingpercentrate">Limiting max percent rate to %1$d%% because of %2$s</string>
     <string name="itmustbepositivevalue">it must be positive value</string>
     <string name="limitingbolus">Limiting bolus to %1$.1f U because of %2$s</string>
-
-    <!-- Locale -->
-    <string name="key_language" translatable="false">language</string>
 
     <!--    Dialogs-->
     <string name="confirmation">Confirmation</string>
@@ -606,7 +620,7 @@
     <string name="cta_dont_kill_my_app_info">Don\'t kill my app?</string>
     <string name="fabric_upload_disabled">Crash logs upload disabled!</string>
     <string name="about_link_urls">\n\nDocumentation:\nhttps://wiki.aaps.app\n\nFacebook:\nhttps://www.facebook.com/groups/AndroidAPSUsers</string>
-    
+
     <plurals name="days">
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
@@ -624,5 +638,27 @@
     <string name="cleanup_db_confirm">Do you want to cleanup the database?\nIt will remove tracked changes and historic data older than 3 months.</string>
     <string name="cleanup_db_confirm_sync">Do you want to cleanup the database?\nIt will remove tracked changes and historic data older than 3 months.\nDoing it will speedup full synchronization dramatically.</string>
     <string name="cleared_entries">Cleared entries</string>
+
+    <!--    Weekday-->
+    <string name="weekday_sunday_short">Sun</string>
+    <string name="weekday_saturday_short">Sat</string>
+    <string name="weekday_friday_short">Fri</string>
+    <string name="weekday_thursday_short">Thu</string>
+    <string name="weekday_wednesday_short">Wed</string>
+    <string name="weekday_tuesday_short">Tue</string>
+    <string name="weekday_monday_short">Mon</string>
+
+    <!-- WeekdayPicker -->
+    <string name="monday_short">M</string>
+    <string name="tuesday_short">T</string>
+    <string name="wednesday_short">W</string>
+    <string name="thursday_short">T</string>
+    <string name="friday_short">F</string>
+    <string name="saturday_short">S</string>
+    <string name="sunday_short">S</string>
+
+    <!--    DecimalFormatterImpl -->
+    <string name="format_insulin_units1">%1$.1f U</string>
+    <string name="format_insulin_units">%1$.2f U</string>
 
 </resources>

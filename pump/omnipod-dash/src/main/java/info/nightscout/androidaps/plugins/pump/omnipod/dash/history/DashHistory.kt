@@ -1,8 +1,11 @@
 package info.nightscout.androidaps.plugins.pump.omnipod.dash.history
 
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import info.nightscout.androidaps.plugins.pump.omnipod.common.definition.OmnipodCommandType
 import info.nightscout.androidaps.plugins.pump.omnipod.common.definition.OmnipodCommandType.SET_BOLUS
 import info.nightscout.androidaps.plugins.pump.omnipod.common.definition.OmnipodCommandType.SET_TEMPORARY_BASAL
+import info.nightscout.androidaps.plugins.pump.omnipod.dash.driver.pod.definition.PodConstants.Companion.POD_PULSE_BOLUS_UNITS
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.driver.pod.state.CommandConfirmationDenied
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.driver.pod.state.CommandConfirmationSuccess
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.driver.pod.state.CommandSendingFailure
@@ -18,8 +21,6 @@ import info.nightscout.androidaps.plugins.pump.omnipod.dash.history.data.TempBas
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.history.database.HistoryRecordDao
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.history.database.HistoryRecordEntity
 import info.nightscout.androidaps.plugins.pump.omnipod.dash.history.mapper.HistoryMapper
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
@@ -57,6 +58,7 @@ class DashHistory @Inject constructor(
         tempBasalRecord: TempBasalRecord? = null,
         bolusRecord: BolusRecord? = null,
         basalProfileRecord: BasalValuesRecord? = null,
+        totalAmountDeliveredRecord: Double? = null,
         resolveResult: ResolvedResult? = null,
         resolvedAt: Long? = null
     ): Single<Long> = Single.defer {
@@ -65,11 +67,13 @@ class DashHistory @Inject constructor(
             id = currentTimeMillis()
         }
         when {
-            commandType == SET_BOLUS && bolusRecord == null ->
+            commandType == SET_BOLUS && bolusRecord == null               ->
                 Single.error(IllegalArgumentException("bolusRecord missing on SET_BOLUS"))
+
             commandType == SET_TEMPORARY_BASAL && tempBasalRecord == null ->
                 Single.error(IllegalArgumentException("tempBasalRecord missing on SET_TEMPORARY_BASAL"))
-            else ->
+
+            else                                                          ->
                 dao.save(
                     HistoryRecordEntity(
                         id = id,
@@ -79,6 +83,7 @@ class DashHistory @Inject constructor(
                         tempBasalRecord = tempBasalRecord,
                         bolusRecord = bolusRecord,
                         basalProfileRecord = basalProfileRecord,
+                        totalAmountDelivered = totalAmountDeliveredRecord,
                         initialResult = initialResult,
                         resolvedResult = resolveResult,
                         resolvedAt = resolvedAt
@@ -99,18 +104,27 @@ class DashHistory @Inject constructor(
             logger.error(LTag.PUMP, "HistoryId not found to for updating from state")
             return@defer Completable.complete()
         }
-        when (podState.getCommandConfirmationFromState()) {
-            CommandSendingFailure ->
+
+        val setTotalAmountDelivered = dao.setTotalAmountDelivered(historyId, podState.pulsesDelivered?.times(POD_PULSE_BOLUS_UNITS))
+
+        val commandConfirmation = when (podState.getCommandConfirmationFromState()) {
+            CommandSendingFailure      ->
                 dao.setInitialResult(historyId, InitialResult.FAILURE_SENDING)
+
             CommandSendingNotConfirmed ->
                 dao.setInitialResult(historyId, InitialResult.SENT)
-            CommandConfirmationDenied ->
+
+            CommandConfirmationDenied  ->
                 markFailure(historyId)
+
             CommandConfirmationSuccess ->
                 dao.setInitialResult(historyId, InitialResult.SENT)
                     .andThen(markSuccess(historyId))
-            NoActiveCommand ->
+
+            NoActiveCommand            ->
                 Completable.complete()
         }
+
+        Completable.concat(listOf(setTotalAmountDelivered, commandConfirmation))
     }
 }

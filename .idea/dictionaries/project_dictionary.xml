@@ -2,6 +2,7 @@
   <dictionary name="project-dictionary">
     <words>
       <w>aaps</w>
+      <w>aapsclient</w>
       <w>abcdef</w>
       <w>accu</w>
       <w>acked</w>
@@ -11,18 +12,22 @@
       <w>alexpr</w>
       <w>allowednumbers</w>
       <w>androidaps</w>
+      <w>autn</w>
       <w>autosens</w>
       <w>autosensdata</w>
       <w>autosense</w>
       <w>autotune</w>
+      <w>auts</w>
       <w>bage</w>
       <w>basaliob</w>
       <w>basals</w>
+      <w>batt</w>
       <w>bgcheck</w>
       <w>bgsource</w>
       <w>boluscalc</w>
       <w>bolusing</w>
       <w>boluswizard</w>
+      <w>boyda</w>
       <w>carb</w>
       <w>carbratio</w>
       <w>carbs</w>
@@ -39,6 +44,8 @@
       <w>datasets</w>
       <w>dbadd</w>
       <w>dbupdate</w>
+      <w>deduplicated</w>
+      <w>defs</w>
       <w>devicestatus</w>
       <w>devicestatuses</w>
       <w>devslope</w>
@@ -47,12 +54,14 @@
       <w>diaconn</w>
       <w>dlvoy</w>
       <w>dttm</w>
+      <w>dynisf</w>
       <w>ecarbs</w>
       <w>enteredby</w>
       <w>enteredinsulin</w>
       <w>eoflow</w>
       <w>eopatch</w>
       <w>epss</w>
+      <w>equil</w>
       <w>eveningoutpost</w>
       <w>eversense</w>
       <w>extendedbolus</w>
@@ -60,6 +69,7 @@
       <w>fileprovider</w>
       <w>firebase</w>
       <w>glimp</w>
+      <w>gluco</w>
       <w>glunovo</w>
       <w>glycemia</w>
       <w>gson</w>
@@ -67,8 +77,10 @@
       <w>humalog</w>
       <w>iage</w>
       <w>infinivocgm</w>
+      <w>instantiator</w>
       <w>insulet</w>
       <w>intelligo</w>
+      <w>iobs</w>
       <w>iobtotal</w>
       <w>joda</w>
       <w>joul</w>
@@ -78,8 +90,10 @@
       <w>lyumjev</w>
       <w>mdtp</w>
       <w>medtronic</w>
+      <w>medtrum</w>
       <w>mgdl</w>
       <w>miao</w>
+      <w>milenage</w>
       <w>misformatted</w>
       <w>mmol</w>
       <w>motol</w>
@@ -95,10 +109,15 @@
       <w>okcancel</w>
       <w>omnipod</w>
       <w>openaps</w>
+      <w>openapsama</w>
+      <w>openapsma</w>
+      <w>openapssmb</w>
       <w>openhumans</w>
       <w>oref</w>
       <w>otpauth</w>
       <w>passcode</w>
+      <w>pbage</w>
+      <w>pcfg</w>
       <w>pdus</w>
       <w>philoul</w>
       <w>poctech</w>
@@ -108,6 +127,7 @@
       <w>pumpcontrol</w>
       <w>pumpdrivers</w>
       <w>quickwizard</w>
+      <w>rawbg</w>
       <w>readstatus</w>
       <w>realduration</w>
       <w>refresheventsfromnightscout</w>
@@ -115,7 +135,9 @@
       <w>rileylink</w>
       <w>roboelectric</w>
       <w>rozman</w>
+      <w>satl</w>
       <w>sbat</w>
+      <w>scripter</w>
       <w>setupwizard</w>
       <w>sgvs</w>
       <w>shortgramm</w>

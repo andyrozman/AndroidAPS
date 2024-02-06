@@ -1,18 +1,19 @@
 package info.nightscout.androidaps.plugins.pump.eopatch.vo
 
+import app.aaps.core.interfaces.sharedPreferences.SP
 import info.nightscout.androidaps.plugins.pump.eopatch.GsonHelper
 import info.nightscout.androidaps.plugins.pump.eopatch.alarm.AlarmCode
 import info.nightscout.androidaps.plugins.pump.eopatch.code.SettingKeys
-import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
-import java.util.*
 
-class Alarms: IPreference<Alarms> {
+class Alarms : IPreference<Alarms> {
+
     @Transient
     private val subject: BehaviorSubject<Alarms> = BehaviorSubject.create()
 
     class AlarmItem {
+
         lateinit var alarmCode: AlarmCode
         var createTimestamp = 0L
         var triggerTimeMilli = 0L
@@ -26,6 +27,8 @@ class Alarms: IPreference<Alarms> {
 
     var occurred = HashMap<AlarmCode, AlarmItem>()
 
+    var needToStopBeep = HashSet<AlarmCode>()
+
     init {
         initObject()
     }
@@ -33,9 +36,10 @@ class Alarms: IPreference<Alarms> {
     fun initObject() {
     }
 
-    fun clear(){
+    fun clear() {
         registered.clear()
         occurred.clear()
+        needToStopBeep.clear()
     }
 
     fun update(other: Alarms) {
@@ -49,7 +53,7 @@ class Alarms: IPreference<Alarms> {
             createTimestamp = System.currentTimeMillis()
             triggerTimeMilli = createTimestamp + triggerAfter
         }
-        if (isRegistered(alarmCode)){
+        if (isRegistered(alarmCode)) {
             registered.remove(alarmCode)
         }
         registered.put(alarmCode, item)
@@ -57,7 +61,7 @@ class Alarms: IPreference<Alarms> {
     }
 
     fun unregister(alarmCode: AlarmCode) {
-        if (isRegistered(alarmCode)){
+        if (isRegistered(alarmCode)) {
             registered.remove(alarmCode)
         }
     }
@@ -75,11 +79,18 @@ class Alarms: IPreference<Alarms> {
             occurred.remove(alarmCode)
     }
 
-    private fun isRegistered(alarmCode: AlarmCode): Boolean{
+    fun getOccuredAlarmTimestamp(alarmCode: AlarmCode): Long {
+        return if (occurred.containsKey(alarmCode))
+            occurred.getValue(alarmCode).triggerTimeMilli
+        else
+            System.currentTimeMillis()
+    }
+
+    private fun isRegistered(alarmCode: AlarmCode): Boolean {
         return registered.containsKey(alarmCode)
     }
 
-    fun isOccurring(alarmCode: AlarmCode): Boolean{
+    fun isOccurring(alarmCode: AlarmCode): Boolean {
         return occurred.containsKey(alarmCode)
     }
 
@@ -87,7 +98,7 @@ class Alarms: IPreference<Alarms> {
         return subject.hide()
     }
 
-    override fun flush(sp: SP){
+    override fun flush(sp: SP) {
         val jsonStr = GsonHelper.sharedGson().toJson(this)
         sp.putString(SettingKeys.ALARMS, jsonStr)
         subject.onNext(this)

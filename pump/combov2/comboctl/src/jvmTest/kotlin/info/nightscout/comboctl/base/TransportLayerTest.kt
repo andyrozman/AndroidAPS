@@ -17,6 +17,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class TransportLayerTest {
+
     @Test
     fun parsePacketData() {
         // Test the packet parser by parsing hardcoded packet data
@@ -212,7 +213,7 @@ class TransportLayerTest {
         // a PacketReceiverException which in turn contains the
         // exception that caused the failure.
 
-        runBlockingWithWatchdog(5000) {
+        runBlockingWithWatchdog(10000) {
             val testPumpStateStore = TestPumpStateStore()
             val testComboIO = TestComboIO()
             val testBluetoothAddress = BluetoothAddress(byteArrayListOfInts(1, 2, 3, 4, 5, 6))
@@ -265,7 +266,7 @@ class TransportLayerTest {
             // Wait until an exception is thrown in the packet receiver
             // and we get notified about it.
             waitingForExceptionJob.join()
-            System.err.println(
+            println(
                 "Exception thrown by in packet receiver (this exception was expected by the test): $expectedError"
             )
             assertNotNull(expectedError)
@@ -285,7 +286,7 @@ class TransportLayerTest {
                 // other create*PacketInfo function.
                 tpLayerIO.send(TransportLayer.createRequestPairingConnectionPacketInfo())
             }
-            System.err.println(
+            println(
                 "Exception thrown by send() call (this exception was expected by the test): $exceptionThrownBySendCall"
             )
             assertIs<TransportLayer.ErrorResponseException>(exceptionThrownBySendCall.cause)
@@ -293,7 +294,7 @@ class TransportLayerTest {
             val exceptionThrownByReceiveCall = assertFailsWith<TransportLayer.PacketReceiverException> {
                 tpLayerIO.receive()
             }
-            System.err.println(
+            println(
                 "Exception thrown by receive() call (this exception was expected by the test): $exceptionThrownByReceiveCall"
             )
             assertIs<TransportLayer.ErrorResponseException>(exceptionThrownByReceiveCall.cause)

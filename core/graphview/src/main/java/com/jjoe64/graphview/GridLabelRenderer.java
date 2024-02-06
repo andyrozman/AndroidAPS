@@ -1,18 +1,18 @@
 /**
  * GraphView
  * Copyright (C) 2014  Jonas Gehring
- *
+ * <p>
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License,
  * with the "Linking Exception", which can be found at the license.txt
  * file in this program.
- *
+ * <p>
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * with the "Linking Exception" along with this program; if not,
  * write to the author Jonas Gehring <g.jjoe64@gmail.com>.
@@ -39,122 +39,14 @@ import java.util.Map;
  */
 public class GridLabelRenderer {
     /**
-     * wrapper for the styles regarding
-     * to the grid and the labels
+     * reference to graphview
      */
-    public final class Styles {
-        /**
-         * the general text size of the axis titles.
-         * can be overwritten with #verticalAxisTitleTextSize
-         * and #horizontalAxisTitleTextSize
-         */
-        public float textSize;
-
-        /**
-         * the alignment of the vertical labels
-         */
-        public Paint.Align verticalLabelsAlign;
-
-        /**
-         * the alignment of the labels on the right side
-         */
-        public Paint.Align verticalLabelsSecondScaleAlign;
-
-        /**
-         * the color of the vertical labels
-         */
-        public int verticalLabelsColor;
-
-        /**
-         * the color of the labels on the right side
-         */
-        public int verticalLabelsSecondScaleColor;
-
-        /**
-         * the color of the horizontal labels
-         */
-        public int horizontalLabelsColor;
-
-        /**
-         * the color of the grid lines
-         */
-        public int gridColor;
-
-        /**
-         * flag whether the zero-lines (vertical+
-         * horizontal) shall be highlighted
-         */
-        public boolean highlightZeroLines;
-
-        /**
-         * the padding around the graph and labels
-         */
-        public int padding;
-
-        /**
-         * font size of the vertical axis title
-         */
-        public float verticalAxisTitleTextSize;
-
-        /**
-         * font color of the vertical axis title
-         */
-        public int verticalAxisTitleColor;
-
-        /**
-         * font size of the horizontal axis title
-         */
-        public float horizontalAxisTitleTextSize;
-
-        /**
-         * font color of the horizontal axis title
-         */
-        public int horizontalAxisTitleColor;
-
-        /**
-         * flag whether the horizontal labels are
-         * visible
-         */
-        boolean horizontalLabelsVisible;
-
-        /**
-         * flag whether the vertical labels are
-         * visible
-         */
-        boolean verticalLabelsVisible;
-
-        /**
-         * defines which lines will be drawn in the background
-         */
-        GridStyle gridStyle;
-
-        /**
-         * the space between the labels text and the graph content
-         */
-        int labelsSpace;
-    }
-
-    /**
-     * Definition which lines will be drawn in the background
-     */
-    public enum GridStyle {
-        BOTH, VERTICAL, HORIZONTAL, NONE;
-
-        public boolean drawVertical() { return this == BOTH || this == VERTICAL && this != NONE; }
-        public boolean drawHorizontal() { return this == BOTH || this == HORIZONTAL && this != NONE; }
-    }
-
+    private final GraphView mGraphView;
     /**
      * wraps the styles regarding the
      * grid and labels
      */
     protected Styles mStyles;
-
-    /**
-     * reference to graphview
-     */
-    private final GraphView mGraphView;
-
     /**
      * cache of the vertical steps
      * (horizontal lines and vertical labels)
@@ -162,7 +54,6 @@ public class GridLabelRenderer {
      * Value    = y-value
      */
     private Map<Integer, Double> mStepsVertical;
-
     /**
      * cache of the vertical steps for the
      * second scale, which is on the right side
@@ -171,7 +62,6 @@ public class GridLabelRenderer {
      * Value    = y-value
      */
     private Map<Integer, Double> mStepsVerticalSecondScale;
-
     /**
      * cache of the horizontal steps
      * (vertical lines and horizontal labels)
@@ -179,92 +69,75 @@ public class GridLabelRenderer {
      * Value    = x-value
      */
     private Map<Integer, Double> mStepsHorizontal;
-
     /**
      * the paint to draw the grid lines
      */
     private Paint mPaintLine;
-
     /**
      * the paint to draw the labels
      */
     private Paint mPaintLabel;
-
     /**
      * the paint to draw axis titles
      */
     private Paint mPaintAxisTitle;
-
     /**
      * flag whether is bounds are automatically
      * adjusted for nice human-readable numbers
      */
     private boolean mIsAdjusted;
-
     /**
      * the width of the vertical labels
      */
     private Integer mLabelVerticalWidth;
-
     /**
      * indicates if the width was set manually
      */
     private boolean mLabelVerticalWidthFixed;
-
     /**
      * the height of the vertical labels
      */
     private Integer mLabelVerticalHeight;
-
     /**
      * indicates if the height was set manually
      */
     private boolean mLabelHorizontalHeightFixed;
-
     /**
      * the width of the vertical labels
      * of the second scale
      */
     private Integer mLabelVerticalSecondScaleWidth;
-
     /**
      * the height of the vertical labels
      * of the second scale
      */
     private Integer mLabelVerticalSecondScaleHeight;
-
     /**
      * the width of the horizontal labels
      */
     private Integer mLabelHorizontalWidth;
-
     /**
      * the height of the horizontal labels
      */
     private Integer mLabelHorizontalHeight;
-
     /**
      * the label formatter, that converts
      * the raw numbers to strings
      */
     private LabelFormatter mLabelFormatter;
-
     /**
      * the title of the horizontal axis
      */
     private String mHorizontalAxisTitle;
-
     /**
      * the title of the vertical axis
      */
     private String mVerticalAxisTitle;
-
     /**
      * count of the vertical labels, that
      * will be shown at one time.
      */
     private int mNumVerticalLabels;
-
     /**
      * count of the horizontal labels, that
      * will be shown at one time.
@@ -326,7 +199,7 @@ public class GridLabelRenderer {
         mStyles.gridColor = color2;
         mStyles.textSize = size;
         mStyles.padding = size2;
-        mStyles.labelsSpace = (int) mStyles.textSize/5;
+        mStyles.labelsSpace = (int) mStyles.textSize / 5;
 
         mStyles.verticalLabelsAlign = Paint.Align.RIGHT;
         mStyles.verticalLabelsSecondScaleAlign = Paint.Align.LEFT;
@@ -370,6 +243,15 @@ public class GridLabelRenderer {
     }
 
     /**
+     * @param textSize the general text size of the axis titles.
+     *                 can be overwritten with {@link #setVerticalAxisTitleTextSize(float)}
+     *                 and {@link #setHorizontalAxisTitleTextSize(float)}
+     */
+    public void setTextSize(float textSize) {
+        mStyles.textSize = textSize;
+    }
+
+    /**
      * @return the font color of the vertical labels
      */
     public int getVerticalLabelsColor() {
@@ -377,11 +259,25 @@ public class GridLabelRenderer {
     }
 
     /**
-     * @return  the alignment of the text of the
-     *          vertical labels
+     * @param verticalLabelsColor the color of the vertical labels
+     */
+    public void setVerticalLabelsColor(int verticalLabelsColor) {
+        mStyles.verticalLabelsColor = verticalLabelsColor;
+    }
+
+    /**
+     * @return the alignment of the text of the
+     * vertical labels
      */
     public Paint.Align getVerticalLabelsAlign() {
         return mStyles.verticalLabelsAlign;
+    }
+
+    /**
+     * @param verticalLabelsAlign the alignment of the vertical labels
+     */
+    public void setVerticalLabelsAlign(Paint.Align verticalLabelsAlign) {
+        mStyles.verticalLabelsAlign = verticalLabelsAlign;
     }
 
     /**
@@ -389,6 +285,13 @@ public class GridLabelRenderer {
      */
     public int getHorizontalLabelsColor() {
         return mStyles.horizontalLabelsColor;
+    }
+
+    /**
+     * @param horizontalLabelsColor the color of the horizontal labels
+     */
+    public void setHorizontalLabelsColor(int horizontalLabelsColor) {
+        mStyles.horizontalLabelsColor = horizontalLabelsColor;
     }
 
     /**
@@ -403,10 +306,10 @@ public class GridLabelRenderer {
      *                       to use "true" because this will
      *                       improve performance and prevent
      *                       a flickering.
-     * @param keepViewport true if you don't want that
-     *                     the viewport will be recalculated.
-     *                     It is recommended to use "true" for
-     *                     performance.
+     * @param keepViewport   true if you don't want that
+     *                       the viewport will be recalculated.
+     *                       It is recommended to use "true" for
+     *                       performance.
      */
     public void invalidate(boolean keepLabelsSize, boolean keepViewport) {
         if (!keepViewport) {
@@ -677,7 +580,7 @@ public class GridLabelRenderer {
         if (mStepsHorizontal != null) {
             mStepsHorizontal.clear();
         } else {
-            mStepsHorizontal = new LinkedHashMap<Integer, Double>((int) numHorizontalLabels);
+            mStepsHorizontal = new LinkedHashMap<Integer, Double>(numHorizontalLabels);
         }
         int width = mGraphView.getGraphContentWidth();
 
@@ -742,6 +645,7 @@ public class GridLabelRenderer {
 
     /**
      * calculates the vertical label size
+     *
      * @param canvas canvas
      */
     protected void calcLabelVerticalSize(Canvas canvas) {
@@ -777,6 +681,7 @@ public class GridLabelRenderer {
     /**
      * calculates the vertical second scale
      * label size
+     *
      * @param canvas canvas
      */
     protected void calcLabelVerticalSecondScaleSize(Canvas canvas) {
@@ -804,6 +709,7 @@ public class GridLabelRenderer {
 
     /**
      * calculates the horizontal label size
+     *
      * @param canvas canvas
      */
     protected void calcLabelHorizontalSize(Canvas canvas) {
@@ -837,6 +743,7 @@ public class GridLabelRenderer {
     /**
      * do the drawing of the grid
      * and labels
+     *
      * @param canvas canvas
      */
     public void draw(Canvas canvas) {
@@ -879,6 +786,7 @@ public class GridLabelRenderer {
     /**
      * draws the horizontal axis title if
      * it is set
+     *
      * @param canvas canvas
      */
     protected void drawHorizontalAxisTitle(Canvas canvas) {
@@ -894,6 +802,7 @@ public class GridLabelRenderer {
     /**
      * draws the vertical axis title if
      * it is set
+     *
      * @param canvas canvas
      */
     protected void drawVerticalAxisTitle(Canvas canvas) {
@@ -910,8 +819,8 @@ public class GridLabelRenderer {
     }
 
     /**
-     * @return  the horizontal axis title height
-     *          or 0 if there is no title
+     * @return the horizontal axis title height
+     * or 0 if there is no title
      */
     public int getHorizontalAxisTitleHeight() {
         if (mHorizontalAxisTitle != null && mHorizontalAxisTitle.length() > 0) {
@@ -922,8 +831,8 @@ public class GridLabelRenderer {
     }
 
     /**
-     * @return  the vertical axis title width
-     *          or 0 if there is no title
+     * @return the vertical axis title width
+     * or 0 if there is no title
      */
     public int getVerticalAxisTitleWidth() {
         if (mVerticalAxisTitle != null && mVerticalAxisTitle.length() > 0) {
@@ -1074,7 +983,7 @@ public class GridLabelRenderer {
      * this will do rounding to generate
      * nice human-readable bounds.
      *
-     * @param in the raw value that is to be rounded
+     * @param in            the raw value that is to be rounded
      * @param roundAlwaysUp true if it shall always round up (ceil)
      * @return the rounded number
      */
@@ -1119,8 +1028,8 @@ public class GridLabelRenderer {
     }
 
     /**
-     * @return  the vertical label width
-     *          0 if there are no vertical labels
+     * @return the vertical label width
+     * 0 if there are no vertical labels
      */
     public int getLabelVerticalWidth() {
         return mLabelVerticalWidth == null || !isVerticalLabelsVisible() ? 0 : mLabelVerticalWidth;
@@ -1131,8 +1040,8 @@ public class GridLabelRenderer {
      * the vertical labels. This will prevent GraphView to
      * calculate the width automatically.
      *
-     * @param width     the width of the space for the vertical labels.
-     *                  Use null to let GraphView automatically calculate the width.
+     * @param width the width of the space for the vertical labels.
+     *              Use null to let GraphView automatically calculate the width.
      */
     public void setLabelVerticalWidth(Integer width) {
         mLabelVerticalWidth = width;
@@ -1140,8 +1049,8 @@ public class GridLabelRenderer {
     }
 
     /**
-     * @return  the horizontal label height
-     *          0 if there are no horizontal labels
+     * @return the horizontal label height
+     * 0 if there are no horizontal labels
      */
     public int getLabelHorizontalHeight() {
         return mLabelHorizontalHeight == null || !isHorizontalLabelsVisible() ? 0 : mLabelHorizontalHeight;
@@ -1152,8 +1061,8 @@ public class GridLabelRenderer {
      * the horizontal labels. This will prevent GraphView to
      * calculate the height automatically.
      *
-     * @param height     the height of the space for the horizontal labels.
-     *                  Use null to let GraphView automatically calculate the height.
+     * @param height the height of the space for the horizontal labels.
+     *               Use null to let GraphView automatically calculate the height.
      */
     public void setLabelHorizontalHeight(Integer height) {
         mLabelHorizontalHeight = height;
@@ -1168,10 +1077,25 @@ public class GridLabelRenderer {
     }
 
     /**
+     * @param gridColor the color of the grid lines
+     */
+    public void setGridColor(int gridColor) {
+        mStyles.gridColor = gridColor;
+    }
+
+    /**
      * @return whether the line at 0 are highlighted
      */
     public boolean isHighlightZeroLines() {
         return mStyles.highlightZeroLines;
+    }
+
+    /**
+     * @param highlightZeroLines flag whether the zero-lines (vertical+
+     *                           horizontal) shall be highlighted
+     */
+    public void setHighlightZeroLines(boolean highlightZeroLines) {
+        mStyles.highlightZeroLines = highlightZeroLines;
     }
 
     /**
@@ -1182,51 +1106,6 @@ public class GridLabelRenderer {
     }
 
     /**
-     * @param textSize  the general text size of the axis titles.
-     *                  can be overwritten with {@link #setVerticalAxisTitleTextSize(float)}
-     *                  and {@link #setHorizontalAxisTitleTextSize(float)}
-     */
-    public void setTextSize(float textSize) {
-        mStyles.textSize = textSize;
-    }
-
-    /**
-     * @param verticalLabelsAlign the alignment of the vertical labels
-     */
-    public void setVerticalLabelsAlign(Paint.Align verticalLabelsAlign) {
-        mStyles.verticalLabelsAlign = verticalLabelsAlign;
-    }
-
-    /**
-     * @param verticalLabelsColor the color of the vertical labels
-     */
-    public void setVerticalLabelsColor(int verticalLabelsColor) {
-        mStyles.verticalLabelsColor = verticalLabelsColor;
-    }
-
-    /**
-     * @param horizontalLabelsColor the color of the horizontal labels
-     */
-    public void setHorizontalLabelsColor(int horizontalLabelsColor) {
-        mStyles.horizontalLabelsColor = horizontalLabelsColor;
-    }
-
-    /**
-     * @param gridColor the color of the grid lines
-     */
-    public void setGridColor(int gridColor) {
-        mStyles.gridColor = gridColor;
-    }
-
-    /**
-     * @param highlightZeroLines    flag whether the zero-lines (vertical+
-     *                              horizontal) shall be highlighted
-     */
-    public void setHighlightZeroLines(boolean highlightZeroLines) {
-        mStyles.highlightZeroLines = highlightZeroLines;
-    }
-
-    /**
      * @param padding the padding around the graph and labels
      */
     public void setPadding(int padding) {
@@ -1234,16 +1113,16 @@ public class GridLabelRenderer {
     }
 
     /**
-     * @return  the label formatter, that converts
-     *          the raw numbers to strings
+     * @return the label formatter, that converts
+     * the raw numbers to strings
      */
     public LabelFormatter getLabelFormatter() {
         return mLabelFormatter;
     }
 
     /**
-     * @param mLabelFormatter   the label formatter, that converts
-     *                          the raw numbers to strings
+     * @param mLabelFormatter the label formatter, that converts
+     *                        the raw numbers to strings
      */
     public void setLabelFormatter(LabelFormatter mLabelFormatter) {
         this.mLabelFormatter = mLabelFormatter;
@@ -1363,72 +1242,72 @@ public class GridLabelRenderer {
     }
 
     /**
-     * @return  the width of the vertical labels
-     *          of the second scale
+     * @return the width of the vertical labels
+     * of the second scale
      */
     public int getLabelVerticalSecondScaleWidth() {
-        return mLabelVerticalSecondScaleWidth==null?0:mLabelVerticalSecondScaleWidth;
+        return mLabelVerticalSecondScaleWidth == null ? 0 : mLabelVerticalSecondScaleWidth;
     }
 
     /**
-     * @return  flag whether the horizontal labels are
-     *          visible
+     * @return flag whether the horizontal labels are
+     * visible
      */
     public boolean isHorizontalLabelsVisible() {
         return mStyles.horizontalLabelsVisible;
     }
 
     /**
-     * @param horizontalTitleVisible    flag whether the horizontal labels are
-     *                                  visible
+     * @param horizontalTitleVisible flag whether the horizontal labels are
+     *                               visible
      */
     public void setHorizontalLabelsVisible(boolean horizontalTitleVisible) {
         mStyles.horizontalLabelsVisible = horizontalTitleVisible;
     }
 
     /**
-     * @return  flag whether the vertical labels are
-     *          visible
+     * @return flag whether the vertical labels are
+     * visible
      */
     public boolean isVerticalLabelsVisible() {
         return mStyles.verticalLabelsVisible;
     }
 
     /**
-     * @param verticalTitleVisible  flag whether the vertical labels are
-     *                              visible
+     * @param verticalTitleVisible flag whether the vertical labels are
+     *                             visible
      */
     public void setVerticalLabelsVisible(boolean verticalTitleVisible) {
         mStyles.verticalLabelsVisible = verticalTitleVisible;
     }
 
     /**
-     * @return  count of the vertical labels, that
-     *          will be shown at one time.
+     * @return count of the vertical labels, that
+     * will be shown at one time.
      */
     public int getNumVerticalLabels() {
         return mNumVerticalLabels;
     }
 
     /**
-     * @param mNumVerticalLabels    count of the vertical labels, that
-     *                              will be shown at one time.
+     * @param mNumVerticalLabels count of the vertical labels, that
+     *                           will be shown at one time.
      */
     public void setNumVerticalLabels(int mNumVerticalLabels) {
         this.mNumVerticalLabels = mNumVerticalLabels;
     }
 
     /**
-     * @return  count of the horizontal labels, that
-     *          will be shown at one time.
+     * @return count of the horizontal labels, that
+     * will be shown at one time.
      */
     public int getNumHorizontalLabels() {
         return mNumHorizontalLabels;
     }
 
     /**
-     * @param mNumHorizontalLabels  count of the horizontal labels, that
-     *                              will be shown at one time.
+     * @param mNumHorizontalLabels count of the horizontal labels, that
+     *                             will be shown at one time.
      */
     public void setNumHorizontalLabels(int mNumHorizontalLabels) {
         this.mNumHorizontalLabels = mNumHorizontalLabels;
@@ -1464,5 +1343,116 @@ public class GridLabelRenderer {
      */
     public void setLabelsSpace(int labelsSpace) {
         mStyles.labelsSpace = labelsSpace;
+    }
+
+    /**
+     * Definition which lines will be drawn in the background
+     */
+    public enum GridStyle {
+        BOTH, VERTICAL, HORIZONTAL, NONE;
+
+        public boolean drawVertical() {
+            return this == BOTH || this == VERTICAL && this != NONE;
+        }
+
+        public boolean drawHorizontal() {
+            return this == BOTH || this == HORIZONTAL && this != NONE;
+        }
+    }
+
+    /**
+     * wrapper for the styles regarding
+     * to the grid and the labels
+     */
+    public final class Styles {
+        /**
+         * the general text size of the axis titles.
+         * can be overwritten with #verticalAxisTitleTextSize
+         * and #horizontalAxisTitleTextSize
+         */
+        public float textSize;
+
+        /**
+         * the alignment of the vertical labels
+         */
+        public Paint.Align verticalLabelsAlign;
+
+        /**
+         * the alignment of the labels on the right side
+         */
+        public Paint.Align verticalLabelsSecondScaleAlign;
+
+        /**
+         * the color of the vertical labels
+         */
+        public int verticalLabelsColor;
+
+        /**
+         * the color of the labels on the right side
+         */
+        public int verticalLabelsSecondScaleColor;
+
+        /**
+         * the color of the horizontal labels
+         */
+        public int horizontalLabelsColor;
+
+        /**
+         * the color of the grid lines
+         */
+        public int gridColor;
+
+        /**
+         * flag whether the zero-lines (vertical+
+         * horizontal) shall be highlighted
+         */
+        public boolean highlightZeroLines;
+
+        /**
+         * the padding around the graph and labels
+         */
+        public int padding;
+
+        /**
+         * font size of the vertical axis title
+         */
+        public float verticalAxisTitleTextSize;
+
+        /**
+         * font color of the vertical axis title
+         */
+        public int verticalAxisTitleColor;
+
+        /**
+         * font size of the horizontal axis title
+         */
+        public float horizontalAxisTitleTextSize;
+
+        /**
+         * font color of the horizontal axis title
+         */
+        public int horizontalAxisTitleColor;
+
+        /**
+         * flag whether the horizontal labels are
+         * visible
+         */
+        boolean horizontalLabelsVisible;
+
+        /**
+         * flag whether the vertical labels are
+         * visible
+         */
+        boolean verticalLabelsVisible;
+
+        /**
+         * defines which lines will be drawn in the background
+         */
+        GridStyle gridStyle;
+
+        /**
+         * the space between the labels text and the graph content
+         */
+        int labelsSpace;
     }
 }

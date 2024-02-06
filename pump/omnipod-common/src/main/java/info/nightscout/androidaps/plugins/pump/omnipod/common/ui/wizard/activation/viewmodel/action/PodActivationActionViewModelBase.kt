@@ -1,15 +1,15 @@
 package info.nightscout.androidaps.plugins.pump.omnipod.common.ui.wizard.activation.viewmodel.action
 
-import dagger.android.HasAndroidInjector
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.objects.Instantiator
+import app.aaps.core.interfaces.rx.AapsSchedulers
 import info.nightscout.androidaps.plugins.pump.omnipod.common.ui.wizard.common.viewmodel.ActionViewModelBase
-import info.nightscout.rx.AapsSchedulers
-import info.nightscout.rx.logging.AAPSLogger
 
 abstract class PodActivationActionViewModelBase(
-    injector: HasAndroidInjector,
+    instantiator: Instantiator,
     logger: AAPSLogger,
     aapsSchedulers: AapsSchedulers
-) : ActionViewModelBase(injector, logger, aapsSchedulers) {
+) : ActionViewModelBase(instantiator, logger, aapsSchedulers) {
 
     abstract fun isPodInAlarm(): Boolean
 
