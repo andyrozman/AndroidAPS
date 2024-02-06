@@ -55,6 +55,7 @@ buildscript {
         google()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" } // jacoco 0.2
+        maven { url 'https://jitpack.io' }
         flatDir {
             dirs 'libs'
         }

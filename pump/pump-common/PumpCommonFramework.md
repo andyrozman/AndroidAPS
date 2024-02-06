@@ -30,5 +30,12 @@ PumpConnectionManager should be used as middle-layer for pump communication.
 
 
 
+PumpDriverDatabaseOperation
+============================
+
+Operations with database (either custom database or AAPS database). When we place Bolus. TBR we need
+to send this info to AAPS Database or else action is not acknowledged by AAPS (even if send back
+PumpEnactResult with success). Use PumpDriverDummyDatabaseOperation until you have your own
+implementation.
 
 

@@ -80,7 +80,7 @@ class TandemPumpPlugin @Inject constructor(
     aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
     pumpSyncStorage: PumpSyncStorage,
-    var pumpDriverConfiguration: TandemPumpDriverConfiguration
+    pumpDriverConfiguration: TandemPumpDriverConfiguration
 ) : PumpPluginAbstract(
     PluginDescription() //
         .mainType(PluginType.PUMP) //
@@ -91,8 +91,8 @@ class TandemPumpPlugin @Inject constructor(
         .preferencesId(R.xml.pref_tandem)
         .description(R.string.description_pump_tandem),  //
     PumpType.TANDEM_T_SLIM_X2_BT,
-    injector, rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage
-), Pump, Constraints, PumpDriverConfigurationCapable {
+    injector, rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage, pumpDriverConfiguration
+), Pump, Constraints /*, PumpDriverConfigurationCapable*/ {
 
     // variables for handling statuses and history
     private var firstRun = true
@@ -108,7 +108,7 @@ class TandemPumpPlugin @Inject constructor(
     private var aapsTimberTree = AAPSTimberTree(aapsLogger)
 
     private var pumpX2Version = com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION
-    private var tandemVersion = "v0.2.3"
+    private var tandemVersion = "v0.2.6"
 
     override fun onStart() {
         aapsLogger.debug(LTag.PUMP, model().model + " started - ${tandemVersion} (pumpX2 ${pumpX2Version})")
@@ -127,8 +127,7 @@ class TandemPumpPlugin @Inject constructor(
         aapsLogger.info(LTag.PUMP, "Preference: $pref")
     }
 
-    private val logPrefix: String
-        get() = "TandemPumpPlugin::"
+    //override var logPrefix: String = "TandemPumpPlugin::"
 
     // PumpAbstract implementations
     override fun initPumpStatusData() {
@@ -279,9 +278,9 @@ class TandemPumpPlugin @Inject constructor(
         return value
     }
 
-    override fun getPumpDriverConfiguration(): PumpDriverConfiguration {
-        return pumpDriverConfiguration
-    }
+    // override fun getPumpDriverConfiguration(): PumpDriverConfiguration {
+    //     return pumpDriverConfiguration
+    // }
 
 
     // Pump Interface
@@ -570,23 +569,23 @@ class TandemPumpPlugin @Inject constructor(
         //     return true
         // } else {
 
-            if (pumpStatus.basalProfile == null) {
-                aapsLogger.debug(LTag.PUMP, "  Pump Profile:     null, returning false")
-                return false
-            } else {
-                val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArray(profile, PumpType.TANDEM_T_SLIM_X2)
-                //val profileDriver = ProfileUtil.getProfilesByHourToString(pumpStatus.basalProfilePump!!.basalPatterns)
-                val profileDriver = ProfileUtil.getBasalProfilesDisplayableAsStringOfArray(pumpStatus.basalProfile!!, PumpType.TANDEM_T_SLIM_X2)
+        if (pumpStatus.basalProfile == null) {
+            aapsLogger.debug(LTag.PUMP, "  Pump Profile:     null, returning false")
+            return false
+        } else {
+            val profileAsString = ProfileUtil.getBasalProfilesDisplayableAsStringOfArray(profile, PumpType.TANDEM_T_SLIM_X2)
+            //val profileDriver = ProfileUtil.getProfilesByHourToString(pumpStatus.basalProfilePump!!.basalPatterns)
+            val profileDriver = ProfileUtil.getBasalProfilesDisplayableAsStringOfArray(pumpStatus.basalProfile!!, PumpType.TANDEM_T_SLIM_X2)
 
-                aapsLogger.debug(LTag.PUMP, "AAPS Profile:     $profileAsString")
-                aapsLogger.debug(LTag.PUMP, "Pump Profile:     $profileDriver")
+            aapsLogger.debug(LTag.PUMP, "AAPS Profile:     $profileAsString")
+            aapsLogger.debug(LTag.PUMP, "Pump Profile:     $profileDriver")
 
-                val areTheySame = profileAsString.equals(profileDriver)
+            val areTheySame = profileAsString.equals(profileDriver)
 
-                aapsLogger.debug(LTag.PUMP, "Pump Profile is the same: $areTheySame")
+            aapsLogger.debug(LTag.PUMP, "Pump Profile is the same: $areTheySame")
 
-                return areTheySame
-            }
+            return areTheySame
+        }
         //}
     }
 
@@ -728,7 +727,7 @@ class TandemPumpPlugin @Inject constructor(
                         timestamp = now,
                         amount = detailedBolusInfo.carbs,
                         pumpId = null,
-                        pumpType = PumpType.YPSOPUMP,
+                        pumpType = PumpType.TANDEM_T_SLIM_X2_BT,
                         pumpSerial = serialNumber()
                     )
                 }
@@ -748,112 +747,6 @@ class TandemPumpPlugin @Inject constructor(
         } finally {
             finishAction("Bolus")
         }
-
-//        bolusDeliveryType = BolusDeliveryType.DeliveryPrepared;
-//
-//        if (isPumpNotReachable()) {
-//            aapsLogger.debug(LTag.PUMP, "MedtronicPumpPlugin::deliverBolus - Pump Unreachable.");
-//            return setNotReachable(true, false);
-//        }
-//
-//        ypsopumpUtil.dismissNotification(MedtronicNotificationType.PumpUnreachable, rxBus);
-//
-//        if (bolusDeliveryType == BolusDeliveryType.CancelDelivery) {
-//            // LOG.debug("MedtronicPumpPlugin::deliverBolus - Delivery Canceled.");
-//            return setNotReachable(true, true);
-//        }
-//
-//        // LOG.debug("MedtronicPumpPlugin::deliverBolus - Starting wait period.");
-//
-//        int sleepTime = sp.getInt(YpsoPumpConst.Prefs.BolusDelay, 10) * 1000;
-//
-//        SystemClock.sleep(sleepTime);
-//
-//        if (bolusDeliveryType == BolusDeliveryType.CancelDelivery) {
-//            // LOG.debug("MedtronicPumpPlugin::deliverBolus - Delivery Canceled, before wait period.");
-//            return setNotReachable(true, true);
-//        }
-//
-//        // LOG.debug("MedtronicPumpPlugin::deliverBolus - End wait period. Start delivery");
-//
-//        try {
-//
-//            bolusDeliveryType = BolusDeliveryType.Delivering;
-//
-//            // LOG.debug("MedtronicPumpPlugin::deliverBolus - Start delivery");
-//
-//            MedtronicUITask responseTask = ypsoPumpService.getMedtronicUIComm().executeCommand(MedtronicCommandType.SetBolus,
-//                    detailedBolusInfo.insulin);
-//
-//            Boolean response = (Boolean) responseTask.returnData;
-//
-//            setRefreshButtonEnabled(true);
-//
-//            // LOG.debug("MedtronicPumpPlugin::deliverBolus - Response: {}", response);
-//
-//            if (response) {
-//
-//                if (bolusDeliveryType == BolusDeliveryType.CancelDelivery) {
-//                    // LOG.debug("MedtronicPumpPlugin::deliverBolus - Delivery Canceled after Bolus started.");
-//
-//                    new Thread(() -> {
-//                        // Looper.prepare();
-//                        // LOG.debug("MedtronicPumpPlugin::deliverBolus - Show dialog - before");
-//                        SystemClock.sleep(2000);
-//                        // LOG.debug("MedtronicPumpPlugin::deliverBolus - Show dialog. Context: "
-//                        // + MainApp.instance().getApplicationContext());
-//
-//                        Intent i = new Intent(context, ErrorHelperActivity.class);
-//                        i.putExtra("soundid", R.raw.boluserror);
-//                        i.putExtra("status", getrh().gs(R.string.medtronic_cmd_cancel_bolus_not_supported));
-//                        i.putExtra("title", getrh().gs(R.string.medtronic_warning));
-//                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//                        context.startActivity(i);
-//
-//                    }).start();
-//                }
-//
-//                long now = System.currentTimeMillis();
-//
-//                detailedBolusInfo.date = now;
-//                detailedBolusInfo.deliverAt = now; // not sure about that one
-//
-//                activePlugin.getActiveTreatments().addToHistoryTreatment(detailedBolusInfo, true);
-//
-//                // we subtract insulin, exact amount will be visible with next remainingInsulin update.
-//                pumpStatus.reservoirRemainingUnits -= detailedBolusInfo.insulin;
-//
-//                incrementStatistics(detailedBolusInfo.isSMB ? YpsoPumpConst.Statistics.SMBBoluses
-//                        : YpsoPumpConst.Statistics.StandardBoluses);
-//
-//
-//                // calculate time for bolus and set driver to busy for that time
-//                int bolusTime = (int) (detailedBolusInfo.insulin * 42.0d);
-//                long time = now + (bolusTime * 1000);
-//
-//                this.busyTimestamps.add(time);
-//                //setEnableCustomAction(MedtronicCustomActionType.ClearBolusBlock, true);
-//
-//                return new PumpEnactResult(getInjector()).success(true) //
-//                        .enacted(true) //
-//                        .bolusDelivered(detailedBolusInfo.insulin) //
-//                        .carbsDelivered(detailedBolusInfo.carbs);
-//
-//            } else {
-//                return new PumpEnactResult(getInjector()) //
-//                        .success(bolusDeliveryType == BolusDeliveryType.CancelDelivery) //
-//                        .enacted(false) //
-//                        .comment(getrh().gs(R.string.medtronic_cmd_bolus_could_not_be_delivered));
-//            }
-//
-//        } finally {
-//            finishAction("Bolus");
-//            this.bolusDeliveryType = BolusDeliveryType.Idle;
-//        }
-//        return new PumpEnactResult(getInjector()).success(true) //
-//                .enacted(true) //
-//                .bolusDelivered(detailedBolusInfo.insulin) //
-//                .carbsDelivered(detailedBolusInfo.carbs);
     }
 
     override fun stopBolusDelivering() {
@@ -865,11 +758,6 @@ class TandemPumpPlugin @Inject constructor(
     private val isLoggingEnabled: Boolean
         get() = true
 
-    private fun incrementStatistics(statsKey: String) {
-        var currentCount: Long = sp.getLong(statsKey, 0L)
-        currentCount++
-        sp.putLong(statsKey, currentCount)
-    }
 
     // if enforceNew===true current temp basal is canceled and new TBR set (duration is prolonged),
     // if false and the same rate is requested enacted=false and success=true is returned and TBR is not changed
@@ -1229,10 +1117,7 @@ class TandemPumpPlugin @Inject constructor(
 
 
     // OPERATIONS not supported by Pump or Plugin
-    override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
-        aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed. ")
-        hasTimeDateOrTimeZoneChanged = true
-    }
+
 
     override fun generateTempId(dataObject: Any?): Long {
         return 0L

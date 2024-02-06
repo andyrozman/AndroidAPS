@@ -7,6 +7,8 @@ import android.text.format.DateFormat
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.android.HasAndroidInjector
+import info.nightscout.aaps.pump.common.defs.PumpDriverAction
+import info.nightscout.aaps.pump.common.driver.PumpDriverConfiguration
 import info.nightscout.core.utils.fabric.FabricPrivacy
 import info.nightscout.interfaces.constraints.Constraints
 import info.nightscout.interfaces.plugin.ActivePlugin
@@ -24,6 +26,7 @@ import info.nightscout.interfaces.pump.defs.PumpType
 import info.nightscout.interfaces.queue.CommandQueue
 import info.nightscout.interfaces.utils.DecimalFormatter.to0Decimal
 import info.nightscout.interfaces.utils.DecimalFormatter.to2Decimal
+import info.nightscout.interfaces.utils.TimeChangeType
 import info.nightscout.pump.common.data.PumpStatus
 import info.nightscout.pump.common.defs.PumpDriverState
 import info.nightscout.pump.common.sync.PumpDbEntryCarbs
@@ -62,7 +65,8 @@ abstract class PumpPluginAbstract protected constructor(
     var dateUtil: DateUtil,
     var aapsSchedulers: AapsSchedulers,
     var pumpSync: PumpSync,
-    var pumpSyncStorage: PumpSyncStorage
+    var pumpSyncStorage: PumpSyncStorage,
+    var pumpDriverConfiguration: PumpDriverConfiguration
 ) : PumpPluginBase(pluginDescription, injector, aapsLogger, rh, commandQueue), Pump, Constraints, PumpSyncEntriesCreator {
 
     protected val disposable = CompositeDisposable()
@@ -75,6 +79,7 @@ abstract class PumpPluginAbstract protected constructor(
     protected var serviceRunning = false
     protected var pumpState = PumpDriverState.NotInitialized
     protected var displayConnectionMessages = false
+    protected var timeChangeType: TimeChangeType? = null
 
     var pumpType: PumpType = PumpType.GENERIC_AAPS
         get() = field
@@ -88,7 +93,7 @@ abstract class PumpPluginAbstract protected constructor(
     abstract fun initPumpStatusData()
 
     open fun hasService(): Boolean {
-        return true
+        return pumpDriverConfiguration.hasService
     }
 
     override fun onStart() {
@@ -344,11 +349,17 @@ abstract class PumpPluginAbstract protected constructor(
 
     override fun manufacturer(): ManufacturerType = pumpType.manufacturer ?: ManufacturerType.AAPS
     override fun model(): PumpType = pumpType
-    override fun canHandleDST(): Boolean = false
+    override fun canHandleDST(): Boolean = pumpDriverConfiguration.canHandleDST
 
     protected abstract fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult
 
     protected abstract fun triggerUIChange()
+
+    protected fun incrementStatistics(statsKey: String) {
+        var currentCount: Long = sp.getLong(statsKey, 0L)
+        currentCount++
+        sp.putLong(statsKey, currentCount)
+    }
 
     private fun getOperationNotSupportedWithCustomText(resourceId: Int): PumpEnactResult =
         PumpEnactResult(injector).success(false).enacted(false).comment(resourceId)
@@ -357,4 +368,16 @@ abstract class PumpPluginAbstract protected constructor(
         pumpDescription.fillFor(pumpType)
         this.pumpType = pumpType
     }
+
+    protected fun databaseOperationAfterPumpAction(pumpDriverAction: PumpDriverAction) {
+
+    }
+
+    var logPrefix : String = pumpDriverConfiguration.logPrefix
+
+    override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
+        aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed (type=$timeChangeType). ")
+        this.timeChangeType = timeChangeType
+    }
+
 }

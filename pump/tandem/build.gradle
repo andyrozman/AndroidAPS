@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        jwoglom_pumpx2_version = '1.1.8'
+        jwoglom_pumpx2_version = 'v1.2.9'
     }
 }
 
@@ -57,9 +57,12 @@ dependencies {
     kapt "androidx.room:room-compiler:$room_version"
 
     // Dependencies for pumpx2 library for Tandem communication
-    api "com.jwoglom.pumpx2:pumpx2-android:$jwoglom_pumpx2_version"
-    api "com.jwoglom.pumpx2:pumpx2-messages:$jwoglom_pumpx2_version"
-    api "com.jwoglom.pumpx2:pumpx2-shared:$jwoglom_pumpx2_version"
+    //api "com.jwoglom.pumpx2:pumpx2-android:$jwoglom_pumpx2_version"
+//    api "com.jwoglom.pumpx2:pumpx2-messages:$jwoglom_pumpx2_version"
+//    api "com.jwoglom.pumpx2:pumpx2-shared:$jwoglom_pumpx2_version"
+    api "com.github.jwoglom.pumpX2:pumpx2-android:$jwoglom_pumpx2_version"
+    api "com.github.jwoglom.pumpX2:pumpx2-messages:$jwoglom_pumpx2_version"
+    api "com.github.jwoglom.pumpX2:pumpx2-shared:$jwoglom_pumpx2_version"
     implementation 'com.github.weliem:blessed-android:2.2.0'
     implementation 'com.jakewharton.timber:timber:5.0.1'
 
