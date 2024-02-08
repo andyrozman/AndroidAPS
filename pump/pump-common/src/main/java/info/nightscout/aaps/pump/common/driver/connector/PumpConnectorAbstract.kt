@@ -1,5 +1,8 @@
 package info.nightscout.aaps.pump.common.driver.connector
 
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import dagger.android.HasAndroidInjector
 import info.nightscout.aaps.pump.common.data.BasalProfileDto
 import info.nightscout.aaps.pump.common.driver.connector.commands.data.FirmwareVersionInterface
@@ -9,11 +12,8 @@ import info.nightscout.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.data.AdditionalResponseDataInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.ResultCommandResponse
-import info.nightscout.interfaces.profile.Profile
-import info.nightscout.interfaces.pump.DetailedBolusInfo
 import info.nightscout.aaps.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.pump.common.defs.TempBasalPair
-import info.nightscout.rx.logging.AAPSLogger
 
 
 abstract class PumpConnectorAbstract(protected var injector: HasAndroidInjector,

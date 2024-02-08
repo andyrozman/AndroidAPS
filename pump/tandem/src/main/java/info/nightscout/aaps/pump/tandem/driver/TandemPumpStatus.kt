@@ -1,16 +1,16 @@
 package info.nightscout.aaps.pump.tandem.driver
 
+import app.aaps.core.data.pump.defs.PumpDescription
+import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.pump.defs.PumpDeviceState
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.bus.RxBus
 import info.nightscout.aaps.pump.tandem.util.TandemPumpConst
 import info.nightscout.aaps.pump.tandem.data.defs.TandemPumpApiVersion
-import info.nightscout.interfaces.profile.Profile
-import info.nightscout.interfaces.pump.defs.PumpDescription
-import info.nightscout.interfaces.pump.defs.PumpType
 import info.nightscout.pump.common.data.PumpStatus
 import info.nightscout.aaps.pump.common.defs.BasalProfileStatus
-import info.nightscout.pump.core.defs.PumpDeviceState
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.shared.interfaces.ResourceHelper
-import info.nightscout.shared.sharedPreferences.SP
+import app.aaps.core.interfaces.sharedPreferences.SP
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton

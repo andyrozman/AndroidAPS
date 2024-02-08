@@ -4,8 +4,8 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import info.nightscout.androidaps.plugins.pump.tandem.comm.ble.defs.GattStatus
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import java.util.*
 import java.util.concurrent.Semaphore
 

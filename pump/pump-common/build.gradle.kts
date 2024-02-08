@@ -16,6 +16,9 @@ dependencies {
     implementation(project(":core:interfaces"))
     implementation(project(":core:utils"))
     implementation(project(":core:ui"))
+    implementation(project(":implementation"))
+    //implementation(project(":core:objects"))
+    //implementation(project(":implementattion"))
 
     api(Libs.xstream)
     api(Libs.Google.gson)

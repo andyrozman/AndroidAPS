@@ -63,6 +63,7 @@ import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicCustomAct
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicNotificationType
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicStatusRefreshType
 import info.nightscout.androidaps.plugins.pump.medtronic.defs.MedtronicUIResponseType
+import info.nightscout.androidaps.plugins.pump.medtronic.driver.MedtronicPumpDriverConfiguration
 import info.nightscout.androidaps.plugins.pump.medtronic.driver.MedtronicPumpStatus
 import info.nightscout.androidaps.plugins.pump.medtronic.events.EventMedtronicPumpConfigurationChanged
 import info.nightscout.androidaps.plugins.pump.medtronic.events.EventMedtronicPumpValuesChanged
@@ -122,7 +123,7 @@ class MedtronicPumpPlugin @Inject constructor(
         .preferencesId(R.xml.pref_medtronic)
         .description(R.string.description_pump_medtronic),  //
     PumpType.MEDTRONIC_522_722,  // we default to most basic model, correct model from config is loaded later
-    rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage, decimalFormatter, instantiator
+    rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage, MedtronicPumpDriverConfiguration(), decimalFormatter, instantiator
 ), Pump, RileyLinkPumpDevice, info.nightscout.pump.common.sync.PumpSyncEntriesCreator {
 
     private var rileyLinkMedtronicService: RileyLinkMedtronicService? = null
@@ -180,8 +181,8 @@ class MedtronicPumpPlugin @Inject constructor(
         }
     }
 
-    private val logPrefix: String
-        get() = "MedtronicPumpPlugin::"
+    // private val logPrefix: String
+    //     get() = "MedtronicPumpPlugin::"
 
     override fun initPumpStatusData() {
         medtronicPumpStatus.lastConnection = sp.getLong(RileyLinkConst.Prefs.LastGoodDeviceCommunicationTime, 0L)
@@ -690,11 +691,11 @@ class MedtronicPumpPlugin @Inject constructor(
         // LOG.warn("MedtronicPumpPlugin::deliverBolus - Stop Bolus Delivery.");
     }
 
-    private fun incrementStatistics(statsKey: String) {
-        var currentCount = sp.getLong(statsKey, 0L)
-        currentCount++
-        sp.putLong(statsKey, currentCount)
-    }
+    // private fun incrementStatistics(statsKey: String) {
+    //     var currentCount = sp.getLong(statsKey, 0L)
+    //     currentCount++
+    //     sp.putLong(statsKey, currentCount)
+    // }
 
     // if enforceNew===true current temp basal is canceled and new TBR set (duration is prolonged),
     // if false and the same rate is requested enacted=false and success=true is returned and TBR is not changed

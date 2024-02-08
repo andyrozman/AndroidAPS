@@ -4,10 +4,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.text.format.DateFormat
+import app.aaps.core.data.model.BS
 import app.aaps.core.data.plugin.PluginDescription
 import app.aaps.core.data.pump.defs.ManufacturerType
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -27,19 +29,25 @@ import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventAppExit
 import app.aaps.core.interfaces.rx.events.EventCustomActionsChanged
+import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import info.nightscout.aaps.pump.common.defs.PumpDriverAction
+import info.nightscout.aaps.pump.common.driver.PumpDriverConfiguration
 import info.nightscout.pump.common.data.PumpStatus
 import info.nightscout.pump.common.defs.PumpDriverState
+import info.nightscout.pump.common.sync.PumpDbEntryCarbs
 import info.nightscout.pump.common.sync.PumpSyncEntriesCreator
 import info.nightscout.pump.common.sync.PumpSyncStorage
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import app.aaps.implementation.pump.PumpEnactResultObject
 import org.json.JSONException
 import org.json.JSONObject
+import javax.inject.Inject
 
 /**
  * Created by andy on 23.04.18.
@@ -60,10 +68,13 @@ abstract class PumpPluginAbstract protected constructor(
     var aapsSchedulers: AapsSchedulers,
     var pumpSync: PumpSync,
     var pumpSyncStorage: PumpSyncStorage,
-    var pumpDriverConfiguration: PumpDriverConfiguration
-) : PumpPluginBase(pluginDescription, injector, aapsLogger, rh, commandQueue), Pump, Constraints, PumpSyncEntriesCreator {
+    var pumpDriverConfiguration: PumpDriverConfiguration,
+    var decimalFormatter: DecimalFormatter,
+    var instantiator: Instantiator
+) : PumpPluginBase(pluginDescription, aapsLogger, rh, commandQueue), Pump, PluginConstraints, /*Constraints,*/ PumpSyncEntriesCreator {
 
     protected val disposable = CompositeDisposable()
+
 
     // Pump capabilities
     final override var pumpDescription = PumpDescription()
@@ -315,7 +326,8 @@ abstract class PumpPluginAbstract protected constructor(
             if (detailedBolusInfo.insulin == 0.0 && detailedBolusInfo.carbs == 0.0) {
                 // neither carbs nor bolus requested
                 aapsLogger.error("deliverTreatment: Invalid input")
-                PumpEnactResult(injector).success(false).enacted(false).bolusDelivered(0.0).comment(info.nightscout.core.ui.R.string.invalid_input)
+                PumpEnactResultObject(rh).success(false).enacted(false).bolusDelivered(0.0)
+                    .comment(app.aaps.core.ui.R.string.invalid_input)
             } else if (detailedBolusInfo.insulin > 0) {
                 // bolus needed, ask pump to deliver it
                 deliverBolus(detailedBolusInfo)
@@ -326,11 +338,11 @@ abstract class PumpPluginAbstract protected constructor(
                 pumpSyncStorage.addCarbs(PumpDbEntryCarbs(detailedBolusInfo, this))
 
                 val bolusingEvent = EventOverviewBolusProgress
-                bolusingEvent.t = EventOverviewBolusProgress.Treatment(0.0, detailedBolusInfo.carbs.toInt(), detailedBolusInfo.bolusType === DetailedBolusInfo.BolusType.SMB, detailedBolusInfo.id)
+                bolusingEvent.t = EventOverviewBolusProgress.Treatment(0.0, detailedBolusInfo.carbs.toInt(), detailedBolusInfo.bolusType === BS.Type.SMB, detailedBolusInfo.id)
                 bolusingEvent.percent = 100
                 rxBus.send(bolusingEvent)
                 aapsLogger.debug(LTag.PUMP, "deliverTreatment: Carb only treatment.")
-                PumpEnactResult(injector).success(true).enacted(true).bolusDelivered(0.0).comment(R.string.common_resultok)
+                PumpEnactResultObject(rh).success(true).enacted(true).bolusDelivered(0.0).comment(R.string.common_resultok)
             }
         } finally {
             triggerUIChange()
@@ -356,7 +368,7 @@ abstract class PumpPluginAbstract protected constructor(
     }
 
     private fun getOperationNotSupportedWithCustomText(resourceId: Int): PumpEnactResult =
-        PumpEnactResult(injector).success(false).enacted(false).comment(resourceId)
+        PumpEnactResultObject(rh).success(false).enacted(false).comment(resourceId)
 
     init {
         pumpDescription.fillFor(pumpType)

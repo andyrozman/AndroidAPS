@@ -17,6 +17,7 @@
     <string name="pump_status_ready">Ready</string>
     <string name="pump_status_busy">Busy</string>
     <string name="pump_status_suspended">Suspended</string>
+    <string name="pump_status_sleeping">Sleeping</string>
     <string name="pump_status_error_communicating_with_pump">Error Communicating With Pump</string>
     <string name="pump_status_executing_command">Executing Command</string>
 

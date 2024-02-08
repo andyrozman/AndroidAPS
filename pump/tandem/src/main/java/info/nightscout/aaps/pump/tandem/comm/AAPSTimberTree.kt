@@ -1,8 +1,8 @@
 package info.nightscout.aaps.pump.tandem.comm
 
 import android.util.Log
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import timber.log.Timber
 
 class AAPSTimberTree constructor(val aapsLogger: AAPSLogger) : Timber.DebugTree()  {

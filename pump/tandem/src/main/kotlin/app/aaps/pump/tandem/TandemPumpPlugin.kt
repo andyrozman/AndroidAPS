@@ -1,17 +1,40 @@
-package info.nightscout.aaps.pump.tandem
+package app.aaps.pump.tandem
 
 import android.content.Context
 import android.content.DialogInterface
 import android.os.SystemClock
 import androidx.preference.Preference
+import app.aaps.core.data.model.BS
+import app.aaps.core.data.plugin.PluginDescription
+import app.aaps.core.data.plugin.PluginType
+import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.interfaces.constraints.Constraint
+import app.aaps.core.interfaces.constraints.PluginConstraints
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.objects.Instantiator
+import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.pump.Pump
+import app.aaps.core.interfaces.pump.PumpEnactResult
+import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.queue.CommandQueue
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
+import app.aaps.core.interfaces.rx.events.EventRefreshOverview
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.interfaces.utils.DecimalFormatter
+import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.ui.dialogs.OKDialog
+import app.aaps.implementation.pump.PumpEnactResultObject
 import dagger.android.HasAndroidInjector
-import info.nightscout.rx.bus.RxBus
 import info.nightscout.pump.common.PumpPluginAbstract
 import info.nightscout.pump.common.data.PumpStatus
-import info.nightscout.aaps.pump.common.driver.PumpDriverConfiguration
-import info.nightscout.aaps.pump.common.driver.PumpDriverConfigurationCapable
 import info.nightscout.aaps.pump.common.events.EventPumpConnectionParametersChanged
-import info.nightscout.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import info.nightscout.pump.common.sync.PumpSyncStorage
 import info.nightscout.pump.common.utils.ProfileUtil
 import info.nightscout.aaps.pump.tandem.driver.connector.TandemPumpConnectionManager
@@ -29,30 +52,8 @@ import info.nightscout.aaps.pump.common.driver.connector.commands.data.Additiona
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.ResultCommandResponse
 import info.nightscout.aaps.pump.tandem.data.defs.TandemStatusRefreshType
-import info.nightscout.androidaps.plugins.pump.tandem.R
-import info.nightscout.core.ui.dialogs.OKDialog
-import info.nightscout.core.utils.fabric.FabricPrivacy
-import info.nightscout.interfaces.constraints.Constraint
-import info.nightscout.interfaces.constraints.Constraints
-import info.nightscout.interfaces.plugin.ActivePlugin
-import info.nightscout.interfaces.plugin.PluginDescription
-import info.nightscout.interfaces.plugin.PluginType
-import info.nightscout.interfaces.profile.Profile
-import info.nightscout.interfaces.pump.DetailedBolusInfo
-import info.nightscout.interfaces.pump.Pump
-import info.nightscout.interfaces.pump.PumpEnactResult
-import info.nightscout.interfaces.pump.PumpSync
-import info.nightscout.interfaces.pump.defs.PumpType
-import info.nightscout.interfaces.queue.CommandQueue
-import info.nightscout.interfaces.utils.TimeChangeType
-import info.nightscout.rx.AapsSchedulers
-import info.nightscout.rx.events.EventRefreshButtonState
-import info.nightscout.rx.events.EventRefreshOverview
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.interfaces.ResourceHelper
-import info.nightscout.shared.sharedPreferences.SP
-import info.nightscout.shared.utils.DateUtil
+import info.nightscout.pump.common.events.EventPumpFragmentValuesChanged
+
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -80,7 +81,9 @@ class TandemPumpPlugin @Inject constructor(
     aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
     pumpSyncStorage: PumpSyncStorage,
-    pumpDriverConfiguration: TandemPumpDriverConfiguration
+    pumpDriverConfiguration: TandemPumpDriverConfiguration,
+    decimalFormatter: DecimalFormatter,
+    instantiator: Instantiator
 ) : PumpPluginAbstract(
     PluginDescription() //
         .mainType(PluginType.PUMP) //
@@ -91,8 +94,8 @@ class TandemPumpPlugin @Inject constructor(
         .preferencesId(R.xml.pref_tandem)
         .description(R.string.description_pump_tandem),  //
     PumpType.TANDEM_T_SLIM_X2_BT,
-    injector, rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage, pumpDriverConfiguration
-), Pump, Constraints /*, PumpDriverConfigurationCapable*/ {
+    rh, aapsLogger, commandQueue, rxBus, activePlugin, sp, context, fabricPrivacy, dateUtil, aapsSchedulers, pumpSync, pumpSyncStorage, pumpDriverConfiguration, decimalFormatter, instantiator
+), Pump, PluginConstraints /*, PumpConstraints , PumpDriverConfigurationCapable*/ {
 
     // variables for handling statuses and history
     private var firstRun = true
@@ -119,10 +122,10 @@ class TandemPumpPlugin @Inject constructor(
         super.updatePreferenceSummary(pref)
         if (pref.key == rh.gs(R.string.key_tandem_address)) {
             val value: String? = sp.getStringOrNull(R.string.key_tandem_address, null)
-            pref.summary = value ?: rh.gs(info.nightscout.core.ui.R.string.not_set_short)
+            pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
         } else if (pref.key == rh.gs(R.string.key_tandem_serial)) {
             val value: String? = sp.getStringOrNull(R.string.key_tandem_serial, null)
-            pref.summary = value ?: rh.gs(info.nightscout.core.ui.R.string.not_set_short)
+            pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
         }
         aapsLogger.info(LTag.PUMP, "Preference: $pref")
     }
@@ -257,7 +260,7 @@ class TandemPumpPlugin @Inject constructor(
     override fun isClosedLoopAllowed(value: Constraint<Boolean>): Constraint<Boolean> {
         if (value.value()) {
             value.set(
-                aapsLogger,
+                //aapsLogger,
                 false, //driverMode == PumpDriverMode.Automatic,
                 rh.gs(R.string.tandem_fol_closed_loop_not_allowed_x2),
                 this
@@ -269,7 +272,7 @@ class TandemPumpPlugin @Inject constructor(
     override fun isSMBModeEnabled(value: Constraint<Boolean>): Constraint<Boolean> {
         if (value.value()) {
             value.set(
-                aapsLogger,
+                //aapsLogger,
                 driverMode == PumpDriverMode.Automatic, // TODO
                 rh.gs(R.string.tandem_fol_smb_not_allowed),
                 this
@@ -306,7 +309,7 @@ class TandemPumpPlugin @Inject constructor(
 
     override fun isConnecting(): Boolean {
         if (!driverInitialized)
-            return false;
+            return false
 
         val driverStatus = tandemUtil.driverStatus
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
@@ -694,7 +697,7 @@ class TandemPumpPlugin @Inject constructor(
     override fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, logPrefix + "deliverBolus - " + BolusDeliveryType.DeliveryPrepared)
         return if (detailedBolusInfo.insulin > pumpStatus.reservoirRemainingUnits) {
-            PumpEnactResult(injector) //
+            PumpEnactResultObject(rh) //
                 .success(false) //
                 .enacted(false) //
                 .comment(
@@ -717,7 +720,7 @@ class TandemPumpPlugin @Inject constructor(
                 // we subtract insulin, exact amount will be visible with next remainingInsulin update.
                 //pumpStatus.reservoirRemainingUnits -= detailedBolusInfo.insulin
 
-                incrementStatistics(if (detailedBolusInfo.bolusType == DetailedBolusInfo.BolusType.SMB)
+                incrementStatistics(if (detailedBolusInfo.bolusType == BS.Type.SMB)
                     TandemPumpConst.Statistics.SMBBoluses
                 else
                     TandemPumpConst.Statistics.StandardBoluses)
@@ -734,12 +737,12 @@ class TandemPumpPlugin @Inject constructor(
 
                 readPumpHistoryAfterAction(bolusInfo = detailedBolusInfo)
 
-                PumpEnactResult(injector).success(true) //
+                PumpEnactResultObject(rh).success(true) //
                     .enacted(true) //
                     .bolusDelivered(detailedBolusInfo.insulin) //
                     //.carbsDelivered(detailedBolusInfo.carbs)   // TODO
             } else {
-                PumpEnactResult(injector) //
+                PumpEnactResultObject(rh) //
                     .success(false) //
                     .enacted(false) //
                     .comment(rh.gs(R.string.ypsopump_cmd_bolus_could_not_be_delivered))
@@ -773,7 +776,7 @@ class TandemPumpPlugin @Inject constructor(
             val tbrCurrent = readTBR()
             if (tbrCurrent == null) {
                 aapsLogger.warn(LTag.PUMP, logPrefix + "setTempBasalPercent - Could not read current TBR, canceling operation.")
-                return PumpEnactResult(injector).success(false).enacted(false)
+                return PumpEnactResultObject(rh).success(false).enacted(false)
                     .comment(rh.gs(R.string.ypsopump_cmd_cant_read_tbr))
             } else {
                 aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent: Current Basal: duration: " + tbrCurrent.durationMinutes + " min, rate=" + tbrCurrent.insulinRate)
@@ -787,7 +790,7 @@ class TandemPumpPlugin @Inject constructor(
                     }
                     if (sameRate) {
                         aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent - No enforceNew and same rate. Exiting.")
-                        return PumpEnactResult(injector).success(true).enacted(false)
+                        return PumpEnactResultObject(rh).success(true).enacted(false)
                     }
                 }
                 // if not the same rate, we cancel and start new
@@ -803,7 +806,7 @@ class TandemPumpPlugin @Inject constructor(
                     aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent - Current TBR cancelled.")
                 } else {
                     aapsLogger.error(logPrefix + "setTempBasalPercent - Cancel TBR failed.")
-                    return PumpEnactResult(injector).success(false).enacted(false)
+                    return PumpEnactResultObject(rh).success(false).enacted(false)
                         .comment(rh.gs(R.string.ypsopump_cmd_cant_cancel_tbr_stop_op))
                 }
             }
@@ -823,10 +826,10 @@ class TandemPumpPlugin @Inject constructor(
                     durationMinutes = durationInMinutes))
 
                 incrementStatistics(TandemPumpConst.Statistics.TBRsSet)
-                PumpEnactResult(injector).success(true).enacted(true) //
+                PumpEnactResultObject(rh).success(true).enacted(true) //
                     .percent(percent).duration(durationInMinutes)
             } else {
-                PumpEnactResult(injector).success(false).enacted(false) //
+                PumpEnactResultObject(rh).success(false).enacted(false) //
                     .comment(rh.gs(R.string.ypsopump_cmd_tbr_could_not_be_delivered))
             }
         } finally {
@@ -966,12 +969,12 @@ class TandemPumpPlugin @Inject constructor(
                 if (tbrCurrent.insulinRate == 0.0 && tbrCurrent.durationMinutes == 0) {
                     aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - TBR already canceled.")
                     finishAction("TBR")
-                    return PumpEnactResult(injector).success(true).enacted(false)
+                    return PumpEnactResultObject(rh).success(true).enacted(false)
                 }
             } else {
                 aapsLogger.warn(LTag.PUMP, logPrefix + "cancelTempBasal - Could not read currect TBR, canceling operation.")
                 finishAction("TBR")
-                return PumpEnactResult(injector).success(false).enacted(false)
+                return PumpEnactResultObject(rh).success(false).enacted(false)
                     .comment(rh.gs(R.string.ypsopump_cmd_cant_read_tbr))
             }
             val commandResponse = pumpConnectionManager.cancelTemporaryBasal()
@@ -980,11 +983,11 @@ class TandemPumpPlugin @Inject constructor(
 
                 readPumpHistoryAfterAction(tempBasalInfo = TempBasalPair(0.0, true, 0))
 
-                PumpEnactResult(injector).success(true).enacted(true) //
+                PumpEnactResultObject(rh).success(true).enacted(true) //
                     .isTempCancel(true)
             } else {
                 aapsLogger.info(LTag.PUMP, logPrefix + "cancelTempBasal - Cancel TBR failed.")
-                PumpEnactResult(injector).success(false).enacted(false) //
+                PumpEnactResultObject(rh).success(false).enacted(false) //
                     .comment(rh.gs(R.string.ypsopump_cmd_cant_cancel_tbr))
             }
         } finally {
@@ -994,6 +997,10 @@ class TandemPumpPlugin @Inject constructor(
 
     override fun serialNumber(): String {
         return if (pumpStatus.serialNumber == null) "" else pumpStatus.serialNumber.toString()
+    }
+
+    override fun generateTempId(objectA: Any): Long {
+        TODO("Not yet implemented")
     }
 
     //    @NotNull @Override
@@ -1065,9 +1072,9 @@ class TandemPumpPlugin @Inject constructor(
             aapsLogger.info(LTag.PUMP, logPrefix + "Basal Profile was set: " + resultCommandResponse)
             if (resultCommandResponse != null && resultCommandResponse.isSuccess) {
                 pumpStatus.basalProfile = profile
-                PumpEnactResult(injector).success(true).enacted(true)
+                PumpEnactResultObject(rh).success(true).enacted(true)
             } else {
-                PumpEnactResult(injector).success(false).enacted(false) //
+                PumpEnactResultObject(rh).success(false).enacted(false) //
                     .comment(rh.gs(R.string.ypsopump_cmd_basal_profile_could_not_be_set))
             }
         } finally {
@@ -1119,9 +1126,9 @@ class TandemPumpPlugin @Inject constructor(
     // OPERATIONS not supported by Pump or Plugin
 
 
-    override fun generateTempId(dataObject: Any?): Long {
-        return 0L
-    }
+    // override fun generateTempId(dataObject: Any?): Long {
+    //     return 0L
+    // }
 
     init {
         displayConnectionMessages = true

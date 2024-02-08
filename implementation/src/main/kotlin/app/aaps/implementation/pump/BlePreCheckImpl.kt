@@ -11,6 +11,8 @@ import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.BlePreCheck
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.ui.dialogs.OKDialog
@@ -21,7 +23,8 @@ import javax.inject.Singleton
 @Singleton
 class BlePreCheckImpl @Inject constructor(
     private val context: Context,
-    private val rh: ResourceHelper
+    private val rh: ResourceHelper,
+    private val aapsLogger: AAPSLogger
 ) : BlePreCheck {
 
     companion object {
@@ -30,7 +33,13 @@ class BlePreCheckImpl @Inject constructor(
         private const val PERMISSION_REQUEST_BLUETOOTH = 30242 // arbitrary.
     }
 
+
     override fun prerequisitesCheck(activity: AppCompatActivity): Boolean {
+        return prerequisitesCheck(activity, null)
+    }
+
+
+    override fun prerequisitesCheck(activity: AppCompatActivity, additionalPermissions: List<String>?): Boolean {
         if (!activity.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             OKDialog.show(activity, rh.gs(app.aaps.core.ui.R.string.message), rh.gs(app.aaps.core.ui.R.string.ble_not_supported))
             return false
@@ -73,8 +82,8 @@ class BlePreCheckImpl @Inject constructor(
         return true
     }
 
-    private fun checkAdditionalPermissions(additionalPermissions: List<String>?, activity: AppCompatActivity): Boolean {
 
+    private fun checkAdditionalPermissions(additionalPermissions: List<String>?, activity: AppCompatActivity): Boolean {
 
         if (additionalPermissions==null || additionalPermissions.size==0) {
             aapsLogger.info(LTag.PUMP, "ADP: No additional permissions found !")

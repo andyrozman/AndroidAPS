@@ -11,7 +11,7 @@ import dagger.Module
 // import info.nightscout.androidaps.plugins.pump.tandem.database.YpsoPumpHistory
 // import TandemPumpStatus
 // import TandemPumpUtil
-// import info.nightscout.rx.logging.AAPSLogger
+// import app.aaps.core.interfaces.logging.AAPSLogger
 // import javax.inject.Singleton
 
 @Module

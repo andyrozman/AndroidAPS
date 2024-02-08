@@ -7,15 +7,16 @@ import android.os.Build
 import android.text.InputType
 import android.widget.EditText
 import androidx.core.app.ActivityCompat
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.ui.toast.ToastUtils
 import info.nightscout.aaps.pump.tandem.data.events.EventPumpNeedsPairingCode
 import info.nightscout.aaps.pump.tandem.data.events.EventPumpPairingCodeProvided
-import info.nightscout.core.ui.toast.ToastUtils
+
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
-import info.nightscout.aaps.pump.common.ui.PumpBLEConfigActivity
-import info.nightscout.rx.AapsSchedulers
-import info.nightscout.rx.logging.LTag
+import info.nightscout.pump.common.ui.PumpBLEConfigActivity
 import javax.inject.Inject
 
 class TandemPumpBLEConfigActivity : PumpBLEConfigActivity() {
@@ -32,7 +33,7 @@ class TandemPumpBLEConfigActivity : PumpBLEConfigActivity() {
     private fun askForPairingCode(e: EventPumpNeedsPairingCode) {
         aapsLogger.info(LTag.PUMPCOMM, "askForPairingCode")
 
-        val builder = AlertDialog.Builder(this, info.nightscout.core.ui.R.style.AppTheme)
+        val builder = AlertDialog.Builder(this, app.aaps.core.ui.R.style.AppTheme)
         builder.setTitle("Enter pairing code")
         builder.setMessage(e.instructions)
 
@@ -101,7 +102,7 @@ class TandemPumpBLEConfigActivity : PumpBLEConfigActivity() {
             prepareForScanning()
             updateCurrentlySelectedBTDevice()
         } else {
-            ToastUtils.errorToast(context, context.getString(info.nightscout.core.ui.R.string.need_connect_permission))
+            ToastUtils.errorToast(context, context.getString(app.aaps.core.ui.R.string.need_connect_permission))
             finish()
         }
 

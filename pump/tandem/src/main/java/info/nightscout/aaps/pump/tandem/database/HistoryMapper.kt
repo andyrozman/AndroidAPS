@@ -3,8 +3,8 @@ package info.nightscout.aaps.pump.tandem.database
 import info.nightscout.aaps.pump.tandem.data.history.DateTimeChanged
 import info.nightscout.aaps.pump.tandem.data.history.HistoryLogDto
 import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import javax.inject.Inject
 
 // TODO refactor this for Tandem

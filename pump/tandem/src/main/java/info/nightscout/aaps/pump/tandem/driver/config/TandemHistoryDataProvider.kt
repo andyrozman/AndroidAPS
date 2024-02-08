@@ -5,13 +5,14 @@ import info.nightscout.aaps.pump.common.driver.history.PumpHistoryDataProviderAb
 import info.nightscout.aaps.pump.common.driver.history.PumpHistoryEntry
 import info.nightscout.aaps.pump.common.driver.history.PumpHistoryPeriod
 import info.nightscout.aaps.pump.common.driver.history.PumpHistoryText
-import info.nightscout.androidaps.plugins.pump.tandem.R
+import app.aaps.pump.tandem.R
 import info.nightscout.aaps.pump.tandem.database.HistoryRecordEntity
 import info.nightscout.aaps.pump.tandem.database.TandemPumpHistory
 import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
-import info.nightscout.core.utils.DateTimeUtil
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.shared.interfaces.ResourceHelper
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.utils.DateTimeUtil
+
 import javax.inject.Inject
 
 // TODO needs to be fully refactored

@@ -8,9 +8,9 @@ import info.nightscout.aaps.pump.tandem.data.defs.TandemPumpHistoryType
 
 import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
-import info.nightscout.interfaces.pump.PumpSync
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.pump.PumpSync
 import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
 import java.util.*

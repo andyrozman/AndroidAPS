@@ -2,7 +2,7 @@ package info.nightscout.androidaps.dependencyInjection
 
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
-import info.nightscout.aaps.pump.tandem.TandemPumpFragment
+import app.aaps.pump.tandem.TandemPumpFragment
 import info.nightscout.aaps.pump.tandem.comm.TandemDataConverter
 import info.nightscout.aaps.pump.tandem.driver.connector.TandemPumpConnectionManager
 import info.nightscout.aaps.pump.tandem.driver.connector.TandemPumpConnector
@@ -33,7 +33,7 @@ abstract class TandemModule {
     //@ContributesAndroidInjector abstract fun contributeTandemCommunicationManager(): TandemCommunicationManager
 
     // Activites and Fragments
-    @ContributesAndroidInjector abstract fun contributesTandemPumpFragment(): TandemPumpFragment
+    //@ContributesAndroidInjector abstract fun contributesTandemPumpFragment(): TandemPumpFragment
     @ContributesAndroidInjector abstract fun contributesTandemPumpBLEConfigActivity(): TandemPumpBLEConfigActivity
 
     // Configuration

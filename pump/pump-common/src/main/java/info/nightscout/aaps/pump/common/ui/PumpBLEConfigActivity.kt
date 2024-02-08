@@ -42,7 +42,7 @@ import org.apache.commons.lang3.StringUtils
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
-class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
+open class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
 
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var sp: SP
@@ -52,14 +52,14 @@ class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
     @Inject lateinit var rxBus: RxBus
 
     private lateinit var binding: PumpBleConfigActivityBinding
-    private lateinit var bleSelector: PumpBLESelector
+    @Inject lateinit var bleSelector: PumpBLESelector
 
     private var settings: ScanSettings? = null
     private var filters: List<ScanFilter>? = null
     private var bleScanner: BluetoothLeScanner? = null
     private var deviceListAdapter = LeDeviceListAdapter()
-    private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
-    private val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
+    val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
+    val bluetoothAdapter: BluetoothAdapter? get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
     var scanning = false
     private val devicesMap: MutableMap<String, BluetoothDevice> = HashMap()
 
@@ -97,7 +97,7 @@ class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
 
         if (!blePreCheck.prerequisitesCheck(this, bleSelector.getAdditionalPermissions())) {
             aapsLogger.error(TAG, "prerequisitesCheck failed.")
-            ToastUtils.errorToast(context, context.getString(info.nightscout.core.ui.R.string.need_connect_permission))
+            ToastUtils.errorToast(context, context.getString(app.aaps.core.ui.R.string.need_connect_permission))
             finish()
             return
         }
@@ -164,7 +164,7 @@ class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
         }
     }
 
-    private fun updateCurrentlySelectedBTDevice() {
+    fun updateCurrentlySelectedBTDevice() {
         val address = bleSelector.currentlySelectedPumpAddress()
         if (StringUtils.isEmpty(address)) {
             binding.pumpBleConfigCurrentlySelectedPumpName.text = bleSelector.getText(PumpBLESelectorText.NO_SELECTED_PUMP)
@@ -197,7 +197,7 @@ class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
             prepareForScanning()
             updateCurrentlySelectedBTDevice()
         } else {
-            ToastUtils.errorToast(context, context.getString(info.nightscout.core.ui.R.string.need_connect_permission))
+            ToastUtils.errorToast(context, context.getString(app.aaps.core.ui.R.string.need_connect_permission))
             finish()
         }
 

@@ -13,9 +13,9 @@ import info.nightscout.aaps.pump.tandem.comm.TandemDataConverter
 import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
 import info.nightscout.pump.common.defs.PumpDriverState
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.shared.sharedPreferences.SP
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.sharedPreferences.SP
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import javax.inject.Inject
 import javax.inject.Singleton

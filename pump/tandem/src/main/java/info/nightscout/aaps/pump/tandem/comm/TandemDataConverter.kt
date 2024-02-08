@@ -14,11 +14,11 @@ import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
 import info.nightscout.pump.common.defs.TempBasalPair
 import info.nightscout.aaps.pump.common.driver.history.PumpDataConverter
 import info.nightscout.aaps.pump.tandem.data.history.*
-import info.nightscout.pump.core.utils.ByteUtil
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.utils.pump.ByteUtil
 
-import info.nightscout.shared.sharedPreferences.SP
+import app.aaps.core.interfaces.sharedPreferences.SP
 import org.joda.time.DateTime
 import javax.inject.Inject
 
@@ -201,7 +201,7 @@ class TandemDataConverter @Inject constructor(
 
             // Pump Status Changes - WIP
             is PumpingResumedHistoryLog        -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpRunning)
-            is PumpingSuspendedHistoryLog      -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpSuspended, historyLogPump.reason)
+            is PumpingSuspendedHistoryLog      -> historyLog.subObject = PumpStatusChanged(PumpStatusType.PumpSuspended, historyLogPump.reasonId) // TODO maybe different handling?
 
             // TBR
             is TempRateActivatedHistoryLog     -> historyLog.subObject = createTBRRecord(historyLogPump)
@@ -364,7 +364,7 @@ class TandemDataConverter @Inject constructor(
         val bolus = Bolus(bolusId = bolusLog.bolusId,
                           immediateAmount = bolusLog.insulinDelivered.toDouble(),
                           isCancelled = false,
-                          isRunning = bolusLog.completionStatus == 0  // TODO completionStatus Bolus
+                          isRunning = bolusLog.completionStatusId == 0  // TODO completionStatus Bolus maybe different handling
         )
 
         return bolus

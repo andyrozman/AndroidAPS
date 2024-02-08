@@ -212,6 +212,7 @@ dependencies {
     implementation(project(":pump:omnipod-eros"))
     implementation(project(":pump:omnipod-dash"))
     implementation(project(":pump:rileylink"))
+    implementation(project(":pump:tandem"))
     implementation(project(":pump:virtual"))
     implementation(project(":workflow"))
 

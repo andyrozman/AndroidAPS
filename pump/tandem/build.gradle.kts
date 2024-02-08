@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:validators"))
     implementation(project(":core:keys"))
+    implementation(project(":implementation"))
 
     //implementation project(':pump:pump-core')
     implementation(project(":pump:pump-common"))
@@ -47,6 +48,7 @@ dependencies {
     api(Libs.AndroidX.Room.runtime)
     api(Libs.AndroidX.Room.rxJava3)
     kapt(Libs.AndroidX.Room.compiler)
+
     kapt(Libs.Dagger.compiler)
     kapt(Libs.Dagger.androidProcessor)
 

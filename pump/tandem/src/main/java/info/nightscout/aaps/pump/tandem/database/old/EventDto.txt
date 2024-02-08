@@ -5,7 +5,7 @@ import info.nightscout.androidaps.interfaces.PumpSync
 import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
 import info.nightscout.pump.common.driver.history.PumpDataConverter
 import info.nightscout.pump.common.driver.history.PumpHistoryEntry
-import info.nightscout.androidaps.plugins.pump.tandem.R
+import app.aaps.pump.tandem.R
 import info.nightscout.androidaps.plugins.pump.tandem.comm.YpsoPumpDataConverter
 import info.nightscout.androidaps.plugins.pump.tandem.defs.YpsoPumpEventType
 import info.nightscout.androidaps.interfaces.ResourceHelper

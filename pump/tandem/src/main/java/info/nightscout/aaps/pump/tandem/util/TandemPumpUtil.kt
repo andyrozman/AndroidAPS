@@ -2,13 +2,14 @@ package info.nightscout.aaps.pump.tandem.util
 
 import android.content.Context
 import android.util.Log
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.utils.pump.ByteUtil
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
-import info.nightscout.rx.bus.RxBus
+
 import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.pump.common.utils.PumpUtil
-import info.nightscout.pump.core.utils.ByteUtil
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.shared.interfaces.ResourceHelper
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -142,11 +143,11 @@ class TandemPumpUtil @Inject constructor(
         return hex.toInt(16).toByte()
     }
 
-    fun getBytesFromInt16(value: Int): ByteArray {
-        val array = getBytesFromInt(value)
-        Log.d("HHH", ByteUtil.getHex(array))
-        return byteArrayOf(array[3], array[2]) // 2, 3
-    }
+    // fun getBytesFromInt16(value: Int): ByteArray {
+    //     val array = getBytesFromInt(value)
+    //     Log.d("HHH", ByteUtil.getHex(array))
+    //     return byteArrayOf(array[3], array[2]) // 2, 3
+    // }
 
     fun getBytesFromInt(value: Int): ByteArray {
         return ByteBuffer.allocate(4).putInt(value).array()
@@ -154,11 +155,11 @@ class TandemPumpUtil @Inject constructor(
 
     fun byteToInt(data: ByteArray, start: Int, length: Int): Int {
         return if (length == 1) {
-            ByteUtil.toInt(data[start])
+            ByteUtil.toInt(data[start], null, null, null, ByteUtil.BitConversion.LITTLE_ENDIAN)
         } else if (length == 2) {
-            ByteUtil.toInt(data[start], data[start + 1], ByteUtil.BitConversion.LITTLE_ENDIAN)
+            ByteUtil.toInt(data[start], data[start + 1], null, null, ByteUtil.BitConversion.LITTLE_ENDIAN)
         } else if (length == 3) {
-            ByteUtil.toInt(data[start], data[start + 1], data[start + 2], ByteUtil.BitConversion.LITTLE_ENDIAN)
+            ByteUtil.toInt(data[start], data[start + 1], data[start + 2], null, ByteUtil.BitConversion.LITTLE_ENDIAN)
         } else if (length == 4) {
             ByteUtil.toInt(data[start], data[start + 1], data[start + 2], data[start + 3], ByteUtil.BitConversion.LITTLE_ENDIAN)
         } else {

@@ -1,6 +1,11 @@
 package info.nightscout.aaps.pump.tandem.driver.connector
 
 import android.content.Context
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.sharedPreferences.SP
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.*
 import com.jwoglom.pumpx2.pump.messages.response.ErrorResponse
@@ -26,11 +31,9 @@ import info.nightscout.aaps.pump.tandem.data.defs.TandemPumpSettingType
 import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.aaps.pump.tandem.util.TandemPumpConst
 import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
-import info.nightscout.interfaces.profile.Profile
-import info.nightscout.interfaces.pump.DetailedBolusInfo
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.sharedPreferences.SP
+
+
+
 import javax.inject.Inject
 
 /**

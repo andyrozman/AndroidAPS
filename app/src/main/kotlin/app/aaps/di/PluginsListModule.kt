@@ -70,7 +70,7 @@ import info.nightscout.androidaps.plugins.pump.omnipod.eros.OmnipodErosPumpPlugi
 import info.nightscout.pump.combov2.ComboV2Plugin
 import info.nightscout.pump.diaconn.DiaconnG8Plugin
 import info.nightscout.pump.medtrum.MedtrumPlugin
-import info.nightscout.aaps.pump.tandem.TandemPumpPlugin
+import app.aaps.pump.tandem.TandemPumpPlugin
 import javax.inject.Qualifier
 
 @Suppress("unused")

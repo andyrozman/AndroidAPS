@@ -1,6 +1,7 @@
 package info.nightscout.pump.common.defs
 
 import app.aaps.core.interfaces.resources.ResourceHelper
+import info.nightscout.aaps.pump.common.defs.PumpTypeGroupConfig
 import info.nightscout.pump.common.R
 
 /**

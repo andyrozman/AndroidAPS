@@ -19,10 +19,11 @@ import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.aaps.pump.tandem.util.TandemPumpConst
 import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
 import info.nightscout.aaps.pump.common.data.PumpTimeDifferenceDto
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.extensions.runOnUiThread
-import info.nightscout.shared.sharedPreferences.SP
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.ui.extensions.runOnUiThread
 import org.joda.time.DateTime
 import java.util.*
 
@@ -187,9 +188,11 @@ class TandemCommunicationManager constructor(
                 //sp.putString(TandemPumpConst.Prefs.PumpApiVersion, apiVersion.name)
             } else if (message is TimeSinceResetResponse) {
 
+                val timeSince : TimeSinceResetResponse = message
+
                 aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: ${message}")
 
-                val dtPump = DateTime().withMillis(message.pumpTimeSeconds * 1000L)
+                val dtPump = DateTime().withMillis(timeSince.currentTime * 1000L)
 
                 val pumpTimeDifference = PumpTimeDifferenceDto(DateTime.now(), dtPump)
                 pumpStatus.pumpTime = pumpTimeDifference

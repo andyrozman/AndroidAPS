@@ -7,6 +7,17 @@ import android.os.SystemClock
 import android.text.InputType
 import android.widget.EditText
 import android.widget.Toast
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.ui.dialogs.AlertDialogHelper
+import app.aaps.core.ui.extensions.runOnUiThread
+import app.aaps.core.ui.toast.ToastUtils
+import app.aaps.pump.tandem.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
@@ -26,7 +37,6 @@ import com.welie.blessed.BluetoothPeripheral
 import info.nightscout.aaps.pump.common.defs.PumpErrorType
 import info.nightscout.pump.common.defs.PumpDriverState
 import info.nightscout.aaps.pump.common.events.EventPumpConnectionParametersChanged
-import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.aaps.pump.tandem.data.defs.TandemPumpApiVersion
 import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.aaps.pump.tandem.data.events.EventPumpNeedsPairingCode
@@ -34,17 +44,7 @@ import info.nightscout.aaps.pump.tandem.data.events.EventPumpPairingCodeProvided
 import info.nightscout.aaps.pump.tandem.data.events.EventPumpDriverStateChanged
 import info.nightscout.aaps.pump.tandem.util.TandemPumpConst
 import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
-import info.nightscout.core.ui.dialogs.AlertDialogHelper
-import info.nightscout.core.ui.toast.ToastUtils
-import info.nightscout.interfaces.pump.PumpSync
-import info.nightscout.aaps.pump.common.ui.PumpBLEConfigActivity
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.extensions.runOnUiThread
-import info.nightscout.shared.interfaces.ResourceHelper
-import info.nightscout.shared.sharedPreferences.SP
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import info.nightscout.pump.common.ui.PumpBLEConfigActivity
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import java.util.*
@@ -60,7 +60,8 @@ class TandemPairingManager constructor(
     var rxBus: RxBus,
     var pumpStatus: TandemPumpStatus,
     var pumpSync: PumpSync,
-    var activity: PumpBLEConfigActivity
+    var activity: PumpBLEConfigActivity,
+    var aapsSchedulers: AapsSchedulers
 ) : TandemPump(context, Optional.of(btAddress)) {
 
     var TAG = LTag.PUMPBTCOMM
@@ -179,7 +180,7 @@ class TandemPairingManager constructor(
 
         disposable += rxBus
             .toObservable(EventPumpPairingCodeProvided::class.java)
-            .observeOn(AndroidSchedulers.mainThread())
+            .observeOn(aapsSchedulers.main)
             .subscribe({ hasPairingCode(peripheral, btAddress, centralChallenge, it.pairingCode) }, { aapsLogger.error(TAG, "pumpHasPairingCode disposable error", it) })
 
         try {
@@ -206,7 +207,7 @@ class TandemPairingManager constructor(
         pair(peripheral, challenge, pairingCode)
     }
 
-    override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse) {
+    override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse?) {
 
         aapsLogger.info(TAG, "TANDEMDBG: onInvalidPairingCode")
 
@@ -286,11 +287,11 @@ class TandemPairingManager constructor(
         // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
         input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
 
-        MaterialAlertDialogBuilder(context, info.nightscout.core.ui.R.style.DialogTheme)
+        MaterialAlertDialogBuilder(context, app.aaps.core.ui.R.style.DialogTheme)
             .setCustomTitle(AlertDialogHelper.buildCustomTitle(context, resourceHelper.gs(R.string.tandem_ble_config_pairing_title)))
             .setMessage(resourceHelper.gs(R.string.tandem_ble_config_pairing_message, btName, btAddress))
             .setView(input)
-            .setPositiveButton(context.getString(info.nightscout.core.ui.R.string.ok)) { dialog: DialogInterface, _: Int ->
+            .setPositiveButton(context.getString(app.aaps.core.ui.R.string.ok)) { dialog: DialogInterface, _: Int ->
                 if (okClicked) return@setPositiveButton
                 else {
                     okClicked = true
@@ -305,7 +306,7 @@ class TandemPairingManager constructor(
                     pair(peripheral, challenge, pairingCode)
                 }
             }
-            .setNegativeButton(context.getString(info.nightscout.core.ui.R.string.cancel)) { dialog: DialogInterface, _: Int ->
+            .setNegativeButton(context.getString(app.aaps.core.ui.R.string.cancel)) { dialog: DialogInterface, _: Int ->
                 if (okClicked) return@setNegativeButton
                 else {
                     okClicked = true

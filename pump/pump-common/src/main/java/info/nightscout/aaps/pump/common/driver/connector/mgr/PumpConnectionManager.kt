@@ -1,6 +1,12 @@
 package info.nightscout.aaps.pump.common.driver.connector.mgr
 
 import android.content.Context
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.sharedPreferences.SP
 import dagger.android.HasAndroidInjector
 
 import info.nightscout.aaps.pump.common.data.BasalProfileDto
@@ -11,17 +17,11 @@ import info.nightscout.aaps.pump.common.driver.connector.commands.data.Additiona
 import info.nightscout.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import info.nightscout.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import info.nightscout.aaps.pump.common.driver.connector.defs.PumpCommandType
-import info.nightscout.interfaces.profile.Profile
-import info.nightscout.interfaces.pump.DetailedBolusInfo
 import info.nightscout.pump.common.data.PumpStatus
 import info.nightscout.aaps.pump.common.data.PumpTimeDifferenceDto
 import info.nightscout.pump.common.defs.PumpDriverState
 import info.nightscout.pump.common.defs.TempBasalPair
 import info.nightscout.pump.common.utils.PumpUtil
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 
 abstract class PumpConnectionManager constructor(

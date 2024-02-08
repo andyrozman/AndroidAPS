@@ -368,6 +368,19 @@ object ByteUtil {
         return !isEven(i)
     }
 
+    @JvmStatic
+    fun getCompactString(data: ByteArray?): String {
+        if (data == null) return "null"
+        var vval2: String? = getHex(data)
+        if (vval2!=null) {
+            vval2 = vval2.replace(" 0x", "")
+            vval2 = vval2.replace("0x", "")
+            return vval2
+        } else {
+            return "null"
+        }
+    }
+
     // 00 03 00 05 01 00 C8 00 A0
     fun createByteArrayFromString(dataFull: String): ByteArray {
         val data = dataFull.replace(" ", "")

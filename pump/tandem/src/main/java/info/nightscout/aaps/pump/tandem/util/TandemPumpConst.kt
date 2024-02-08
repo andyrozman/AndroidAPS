@@ -1,6 +1,6 @@
 package info.nightscout.aaps.pump.tandem.util
 
-import info.nightscout.androidaps.plugins.pump.tandem.R
+import app.aaps.pump.tandem.R
 
 /**
  * Created by andy on 14/07/2022.

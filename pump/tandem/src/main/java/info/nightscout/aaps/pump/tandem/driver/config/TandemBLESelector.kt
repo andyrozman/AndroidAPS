@@ -8,23 +8,25 @@ import android.content.Context
 import android.os.ParcelUuid
 import androidx.annotation.StringRes
 import com.jwoglom.pumpx2.pump.messages.bluetooth.ServiceUUID
-import info.nightscout.rx.bus.RxBus
+
 
 import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelectorAbstract
 import info.nightscout.aaps.pump.common.events.EventPumpConnectionParametersChanged
-import info.nightscout.androidaps.plugins.pump.tandem.R
+import app.aaps.pump.tandem.R
 import info.nightscout.aaps.pump.tandem.util.TandemPumpConst
 import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
-import info.nightscout.aaps.pump.common.ui.PumpBLEConfigActivity
 import info.nightscout.aaps.pump.tandem.comm.TandemPairingManager
 import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus
-import info.nightscout.interfaces.pump.PumpSync
 import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelector
 import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelectorText
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.interfaces.ResourceHelper
-import info.nightscout.shared.sharedPreferences.SP
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.sharedPreferences.SP
+import info.nightscout.pump.common.ui.PumpBLEConfigActivity
 import javax.inject.Inject
 
 // TODO this needs to be refactored
@@ -37,7 +39,8 @@ class TandemBLESelector @Inject constructor(
     context: Context,
     var tandemPumpUtil: TandemPumpUtil,
     var pumpSync: PumpSync,
-    var pumpStatus: TandemPumpStatus
+    var pumpStatus: TandemPumpStatus,
+    var aapsSchedulers: AapsSchedulers
 ) : PumpBLESelectorAbstract(resourceHelper, aapsLogger, sp, rxBus, context), PumpBLESelector {
 
     var startingAddress: String? = null
@@ -115,7 +118,8 @@ class TandemBLESelector @Inject constructor(
                     resourceHelper = resourceHelper,
                     pumpStatus = pumpStatus,
                     pumpSync = pumpSync,
-                    activity = activity
+                    activity = activity,
+                    aapsSchedulers = aapsSchedulers
                 )
                 tandemPairingManager!!.startPairing()
             } catch(ex: Exception) {

@@ -1,4 +1,4 @@
-package info.nightscout.aaps.pump.tandem
+package app.aaps.pump.tandem
 
 //import kotlinx.android.synthetic.main.ypsopump_fragment.*
 import android.graphics.Color
@@ -8,35 +8,37 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import app.aaps.core.data.time.T
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.pump.WarnColors
+import app.aaps.core.interfaces.queue.Callback
+import app.aaps.core.interfaces.queue.CommandQueue
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventExtendedBolusChange
+import app.aaps.core.interfaces.rx.events.EventQueueChanged
+import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
+import app.aaps.core.interfaces.rx.events.EventTempBasalChange
+import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.ui.dialogs.OKDialog
+import app.aaps.pump.tandem.databinding.TandemFragmentBinding
 import dagger.android.support.DaggerFragment
 
-import info.nightscout.rx.bus.RxBus
 import info.nightscout.pump.common.defs.PumpDriverState
 import info.nightscout.aaps.pump.common.defs.PumpUpdateFragmentType
-import info.nightscout.aaps.pump.common.events.EventPumpFragmentValuesChanged
-import info.nightscout.androidaps.plugins.pump.tandem.databinding.TandemFragmentBinding
+
 import info.nightscout.aaps.pump.common.driver.connector.defs.PumpCommandType
 import info.nightscout.aaps.pump.tandem.driver.TandemPumpStatus
 import info.nightscout.aaps.pump.tandem.data.events.EventPumpDriverStateChanged
-import info.nightscout.androidaps.plugins.pump.tandem.R
 import info.nightscout.aaps.pump.tandem.util.TandemPumpUtil
 
-import info.nightscout.core.ui.dialogs.OKDialog
-import info.nightscout.core.utils.fabric.FabricPrivacy
-import info.nightscout.interfaces.plugin.ActivePlugin
-import info.nightscout.interfaces.pump.PumpSync
-import info.nightscout.interfaces.pump.WarnColors
-import info.nightscout.interfaces.queue.Callback
-import info.nightscout.interfaces.queue.CommandQueue
-import info.nightscout.rx.events.EventExtendedBolusChange
-import info.nightscout.rx.events.EventQueueChanged
-import info.nightscout.rx.events.EventRefreshButtonState
-import info.nightscout.rx.events.EventTempBasalChange
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.shared.interfaces.ResourceHelper
-import info.nightscout.shared.utils.DateUtil
-import info.nightscout.shared.utils.T
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import info.nightscout.pump.common.events.EventPumpFragmentValuesChanged
+
+
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import javax.inject.Inject
@@ -55,6 +57,7 @@ class TandemPumpFragment : DaggerFragment() {
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var pumpSync: PumpSync
     @Inject lateinit var tandemPumpPlugin: TandemPumpPlugin
+    @Inject lateinit var aapsSchedulers: AapsSchedulers
 
     private var disposable: CompositeDisposable = CompositeDisposable()
 
@@ -123,27 +126,27 @@ class TandemPumpFragment : DaggerFragment() {
         loopHandler.postDelayed(refreshLoop, T.mins(1).msecs())
         disposable += rxBus
             .toObservable(EventRefreshButtonState::class.java)
-            .observeOn(AndroidSchedulers.mainThread())
+            .observeOn(aapsSchedulers.main)
             .subscribe({ binding.pumpRefresh.isEnabled = it.newState }, { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventPumpDriverStateChanged::class.java)
-            .observeOn(AndroidSchedulers.mainThread())
+            .observeOn(aapsSchedulers.main)
             .subscribe({ updatePumpStatus(it.driverStatus) }, { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventExtendedBolusChange::class.java)
-            .observeOn(AndroidSchedulers.mainThread())
+            .observeOn(aapsSchedulers.main)
             .subscribe({ updateGUI(PumpUpdateFragmentType.TreatmentValues) }, { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventTempBasalChange::class.java)
-            .observeOn(AndroidSchedulers.mainThread())
+            .observeOn(aapsSchedulers.main)
             .subscribe({ updateGUI(PumpUpdateFragmentType.TreatmentValues) }, { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventPumpFragmentValuesChanged::class.java)
-            .observeOn(AndroidSchedulers.mainThread())
+            .observeOn(aapsSchedulers.main)
             .subscribe({ updateGUI(it.updateType) }, { fabricPrivacy.logException(it) })
         disposable += rxBus
             .toObservable(EventQueueChanged::class.java)
-            .observeOn(AndroidSchedulers.mainThread())
+            .observeOn(aapsSchedulers.main)
             .subscribe({ updateGUI(PumpUpdateFragmentType.Queue) }, { fabricPrivacy.logException(it) })
 
         updateGUI(PumpUpdateFragmentType.Full)
@@ -178,15 +181,15 @@ class TandemPumpFragment : DaggerFragment() {
             } else if (pumpStatus.lastConnection + 30 * 60 * 1000 < System.currentTimeMillis()) {
 
                 if (min < 60) {
-                    binding.pumpLastConnection.text = resourceHelper.gs(info.nightscout.shared.R.string.minago, min)
+                    binding.pumpLastConnection.text = resourceHelper.gs(app.aaps.core.interfaces.R.string.minago, min)
                 } else if (min < 1440) {
                     val h = (min / 60).toInt()
-                    binding.pumpLastConnection.text = resourceHelper.gs(info.nightscout.shared.R.string.hoursago, h, h)
+                    binding.pumpLastConnection.text = resourceHelper.gs(app.aaps.core.interfaces.R.string.hoursago, h, h)
                 } else {
                     val h = (min / 60).toInt()
                     val d = h / 24
                     // h = h - (d * 24);
-                    binding.pumpLastConnection.text = resourceHelper.gs(info.nightscout.shared.R.string.days_ago, d, d)
+                    binding.pumpLastConnection.text = resourceHelper.gs(app.aaps.core.interfaces.R.string.days_ago, d, d)
                 }
                 binding.pumpLastConnection.setTextColor(Color.RED)
             } else {
@@ -225,7 +228,7 @@ class TandemPumpFragment : DaggerFragment() {
             if (bolus != null && bolusTime != null) {
                 val agoMsc = System.currentTimeMillis() - pumpStatus.lastBolusTime!!.time
                 val bolusMinAgo = agoMsc.toDouble() / 60.0 / 1000.0
-                val unit = resourceHelper.gs(info.nightscout.core.ui.R.string.insulin_unit_shortname)
+                val unit = resourceHelper.gs(app.aaps.core.ui.R.string.insulin_unit_shortname)
                 val ago: String
                 if (agoMsc < 60 * 1000) {
                     ago = resourceHelper.gs(R.string.medtronic_pump_connected_now)
@@ -241,7 +244,7 @@ class TandemPumpFragment : DaggerFragment() {
 
             // base basal rate
             binding.pumpBaseBasalRate.text = ("(" + pumpStatus.activeProfileName + ")  "
-                + resourceHelper.gs(info.nightscout.core.ui.R.string.pump_base_basal_rate, pumpStatus.baseBasalRate))
+                + resourceHelper.gs(app.aaps.core.ui.R.string.pump_base_basal_rate, pumpStatus.baseBasalRate))
 
             //TBR TODO
             // binding.pumpTempBasal.text = activePlugin.activeTreatments.getTempBasalFromHistory(System.currentTimeMillis())?.toStringFull()
@@ -269,11 +272,11 @@ class TandemPumpFragment : DaggerFragment() {
 
             // battery
             binding.pumpBattery.text = "{fa-battery-" + pumpStatus.batteryRemaining / 25 + "}  " + pumpStatus.batteryRemaining + "%"
-            warnColors.setColorInverse(binding.pumpBattery, pumpStatus.batteryRemaining.toDouble(), 25.0, 10.0)
+            warnColors.setColorInverse(binding.pumpBattery, pumpStatus.batteryRemaining.toDouble(), 25, 10)
 
             // reservoir
-            binding.pumpReservoir.text = resourceHelper.gs(info.nightscout.core.ui.R.string.reservoir_value, pumpStatus.reservoirRemainingUnits, pumpStatus.reservoirFullUnits)
-            warnColors.setColorInverse(binding.pumpReservoir, pumpStatus.reservoirRemainingUnits, 50.0, 20.0)
+            binding.pumpReservoir.text = resourceHelper.gs(app.aaps.core.ui.R.string.reservoir_value, pumpStatus.reservoirRemainingUnits, pumpStatus.reservoirFullUnits)
+            warnColors.setColorInverse(binding.pumpReservoir, pumpStatus.reservoirRemainingUnits, 50, 20)
         }
 
     }
