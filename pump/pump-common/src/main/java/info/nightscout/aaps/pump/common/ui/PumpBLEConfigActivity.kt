@@ -52,7 +52,7 @@ open class PumpBLEConfigActivity : TranslatedDaggerAppCompatActivity() {
     @Inject lateinit var rxBus: RxBus
 
     private lateinit var binding: PumpBleConfigActivityBinding
-    @Inject lateinit var bleSelector: PumpBLESelector
+    lateinit var bleSelector: PumpBLESelector
 
     private var settings: ScanSettings? = null
     private var filters: List<ScanFilter>? = null
