@@ -1,5 +1,6 @@
 package info.nightscout.pump.common.ui
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -10,15 +11,19 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.BaseAdapter
 import android.widget.TextView
+import androidx.core.app.ActivityCompat
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
@@ -27,11 +32,12 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
 import app.aaps.core.ui.dialogs.OKDialog
+import app.aaps.core.ui.toast.ToastUtils
+import info.nightscout.aaps.pump.common.driver.PumpDriverConfigurationCapable
+import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelector
+import info.nightscout.aaps.pump.common.driver.ble.PumpBLESelectorText
 import info.nightscout.pump.common.R
 import info.nightscout.pump.common.databinding.PumpBleConfigActivityBinding
-import info.nightscout.pump.common.driver.PumpDriverConfigurationCapable
-import info.nightscout.pump.common.driver.ble.PumpBLESelector
-import info.nightscout.pump.common.driver.ble.PumpBLESelectorText
 import org.apache.commons.lang3.StringUtils
 import javax.inject.Inject
 

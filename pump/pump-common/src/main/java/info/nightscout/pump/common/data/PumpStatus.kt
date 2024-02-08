@@ -1,7 +1,9 @@
 package info.nightscout.pump.common.data
 
 import app.aaps.core.data.pump.defs.PumpType
-import info.nightscout.pump.common.defs.PumpRunningState
+import info.nightscout.aaps.pump.common.data.PumpTimeDifferenceDto
+import info.nightscout.aaps.pump.common.defs.PumpRunningState
+import info.nightscout.pump.common.defs.TempBasalPair
 import java.util.Date
 
 /**
@@ -19,7 +21,7 @@ abstract class PumpStatus(var pumpType: PumpType) {
     var lastBolusAmount: Double? = null
 
     // other pump settings
-    var activeProfileName = "0"
+    //var activeProfileName = "0"
     var reservoirRemainingUnits = 0.0
     var reservoirFullUnits = 0
     var batteryRemaining = 0 // percent, so 0-100

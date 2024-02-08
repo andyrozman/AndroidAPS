@@ -2,9 +2,9 @@ package info.nightscout.aaps.pump.common.di
 
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
-import info.nightscout.aaps.pump.common.ble.BondStateReceiver
-import info.nightscout.aaps.pump.common.ui.PumpBLEConfigActivity
-import info.nightscout.aaps.pump.common.ui.PumpHistoryActivity
+import info.nightscout.pump.common.ble.BondStateReceiver
+import info.nightscout.pump.common.ui.PumpBLEConfigActivity
+import info.nightscout.pump.common.ui.PumpHistoryActivity
 
 @Module
 @Suppress("unused")

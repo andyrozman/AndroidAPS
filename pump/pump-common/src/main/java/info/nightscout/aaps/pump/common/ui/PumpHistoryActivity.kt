@@ -14,14 +14,15 @@ import androidx.recyclerview.widget.RecyclerView
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.ui.activities.TranslatedDaggerAppCompatActivity
+import info.nightscout.aaps.pump.common.driver.PumpDriverConfigurationCapable
+import info.nightscout.aaps.pump.common.driver.history.PumpHistoryDataProvider
+import info.nightscout.aaps.pump.common.driver.history.PumpHistoryEntry
+import info.nightscout.aaps.pump.common.driver.history.PumpHistoryText
 import info.nightscout.pump.common.R
 import info.nightscout.pump.common.databinding.PumpHistoryActivityBinding
 import info.nightscout.pump.common.defs.PumpHistoryEntryGroup
-import info.nightscout.pump.common.driver.PumpDriverConfigurationCapable
-import info.nightscout.pump.common.driver.history.PumpHistoryDataProvider
-import info.nightscout.pump.common.driver.history.PumpHistoryEntry
-import info.nightscout.pump.common.driver.history.PumpHistoryText
 import javax.inject.Inject
 
 class PumpHistoryActivity : TranslatedDaggerAppCompatActivity() {
