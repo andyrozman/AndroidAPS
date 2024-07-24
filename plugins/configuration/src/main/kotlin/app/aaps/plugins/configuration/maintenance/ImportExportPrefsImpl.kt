@@ -188,7 +188,7 @@ class ImportExportPrefsImpl @Inject constructor(
                                       rh.gs(R.string.master_password_missing, rh.gs(R.string.configbuilder_general), rh.gs(R.string.protection)),
                                       R.string.nav_preferences, {
                                           val intent = Intent(activity, uiInteraction.preferencesActivity).apply {
-                                              putExtra("id", uiInteraction.prefGeneral)
+                                              putExtra(UiInteraction.XML_ID, uiInteraction.prefGeneral)
                                           }
                                           activity.startActivity(intent)
                                       })
@@ -198,10 +198,10 @@ class ImportExportPrefsImpl @Inject constructor(
     }
 
     private fun askToConfirmExport(activity: FragmentActivity, fileToExport: File, then: ((password: String) -> Unit)) {
-        if (!assureMasterPasswordSet(activity, R.string.nav_export)) return
+        if (!assureMasterPasswordSet(activity, app.aaps.core.ui.R.string.nav_export)) return
 
         TwoMessagesAlertDialog.showAlert(
-            activity, rh.gs(R.string.nav_export),
+            activity, rh.gs(app.aaps.core.ui.R.string.nav_export),
             rh.gs(R.string.export_to) + " " + fileToExport.name + " ?",
             rh.gs(R.string.password_preferences_encrypt_prompt), {
                 askForMasterPassIfNeeded(activity, R.string.preferences_export_canceled, then)

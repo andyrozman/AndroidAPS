@@ -60,6 +60,7 @@ fun UserEntry.Sources.fromDb(): Sources =
         UserEntry.Sources.OmnipodEros         -> Sources.OmnipodEros
         UserEntry.Sources.OmnipodDash         -> Sources.OmnipodDash
         UserEntry.Sources.EOPatch2            -> Sources.EOPatch2
+        UserEntry.Sources.Equil               -> Sources.Equil
         UserEntry.Sources.Medtrum             -> Sources.Medtrum
         UserEntry.Sources.MDI                 -> Sources.MDI
         UserEntry.Sources.VirtualPump         -> Sources.VirtualPump
@@ -74,6 +75,7 @@ fun UserEntry.Sources.fromDb(): Sources =
         UserEntry.Sources.Aaps                -> Sources.Aaps
         UserEntry.Sources.BgFragment          -> Sources.BgFragment
         UserEntry.Sources.Garmin              -> Sources.Garmin
+        UserEntry.Sources.Database            -> Sources.Database
         UserEntry.Sources.Unknown             -> Sources.Unknown
     }
 
@@ -134,6 +136,7 @@ fun Sources.toDb(): UserEntry.Sources =
         Sources.OmnipodEros         -> UserEntry.Sources.OmnipodEros
         Sources.OmnipodDash         -> UserEntry.Sources.OmnipodDash
         Sources.EOPatch2            -> UserEntry.Sources.EOPatch2
+        Sources.Equil               -> UserEntry.Sources.Equil
         Sources.Medtrum             -> UserEntry.Sources.Medtrum
         Sources.MDI                 -> UserEntry.Sources.MDI
         Sources.VirtualPump         -> UserEntry.Sources.VirtualPump
@@ -148,6 +151,7 @@ fun Sources.toDb(): UserEntry.Sources =
         Sources.Aaps                -> UserEntry.Sources.Aaps
         Sources.BgFragment          -> UserEntry.Sources.BgFragment
         Sources.Garmin              -> UserEntry.Sources.Garmin
+        Sources.Database            -> UserEntry.Sources.Database
         Sources.Unknown             -> UserEntry.Sources.Unknown
     }
 

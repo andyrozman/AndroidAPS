@@ -8,7 +8,7 @@
     <string name="hoursago">%1$.1f timer siden</string>
     <string name="days_ago">%1$.1f dager siden</string>
     <string name="days_ago_round">%1$.0f dager siden</string>
-    <string name="in_days">om %1$.0f dager</string>
+    <string name="in_days">i %1$.0f dager</string>
     <string name="in_days_round">om %1$.0f dager</string>
     <string name="shorthour">t</string>
     <string name="days">dager</string>
@@ -61,4 +61,5 @@
     <string name="pref_show_date">Vis dato</string>
     <string name="default_custom_watchface_comment">Standard urskive, du kan klikke på EKSPORTER MAL for å lage en mal</string>
     <string name="wear_default_watchface">Standard urskive</string>
+    <string name="wear_more_watchfaces">Flere urskiver</string>
 </resources>

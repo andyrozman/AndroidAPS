@@ -172,6 +172,7 @@ data class UserEntry(
         OmnipodEros,
         OmnipodDash,        //No entry currently
         EOPatch2,
+        Equil,
         Medtrum,
         MDI,
         VirtualPump,
@@ -186,6 +187,7 @@ data class UserEntry(
         Aaps,               // MainApp
         BgFragment,
         Garmin,
+        Database,           //for PersistenceLayer
         Unknown             //if necessary
         ;
 
