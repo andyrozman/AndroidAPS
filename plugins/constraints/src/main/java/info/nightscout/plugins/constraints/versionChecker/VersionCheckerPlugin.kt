@@ -47,12 +47,12 @@ class VersionCheckerPlugin @Inject constructor(
         RC(1, 7, 14)
     }
 
-    private val gracePeriod: GracePeriod
-        get() = if ((config.VERSION_NAME.contains("RC", ignoreCase = true))) {
-            GracePeriod.RC
-        } else {
-            GracePeriod.RELEASE
-        }
+    private val gracePeriod: GracePeriod = GracePeriod.RELEASE
+        // get() = if ((config.VERSION_NAME.contains("RC", ignoreCase = true))) {
+        //     GracePeriod.RC
+        // } else {
+        //     GracePeriod.RELEASE
+        // }
 
     companion object {
 
@@ -113,8 +113,8 @@ class VersionCheckerPlugin @Inject constructor(
     private fun shouldWarnAgain() =
         dateUtil.now() > sp.getLong(R.string.key_last_versionchecker_plugin_warning, 0) + WARN_EVERY
 
-    private fun isOldVersion(gracePeriod: Long): Boolean =
-        dateUtil.now() > sp.getLong(R.string.key_last_time_this_version_detected_as_ok, 0) + gracePeriod
+    private fun isOldVersion(gracePeriod: Long): Boolean = false
+        //dateUtil.now() > sp.getLong(R.string.key_last_time_this_version_detected_as_ok, 0) + gracePeriod
 
     private fun Long.daysToMillis() = TimeUnit.DAYS.toMillis(this)
 }
