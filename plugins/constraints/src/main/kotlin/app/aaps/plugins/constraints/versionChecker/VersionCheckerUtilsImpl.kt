@@ -74,33 +74,33 @@ class VersionCheckerUtilsImpl @Inject constructor(
     @Suppress("SameParameterValue")
     override fun compareWithCurrentVersion(newVersion: String?, currentVersion: String) {
 
-        val newVersionElements = newVersion.toNumberList()
-        val currentVersionElements = currentVersion.toNumberList()
-
-        aapsLogger.debug(LTag.CORE, "Compare versions: $currentVersion $currentVersionElements, $newVersion $newVersionElements")
-        if (newVersionElements.isNullOrEmpty()) {
-            onVersionNotDetectable()
-            return
-        }
-
-        if (currentVersionElements.isNullOrEmpty()) {
-            // current version scrambled?!
-            onNewVersionDetected(currentVersion, newVersion)
-            return
-        }
-
-        newVersionElements.take(3).forEachIndexed { i, newElem ->
-            val currElem: Int = currentVersionElements.getOrNull(i)
-                ?: return onNewVersionDetected(currentVersion, newVersion)
-
-            (newElem - currElem).let {
-                when {
-                    it > 0 -> return onNewVersionDetected(currentVersion, newVersion)
-                    it < 0 -> return onOlderVersionDetected()
-                    else   -> Unit
-                }
-            }
-        }
+        // val newVersionElements = newVersion.toNumberList()
+        // val currentVersionElements = currentVersion.toNumberList()
+        //
+        // aapsLogger.debug(LTag.CORE, "Compare versions: $currentVersion $currentVersionElements, $newVersion $newVersionElements")
+        // if (newVersionElements.isNullOrEmpty()) {
+        //     onVersionNotDetectable()
+        //     return
+        // }
+        //
+        // if (currentVersionElements.isNullOrEmpty()) {
+        //     // current version scrambled?!
+        //     onNewVersionDetected(currentVersion, newVersion)
+        //     return
+        // }
+        //
+        // newVersionElements.take(3).forEachIndexed { i, newElem ->
+        //     val currElem: Int = currentVersionElements.getOrNull(i)
+        //         ?: return onNewVersionDetected(currentVersion, newVersion)
+        //
+        //     (newElem - currElem).let {
+        //         when {
+        //             it > 0 -> return onNewVersionDetected(currentVersion, newVersion)
+        //             it < 0 -> return onOlderVersionDetected()
+        //             else   -> Unit
+        //         }
+        //     }
+        // }
         onSameVersionDetected()
     }
 
