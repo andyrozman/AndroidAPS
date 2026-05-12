@@ -29,6 +29,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.pump.PumpInsulin
+import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.queue.Callback
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -283,9 +284,7 @@ open class MobiOverviewViewModel @Inject constructor(
             updateType == PumpUpdateFragmentType.Full) {
 
             // base basal rate
-            baseBasalRate.value = rh.gs(Rc.string.pump_base_basal_rate_with_profile,
-                                                   tandemPumpStatus.activeProfileName,
-                                                   tandemPump.baseBasalRate.cU)
+            baseBasalRate.value = ch.basalRateString(tandemPump.baseBasalRate, true)
 
             // tbr (always saved on pumpStatus)
             updateTBR()
@@ -770,12 +769,12 @@ open class MobiOverviewViewModel @Inject constructor(
 
 
     private fun updateReservoir() {
-        val remaining = tandemPumpStatus.reservoirRemainingUnits
-        val full = tandemPumpStatus.reservoirFullUnits
-        reservoirText.value = rh.gs(Rc.string.reservoir_value, remaining, full)
+        val remaining = PumpInsulin(tandemPumpStatus.reservoirRemainingUnits)
+        //val full = tandemPumpStatus.reservoirFullUnits
+        reservoirText.value = ch.insulinAmountString(remaining)
         reservoirLevel.value = when {
-            remaining <= 20.0 -> StatusLevel.CRITICAL
-            remaining <= 50.0 -> StatusLevel.WARNING
+            ch.fromPump(remaining) <= 20.0 -> StatusLevel.CRITICAL
+            ch.fromPump(remaining) <= 50.0 -> StatusLevel.WARNING
             else              -> StatusLevel.NORMAL
         }
     }
@@ -828,22 +827,7 @@ open class MobiOverviewViewModel @Inject constructor(
         val bolus = tandemPumpStatus.tandemLastBolus
 
         lastBolusValue.value = if (bolus != null) {
-            val agoMsc = System.currentTimeMillis() - bolus.timestamp
-            val bolusMinAgo = agoMsc.toDouble() / 60.0 / 1000.0
-            val unit = rh.gs(Rco.string.insulin_unit_shortname)
-            val ago: String
-            if (agoMsc < 60 * 1000) {
-                ago = rh.gs(Rc.string.time_now)
-            } else if (bolusMinAgo < 60) {
-                ago = dateUtil.minAgo(rh, bolus.timestamp)
-            } else if (bolusMinAgo < (60*24)) {
-                ago = dateUtil.hourAgo(bolus.timestamp, rh)
-            } else if (bolusMinAgo < (60*24*30)) {
-                ago = dateUtil.dayAgo(bolus.timestamp, rh)
-            } else {
-                ago = rh.gs(Rc.string.time_over_month_ago)
-            }
-            rh.gs(R.string.pump_last_bolus, bolus.amountImmediateDelivered, unit, ago)
+            ch.insulinAmountAgoString(PumpInsulin(bolus.amountImmediateDelivered!!), bolus.timestamp) ?:PLACEHOLDER
         } else {
             PLACEHOLDER
         }
@@ -855,10 +839,10 @@ open class MobiOverviewViewModel @Inject constructor(
             tandemPumpStatus.clearTbr()
             pumpTempBasal.value = PLACEHOLDER
         } else {
-            val msDiff = tandemPumpStatus.currentTempBasalEstimatedEnd!! - System.currentTimeMillis()
-            val min = msDiff / (60.0 * 1000.0)
-            pumpTempBasal.value = rh.gs(Rc.string.pump_tbr_remaining_percent,
-                                                           tandemPumpStatus.currentTempBasal!!.insulinRate.toInt(), min.toInt())
+            val rate = PumpRate(tandemPumpStatus.currentTempBasal!!.insulinRate)
+            val startTime = tandemPumpStatus.currentTempBasal!!.start!!
+            val durationInMin = tandemPumpStatus.currentTempBasal!!.durationMinutes
+            pumpTempBasal.value = ch.basalTbrString(rate, startTime, durationInMin = durationInMin, isAbsolute = false)
         }
     }
 
