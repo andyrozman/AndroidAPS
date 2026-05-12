@@ -91,7 +91,9 @@ class TandemUiController @Inject constructor(
             tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.SEMAPHORE_EVENTS))
         }
 
-        this.tandemUICommunication.tandemCommunicationManager = null
+        if (::tandemUICommunication.isInitialized) {
+            this.tandemUICommunication.tandemCommunicationManager = null
+        }
     }
 
     enum class AdditionalConfigurationScreens {
