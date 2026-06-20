@@ -4,7 +4,8 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.pump.tandem.common.concurrency.CommSuspendGate
 import app.aaps.pump.tandem.common.concurrency.PumpAvailabilityState
 import app.aaps.pump.tandem.common.concurrency.PumpOpQueue
-import app.aaps.pump.tandem.common.database.dao.TandemQualifyingEventsDao
+import app.aaps.pump.tandem.common.driver.tandemUiDataStore
+import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -15,6 +16,10 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 @Suppress("unused")
 open class TandemModuleImpl {
+
+    @Provides
+    @Singleton
+    fun provideTandemUIDataStore(): TandemUIDataStore = tandemUiDataStore
 
     @Provides
     @Singleton
