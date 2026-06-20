@@ -552,14 +552,18 @@ class MobiOverviewViewModelV2 @Inject constructor(
         }
     }
 
-
     private fun updateReservoir(remaining: Double?) {
-        reservoirText.value = if (remaining!=null && remaining > 0.0) ch.insulinAmountString(PumpInsulin(remaining)) else PLACEHOLDER
-        reservoirLevel.value = when {
-            remaining == null -> StatusLevel.NORMAL
-            remaining <= 20.0 -> StatusLevel.CRITICAL
-            remaining <= 50.0 -> StatusLevel.WARNING
-            else              -> StatusLevel.NORMAL
+        remaining?.let { cU ->
+            val pumpRemaining = PumpInsulin(cU)
+            reservoirText.value = if (cU > 0.0) ch.insulinAmountString(pumpRemaining) else PLACEHOLDER
+            reservoirLevel.value = when {
+                ch.fromPump(pumpRemaining) <= 20.0 -> StatusLevel.CRITICAL
+                ch.fromPump(pumpRemaining) <= 50.0 -> StatusLevel.WARNING
+                else                               -> StatusLevel.NORMAL
+            }
+        } ?: run {
+            reservoirText.value = PLACEHOLDER
+            reservoirLevel.value = StatusLevel.NORMAL
         }
     }
 
