@@ -21,7 +21,7 @@ import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
-import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.driver.tandemUiDataStore
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
@@ -92,11 +92,14 @@ class HistoryRetriever @Inject constructor(
     }
 
     private var maxDateTimeInSec: Int = 0
-    private var historySummaryDto : HistorySummaryDto? = null
-    private var currentRequest: HistoryRequestInfo?  = null
+    // Read on the TandemPumpOpQueue thread (busy-wait / result read), written on the BLE callback
+    // thread (response handlers). @Volatile gives the busy-wait visibility of completion and
+    // safe-publishes the collections below, which are otherwise confined to the response handlers.
+    @Volatile private var historySummaryDto : HistorySummaryDto? = null
+    @Volatile private var currentRequest: HistoryRequestInfo?  = null
     private var listOfRequests = ArrayDeque<HistoryRequestInfo>()
     private var listOfMissingItemsInChunk = ArrayDeque<HistoryRequestInfo>()
-    private var downloadRunning = false
+    @Volatile private var downloadRunning = false
     private var listOfReturnedItems = mutableListOf<HistoryLog>()
 
     // added
@@ -121,7 +124,7 @@ class HistoryRetriever @Inject constructor(
             return false
         }
 
-        communication = TandemUICommunication(dataStore = tandemDataStore,
+        communication = TandemUICommunication(dataStore = tandemUiDataStore,
                                               pumpStatus = pumpStatus,
                                               pumpUtil = pumpUtil,
                                               aapsLogger= aapsLogger,
@@ -186,7 +189,7 @@ class HistoryRetriever @Inject constructor(
     // this is not used at the moment, but might be needed in the future
     fun downloadHistoryRecentItems(): MutableList<HistoryLog> {
 
-        communication = TandemUICommunication(dataStore = tandemDataStore,
+        communication = TandemUICommunication(dataStore = tandemUiDataStore,
                                               pumpStatus = pumpStatus,
                                               pumpUtil = pumpUtil,
                                               aapsLogger= aapsLogger,

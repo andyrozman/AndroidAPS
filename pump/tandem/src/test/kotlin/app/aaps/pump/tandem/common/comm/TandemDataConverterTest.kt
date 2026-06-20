@@ -2,7 +2,6 @@ package app.aaps.pump.tandem.common.comm
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.preference.PreferenceManager
 import app.aaps.core.interfaces.aps.APS
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.resources.ResourceHelper

@@ -13,7 +13,7 @@ import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
-import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.driver.tandemUiDataStore
 import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -37,7 +37,7 @@ class TandemUiController @Inject constructor(
 
     var TAG = LTag.PUMPCOMM
 
-    val ds = tandemDataStore
+    val ds = tandemUiDataStore
 
     val setOfActions : MutableSet<RefreshData> = mutableSetOf()
 
@@ -45,7 +45,7 @@ class TandemUiController @Inject constructor(
 
 
     fun createTandemUiCommunication() {
-        tandemUICommunication = TandemUICommunication(dataStore = tandemDataStore,
+        tandemUICommunication = TandemUICommunication(dataStore = tandemUiDataStore,
                                                       pumpStatus = tandemPumpStatus,
                                                       pumpUtil = tandemPumpUtil,
                                                       aapsLogger= aapsLogger,
@@ -102,7 +102,7 @@ class TandemUiController @Inject constructor(
 
     fun sendPumpCommands(msgs: List<Message>): Boolean {
 
-        if (tandemDataStore.pumpConnected.value==false) {
+        if (tandemUiDataStore.pumpConnected.value==false) {
             aapsLogger.warn(TAG, "sendPumpCommands not possible, because pump is not yet connected")
             return false
         }

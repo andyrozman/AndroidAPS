@@ -28,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,11 +35,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.Observer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -139,13 +136,8 @@ fun StartStopInsulinScreen(
 
 
         // Observe notification bundle for alerts/alarms
-        val notifications = remember { mutableStateListOf<Any>() }
-        ds.notificationBundle.observe(LocalLifecycleOwner.current, Observer {
-            ds.notificationBundle.value?.let {
-                notifications.clear()
-                notifications.addAll(it.get().toTypedArray())
-            }
-        })
+        val notificationBundle = ds.notificationBundle.observeAsState()
+        val notifications: List<Any> = notificationBundle.value?.get()?.toList() ?: emptyList()
 
         Column(
             modifier = Modifier

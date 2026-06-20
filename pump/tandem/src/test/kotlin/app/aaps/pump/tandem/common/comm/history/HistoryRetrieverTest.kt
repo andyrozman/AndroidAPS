@@ -62,6 +62,7 @@ class HistoryRetrieverTest {
     @Mock lateinit var uiInteraction: UiInteraction
     @Mock lateinit var notificationManager: NotificationManager
     @Mock lateinit var tandemDispatcher: TandemDispatcher
+    @Mock lateinit var historyPostProcessor: HistoryPostProcessor
 
 
     val aapsLogger = AAPSLoggerTest()
@@ -94,7 +95,8 @@ class HistoryRetrieverTest {
             tandemPumpConnector = tandemPumpConnector,
             uiInteraction = uiInteraction,
             notificationManager = notificationManager,
-            tandemDispatcher = tandemDispatcher
+            tandemDispatcher = tandemDispatcher,
+            historyPostProcessor = historyPostProcessor
         )
         // Tests call internal methods directly (processChunkComplete, etc.) without going through
         // downloadHistory(), which is what would otherwise replace `communication` with a freshly
@@ -403,7 +405,7 @@ class HistoryRetrieverTest {
 
         unitToTest.processChunkComplete()
 
-        verify(dbDataHandler).addHistoryLogs(any())
+        verify(dbDataHandler).addHistoryLogs(any(), any())
         verify(tandemUICommunication).sendCommand(any())
         //verify(unitToTestSpy).executeNextLogGet(any())
 
@@ -437,7 +439,7 @@ class HistoryRetrieverTest {
 
         unitToTest.processChunkComplete()
 
-        verify(dbDataHandler).addHistoryLogs(any())
+        verify(dbDataHandler).addHistoryLogs(any(), any())
         //verify(tandemUICommunication).sendCommand(any())
         //verify(unitToTestSpy).executeNextLogGet(any())
 
@@ -471,7 +473,7 @@ class HistoryRetrieverTest {
 
         unitToTest.processChunkComplete()
 
-        verify(dbDataHandler).addHistoryLogs(any())
+        verify(dbDataHandler).addHistoryLogs(any(), any())
         verify(tandemUICommunication).sendCommand(any())
         //verify(unitToTestSpy).executeNextLogGet(any())
 
@@ -505,7 +507,7 @@ class HistoryRetrieverTest {
 
         unitToTest.processChunkComplete()
 
-        verify(dbDataHandler).addHistoryLogs(any())
+        verify(dbDataHandler).addHistoryLogs(any(), any())
         //verify(tandemUICommunication).sendCommand(any())
         //verify(unitToTestSpy).executeNextLogGet(any())
 
@@ -576,41 +578,10 @@ class HistoryRetrieverTest {
         unitToTest.receivedStatus(historyLogStatusResponse)
         verify(tandemUICommunication).sendCommand(any())
 
-        assertEquals(0, historySummaryDto.missedRanges.size)
+        // diff (1200-9=1191) >= RECORDS_RETRIEVAL_AMOUNT: last 1000 fetched now, older records
+        // deferred into one missed range.
+        assertEquals(1, historySummaryDto.missedRanges.size)
         //Assert.fail()
-    }
-
-    @Test
-    fun buildRequestsFromMissingSequenceIds_ContiguousRange() {
-        val existingIds = (501L..1000L).toSet()
-        val requests = unitToTest.buildRequestsFromMissingSequenceIds(501L, 1500L, existingIds)
-
-        assertEquals(3, requests.size)
-        assertHistoryRequestInfo(requests, 1301, 1500)
-        assertHistoryRequestInfo(requests, 1101, 1300)
-        assertHistoryRequestInfo(requests, 1001, 1100)
-    }
-
-    @Test
-    fun calculateRemainingUpperBound_UsesContiguousHighTail() {
-        val request = HistoryRequestInfo(startSequence = 1301, endSequence = 1500)
-        for (sequence in 1500L downTo 1400L) {
-            request.historyLogMap[sequence] = AlarmActivatedHistoryLog(1L, sequence, 1)
-        }
-
-        val remainingUpper = unitToTest.calculateRemainingUpperBound(request)
-        assertEquals(1399L, remainingUpper)
-    }
-
-    @Test
-    fun determineEffectiveUpperBound_UsesPersistedValueInsideWindow() {
-        val effective = unitToTest.determineEffectiveUpperBound(
-            pumpLastSequence = 1500L,
-            windowStart = 501L,
-            persistedResumeUpper = 1399L
-        )
-
-        assertEquals(1399L, effective)
     }
 
 

@@ -38,6 +38,17 @@ class TandemDispatcher @Inject constructor(
     }
 
     /**
+     * The blocking submit* helpers must never be called from the queue thread: runBlocking would
+     * wait for an op only that same thread can run → deadlock. Fail fast instead.
+     */
+    private fun assertNotOnQueueThread(name: String) {
+        check(Thread.currentThread().name != PumpOpQueue.THREAD_NAME) {
+            "$name called on the ${PumpOpQueue.THREAD_NAME} thread; runBlocking would deadlock the queue. " +
+                "Do not call submit* from inside a pump op block."
+        }
+    }
+
+    /**
      * AAPS-side mutating ops (bolus, TBR, profile). Routes via [Priority.DEFAULT] with
      * `requiresDeliveryEnabled = true`. On [PumpUnavailableException] (delivery gated by the
      * pump being suspended / in cartridge change), produces a descriptive failed
@@ -49,6 +60,7 @@ class TandemDispatcher @Inject constructor(
         unavailable: (PumpUnavailableException) -> T,
         block: PumpDispatcherScope.() -> T
     ): T = runBlocking {
+        assertNotOnQueueThread(name)
         try {
             pumpOps.submit(
                 BlockingPumpOp(name, maxDuration, requiresDeliveryEnabled = true) { scope.block() },
@@ -69,6 +81,7 @@ class TandemDispatcher @Inject constructor(
         maxDuration: Duration = 30.seconds,
         block: PumpDispatcherScope.() -> T
     ): T = runBlocking {
+        assertNotOnQueueThread(name)
         pumpOps.submit(
             BlockingPumpOp(name, maxDuration, requiresDeliveryEnabled = false) { scope.block() },
             Priority.DEFAULT
@@ -101,6 +114,7 @@ class TandemDispatcher @Inject constructor(
         block: PumpDispatcherScope.() -> Unit
     ) {
         runBlocking {
+            assertNotOnQueueThread(name)
             try {
                 pumpOps.submit(
                     BlockingPumpOp(name, maxDuration, requiresDeliveryEnabled = false) { scope.block() },

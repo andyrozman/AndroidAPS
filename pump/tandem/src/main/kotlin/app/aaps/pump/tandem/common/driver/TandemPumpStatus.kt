@@ -16,6 +16,7 @@ import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.comm.data.DisconnectDataDto
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
+import app.aaps.pump.tandem.common.comm.ui.TandemUiStateWriter
 import app.aaps.pump.tandem.common.data.SemaphoreInfoDto
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
@@ -29,8 +30,15 @@ import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
-var tandemDataStore = TandemUIDataStore()
-var LocalTandemDataStore = compositionLocalOf { tandemDataStore }
+// Single concrete UI datastore instance. UI / UI-feed code uses this (read + write) via
+// [tandemUiDataStore] or the [LocalTandemDataStore] composition local.
+val tandemUiDataStore = TandemUIDataStore()
+
+// Backend (non-UI) handle — write-only view. Backend code references this, so accidental reads
+// of UI state from non-UI code do not compile. See TandemUiStateWriter / TandemUiState.
+var tandemDataStore: TandemUiStateWriter = tandemUiDataStore
+
+var LocalTandemDataStore = compositionLocalOf { tandemUiDataStore }
 
 @Singleton
 class TandemPumpStatus @Inject constructor(val sp: SP,
@@ -47,6 +55,10 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
         set(value) {
             tandemPumpFirmwareFlow.value = value
         }
+
+    // Connection state — backend source of truth for delivery availability.
+    // Mirrored to tandemDataStore.pumpConnected for the UI.
+    val pumpConnectedFlow = MutableStateFlow(false)
 
 
     // serial Number

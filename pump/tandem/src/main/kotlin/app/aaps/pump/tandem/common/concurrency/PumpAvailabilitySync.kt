@@ -1,68 +1,63 @@
 package app.aaps.pump.tandem.common.concurrency
 
-import android.os.Handler
-import android.os.Looper
-import androidx.lifecycle.Observer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.pump.common.defs.PumpRunningState
-import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Keeps [PumpAvailabilityState] in sync with observed pump-side state.
+ * Keeps [PumpAvailabilityState] in sync with the pump-side state the AAPS Loop itself maintains.
  *
- * The pump itself is the source of truth for "can I accept a bolus / TBR right now?". Existing
- * response handlers in TandemUICommunication / TandemPumpConnector already update
- * [tandemDataStore.pumpRunningState], [tandemDataStore.inChangeCartridgeMode], and
- * [tandemDataStore.pumpConnected] when pump messages arrive. This component observes those three
- * LiveData sources and projects their combined state onto [PumpAvailabilityState] via a single
- * mapping function.
+ * The pump is the source of truth for "can I accept a bolus / TBR / profile right now?". The Loop's
+ * own status reads ([TandemPumpConnector.getPumpStatus]) and the connection lifecycle
+ * ([TandemPumpCommunicationManager]) update the backend flows [TandemPumpStatus.pumpRunningStateFlow]
+ * and [TandemPumpStatus.pumpConnectedFlow]. This component observes those two flows and projects
+ * their combined state onto [PumpAvailabilityState].
+ *
+ * It deliberately reads backend flows, NOT the `tandemDataStore` UI LiveData: the LiveData is only
+ * populated when a UI screen is driving the pump, so a headless Loop would never see it move off its
+ * initial value and every mutating op would fast-fail. Backend (non-UI) code must never read UI state.
  *
  * Mapping (highest-priority match wins):
- *   - not connected                           → Unknown
- *   - in cartridge change                     → DeliveryDisabled
- *   - pumpRunningState == Suspended           → DeliveryDisabled
- *   - pumpRunningState == Running             → DeliveryEnabled
- *   - everything else (including null state)  → Unknown
- *
- * Note: [tandemDataStore.inChangeCartridgeMode] is only refreshed by the UI flow today (LoadStatus
- * messages are not part of the AAPS Loop status read). When AAPS is the only thing talking to the
- * pump, cartridge-change detection here falls back on `pumpRunningState == Suspended`, which the
- * pump reports during cartridge change. See plan §"Audit findings".
+ *   - not connected                  → Unknown
+ *   - pumpRunningState == Suspended  → DeliveryDisabled (also covers cartridge change, which the
+ *                                       pump reports as Suspended)
+ *   - pumpRunningState == Running    → DeliveryEnabled
+ *   - everything else                → Unknown
  */
 @Singleton
 class PumpAvailabilitySync @Inject constructor(
     private val availability: PumpAvailabilityState,
+    private val pumpStatus: TandemPumpStatus,
     private val logger: AAPSLogger
 ) {
 
-    private val mainHandler = Handler(Looper.getMainLooper())
-
-    private val anyChange = Observer<Any?> { recompute() }
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     init {
-        // observeForever requires the main thread.
-        mainHandler.post {
-            tandemDataStore.pumpRunningState.observeForever(anyChange)
-            tandemDataStore.inChangeCartridgeMode.observeForever(anyChange)
-            tandemDataStore.pumpConnected.observeForever(anyChange)
-            recompute()
-            logger.debug(LTag.PUMP, "PumpAvailabilitySync: started observing pump-state sources")
+        scope.launch {
+            combine(pumpStatus.pumpConnectedFlow, pumpStatus.pumpRunningStateFlow) { connected, running ->
+                connected to running
+            }.distinctUntilChanged().collect { (connected, running) ->
+                recompute(connected, running)
+            }
         }
+        logger.debug(LTag.PUMP, "PumpAvailabilitySync: started observing backend pump-state flows")
     }
 
-    private fun recompute() {
-        val connected = tandemDataStore.pumpConnected.value == true
-        val inCartridge = tandemDataStore.inChangeCartridgeMode.value == true
-        val running = tandemDataStore.pumpRunningState.value
-
+    private fun recompute(connected: Boolean, running: PumpRunningState) {
         when {
             !connected -> availability.markUnknown("not connected")
-            inCartridge -> availability.markDisabled("cartridge change")
             running == PumpRunningState.Suspended -> availability.markDisabled("pump suspended")
-            running == PumpRunningState.Running   -> availability.markEnabled("pump running")
+            running == PumpRunningState.Running -> availability.markEnabled("pump running")
             else -> availability.markUnknown("running state=$running")
         }
     }

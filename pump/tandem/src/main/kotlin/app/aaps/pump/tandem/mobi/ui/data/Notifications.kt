@@ -26,7 +26,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,8 +37,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.Observer
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -130,13 +128,8 @@ fun Notifications(
                 .zIndex(10f)
         )
 
-        val notifications = remember { mutableStateListOf<Any>()}
-        ds.notificationBundle.observe(LocalLifecycleOwner.current, Observer {
-            ds.notificationBundle.value?.let {
-                notifications.clear()
-                notifications.addAll(it.get().toTypedArray())
-            }
-        })
+        val notificationBundle = ds.notificationBundle.observeAsState()
+        val notifications: List<Any> = notificationBundle.value?.get()?.toList() ?: emptyList()
 
         LazyColumn(
             contentPadding = innerPadding,

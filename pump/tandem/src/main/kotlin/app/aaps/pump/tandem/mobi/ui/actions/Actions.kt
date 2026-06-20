@@ -60,7 +60,7 @@ import app.aaps.pump.tandem.mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.mobi.ui.util.LifecycleStateObserver
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.driver.tandemUiDataStore
 import app.aaps.pump.tandem.mobi.ui.util.compactTBRDisplay
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -405,9 +405,9 @@ val actionsCommands = listOf(
 )
 
 val actionsFields = listOf(
-    tandemDataStore.pumpRunningState,
-    tandemDataStore.tempRateActive,
-    tandemDataStore.tempRateDetails,
+    tandemUiDataStore.pumpRunningState,
+    tandemUiDataStore.tempRateActive,
+    tandemUiDataStore.tempRateDetails,
 )
 
 @Preview(showBackground = true)

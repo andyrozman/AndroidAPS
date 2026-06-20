@@ -30,7 +30,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -204,18 +204,9 @@ fun History(
                 .zIndex(10f)
         )
 
-        val historyEntries = remember { mutableStateListOf<TandemHistoryRecordDto>() }
-        ds.dataHistoryLoaded.observe(LocalLifecycleOwner.current, {
-
-            if (ds.dataHistoryLoaded.value==true) {
-                ds.dataHistory.value?.let {
-                    historyEntries.clear()
-                    historyEntries.addAll(it)
-                    aapsLogger.debug(TAG, "Internal History: ${historyEntries.size}")
-                }
-
-            }
-        })
+        val historyLoaded = ds.dataHistoryLoaded.observeAsState()
+        val historyEntries: List<TandemHistoryRecordDto> =
+            if (historyLoaded.value == true) ds.dataHistory.value ?: emptyList() else emptyList()
 
         var expanded1 by remember { mutableStateOf(false) }
         var expanded2 by remember { mutableStateOf(false) }

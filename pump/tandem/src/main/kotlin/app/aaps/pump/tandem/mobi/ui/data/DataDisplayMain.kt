@@ -27,6 +27,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -45,7 +46,7 @@ import app.aaps.pump.tandem.R
 
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.common.driver.tandemDataStore
+import app.aaps.pump.tandem.common.driver.tandemUiDataStore
 
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
@@ -79,7 +80,7 @@ fun DataDisplayMain(
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
-    var notificationsPresent by remember { mutableStateOf(false) }
+    val notificationsPresent by ds.notificationsPresent.observeAsState(false)
 
 
     fun refresh() = refreshScope.launch {
@@ -104,9 +105,6 @@ fun DataDisplayMain(
     }
 
 
-    ds.notificationsPresent.observe(androidx.lifecycle.compose.LocalLifecycleOwner.current, {
-        notificationsPresent = ds.notificationsPresent.value!!
-    })
 
 
     Box(
@@ -257,7 +255,7 @@ private fun DataDisplayPreview_WithNotification() {
             color = Color.White,
         ) {
             setUpPreviewState(LocalTandemDataStore.current)
-            tandemDataStore.notificationsPresent.value = true
+            tandemUiDataStore.notificationsPresent.value = true
             DataDisplayMain(
                 sendPumpCommands = { _ -> true},
                 //refreshDatabase = { _,_ -> },

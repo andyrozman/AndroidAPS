@@ -25,6 +25,7 @@ import com.jwoglom.pumpx2.pump.messages.response.control.ExitChangeCartridgeMode
 import com.jwoglom.pumpx2.pump.messages.response.control.ExitFillTubingModeResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.ResumePumpingResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.SuspendPumpingResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.DetectingCartridgeStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.EnterChangeCartridgeModeStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingModeStateStreamResponse
@@ -149,7 +150,9 @@ class TandemUICommunication @Inject constructor (
                 //     HomeScreenMirrorResponse.BasalStatusIcon.ATTENUATED_BASAL -> BasalStatus.CONTROLIQ_REDUCED
                 //     else -> BasalStatus.UNKNOWN
                 // }
-                dataStore.pumpRunningState.value = if (message.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) PumpRunningState.Suspended else PumpRunningState.Running
+                val runningState = if (message.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) PumpRunningState.Suspended else PumpRunningState.Running
+                dataStore.pumpRunningState.value = runningState
+                pumpStatus.pumpRunningState = runningState
 
                 pumpStatus.pumpStatusMirror = HomeScreenMirrorDto()
                 pumpStatus.pumpStatusMirror!!.parse(message.cargo)
@@ -284,6 +287,16 @@ class TandemUICommunication @Inject constructor (
                 if (message.isStatusOK) {
                     //dataStore.basalStatus.value = BasalStatus.ON
                     dataStore.pumpRunningState.value = PumpRunningState.Running
+                    pumpStatus.pumpRunningState = PumpRunningState.Running
+                } else {
+                    unsuccessfulAlert(message.messageName())
+                }
+            }
+            is SuspendPumpingResponse   -> {
+                aapsLogger.error(TAG, "SuspendPumpingResponse received with status=${message.isStatusOK}")
+                if (message.isStatusOK) {
+                    dataStore.pumpRunningState.value = PumpRunningState.Suspended
+                    pumpStatus.pumpRunningState = PumpRunningState.Suspended
                 } else {
                     unsuccessfulAlert(message.messageName())
                 }

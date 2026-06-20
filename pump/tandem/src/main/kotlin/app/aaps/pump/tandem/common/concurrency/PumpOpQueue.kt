@@ -47,6 +47,9 @@ class PumpOpQueue(
 ) {
 
     companion object {
+        /** Name of the single thread all ops run on. Callers must never block on it (deadlock). */
+        const val THREAD_NAME = "TandemPumpOpQueue"
+
         /** Default: BACKGROUND throttled at 1 msg/s, burst 2. Other tiers unrate-limited. */
         fun defaultRateLimits(): Map<Priority, RateLimit> = mapOf(
             Priority.BACKGROUND to RateLimit(rps = 1.0, burst = 2)
@@ -80,7 +83,7 @@ class PumpOpQueue(
     private val wakeup = Channel<Unit>(capacity = Channel.CONFLATED)
 
     private val executor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "TandemPumpOpQueue").apply { isDaemon = true }
+        Thread(r, THREAD_NAME).apply { isDaemon = true }
     }
     private val dispatcher = executor.asCoroutineDispatcher()
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
