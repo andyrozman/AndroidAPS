@@ -53,7 +53,7 @@ class HistoryPostProcessor @Inject constructor(
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
                             timestamp = historyLog.pumpTimeSecInstant.toEpochMilli(),
                             type = TE.Type.CANNULA_CHANGE,
-                            note = "Automatically added by Mobi driver.",
+                            note = null,
                             pumpId = historyLog.sequenceNum,
                             pumpType = pumpStatus.pumpType,
                             pumpSerial = pumpStatus.serialNumber.toString()
@@ -68,7 +68,7 @@ class HistoryPostProcessor @Inject constructor(
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
                             timestamp = historyLog.pumpTimeSecInstant.toEpochMilli(),
                             type = TE.Type.INSULIN_CHANGE,
-                            note = "Automatically added by Mobi driver.",
+                            note = null,
                             pumpId = historyLog.sequenceNum,
                             pumpType = pumpStatus.pumpType,
                             pumpSerial = pumpStatus.serialNumber.toString()

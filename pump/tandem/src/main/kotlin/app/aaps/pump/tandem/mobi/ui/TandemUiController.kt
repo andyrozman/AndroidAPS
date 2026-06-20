@@ -141,9 +141,6 @@ class TandemUiController @Inject constructor(
 
     }
 
-    // val isDarkTheme: Boolean
-    //     get() = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-    //         Configuration.UI_MODE_NIGHT_YES
 
     fun refreshMainAppData(refreshData: RefreshData) {
         when(refreshData) {
@@ -222,14 +219,5 @@ class TandemUiController @Inject constructor(
         }
 
     }
-
-    // enum class DataLandingSection(val label: String, val icon: ImageVector) {
-    //
-    //     DATA("Data", Icons.Filled.Create),
-    //     DATA_HISTORY("History", Icons.Filled.BackupTable),
-    //     DATA_EVENTS("Events", Icons.Filled.EventAvailable),
-    //     DATA_NOTIFICATIONS("Notifications", Icons.Filled.Notifications),
-    //     ;
-    // }
 
 }

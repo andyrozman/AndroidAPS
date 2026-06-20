@@ -1,12 +1,14 @@
 package app.aaps.pump.tandem.common.driver.connector
 
 import android.content.Context
+import app.aaps.core.data.model.BS
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.pump.BolusProgressData
 // import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 // import app.aaps.core.interfaces.rx.events.EventOverviewBolusStopDeliveryEnabled
 import app.aaps.core.interfaces.sharedPreferences.SP
@@ -14,6 +16,7 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.BolusData
+import app.aaps.pump.common.defs.BolusType
 import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
@@ -135,6 +138,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 
+
 /**
  * All commands that will be supported need to be implemented here (look at PumpConnectorInterface), and they also need
  * to be added to supportedCommandsList.
@@ -153,7 +157,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                                               var tandemConnectionFixer: TandemConnectionFixer,
                                               aapsLogger: AAPSLogger,
                                               val pumpX2L: PumpX2L,
-                                              private var tandemDataConverter: TandemDataConverter
+                                              private var tandemDataConverter: TandemDataConverter,
+                                              var bolusProgressData: BolusProgressData
 ): PumpDummyConnector(tandemPumpStatus, tandemPumpUtil, aapsLogger) {
 
     private var tandemPumpCommunicationManager: TandemPumpCommunicationManager? = null
@@ -362,6 +367,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     var bolusId = 0
+    var activeBolusData : BolusData? = null
 
     override fun sendBolus(detailedBolusInfo: DetailedBolusInfo): DataCommandResponse<BolusData?> {
 
@@ -384,8 +390,18 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         // 4. periodically send CurrentBolusStatusRequest() which returns CurrentBolusStatusResponse() and will contain a CurrentBolusStatus of REQUESTING for a bit until it then switches to DELIVERING
         // 5. when bolus status switches to ALREADY_DELIVERED_OR_INVALID, then you can call LastBolusStatusV2Request() and should see the same bolus id referenced and the amount which was delivered. if anything else goes wrong (like an occlusion) you'll get a pump alarm
 
-        // TODO logs
-        // rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = false))  // TODO dev4
+        // bolusProgressData.start(insulin = detailedBolusInfo.insulin,
+        //                         isSMB = detailedBolusInfo.bolusType == BS.Type.SMB,
+        //                         isPriming = false)
+
+        // TODO logs change or remove
+
+        activeBolusData = BolusData(amountImmediateRequested = detailedBolusInfo.insulin,
+                                    amountImmediateDelivered = 0.0,
+                                    bolusType = if (detailedBolusInfo.bolusType==BS.Type.SMB) BolusType.NORMAL_SMB else BolusType.NORMAL
+                                    )
+
+        pumpStatus.activeBolusData = activeBolusData
 
         // EventOverviewBolusProgress.t = EventOverviewBolusProgress.Treatment(insulin = 0.0,
         //                                                                     carbs = 0,
@@ -576,10 +592,13 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         var percent = 0
         var status = ""
 
+        // TODO clean sendBolusEvent
+
         when(bolusEvent) {
             TandemBolusEvent.Initiating -> {
                 percent = 0
                 status = resourceHelper.gs(Rpc.string.bolus_preparing, fullAmount)
+                //pumpStatus.activeBolusData.bolusStatus.
             }
             TandemBolusEvent.Preparing    -> {
                 percent = 5
@@ -603,17 +622,23 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                     amountBolus2 = fullAmount
                 }
 
+                // active bolus display
+                activeBolusData!!.amountImmediateDelivered = amountBolus2
+                pumpStatus.activeBolusData = activeBolusData
+
                 status = resourceHelper.gs(Rpc.string.bolus_delivered_so_far, amountBolus2, fullAmount)
             }
             TandemBolusEvent.DeliveryDone -> {
                 percent = 100
+                //activeBolusData!!.amountImmediateDelivered = activeBolusData!!.amountImmediateRequested
+                pumpStatus.activeBolusData = null
                 status = resourceHelper.gs(Rpc.string.bolus_finished_post_bolus)
             }
         }
 
         aapsLogger.info(TAG, "Sending Bolus Event: status=${status}, progress=${percent}")
 
-        // rxBus.send(EventOverviewBolusProgress(status = status, percent = percent, id = id)) // TODO dev4
+        bolusProgressData.updateProgress(percent = percent)
 
     }
 

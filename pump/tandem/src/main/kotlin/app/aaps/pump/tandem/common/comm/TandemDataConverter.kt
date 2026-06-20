@@ -4,6 +4,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.Profile.ProfileValue
+import app.aaps.core.interfaces.pump.defs.determineCorrectBasalSize
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.defs.BolusData
@@ -37,68 +38,7 @@ class TandemDataConverter @Inject constructor(
     var pumpUtil: TandemPumpUtil
 ) : PumpDataConverter {
 
-    //var tbrMap = HashMap<Int, TemporaryBasal>()
-
     var TAG = LTag.PUMP
-
-    // fun convertMessageToDataCommandResponse(message: Message): DataCommandResponse<Any?> {
-    //
-    //     when(message) {
-    //
-    //         // Battery Level
-    //         is CurrentBatteryV1Response,
-    //         is CurrentBatteryV2Response         -> return getBatteryResponse(message as CurrentBatteryAbstractResponse)
-    //
-    //         // Configuration
-    //         // is ControlIQInfoV1Response,
-    //         // is ControlIQInfoV2Response          -> return getControlIQEnabled(message)
-    //         // is BasalLimitSettingsResponse       -> return message.basalLimit
-    //         // is GlobalMaxBolusSettingsResponse   -> return message.maxBolus
-    //
-    //         // Insulin Level
-    //         is InsulinStatusResponse            -> return getInsulinStatus(message)
-    //
-    //
-    //
-    //
-    //         else                           -> {
-    //             aapsLogger.warn(LTag.PUMPCOMM, "Can't convert Tandem response Message of type: ${message.opCode()} and class: ${messageClass.name}")
-    //             return null
-    //         }
-    //     }
-    //
-    //     return null
-    // }
-
-
-
-    // fun convertMessageToValue(message: Message) : Any? {
-    //
-    //     when(message) {
-    //
-    //         // Battery Level
-    //         //is CurrentBatteryV1Response,
-    //         //is CurrentBatteryV2Response         -> return getBatteryResponse(message as CurrentBatteryAbstractResponse)
-    //
-    //         // Configuration
-    //         is ControlIQInfoV1Response,
-    //         is ControlIQInfoV2Response          -> return getControlIQEnabled(message)
-    //         is BasalLimitSettingsResponse       -> return message.basalLimit
-    //         is GlobalMaxBolusSettingsResponse   -> return message.maxBolus
-    //
-    //         // Insulin Level
-    //         //is InsulinStatusResponse            -> return getInsulinStatus(message)
-    //
-    //
-    //
-    //
-    //         else                           -> {
-    //             aapsLogger.warn(LTag.PUMPCOMM, "Can't convert Tandem response Message of type: ${message.opCode()} and class: ${message.javaClass.name}")
-    //             return null
-    //         }
-    //     }
-    //
-    // }
 
 
     fun getInsulinStatus(message: InsulinStatusResponse): DataCommandResponse<Double?> {
@@ -144,51 +84,6 @@ class TandemDataConverter @Inject constructor(
             PumpCommandType.GetBolus, true, null, bolusData)
 
     }
-
-
-    // fun getBolus(message: CurrentBolusStatusResponse?): DataCommandResponse<BolusData?> {
-    //
-    //     var jsonVal = pumpUtil.gson.toJson(message)
-    //     aapsLogger.info(TAG, "BOLUS: CurrentBolusStatusResponse [${jsonVal}]")
-    //
-    //     if (message==null) {
-    //         return DataCommandResponse(
-    //             PumpCommandType.GetBolus, false, "Bolus data response from pump could not be read.", null)
-    //     }
-    //
-    //     val additionalData = mutableMapOf<String,Any?>()
-    //     additionalData["BolusSource"] = message.bolusSource
-    //     additionalData["BolusSourceId"] = message.bolusSourceId
-    //
-    //     val bolusStatus: BolusStatus = when (message.status) {
-    //         CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> BolusStatus.DELIVERING
-    //         CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> BolusStatus.REQUESTED
-    //         else                                                     -> BolusStatus.DONE
-    //     }
-    //
-    //     val bolusTypes = message.bolusTypes
-    //
-    //     val bolusType: BolusType = if (bolusTypes.contains(element = BolusDeliveryHistoryLog.BolusType.EXTENDED)) {
-    //         BolusType.EXTENDED
-    //     } else {
-    //         BolusType.NORMAL
-    //     }
-    //
-    //     val bolusData = BolusData(
-    //         timestamp = message.timestampInstant.toEpochMilli(),
-    //         amountImmediateRequested = message.requestedVolume * 0.001,
-    //         bolusType = bolusType,   // we can't determine if SMB at this point
-    //         bolusId = message.bolusId.toLong(),
-    //         bolusStatus = bolusStatus,
-    //         additionalData = additionalData
-    //     )
-    //
-    //     jsonVal = pumpUtil.gson.toJson(message)
-    //     aapsLogger.info(TAG, "BOLUS: BolusData [${jsonVal}]")
-    //
-    //     return DataCommandResponse(
-    //         PumpCommandType.GetBolus, true, null, bolusData)
-    // }
 
 
     fun getTempBasalRate(message: TempRateResponse): DataCommandResponse<TempBasalPair?> {
@@ -263,7 +158,11 @@ class TandemDataConverter @Inject constructor(
 
             idp.segmentIndex = index
             idp.profileStartTime = basVal.timeAsSeconds/60
-            idp.profileBasalRate = (basVal.value * 1000).toInt()
+
+            var basalValue = basVal.value
+            basalValue = pumpStatus.pumpType.determineCorrectBasalSize(basalValue)
+
+            idp.profileBasalRate = (basalValue * 1000).toInt()
 
             idp.profileTargetBG = findCorrectValueInProfile(basVal.timeAsSeconds, profile.getSingleTargetsMgdl()).toInt()
             idp.profileCarbRatio = (findCorrectValueInProfile(basVal.timeAsSeconds, profile.getIcsValues()) * 1000L).toLong()
@@ -277,6 +176,7 @@ class TandemDataConverter @Inject constructor(
         return segmentList
     }
 
+
     private fun findCorrectValueInProfile(targetTimeAsSeconds: Int, profileValueList : Array<ProfileValue>) : Double {
         var targetValue = 0.0
         for (profileValue in profileValueList) {
@@ -287,21 +187,6 @@ class TandemDataConverter @Inject constructor(
 
         return targetValue
     }
-
-
-    // private fun getBasalLimit(message: BasalLimitSettingsResponse): Long {
-    //     return message.basalLimit
-    // }
-
-
-    // private fun getControlIQEnabled(message: Message): Boolean {
-    //     if (message is ControlIQInfoV1Response)
-    //         return message.closedLoopEnabled
-    //     else if (message is ControlIQInfoV2Response)
-    //         return message.closedLoopEnabled
-    //
-    //     return false
-    // }
 
 
     fun getBatteryResponse(message: CurrentBatteryAbstractResponse): DataCommandResponse<Int?> {
