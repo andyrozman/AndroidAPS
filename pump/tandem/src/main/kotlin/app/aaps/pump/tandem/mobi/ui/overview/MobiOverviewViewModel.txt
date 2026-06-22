@@ -97,9 +97,7 @@ sealed class MobiOverviewEvent {
 }
 
 @Deprecated("This class was replaced with V2")
-@HiltViewModel
-@Stable
-open class MobiOverviewViewModel @Inject constructor(
+open class MobiOverviewViewModel constructor(
     private val aapsLogger: AAPSLogger,
     protected val rh: ResourceHelper,
     rxBus: RxBus,

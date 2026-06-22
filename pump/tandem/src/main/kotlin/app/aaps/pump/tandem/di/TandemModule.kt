@@ -81,7 +81,7 @@ abstract class TandemModule {
 
     // @Provides
     // @Singleton
-    // @ContributesAndroidInjector abstract fun contributesTandemUIDataStore(): TandemUIDataStore
+    //@ContributesAndroidInjector abstract fun contributesTandemUIDataStore(): TandemUIDataStore
 
     // T-Slim Package - Activites and Fragments (disabled for now, TSlim not supported, it is not loopable)
     // @ContributesAndroidInjector abstract fun contributesTandemPumpFragment(): TandemSlimPumpFragment
