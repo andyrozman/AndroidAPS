@@ -20,6 +20,7 @@ class CommandBolus(
     private val detailedBolusInfo: DetailedBolusInfo,
     override val callback: Callback?,
     type: Command.CommandType,
+    private val bolusGeneration: Long,
 ) : Command {
 
     override var commandType: Command.CommandType = type
@@ -27,8 +28,10 @@ class CommandBolus(
     override suspend fun execute(): PumpEnactResult {
         val r = activePlugin.activePump.deliverTreatment(detailedBolusInfo)
         aapsLogger.debug(LTag.PUMPQUEUE, "Result success: ${r.success} enacted: ${r.enacted}")
-        if (r.success) bolusProgressData.completeAndAutoClear()
-        else bolusProgressData.clear()
+        // Generation-scoped both ways: never stamp completion onto / wipe a NEWER bolus enqueued behind this one
+        // (an SMB + manual bolus get adjacent generations at enqueue; see BolusProgressData.clear / completeAndAutoClear).
+        if (r.success) bolusProgressData.completeAndAutoClear(bolusGeneration)
+        else bolusProgressData.clear(bolusGeneration)
         return r
     }
 
@@ -44,6 +47,6 @@ class CommandBolus(
 
     override fun cancel(commentResId: Int, success: Boolean) {
         super.cancel(commentResId, success)
-        bolusProgressData.clear()
+        bolusProgressData.clear(bolusGeneration)
     }
 }
