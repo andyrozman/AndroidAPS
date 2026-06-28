@@ -632,7 +632,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun isSuspended(): Boolean {
-        val suspended = (pumpStatus.pumpRunningState != PumpRunningState.Running)
+        val suspended = (pumpStatus.pumpRunningState == PumpRunningState.Suspended)
         //aapsLogger.debug(LTag.PUMP, "DUB isSuspended - $suspended")
         return suspended
     }
@@ -1101,7 +1101,10 @@ class TandemMobiPumpPlugin @Inject constructor(
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Bolus))
 
         // get basal profile
-        tandemDispatcher.submitDefault("getBasalProfile") { getBasalProfile() }
+        tandemDispatcher.submitDefault("getBasalProfile") {
+            getBasalProfile()
+            refreshBasalRateDisplay()
+        }
 
         pumpStatus.setLastCommunicationToNow()
         setRefreshButtonEnabled(true)
@@ -1531,8 +1534,8 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     private fun finishAction(overviewKey: String?) {
-        if (overviewKey != null) rxBus.send(EventRefreshOverview(overviewKey, false))
-        triggerUIChange()
+        //if (overviewKey != null) rxBus.send(EventRefreshOverview(overviewKey, false))
+        //triggerUIChange()
         setRefreshButtonEnabled(true)
     }
 
@@ -1683,8 +1686,15 @@ class TandemMobiPumpPlugin @Inject constructor(
             }
         } finally {
             finishAction("Set Basal Profile")
+            refreshBasalRateDisplay()  // this forces refresh of basal value
         }
     }
+
+    private fun refreshBasalRateDisplay() {
+        val bbr = baseBasalRate
+    }
+
+
 
     // TODO(jwoglom): we will need this to call changetimedate
     // override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {

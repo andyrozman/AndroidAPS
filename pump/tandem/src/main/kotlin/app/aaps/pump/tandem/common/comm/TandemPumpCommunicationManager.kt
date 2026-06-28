@@ -132,7 +132,7 @@ class TandemPumpCommunicationManager(
 
         // Conservative until the first status read resolves running-state: set Unknown before
         // flipping connected true so the availability gate never sees a stale (connected, Running).
-        pumpStatus.pumpRunningState = PumpRunningState.Unknown
+        // TODO pumpStatus.pumpRunningState = PumpRunningState.Unknown
         pumpStatus.pumpConnectedFlow.value = connected
         tandemDataStore.postPumpConnected(connected)
 
@@ -142,7 +142,7 @@ class TandemPumpCommunicationManager(
 
     /** Publishes the disconnected delivery state: running-state Unknown + not connected. */
     private fun publishDisconnectedState() {
-        pumpStatus.pumpRunningState = PumpRunningState.Unknown
+        // TODO pumpStatus.pumpRunningState = PumpRunningState.Unknown
         pumpStatus.pumpConnectedFlow.value = false
         tandemDataStore.postPumpConnected(false)
     }
@@ -498,7 +498,7 @@ class TandemPumpCommunicationManager(
                                                            hciStatus = hciStatus,
                                                            tandemError = tandemError)
         pumpUtil.driverStatus = PumpDriverState.Disconnected
-        pumpStatus.pumpRunningState = PumpRunningState.Unknown
+        // TODO pumpStatus.pumpRunningState = PumpRunningState.Unknown
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
         tandemConnectionFixer.startConnectionFix()
     }
