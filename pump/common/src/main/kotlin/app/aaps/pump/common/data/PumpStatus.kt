@@ -85,14 +85,14 @@ abstract class PumpStatus(var pumpType: PumpType) {
     var iob: String? = null
 
     // basal profile
-    var basalsByHour: DoubleArray? = null
     var activeProfileName = "1"
+    open var basalsByHour: DoubleArray? = null
 
     // TDD
     var dailyTotalUnits: Double? = null
     var maxDailyTotalUnits: String? = null
 
-    var pumpRunningStateFlow = MutableStateFlow<PumpRunningState>(PumpRunningState.Running)
+    var pumpRunningStateFlow = MutableStateFlow<PumpRunningState>(PumpRunningState.Unknown)
     var pumpRunningState: PumpRunningState
         get() = pumpRunningStateFlow.value
         set(value) {

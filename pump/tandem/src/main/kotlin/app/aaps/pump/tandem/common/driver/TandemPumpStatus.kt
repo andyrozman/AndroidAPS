@@ -83,6 +83,13 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     var basalProfileStatus = BasalProfileStatus.NotInitialized
     var basalProfile: Profile? = null
 
+    override var basalsByHour: DoubleArray? = null
+        set(value) {
+            field = value
+            basalProfileStatus = BasalProfileStatus.ProfileOK
+        }
+
+
     var bolusStep: Double = 0.1   // ??
 
     // Tandem specific
@@ -125,11 +132,12 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     fun initSettings() {
         activeProfileName = "UNKNOWN"
         reservoirRemainingUnits = 0.0
+        basalProfileStatus = BasalProfileStatus.NotInitialized
         reservoirFullUnits = when {
             pumpType == PumpType.TANDEM_MOBI_BT -> 200
             else -> 300
         }
-        batteryRemaining = 50
+        batteryRemaining = 0
         lastConnection = 0L //sp.getLong(TandemPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
         //lastDataTime = lastConnection
     }

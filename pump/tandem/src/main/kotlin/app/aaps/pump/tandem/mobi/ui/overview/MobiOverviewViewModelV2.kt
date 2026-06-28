@@ -31,6 +31,7 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.compose.icons.IcLoopClosed
 import app.aaps.core.ui.compose.pump.PumpInfoGroup
 import app.aaps.core.ui.compose.pump.PumpInfoInterface
+import app.aaps.pump.common.defs.BasalProfileStatus
 import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpDriverState
@@ -142,7 +143,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
         set(value) {
             pumpErrorFlow.value = value
         }
-
 
     val uiState: StateFlow<PumpOverviewUiState> = combine(
         currentActivityFlow,
@@ -367,7 +367,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
     ): PumpOverviewUiState {
 
         // Status banner: communication status from shared helper, or pump-specific warning
-        val statusBanner = buildStatusBanner(pumpRunningState) ?: communicationStatus.statusBanner()
+        val statusBanner = buildStatusBanner(pumpRunningState, communicationStatus.statusBanner())
         val queueStatus = communicationStatus.queueStatus()
 
 
@@ -399,7 +399,10 @@ class MobiOverviewViewModelV2 @Inject constructor(
             if (tandemPumpStatus.tandemPumpFirmware.isClosedLoopPossible) {
                 tandemPumpStatus.tandemPumpFirmware.description
             } else {
-                rh.gs(R.string.pump_firmware_open_loop_only, tandemPumpStatus.tandemPumpFirmware.description)
+                if (tandemPumpStatus.tandemPumpFirmware==TandemPumpApiVersion.Unknown)
+                    tandemPumpStatus.tandemPumpFirmware.description
+                else
+                    rh.gs(R.string.pump_firmware_open_loop_only, tandemPumpStatus.tandemPumpFirmware.description)
             }
         }
 
@@ -431,11 +434,27 @@ class MobiOverviewViewModelV2 @Inject constructor(
                                        value = currentActivity))
 
         //  6. Pump Status TODO maybe use StatusBanner ?
-        infoGroup.list.add(PumpInfoRow(label = rh.gs(R.string.pump_status_label),
-                                       value = rh.gs(pumpRunningState.resourceId),
-                                       level = pumpRunningState.statusLevel))
+        // infoGroup.list.add(PumpInfoRow(label = rh.gs(R.string.pump_status_label),
+        //                                value = rh.gs(pumpRunningState.resourceId),
+        //                                level = pumpRunningState.statusLevel))
 
         pumpRows.add(infoGroup)
+
+        if (pumpRunningState == PumpRunningState.Unknown) {
+            return PumpOverviewUiState(
+                statusBanner = statusBanner,
+                queueStatus = queueStatus,
+                infoRows = pumpRows,
+                primaryActions = buildPrimaryActions(pumpRunningState),
+                //managementActions = managementActions
+            )
+        }
+        // else {
+        //     if (previousState == PumpRunningState.Unknown) {
+        //         buttonsEnabled.value = true
+        //         previousState = pumpRunningState
+        //     }
+        // }
 
         infoGroup = PumpInfoGroup()
 
@@ -471,7 +490,10 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
         //  11. Base basal rate
         infoGroup.list.add(PumpInfoRow(label = rh.gs(Rco.string.base_basal_rate_label),
-                                       value = ch.basalRateString(baseBasalRate, true)))
+                                       value =  if (tandemPumpStatus.basalProfileStatus!=BasalProfileStatus.NotInitialized && pumpRunningState== PumpRunningState.Running)
+                                                    ch.basalRateString(baseBasalRate, true)
+                                                else
+                                                    PLACEHOLDER))
 
         val tempBasalValue = if (tempBasal!=null ) {
             ch.basalTbrString(rate = PumpRate(tempBasal.insulinRate),
@@ -488,25 +510,19 @@ class MobiOverviewViewModelV2 @Inject constructor(
         pumpRows.add(infoGroup)
 
         // 13. Error
-
-        // TODO this needs to be extended (with live value)
         if (pumpError!=null) {
             pumpRows.add(PumpInfoRow(label = rh.gs(R.string.pump_driver_errors),
                                      value = pumpError))
         }
 
-        // TODO   Notification   Events    History
-        //   fhh need to better update semaphore...
-        //updateDataSemaphore()
-        //pumpRows.add(PumpInfoRow(label = "     ", value = semaphoreTexts.value))
-
+        // 14 semaphore
         pumpRows.add(MobiSemaphorePumpInfoRow(_events, semaphoreInfo, mapSemaphore))
 
         return PumpOverviewUiState(
             statusBanner = statusBanner,
             queueStatus = queueStatus,
             infoRows = pumpRows,
-            primaryActions = buildPrimaryActions(),
+            primaryActions = buildPrimaryActions(pumpRunningState),
             //managementActions = managementActions
         )
     }
@@ -532,7 +548,11 @@ class MobiOverviewViewModelV2 @Inject constructor(
             } else {
                 val h = min / 60.0f
                 val d = h / 24.0f
-                rh.gs(Rci.string.days_ago, d)
+
+                if (d>7)
+                    PLACEHOLDER
+                else
+                    rh.gs(Rci.string.days_ago, d)
             }
 
             lastConnectionStatus.value = StatusLevel.CRITICAL
@@ -543,6 +563,11 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
 
     private fun updateBattery(batteryPercent: Int?) {
+        if (batteryPercent==null || batteryPercent==0)
+            batteryText.value = PLACEHOLDER
+        else
+            batteryText.value = "${batteryPercent}%"
+
         batteryText.value = "${batteryPercent}%"
         batteryStatus.value = when {
             batteryPercent == null -> StatusLevel.NORMAL
@@ -554,7 +579,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
 
     private fun updateReservoir(remaining: Double?) {
-        reservoirText.value = if (remaining!=null && remaining > 0.0) ch.insulinAmountString(PumpInsulin(remaining)) else PLACEHOLDER
+        reservoirText.value = if (remaining!=null && remaining >= 0.0) ch.insulinAmountString(PumpInsulin(remaining)) else PLACEHOLDER
         reservoirLevel.value = when {
             remaining == null -> StatusLevel.NORMAL
             remaining <= 20.0 -> StatusLevel.CRITICAL
@@ -564,15 +589,16 @@ class MobiOverviewViewModelV2 @Inject constructor(
     }
 
 
-    private fun buildPrimaryActions(): List<PumpAction> {
-        if (primaryActions==null || primaryActions.isEmpty()) {
-            primaryActions = listOf(
+    private fun buildPrimaryActions(pumpRunningState: PumpRunningState): List<PumpAction> {
+        if (primaryActionsEnabled==null || primaryActionsEnabled.isEmpty()) {
+            primaryActionsEnabled = listOf(
                 PumpAction(
                     label = rh.gs(app.aaps.core.ui.R.string.refresh),
                     //iconRes = app.aaps.core.ui.R.drawable.ic_refresh,
                     icon = IcLoopClosed, // TODO dev4
                     category = ActionCategory.PRIMARY,
-                    visible = buttonsEnabled.value,
+                    enabled = true,
+                    visible = true,
                     onClick = {
                                 scope.launch {
                                     onRefreshClick()
@@ -583,63 +609,90 @@ class MobiOverviewViewModelV2 @Inject constructor(
                     label = rh.gs(R.string.pump_data),
                     icon = Icons.AutoMirrored.Filled.List,
                     category = ActionCategory.PRIMARY,
-                    visible = buttonsEnabled.value,
+                    enabled = true,
+                    visible = true,
                     onClick = { onDataClick() }
                 ),
                 PumpAction(
                     label = rh.gs(R.string.pump_actions),
                     icon = Icons.AutoMirrored.Filled.List,
                     category = ActionCategory.PRIMARY,
-                    visible = buttonsEnabled.value,
+                    enabled = true,
+                    visible = true,
                     onClick = { onActionClick() }
                 )
             )
-
         }
 
-        return primaryActions;
+        if (primaryActionsDisabled==null || primaryActionsDisabled.isEmpty()) {
+            primaryActionsDisabled = listOf(
+                PumpAction(
+                    label = rh.gs(app.aaps.core.ui.R.string.refresh),
+                    //iconRes = app.aaps.core.ui.R.drawable.ic_refresh,
+                    icon = IcLoopClosed, // TODO dev4
+                    category = ActionCategory.PRIMARY,
+                    enabled = false,
+                    visible = true,
+                    onClick = {
+                        scope.launch {
+                            onRefreshClick()
+                        }
+                    }
+                ),
+                PumpAction(
+                    label = rh.gs(R.string.pump_data),
+                    icon = Icons.AutoMirrored.Filled.List,
+                    category = ActionCategory.PRIMARY,
+                    enabled = false,
+                    visible = true,
+                    onClick = { onDataClick() }
+                ),
+                PumpAction(
+                    label = rh.gs(R.string.pump_actions),
+                    icon = Icons.AutoMirrored.Filled.List,
+                    category = ActionCategory.PRIMARY,
+                    enabled = false,
+                    visible = true,
+                    onClick = { onActionClick() }
+                )
+            )
+        }
+
+        return when(pumpRunningState) {
+            PumpRunningState.Unknown   -> primaryActionsDisabled
+            PumpRunningState.Suspended -> primaryActionsEnabled
+            PumpRunningState.Running   -> {
+                if (buttonsEnabled.value)
+                    primaryActionsEnabled
+                else
+                    primaryActionsDisabled
+            }
+        }
     }
 
 
-    var primaryActions = listOf<PumpAction>()
+    var primaryActionsEnabled = listOf<PumpAction>()
+    var primaryActionsDisabled = listOf<PumpAction>()
 
 
+    private fun buildStatusBanner(pumpState: PumpRunningState, statusBanner: StatusBanner?): StatusBanner? {
 
+        // when display aaps status, with exception on when we are in suspended state
+        if (statusBanner!=null && pumpState != PumpRunningState.Suspended) {
+            return statusBanner
+        }
 
-    private fun buildInfoRows(): List<PumpInfoInterface> = buildList {
-
-        // TODO split data creation (in updateGUI)
-
-
-    }
-
-
-
-
-    private fun buildStatusBanner(pumpState: PumpRunningState): StatusBanner? {
-        // TODO leverage our status display possibly (when commands executed)
-
-        // return when {
-        //     pumpState >= MedtrumPumpState.OCCLUSION                                     -> StatusBanner(
-        //         text = pumpState.toString(),
-        //         level = StatusLevel.CRITICAL
-        //     )
-        //
-        //     pumpState.isSuspendedByPump()                                               -> StatusBanner(
-        //         text = rh.gs(R.string.pump_is_suspended),
-        //         level = StatusLevel.WARNING
-        //     )
-        //
-        //     pumpState == MedtrumPumpState.STOPPED || pumpState == MedtrumPumpState.NONE -> StatusBanner(
-        //         text = rh.gs(R.string.patch_not_active),
-        //         level = StatusLevel.WARNING
-        //     )
-        //
-        //     else                                                                        -> null
-        // }
-
-        return null
-
+        return when(pumpState) {
+            PumpRunningState.Unknown   -> StatusBanner(
+                        text = rh.gs(R.string.pump_state_unknown_in_overview),
+                        level = StatusLevel.CRITICAL
+                    )
+            PumpRunningState.Suspended -> StatusBanner(
+                        text = rh.gs(R.string.pump_state_suspended_in_overview),
+                        level = StatusLevel.WARNING
+                    )
+            else                       -> null
+        }
     }
 
 

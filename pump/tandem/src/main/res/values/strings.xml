@@ -31,7 +31,8 @@
     <string name="pump_data_status_events" comment="Prefix string with as many of \u00A0 to make it appear in middle of pump overview screen">\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0EVENTS</string>
     <string name="pump_data_status_history">HISTORY</string>
 
-
+    <string name="pump_state_unknown_in_overview">Unknown pump state (initial connection not yet established)</string>
+    <string name="pump_state_suspended_in_overview">Pump is Suspended (by User Actions or Mobi itself)</string>
 
 
     <!-- Errors -->
