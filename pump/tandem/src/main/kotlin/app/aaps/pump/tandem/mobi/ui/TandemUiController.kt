@@ -34,6 +34,7 @@ class TandemUiController @Inject constructor(
     var tandemDispatcher: TandemDispatcher
 )   {
 
+    // TODO fix logs (I set a lot of them to error so that I can easily see what is happening)
 
     var TAG = LTag.PUMPCOMM
 
@@ -62,19 +63,21 @@ class TandemUiController @Inject constructor(
      * [PumpOpQueue] at USER_INITIATED priority and AAPS Loop can safely interleave.
      */
     fun setCartridgeChangeMode(active: Boolean) {
-        tandemPumpUtil.preventConnect = active
+        // tandemPumpUtil.preventConnect = active
     }
 
     fun disposeTandemUiCommunication(disposeType: AdditionalConfigurationScreens) {
         if (disposeType==AdditionalConfigurationScreens.Actions) {
-            aapsLogger.info(LTag.PUMP, "Data Activity was closed. Sending event to refresh.")
+            aapsLogger.error(LTag.PUMP, "Actions window was closed. Sending event to refresh.")
 
-            if (ds.reminderDateTimeUpdated.value == true) {
-                aapsLogger.error(TAG, "Reminder Date Time: ${ds.reminderDateTime.value}")
+            //aapsLogger.error(LTag.PUMP, "Reminder Date found")
 
-                preferences.put(TandemLongNonPreferenceKey.SiteReminderDateTime, ds.reminderDateTime.value!!)
-                tandemPumpStatus.tandemSiteReminder = ds.reminderDateTime.value!!
-            }
+            // if (ds.reminderDateTimeUpdated.value == true) {
+            //     aapsLogger.error(TAG, "Reminder Date Time: ${ds.reminderDateTime.value}")
+            //
+            //     preferences.put(TandemLongNonPreferenceKey.SiteReminderDateTime, ds.reminderDateTime.value!!)
+            //     tandemPumpStatus.tandemSiteReminder = ds.reminderDateTime.value!!
+            // }
 
             // we might be able to specify more exactly what here happens but for now this is ok, see DataActivity and method refreshMainAppData
             // tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.PUMP_STATUS,
@@ -92,6 +95,7 @@ class TandemUiController @Inject constructor(
         }
 
         this.tandemUICommunication.tandemPumpCommunicationManager = null
+        tandemPumpUtil.preventConnect = false
     }
 
     enum class AdditionalConfigurationScreens {
@@ -161,7 +165,29 @@ class TandemUiController @Inject constructor(
             RefreshData.PUMP_CANNULA_CHANGED -> {
                 setOfActions.add(refreshData)
             }
-            else -> {}
+            RefreshData.REMINDER_CHANGED -> {
+
+                if (ds.reminderDateTimeUpdated.value!=null && ds.reminderDateTimeUpdated.value!!) {
+
+                    val value = ds.reminderDateTime.value
+                    tandemPumpStatus.tandemSiteReminder = value
+
+                    aapsLogger.info(TAG, "Reminder Changed. Saving value in preferences: ${value}")
+
+                    if (value != null) {
+                        preferences.put(TandemLongNonPreferenceKey.SiteReminderDateTime, value)
+                    }
+                } else {
+                    aapsLogger.debug(TAG, "Reminder Hasn't updated")
+                }
+            }
+            RefreshData.START_ACTIONS       -> {
+                tandemPumpUtil.preventConnect = true
+                ds.reminderDateTime.value = tandemPumpStatus.tandemSiteReminder
+            }
+            RefreshData.START_DATA       -> {
+                tandemPumpUtil.preventConnect = true
+            }
         }
     }
 
@@ -181,8 +207,6 @@ class TandemUiController @Inject constructor(
                 for (entity in currentQEItemsBlocking) {
                     val instantTime = java.time.Instant.ofEpochMilli(entity.dateTime)
 
-                    aapsLogger.error("QE: " + instantTime)
-
                     val eventDto = TandemQualifyingEventDto(
                         dateTime = LocalDateTime.ofInstant(instantTime, ZoneId.systemDefault()),
                         name = QualifyingEvent.valueOf(entity.name),
@@ -200,7 +224,7 @@ class TandemUiController @Inject constructor(
 
                 ds.dataQELoaded.value = true
 
-                aapsLogger.error(TAG, "QE Items ${list2.size}")
+                aapsLogger.info(TAG, "QE Items ${list2.size}")
 
             }
             DatabaseTarget.PUMP_HISTORY      -> {
@@ -212,7 +236,7 @@ class TandemUiController @Inject constructor(
                 list2.clear()
                 list2.addAll(list)
 
-                aapsLogger.error(TAG, "History Items ${list2.size}")
+                aapsLogger.info(TAG, "History Items ${list2.size}")
 
                 ds.dataHistoryLoaded.value = true
             }

@@ -43,8 +43,10 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.data.defs.SiteReminderPreset
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
+import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
@@ -71,6 +73,8 @@ fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),
                  navigateBack: () -> Unit,
                  aapsLogger: AAPSLogger,
                  resourceHelper: ResourceHelper,
+                 pumpStatusData: TandemPumpStatus,
+                 refreshMainAppData: (RefreshData) -> Unit,
                  showHeader: Boolean = true
 ) {
 
@@ -104,15 +108,16 @@ fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
         refreshScope.cancel()
     }) {
-        aapsLogger.error(LTag.PUMP, "Load Reminder Date from saved (if available)")
-
-        if (ds.reminderDateTime.value!=null) {
-
-            val localDateTime = Instant.ofEpochMilli(ds.reminderDateTime.value!!)
+        aapsLogger.debug(LTag.PUMP, "Load Reminder Date from saved (if available)")
+        if (pumpStatusData.tandemSiteReminder!=null) {
+            aapsLogger.debug(LTag.PUMP, "Reminder Date found: ${pumpStatusData.tandemSiteReminder}")
+            val localDateTime = Instant.ofEpochMilli(pumpStatusData.tandemSiteReminder!!)
                 .atZone(ZoneId.systemDefault()).toLocalDateTime()
 
             pickedDate = localDateTime.toLocalDate()
             pickedTime = localDateTime.toLocalTime()
+        } else {
+            aapsLogger.debug(LTag.PUMP, "Reminder Date NOT found.")
         }
     }
 
@@ -280,6 +285,8 @@ fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),
                         ds.reminderDateTime.value = ldt.toInstant(offsetNow).toEpochMilli()
                         ds.reminderDateTimeUpdated.value = true
 
+                        refreshMainAppData(RefreshData.REMINDER_CHANGED)
+
                     }, modifier = Modifier.width(200.dp)) {
                         Text(text = resourceHelper.gs(R.string.sr_save))
                     }
@@ -296,7 +303,7 @@ fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),
                         initialDate = pickedDate,
                         title = resourceHelper.gs(R.string.sr_adjust_date),
                        allowedDateValidator = {
-                           it.isAfter(currentDate)
+                           it.isAfter(currentDate) || it.isEqual(currentDate)
                        }
                     ) {
                         if (!pickedDate.isEqual(it)) {
@@ -332,25 +339,25 @@ fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),
 
 
 
-
-@Preview(showBackground = true)
-@Composable
-private fun DefaultPreview_PumpInfo() {
-    MaterialTheme() {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White,
-        ) {
-            setUpPreviewState(LocalTandemDataStore.current)
-
-            //LocalTandemDataStore.current.pumpVersionResponse.value = pumpVersion
-            SiteReminder(
-                innerPadding = PaddingValues(),
-                //navController = null,
-                navigateBack = { },
-                resourceHelper = ResourceHelperTest(),
-                aapsLogger = AAPSLoggerTest()
-            )
-        }
-    }
-}
+//
+// @Preview(showBackground = true)
+// @Composable
+// private fun DefaultPreview_PumpInfo() {
+//     MaterialTheme() {
+//         Surface(
+//             modifier = Modifier.fillMaxSize(),
+//             color = Color.White,
+//         ) {
+//             setUpPreviewState(LocalTandemDataStore.current)
+//
+//             SiteReminder(
+//                 innerPadding = PaddingValues(),
+//                 navigateBack = { },
+//                 resourceHelper = ResourceHelperTest(),
+//                 refreshMainAppData = {},
+//                 pumpStatusData = TandemPumpStatus(),
+//                 aapsLogger = AAPSLoggerTest()
+//             )
+//         }
+//     }
+// }

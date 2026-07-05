@@ -150,6 +150,7 @@ fun Actions(
     }) {
         aapsLogger.debug(TAG, "reloading Actions from onStart lifecyclestate")
         fetchDataStoreFields()
+        refreshMainAppData(RefreshData.START_ACTIONS)
     }
 
     LaunchedEffect(intervalOf(60)) {

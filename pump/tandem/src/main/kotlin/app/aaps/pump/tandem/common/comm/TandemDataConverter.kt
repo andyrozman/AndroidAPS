@@ -18,11 +18,7 @@ import app.aaps.pump.tandem.common.data.IDPSegmentDto
 import app.aaps.pump.tandem.common.data.PumpProfileDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV1Response
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryAbstractResponse
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse

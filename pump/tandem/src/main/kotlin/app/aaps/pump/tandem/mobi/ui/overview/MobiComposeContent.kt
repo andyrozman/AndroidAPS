@@ -20,6 +20,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.ui.compose.ComposablePluginContent
 import app.aaps.core.ui.compose.ToolbarConfig
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.mobi.ui.TandemUiController
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
@@ -230,6 +231,7 @@ class MobiComposeContent(
                     navigateToNotifications = {
                         currentScreen = MobiScreen.DATA_NOTIFICATIONS
                     },
+                    refreshMainAppData = { refreshData -> tandemUiController.refreshMainAppData(refreshData = refreshData)},
                 )
             }
 
@@ -385,6 +387,8 @@ class MobiComposeContent(
                     resourceHelper = resourceHelper,
                     aapsLogger = aapsLogger,
                     showHeader = false,
+                    refreshMainAppData = { data -> tandemUiController.refreshMainAppData(data) },
+                    pumpStatusData = tandemPumpStatus,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     }

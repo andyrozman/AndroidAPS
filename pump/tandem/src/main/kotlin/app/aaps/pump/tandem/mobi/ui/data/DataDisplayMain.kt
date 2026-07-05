@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -45,10 +46,12 @@ import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
+import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.tandemUiDataStore
 
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLine
+import app.aaps.pump.tandem.mobi.ui.util.LifecycleStateObserver
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -56,6 +59,7 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.MalfunctionStatusRequest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -64,7 +68,7 @@ import java.time.Instant
 fun DataDisplayMain(
     innerPadding: PaddingValues = PaddingValues(),
     sendPumpCommands: (List<Message>) -> Boolean,
-    //refreshMainAppData: (RefreshData) -> Unit,
+    refreshMainAppData: (RefreshData) -> Unit,
     aapsLogger: AAPSLogger,
     navigateToPumpHistory: () -> Unit,
     navigateToEvents: () -> Unit,
@@ -97,6 +101,15 @@ fun DataDisplayMain(
     }
 
     val pullRefreshState = rememberPullToRefreshState()
+
+
+    LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
+        refreshScope.cancel()
+    }) {
+        aapsLogger.debug(TAG, "reloading Actions from onStart lifecyclestate")
+        refreshMainAppData(RefreshData.START_DATA)
+        refresh()
+    }
 
 
     LaunchedEffect(intervalOf(60)) {
@@ -239,7 +252,7 @@ private fun DataDisplayPreview_NoNotification() {
                 navigateToPumpHistory = {},
                 navigateToEvents = {},
                 resourceHelper = ResourceHelperTest(),
-                //refreshMainAppData = {}
+                refreshMainAppData = {}
             )
         }
     }
@@ -264,7 +277,7 @@ private fun DataDisplayPreview_WithNotification() {
                 navigateToPumpHistory = {},
                 navigateToEvents = {},
                 resourceHelper = ResourceHelperTest(),
-                //refreshMainAppData = {}
+                refreshMainAppData = {}
             )
         }
     }

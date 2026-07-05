@@ -293,6 +293,12 @@ class TandemMobiPumpPlugin @Inject constructor(
             }
         }
 
+        if (preferences.getIfExists(TandemLongNonPreferenceKey.SiteReminderDateTime) != null) {
+            val preference = preferences.get(TandemLongNonPreferenceKey.SiteReminderDateTime)
+            pumpStatus.tandemSiteReminder = preference
+            aapsLogger.debug(TAG, "initPumpStatusData: tandemSiteReminder pumpStatus.tandemSiteReminder: ${pumpStatus.tandemSiteReminder}")
+        }
+
         pumpStatus.pumpType = PumpType.TANDEM_MOBI_BT
         pumpStatus.pumpDriverMode = this.wantedDriverMode
     }
@@ -344,6 +350,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     override fun doCustomScheduledActions() {
         if (pumpStatus.tandemSiteReminder!=null && pumpStatus.tandemSiteReminder!!>0) {
             if (System.currentTimeMillis() > pumpStatus.tandemSiteReminder!!) {
+                aapsLogger.error(TAG, "Show notification and delete")
                 tandemPumpUtil.sendNotification(TandemNotificationType.SiteReminder)
                 pumpStatus.tandemSiteReminder = null
                 preferences.remove(TandemLongNonPreferenceKey.SiteReminderDateTime)
@@ -1073,8 +1080,8 @@ class TandemMobiPumpPlugin @Inject constructor(
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Battery))
 
         // site reminder
-        val reminder = preferences.get(TandemLongNonPreferenceKey.SiteReminderDateTime)
-        this.pumpStatus.tandemSiteReminder = if (reminder>0) null else reminder
+        // val reminder = preferences.get(TandemLongNonPreferenceKey.SiteReminderDateTime)
+        // this.pumpStatus.tandemSiteReminder = if (reminder>0) null else reminder
 
         // configuration (once and then if history shows config changes)
         tandemDispatcher.submitDefault("getConfiguration") { getConfiguration() }
@@ -1399,14 +1406,14 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     private fun PumpDispatcherScope.stopBolusDeliveringBody() {
-        aapsLogger.error(TAG, "stopBolusDelivering")
+        aapsLogger.debug(TAG, "stopBolusDelivering")
 
         if (bolusDeliveryType==BolusDeliveryType.Delivering ||
             bolusDeliveryType==BolusDeliveryType.DeliveryPrepared) {
 
             bolusDeliveryType = BolusDeliveryType.CancelDelivery // we don't want to come here twice
 
-            aapsLogger.error(TAG, "Cancelling Bolus")
+            aapsLogger.info(TAG, "Cancelling Bolus")
             val cancelBolusResponse = cancelBolus(BolusData())
 
             if (cancelBolusResponse.isSuccess) {
@@ -1416,7 +1423,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             }
 
         } else {
-            aapsLogger.error(TAG, "Bolus delivery Type is $bolusDeliveryType, cancelBolus will be skipped.")
+            aapsLogger.debug(TAG, "Bolus delivery Type is $bolusDeliveryType, cancelBolus will be skipped.")
         }
     }
 
@@ -1648,9 +1655,6 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-
-
-
     override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult = tandemDispatcher.submitMutating(
         name = "setNewBasalProfile",
         maxDuration = 2.minutes,
@@ -1662,16 +1666,14 @@ class TandemMobiPumpPlugin @Inject constructor(
         setNewBasalProfileBody(profile)
     }
 
+
     private fun PumpDispatcherScope.setNewBasalProfileBody(profile: PumpProfile): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, "setNewBasalProfile - start")
         return try {
             setRefreshButtonEnabled(false)
             val resultCommandResponse: DataCommandResponse<Boolean?>
-            //val driverModeCurrent = driverMode
 
             resultCommandResponse = setBasalProfile(profile)
-
-            //readPumpHistoryAfterAction(profile = profile)
 
             aapsLogger.info(LTag.PUMP, logPrefix + "Basal Profile was set: " + resultCommandResponse)
 
@@ -1690,20 +1692,10 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
     }
 
+
     private fun refreshBasalRateDisplay() {
         val bbr = baseBasalRate
     }
-
-
-
-    // TODO(jwoglom): we will need this to call changetimedate
-    // override fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
-    //     aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed. ")
-    //     hasTimeDateOrTimeZoneChanged = true
-    // }
-
-
-    // OPERATIONS not supported by Pump or Plugin
 
 
     init {
@@ -1734,6 +1726,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
+    // TODO(jwoglom): we will need this to call changetimedate not sure if relevan
     override suspend fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
         aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed (type=$timeChangeType). ")
         this.timeChangeType = timeChangeType
@@ -1747,10 +1740,13 @@ class TandemMobiPumpPlugin @Inject constructor(
     // TODO Preferences:
     //    - add MIN_RESERVOIR2 confirmation not implemented yet, but might be needed
 
+    // TODO getPreferenceScreenContent doesn't fully work (withEntriesProvider problem)
+
     override fun getPreferenceScreenContent(): PreferenceSubScreenDef =
         PreferenceSubScreenDef(
             key = "tandem_tmobi_settings",
             titleResId = R.string.tandem_mobi_pump_settings,
+            icon = pluginDescription.icon,
             items = listOf(
                 TandemBooleanPreferenceKey.UseSharedConnection,
                 TandemStringPreferenceKey.SharedConnectionData,

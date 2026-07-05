@@ -39,7 +39,7 @@ class HistoryPostProcessor @Inject constructor(
 
     fun postProcessHistory(historyLogs: MutableCollection<HistoryLog>) {
 
-        aapsLogger.error(TAG, "HST: PostProcess History (items=${historyLogs.size})")
+        aapsLogger.debug(TAG, "HST: PostProcess History (items=${historyLogs.size})")
 
         for (historyLog in historyLogs) {
 
@@ -47,7 +47,7 @@ class HistoryPostProcessor @Inject constructor(
 
                 is TubingFilledHistoryLog -> {
 
-                    aapsLogger.error(TAG, "HST: PostProcess - NS Cannula Change")
+                    aapsLogger.info(TAG, "HST: PostProcess - NS Cannula Change")
 
                     runBlocking {
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
@@ -62,7 +62,7 @@ class HistoryPostProcessor @Inject constructor(
                 }
                 is CartridgeFilledHistoryLog -> {
 
-                    aapsLogger.error(TAG, "HST: PostProcess - NS Insulin Change")
+                    aapsLogger.info(TAG, "HST: PostProcess - NS Insulin Change")
 
                     runBlocking {
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
@@ -79,7 +79,7 @@ class HistoryPostProcessor @Inject constructor(
                 is BolusCompletedHistoryLog -> {
                     runBlocking {
 
-                        aapsLogger.error(TAG, "HST: PostProcess - Bolus - ${historyLog}")
+                        aapsLogger.info(TAG, "HST: PostProcess - Bolus - ${historyLog}")
 
                         pumpSync.syncBolusWithPumpId(
                             timestamp = historyLog.pumpTimeSecInstant.toEpochMilli(),
@@ -93,13 +93,7 @@ class HistoryPostProcessor @Inject constructor(
                 }
 
             }
-
-
-
         }
-
-
-
 
     }
 

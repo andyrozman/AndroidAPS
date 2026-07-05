@@ -88,7 +88,7 @@ class HistoryRetriever @Inject constructor(
         const val SHORT_RECORDS_RETRIEVAL_AMOUNT = 20 // for short readings we get last x entries only
         const val WATCHDOG_TIMEOUT_MS = 30_000L // abort if no history progress/messages for this long
         val TAG = LTag.PUMPCOMM
-        const val DEBUG_HISTORY = true
+        const val DEBUG_HISTORY = false // keep this to false, unless there is some history issue
     }
 
     private var maxDateTimeInSec: Int = 0
@@ -733,33 +733,21 @@ class HistoryRetriever @Inject constructor(
 
         var i = currentRequest.startSequence
 
-        //aapsLogger.error(TAG, "Before While")
-
         while (i <= currentRequest.endSequence) {
-
-            //aapsLogger.error(TAG, "While $i")
 
             if (!currentRequest.historyLogMap.containsKey(i)) {
                 startSeq = i
 
-                //aapsLogger.error(TAG, "Not found $i")
-
                 for(j in startSeq+1..currentRequest.endSequence) {
                     //aapsLogger.error(TAG, "For $j")
                     if (currentRequest.historyLogMap.containsKey(j)) {
-                        //aapsLogger.error(TAG, "Key found $j")
                         endSeq = j-1
                         historyRangeList.add(HistoryRequestInfo(startSeq, endSeq))
-                        //aapsLogger.error(TAG, "Add History Range (start=$startSeq, end=$endSeq)")
-                        //startSeq = null
-                        //endSeq = null
                         i = j-1
                         break
                     }
 
                     if (j==currentRequest.endSequence) {
-                        //aapsLogger.error(TAG, "End Reached ($startSeq-$endSeq)")
-                        //aapsLogger.error(TAG, "Add History Range On End (start=$startSeq, end=$endSeq)")
                         historyRangeList.add(HistoryRequestInfo(startSeq, currentRequest.endSequence))
                         i=currentRequest.endSequence
                     }
@@ -793,15 +781,14 @@ class HistoryRetriever @Inject constructor(
             if (entry.pumpTimeSec >= maxDateTimeInSec) {
                 listOfRecords.add(entry)
 
-                aapsLogger.error(TAG, "${historyPrefix}Entry:  ${formatter.format(entry.pumpTimeSecInstant)} - ${entry.javaClass.simpleName} (${entry.sequenceNum})")
+                // used for debugging only
+                // aapsLogger.error(TAG, "${historyPrefix}Entry:  ${formatter.format(entry.pumpTimeSecInstant)} - ${entry.javaClass.simpleName} (${entry.sequenceNum})")
 
                 if (entry !is UnknownHistoryLog) {
                     knownLogItemsCount++
                 }
             }
         }
-
-        //if (historyRequestInfo.)
 
         if (historyLog!=null) {
             aapsLogger.debug(TAG, "${historyPrefix}Newest entry for database: ${formatter.format(historyLog.pumpTimeSecInstant)} - ${historyLog.javaClass.simpleName}")
@@ -817,9 +804,7 @@ class HistoryRetriever @Inject constructor(
 
 
     private fun removeFromActiveItems(historyRequestInfo: HistoryRequestInfo) {
-        //aapsLogger.error(TAG, "${historyPrefix}Before remove ${historySummaryDto!!.activeProcessing.size}")
         this.historySummaryDto!!.activeProcessing.remove(historyRequestInfo)
-        //aapsLogger.error(TAG, "${historyPrefix}After Remove remove ${historySummaryDto!!.activeProcessing.size}")
     }
 
 

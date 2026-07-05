@@ -3,6 +3,7 @@ package app.aaps.pump.common.utils
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.NotificationId
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
@@ -222,8 +223,11 @@ open class PumpUtil constructor(
         //     resourceHelper.gs(notificationType.resourceId),  //
         //     notificationType.notificationUrgency
         // )
+
+        aapsLogger.error(LTag.PUMP, "NotificationType: $notificationType")
+
         // rxBus.send(EventNewNotification(notification))
-        if (notificationType.validMinutes == -1) {
+        if (notificationType.validMinutes==null || notificationType.validMinutes == -1) {
             notificationManager.post(
                 id = notificationType.notificationType,
                 textRes = notificationType.resourceId,
@@ -237,10 +241,13 @@ open class PumpUtil constructor(
                 validMinutes = notificationType.validMinutes!!
             )
         }
+
+        //notificationManager.post(NotificationId.INSIGHT_DATE_TIME_UPDATED, app.aaps.core.ui.R.string.pump_time_updated, validMinutes = 60)
+
     }
 
     fun sendNotification(notificationType: NotificationTypeInterface, vararg parameters: Any?) {
-        if (notificationType.validMinutes == -1) {
+        if (notificationType.validMinutes==null || notificationType.validMinutes == -1) {
             notificationManager.post(
                 id = notificationType.notificationType,
                 textRes = notificationType.resourceId,
