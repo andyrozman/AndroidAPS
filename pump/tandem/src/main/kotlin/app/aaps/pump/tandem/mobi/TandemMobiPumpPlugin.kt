@@ -1753,18 +1753,21 @@ class TandemMobiPumpPlugin @Inject constructor(
                 TandemIntentPreferenceKey.PumpPairing.withActivity(TandemMobiConnectionWizardActivity::class.java),
                 TandemIntPreferenceKey.MaxBolus,
                 TandemIntPreferenceKey.MaxBasal,
-                TandemStringPreferenceKey.QualifyingEventsFilterPref.withEntriesProvider(provider = { context: Context ->
-                    QualifyingEventsFilter.entries.associate { it.name to context.getString(it.friendlyName) }
-                }),
-                TandemStringPreferenceKey.QualifyingEventsRangePref.withEntriesProvider(provider = { context: Context ->
-                    QualifyingEventsRange.entries.associate { it.name to context.getString(it.friendlyName) }
-                }),
+                TandemStringPreferenceKey.QualifyingEventsFilterPref,
+                TandemStringPreferenceKey.QualifyingEventsRangePref,
+                // TandemStringPreferenceKey.QualifyingEventsFilterPref.withEntriesProvider(provider = { context: Context ->
+                //     QualifyingEventsFilter.entries.associate { it.name to context.getString(it.friendlyName) }
+                // }),
+                // TandemStringPreferenceKey.QualifyingEventsRangePref.withEntriesProvider(provider = { context: Context ->
+                //     QualifyingEventsRange.entries.associate { it.name to context.getString(it.friendlyName) }
+                // }),
                 TandemBooleanPreferenceKey.DisplayDriverVersion,
                 TandemBooleanPreferenceKey.ShowCargoOfUnknownEntries,
                 TandemBooleanPreferenceKey.AutoConfirmLowBasalDelivery,
-                TandemStringPreferenceKey.QuickBolusTypePref.withEntriesProvider(provider = { context: Context ->
-                    QuickBolusType.entries.associate { it.name to context.getString(it.friendlyName) }
-                })
+                TandemStringPreferenceKey.QuickBolusTypePref
+                // TandemStringPreferenceKey.QuickBolusTypePref.withEntriesProvider(provider = { context: Context ->
+                //     QuickBolusType.entries.associate { it.name to context.getString(it.friendlyName) }
+                // })
             )
         )
 
