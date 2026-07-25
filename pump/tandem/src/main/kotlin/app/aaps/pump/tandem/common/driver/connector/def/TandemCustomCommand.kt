@@ -16,7 +16,8 @@ enum class TandemCustomCommand(@StringRes var resourceId: Int) : CustomCommandTy
     //GET_QUICK_BOLUS(R.string.tandem_custom_command_get_quick_bolus),
     DISMISS_ALERT(R.string.tandem_custom_command_dismiss_alert),
     SET_QUICK_BOLUS(R.string.tandem_custom_command_set_quick_bolus),
-    GET_MALFUNCTIONS(R.string.tandem_custom_command_get_malfunctions)
+    GET_MALFUNCTIONS(R.string.tandem_custom_command_get_malfunctions),
+    SET_PUMP_SOUNDS(R.string.tandem_custom_command_set_pump_sounds)
     ;
 
     var descriptionInternal : String? = null

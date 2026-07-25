@@ -2,11 +2,14 @@ package app.aaps.pump.tandem.common.data.defs
 
 import androidx.annotation.StringRes
 import app.aaps.pump.tandem.R
+import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest.QuickBolusIncrement
 
-// TODO(jwoglom): replace with https://github.com/jwoglom/pumpX2/blob/main/messages/src/main/java/com/jwoglom/pumpx2/pump/messages/request/control/SetQuickBolusSettingsRequest.java#L84
-enum class QuickBolusType(@StringRes val friendlyName: Int)  {
+enum class QuickBolusType(@StringRes val friendlyName: Int,
+                          val quickBolusIncrement: QuickBolusIncrement
+)  {
 
-    DISABLED(R.string.pump_quick_bolus_disabled),
+    DISABLED(R.string.pump_quick_bolus_disabled, QuickBolusIncrement.DISABLED),
     UNITS_0_5(R.string.pump_quick_bolus_units_0_5),
     UNITS_1_0(R.string.pump_quick_bolus_units_1_0),
     UNITS_2_O(R.string.pump_quick_bolus_units_2_0),

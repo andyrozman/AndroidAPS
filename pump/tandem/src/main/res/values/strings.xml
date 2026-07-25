@@ -319,6 +319,7 @@
     <string name="tandem_custom_command_get_quick_bolus">Get Quick Bolus</string>
     <string name="tandem_custom_command_set_quick_bolus">Set Quick Bolus</string>
     <string name="tandem_custom_command_get_malfunctions">Get Malfunctions</string>
+    <string name="tandem_custom_command_set_pump_sounds">Set Pump Sounds</string>
 
 
 

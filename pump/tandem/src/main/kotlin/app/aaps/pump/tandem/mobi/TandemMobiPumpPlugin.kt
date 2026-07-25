@@ -113,6 +113,8 @@ import app.aaps.pump.tandem.mobi.ui.overview.MobiComposeContent
 import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpGlobalsRequest
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpGlobalsResponse
 import io.reactivex.rxjava3.kotlin.plusAssign
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -862,15 +864,11 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     PumpDataRefreshType.Custom_2 -> {
                         aapsLogger.error(LTag.PUMP, "Refresh_Custom_2 - Set QuickBolus settings on pump")
-                        tandemDispatcher.submitDefault("setQuickBolus") {
-                            executeCustomCommand(command = TandemCustomCommand.SET_QUICK_BOLUS,
-                                                                       data = newQuickBolusType)
-                        }
 
-                        val stringQuickBolus = rh.gs(this.newQuickBolusType!!.friendlyName)
+                        val stringQB = setQuickBolus()
 
                         tandemPumpUtil.sendNotification(notificationType = TandemNotificationType.TandemPumpSettingsUpdated,
-                                                        "Quick Bolus (" + stringQuickBolus + ")")
+                                                        stringQB)
 
                         resetTime = true
                     }
@@ -1244,6 +1242,20 @@ class TandemMobiPumpPlugin @Inject constructor(
                 changedItems.add("Control IQ")
             }
 
+            val pumpGlobalsResponse = (pumpStatus.settings!![TandemPumpSettingType.QUICK_BOLUS]) as PumpGlobalsResponse
+
+            if (isQuickBolusIncorrectlySet(pumpGlobalsResponse)) {
+                val stringQB = setQuickBolus()
+                changedItems.add(stringQB)
+            }
+
+            // if (isSoundIncorrectlySet(pumpGlobalsResponse)) {
+            //     tandemDispatcher.submitDefault("setPumpSounds") {
+            //         executeCustomCommand(TandemCustomCommand.SET_PUMP_SOUNDS, PumpGlobalsResponse.AnnunciationEnum.VIBRATE)
+            //     }
+            // }
+
+
             if (changedItems.isNotEmpty()) {
                 val changedItemsString = changedItems.joinToString(", ")
 
@@ -1251,6 +1263,60 @@ class TandemMobiPumpPlugin @Inject constructor(
                                                 changedItemsString)
             }
         }
+    }
+
+
+    private fun isQuickBolusIncorrectlySet(pumpGlobalsResponse: PumpGlobalsResponse): Boolean {
+        if (preferences.getIfExists(TandemStringPreferenceKey.QuickBolusTypePref) != null) {
+            val preferenceQBString = preferences.get(TandemStringPreferenceKey.QuickBolusTypePref)
+
+            val quickBolusType = QuickBolusType.valueOf(preferenceQBString)
+            val quickBolusIncrementPump = pumpGlobalsResponse.quickBolusIncrement
+
+            aapsLogger.info(TAG, "Quick Bolus in Settings=${quickBolusType.name} and on Pump=${quickBolusIncrementPump.name}")
+
+            return (quickBolusType.quickBolusIncrement != quickBolusIncrementPump)
+
+        } else {
+            return false
+        }
+    }
+
+    private fun isSoundIncorrectlySet(pumpGlobalsResponse: PumpGlobalsResponse): Boolean {
+        // TODO at the moment we will set defaults to
+
+        if (pumpGlobalsResponse.buttonAnnun != PumpGlobalsResponse.AnnunciationEnum.VIBRATE ||
+            pumpGlobalsResponse.quickBolusAnnun != PumpGlobalsResponse.AnnunciationEnum.VIBRATE ||
+            pumpGlobalsResponse.bolusAnnun != PumpGlobalsResponse.AnnunciationEnum.VIBRATE ||
+            pumpGlobalsResponse.reminderAnnun != PumpGlobalsResponse.AnnunciationEnum.VIBRATE ||
+            pumpGlobalsResponse.alertAnnun != PumpGlobalsResponse.AnnunciationEnum.VIBRATE ||
+            pumpGlobalsResponse.alarmAnnun != PumpGlobalsResponse.AnnunciationEnum.VIBRATE ||
+            pumpGlobalsResponse.fillTubingAnnun != PumpGlobalsResponse.AnnunciationEnum.VIBRATE) {
+
+            return true;
+
+        }
+
+
+
+
+
+
+        return false;
+    }
+
+
+    private fun setQuickBolus(): String {
+
+        tandemDispatcher.submitDefault("setQuickBolus") {
+            executeCustomCommand(command = TandemCustomCommand.SET_QUICK_BOLUS,
+                                 data = newQuickBolusType)
+        }
+
+        val stringQuickBolus = rh.gs(this.newQuickBolusType!!.friendlyName)
+
+        return "Quick Bolus (${stringQuickBolus})"
+
     }
 
 

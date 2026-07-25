@@ -71,6 +71,7 @@ import com.jwoglom.pumpx2.pump.messages.request.control.InitiateBolusRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetIDPSegmentRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBasalLimitRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBolusLimitRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SetPumpSoundsRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
@@ -106,6 +107,7 @@ import com.jwoglom.pumpx2.pump.messages.response.control.InitiateBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetIDPSegmentResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBasalLimitResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetMaxBolusLimitResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.SetPumpSoundsResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetQuickBolusSettingsResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.SetTempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.StopTempRateResponse
@@ -1299,25 +1301,65 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
     override fun executeCustomCommand(commandType: CustomCommandTypeInterface, data: Any?): DataCommandResponse<AdditionalResponseDataInterface?> {
         val commandTypeInternal = commandType as TandemCustomCommand
 
-        when(commandTypeInternal) {
-            SET_MAX_BOLUS      -> return setMaxBolus(data as Int)
-            SET_MAX_BASAL      -> return setMaxBasal(data as Int)
-            SET_CONTROL_IQ     -> return setControlIQDisabled()
-            GET_PUMP_INFO      -> return getPumpInfo()
-            GET_ALERTS         -> return getAlerts()
-            GET_ALARMS         -> return getAlarms()
-            DISMISS_ALERT      -> return dismissNotificationAlert(data as Long)
-            SET_QUICK_BOLUS    -> return setQuickBolus(data as QuickBolusType)
-            GET_MALFUNCTIONS   -> return getMalfunctions();
-            // else                              -> {
-            //     aapsLogger.error(TAG, "Unhandled Custom Command: ${commandType.name}")
-            // }
+        return when(commandTypeInternal) {
+            SET_MAX_BOLUS      -> setMaxBolus(data as Int)
+            SET_MAX_BASAL      -> setMaxBasal(data as Int)
+            SET_CONTROL_IQ     -> setControlIQDisabled()
+            GET_PUMP_INFO      -> getPumpInfo()
+            GET_ALERTS         -> getAlerts()
+            GET_ALARMS         -> getAlarms()
+            DISMISS_ALERT      -> dismissNotificationAlert(data as Long)
+            SET_QUICK_BOLUS    -> setQuickBolus(data as QuickBolusType)
+            GET_MALFUNCTIONS   -> getMalfunctions()
+            SET_PUMP_SOUNDS    -> setPumpSounds(data as PumpGlobalsResponse.AnnunciationEnum)
+            else               -> {
+                aapsLogger.error(TAG, "Unhandled Custom Command: ${commandType.name}")
+                DataCommandResponse(
+                    PumpCommandType.CustomCommand, false, "Command ${commandType.getKey()} not available.", null)
+            }
         }
 
-        return DataCommandResponse(
-            PumpCommandType.CustomCommand, false, "Command ${commandType.getKey()} not available.", null)
     }
 
+    private fun setPumpSounds(soundVolume: PumpGlobalsResponse.AnnunciationEnum): DataCommandResponse<AdditionalResponseDataInterface?> {
+
+        //aapsLogger.info(LTag.PUMPCOMM, "set All Pump Sounds to ${soundVolume.name}")
+
+        // TODO setPumpSounds
+        aapsLogger.error(LTag.PUMPCOMM, "set GeneralAnnun to ${soundVolume.name} NOT IMPLEMENTED")
+
+        val pumpSoundRequest = SetPumpSoundsRequest(soundVolume, // quicbolus
+                                                    soundVolume, //general
+                                                    soundVolume,  // reminder
+                                                    soundVolume,  // alert
+                                                    soundVolume, // alarm
+                                                    null, // cgmAlert
+                                                    SetPumpSoundsRequest.ChangeBitmask.GENERAL)
+
+        val responseMessage: SetPumpSoundsResponse? = getCommunicationManager()
+            ?.sendCommand(pumpSoundRequest) as SetPumpSoundsResponse?
+
+        if (responseMessage!=null) {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, responseMessage.status==0,
+                if (responseMessage.status==0) null else "Error sending SetPumpSoundsRequest(generalAnnun=${soundVolume.name}): status=${responseMessage.status}",
+                null
+            )
+        } else {
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, false,
+                "Error getting response from sending SetPumpSoundsRequest: null",
+                null
+            )
+        }
+
+            return DataCommandResponse(
+                PumpCommandType.CustomCommand, false,
+                "Error getting response from sending SetPumpSoundsRequest: NOT YET IMPLEMENTED",
+                null
+            )
+
+    }
 
     private fun dismissNotificationAlert(value: Long): DataCommandResponse<AdditionalResponseDataInterface?> {
         return dismissNotification(DismissNotificationRequest.NotificationType.ALERT, value);
