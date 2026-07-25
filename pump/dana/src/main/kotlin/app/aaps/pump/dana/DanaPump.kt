@@ -296,16 +296,19 @@ class DanaPump @Inject constructor(
     // Bolus settings
     var bolusCalculationOption = 0
     var missedBolusConfig = 0
-    fun getUnits(): String {
-        return if (units == UNITS_MGDL) GlucoseUnit.MGDL.asText else GlucoseUnit.MMOL.asText
-    }
+    // NOTE: named `unitsString` (not `getUnits()`) on purpose — a `fun getUnits(): String` collides at the JVM
+    // level with the `var units: Int` property's generated `getUnits()` accessor, which breaks mocking.
+    val unitsString: String
+        get() = if (units == UNITS_MGDL) GlucoseUnit.MGDL.asText else GlucoseUnit.MMOL.asText
 
     var bolusStartErrorCode: Int = 0 // last start bolus errorCode
     var bolusingDetailedBolusInfo: DetailedBolusInfo? = null // actually delivered treatment
     var bolusProgressLastTimeStamp: Long = 0 // timestamp of last bolus progress message
-    var bolusStopped = false // bolus finished
-    var bolusStopForced = false // bolus forced to stop by user
-    var bolusDone = false // success end
+    // The bolus poll loop (DanaR*ExecutionService.bolus) spins on bolusStopped while the reader thread
+    // (bolus progress/stop messages) and the user's stop action set these - @Volatile for visibility.
+    @Volatile var bolusStopped = false // bolus finished
+    @Volatile var bolusStopForced = false // bolus forced to stop by user
+    @Volatile var bolusDone = false // success end
     var lastEventTimeLoaded: Long = 0 // timestamp of last received event
 
     // val lastKnownHistoryId: Int = 0 // hw ver 7+, 1-2000

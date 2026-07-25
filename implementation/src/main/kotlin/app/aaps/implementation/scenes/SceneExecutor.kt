@@ -25,6 +25,8 @@ import app.aaps.core.interfaces.insulin.Insulin
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
+import app.aaps.core.interfaces.notifications.NotificationId
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileRepository
@@ -37,6 +39,7 @@ import app.aaps.core.interfaces.utils.Translator
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.extensions.profileNames
+import app.aaps.implementation.profile.ProfileSwitchSilentGate
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -66,7 +69,9 @@ class SceneExecutor @Inject constructor(
     private val loop: Loop,
     private val activePlugin: ActivePlugin,
     private val profileUtil: ProfileUtil,
-    private val translator: Translator
+    private val translator: Translator,
+    private val profileSwitchSilentGate: ProfileSwitchSilentGate,
+    private val notificationManager: NotificationManager
 ) {
 
     /** A parked scene activation awaiting [commitScene] — the two-step master-authoritative path. */
@@ -348,9 +353,21 @@ class SceneExecutor @Inject constructor(
 
     /**
      * Dismiss the expired scene banner. No revert — everything already handled by onExpiry.
+     *
+     * Also clears the notifications this scene-end produced so confirming the banner tidies them
+     * away in one action: always the "Scene … ended" card ([NotificationId.SCENE_ENDED]), and — only
+     * when the scene actually performed a ProfileSwitch — the single-instance "Basal profile in pump
+     * updated" card ([NotificationId.PROFILE_SET_OK]) that its revert can raise. The profile card is
+     * meant to be silenced (#4959); the scoped dismiss here is a no-op when suppression works and a
+     * cleanup when it leaks. Reading the active state before [ActiveSceneManager.clearActive] is
+     * required — it is gone afterwards.
      */
     fun dismiss() {
+        val hadProfileSwitch = activeSceneManager.getActiveState()
+            ?.scene?.actions?.any { it is SceneAction.ProfileSwitch } == true
         activeSceneManager.clearActive()
+        notificationManager.dismiss(NotificationId.SCENE_ENDED)
+        if (hadProfileSwitch) notificationManager.dismiss(NotificationId.PROFILE_SET_OK)
     }
 
     private fun capturePriorSmb(scene: Scene): Boolean? {
@@ -360,6 +377,26 @@ class SceneExecutor @Inject constructor(
         return scene.actions.firstOrNull { it is SceneAction.SmbToggle }?.let {
             preferences.get(BooleanKey.ApsUseSmb)
         }
+    }
+
+    /**
+     * Runs a scene-driven ProfileSwitch DB mutation ([block]) with the [ProfileSwitchSilentGate] armed, and
+     * GUARANTEES the one-shot gate is disarmed again on every path that produces no observeChanges(ProfileSwitch)
+     * emission: the write reported "no row changed" ([wroteRow] returns false) or threw. Only a real row change
+     * leaves the gate armed — to be consumed by the emission that change triggers. Without this, a no-op or
+     * throwing scene write would leak silence onto the NEXT unrelated profile switch (issue #4959 follow-up).
+     * [block] is inlined into the caller's coroutine, so it may suspend.
+     */
+    private inline fun <T> silencedProfileWrite(wroteRow: (T) -> Boolean, block: () -> T): T {
+        profileSwitchSilentGate.markNextSilent()
+        val result = try {
+            block()
+        } catch (e: Exception) {
+            profileSwitchSilentGate.consumeSilent()
+            throw e
+        }
+        if (!wroteRow(result)) profileSwitchSilentGate.consumeSilent()
+        return result
     }
 
     private suspend fun executeAction(
@@ -397,23 +434,29 @@ class SceneExecutor @Inject constructor(
                     // including temp-% suffix (e.g. "Test (60%)"), which doesn't exist in the profile store.
                     val profileName = action.profileName.ifEmpty { profileFunction.getOriginalProfileName() }
                     if (store != null) {
-                        val ps = profileFunction.createProfileSwitch(
-                            profileStore = store,
-                            profileName = profileName,
-                            durationInMinutes = sceneDurationMinutes,
-                            percentage = action.percentage,
-                            timeShiftInHours = action.timeShiftHours,
-                            timestamp = now,
-                            action = Action.PROFILE_SWITCH,
-                            source = Sources.Scene,
-                            note = null,
-                            listValues = listOf(
-                                ValueWithUnit.SimpleString(action.profileName),
-                                ValueWithUnit.Percent(action.percentage),
-                                ValueWithUnit.Minute(sceneDurationMinutes)
-                            ),
-                            iCfg = insulin.iCfg
-                        )
+                        // Scene-driven profile write: suppress the central "Basal profile in pump updated"
+                        // notification for the pump write this insert triggers (issue #4959). createProfileSwitch
+                        // wrote a PS row (and will emit) iff it returns non-null; silencedProfileWrite resets the
+                        // gate on the null / throwing paths.
+                        val ps = silencedProfileWrite(wroteRow = { it != null }) {
+                            profileFunction.createProfileSwitch(
+                                profileStore = store,
+                                profileName = profileName,
+                                durationInMinutes = sceneDurationMinutes,
+                                percentage = action.percentage,
+                                timeShiftInHours = action.timeShiftHours,
+                                timestamp = now,
+                                action = Action.PROFILE_SWITCH,
+                                source = Sources.Scene,
+                                note = null,
+                                listValues = listOf(
+                                    ValueWithUnit.SimpleString(action.profileName),
+                                    ValueWithUnit.Percent(action.percentage),
+                                    ValueWithUnit.Minute(sceneDurationMinutes)
+                                ),
+                                iCfg = insulin.iCfg
+                            )
+                        }
                         SceneExecutionResult.ActionResult(
                             action = action,
                             success = ps != null,
@@ -509,15 +552,23 @@ class SceneExecutor @Inject constructor(
                         currentEps?.originalPsId == scoped.psId
 
                     if (profileStillFromScene) {
-                        persistenceLayer.cancelProfileSwitch(
-                            id = scoped.psId!!,
-                            timestamp = now,
-                            action = Action.PROFILE_SWITCH,
-                            source = Sources.Scene,
-                            note = null,
-                            listValues = emptyList()
-                        )
-                        rxBus.send(EventProfileChangeRequested())
+                        // Scene revert is an internal/automatic write — suppress the central "Basal profile in
+                        // pump updated" notification (issue #4959). Two triggers reach onProfileChanged for this
+                        // revert: cancelProfileSwitch's observeChanges(PS) emission (silenced by the armed gate) AND
+                        // the explicit silent=true event below (which guarantees the revert write even if cancel was
+                        // a no-op). cancelProfileSwitch changed a row (and will emit) iff its result has updates;
+                        // silencedProfileWrite resets the gate on the no-op / throwing paths.
+                        silencedProfileWrite(wroteRow = { it.updated.isNotEmpty() }) {
+                            persistenceLayer.cancelProfileSwitch(
+                                id = scoped.psId!!,
+                                timestamp = now,
+                                action = Action.PROFILE_SWITCH,
+                                source = Sources.Scene,
+                                note = null,
+                                listValues = emptyList()
+                            )
+                        }
+                        rxBus.send(EventProfileChangeRequested(silent = true))
                     } else {
                         aapsLogger.info(LTag.UI, "Skipping profile revert — profile was changed during scene")
                     }

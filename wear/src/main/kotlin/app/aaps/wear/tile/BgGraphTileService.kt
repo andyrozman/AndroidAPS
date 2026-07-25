@@ -3,6 +3,7 @@ package app.aaps.wear.tile
 import android.graphics.Bitmap
 import android.graphics.Paint
 import androidx.compose.ui.geometry.Size
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.unit.Density
@@ -17,6 +18,7 @@ import androidx.wear.tiles.RequestBuilders.TileRequest
 import androidx.wear.tiles.ResourceBuilders
 import androidx.wear.tiles.TileBuilders.Tile
 import androidx.wear.tiles.TileService
+import app.aaps.wear.BuildConfig
 import app.aaps.wear.R
 import app.aaps.wear.data.ComplicationData
 import app.aaps.wear.data.ComplicationDataRepository
@@ -248,16 +250,34 @@ class BgGraphTileService : TileService() {
             else                -> android.graphics.Color.rgb(255, 0, 0)
         }
         val secondaryArgb = android.graphics.Color.rgb(170, 170, 170)
-        val iobArgb   = android.graphics.Color.rgb(30, 136, 229)
-        val cobArgb   = android.graphics.Color.rgb(255, 109, 0)
-        val basalArgb = android.graphics.Color.rgb(144, 202, 249)
+        val iobArgb   = android.graphics.Color.rgb(103, 223, 232)
+        val cobArgb   = android.graphics.Color.rgb(251, 140, 0)
+        val basalArgb = secondaryArgb
         val targetArgb = when (statusData.tempTargetLevel) {
             1    -> android.graphics.Color.rgb(119, 221, 119)
             2    -> android.graphics.Color.rgb(253, 216, 53)
             else -> secondaryArgb
         }
 
-        val spacerPx = 16 * density
+        // Only AAPSClient flavors need this (distinguishing several installed side by side) — for
+        // a single-install AAPS/Pumpcontrol build it's purely decorative, and on this tile (unlike
+        // the button-grid tiles) it visibly costs graph space, so it's not worth showing there.
+        val showFlavorHeader = when (BuildConfig.FLAVOR) {
+            "aapsclient", "aapsclient2", "aapsclient3" -> true
+            else                                        -> false
+        }
+        val flavorLabelHeightPx = if (showFlavorHeader) 5 * density else 0f
+        val spacerPx = 16 * density + flavorLabelHeightPx
+        if (showFlavorHeader) {
+            val flavorColor = ContextCompat.getColor(this, R.color.flavor_header_color)
+            val flavorPaint = Paint().apply {
+                color = flavorColor
+                textSize = 9 * density
+                textAlign = Paint.Align.CENTER
+                isAntiAlias = true
+            }
+            canvas.drawText(getString(R.string.app_name), widthPx / 2f, 2 * density + flavorPaint.textSize * 0.8f, flavorPaint)
+        }
         val bgPaint = Paint().apply {
             color = bgArgb
             textSize = bgSizePx

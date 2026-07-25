@@ -11,11 +11,8 @@ import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.data.time.T
-import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.notifications.NotificationId
-import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.protection.ProtectionCheck
 import app.aaps.core.interfaces.pump.BlePreCheck
@@ -38,13 +35,11 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.interfaces.rx.events.EventAppExit
 import app.aaps.core.interfaces.rx.events.EventShowSnackbar
-import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.withEntriesProvider
-import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.ui.compose.icons.IcPluginMedtrum
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.pump.medtrum.comm.enums.MedtrumPumpState
@@ -78,15 +73,12 @@ class MedtrumPlugin @Inject constructor(
     rh: ResourceHelper,
     preferences: Preferences,
     commandQueue: CommandQueue,
-    private val constraintChecker: ConstraintsChecker,
     private val aapsSchedulers: AapsSchedulers,
     private val rxBus: RxBus,
     private val context: Context,
     private val fabricPrivacy: FabricPrivacy,
     private val dateUtil: DateUtil,
     private val medtrumPump: MedtrumPump,
-    private val uiInteraction: UiInteraction,
-    private val notificationManager: NotificationManager,
     private val temporaryBasalStorage: TemporaryBasalStorage,
     private val pumpEnactResultProvider: Provider<PumpEnactResult>,
     private val protectionCheck: ProtectionCheck,
@@ -230,25 +222,24 @@ class MedtrumPlugin @Inject constructor(
     }
 
     override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult {
-        // New profile will be set when patch is activated
-        if (!isInitialized()) return pumpEnactResultProvider.get().success(true).enacted(true)
+        // New profile will be set when patch is activated — a deferred write, not an actual change yet,
+        // so enacted=false (no PROFILE_SET_OK); success=true keeps the not-ready case out of the failure alarm.
+        if (!isInitialized()) return pumpEnactResultProvider.get().success(true).enacted(false)
 
         // Pump only stores basal bytes; iCfg/ISF/IC differences don't require a packet.
         // Avoids a spurious failure right after activation when an insulin-only profile switch
         // races with post-activation pump traffic.
         if (isThisProfileSet(profile)) {
-            notificationManager.dismiss(NotificationId.FAILED_UPDATE_PROFILE)
-            notificationManager.post(NotificationId.PROFILE_SET_OK, app.aaps.core.ui.R.string.profile_set_ok, validMinutes = 60)
+            // Already set (no basal change) → enacted=false; central logic posts no PROFILE_SET_OK.
             return pumpEnactResultProvider.get().success(true).enacted(false)
         }
 
         return if (medtrumService?.updateBasalsInPump(profile) == true) {
-            notificationManager.dismiss(NotificationId.FAILED_UPDATE_PROFILE)
-            notificationManager.post(NotificationId.PROFILE_SET_OK, app.aaps.core.ui.R.string.profile_set_ok, validMinutes = 60)
+            // PROFILE_SET_OK posted (and FAILED cleared) centrally on the return value.
             pumpEnactResultProvider.get().success(true).enacted(true)
         } else {
-            notificationManager.post(NotificationId.FAILED_UPDATE_PROFILE, app.aaps.core.ui.R.string.failed_update_basal_profile)
-            pumpEnactResultProvider.get()
+            // FAILED_UPDATE_PROFILE posted centrally (onProfileChanged) from success=false; comment carries the reason.
+            pumpEnactResultProvider.get().success(false).enacted(false).comment(app.aaps.core.ui.R.string.failed_update_basal_profile)
         }
     }
 
@@ -282,7 +273,7 @@ class MedtrumPlugin @Inject constructor(
 
         aapsLogger.debug(LTag.PUMP, "deliverTreatment: " + detailedBolusInfo.insulin + "U")
         if (!isInitialized()) return pumpEnactResultProvider.get().success(false).enacted(false)
-        detailedBolusInfo.insulin = constraintChecker.applyBolusConstraints(ConstraintObject(detailedBolusInfo.insulin, aapsLogger)).value()
+        // Already constrained in IU (queue) and in cU (PumpWithConcentration boundary); no re-apply here.
         aapsLogger.debug(LTag.PUMP, "deliverTreatment: Delivering bolus: " + detailedBolusInfo.insulin + "U")
         val connectionOK = medtrumService?.setBolus(detailedBolusInfo) == true
         val result = pumpEnactResultProvider.get()

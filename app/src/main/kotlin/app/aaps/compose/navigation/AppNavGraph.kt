@@ -36,6 +36,7 @@ import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.constraints.Objectives
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.maintenance.FileListProvider
+import app.aaps.core.interfaces.navigation.ElementType
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PermissionGroup
 import app.aaps.core.interfaces.plugin.PluginBase
@@ -47,13 +48,12 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.BooleanNonKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.StringKey
-import app.aaps.core.keys.interfaces.VisibilityContext
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.keys.interfaces.VisibilityContext
 import app.aaps.core.ui.compose.AapsTopAppBar
 import app.aaps.core.ui.compose.ComposablePluginContent
 import app.aaps.core.ui.compose.ScreenMode
 import app.aaps.core.ui.compose.ToolbarConfig
-import app.aaps.core.ui.compose.navigation.ElementType
 import app.aaps.core.ui.compose.navigation.LocalPluginNavigationRequest
 import app.aaps.core.ui.compose.navigation.NavigationRequest
 import app.aaps.core.ui.compose.preference.PluginPreferencesScreen
@@ -97,7 +97,6 @@ import app.aaps.ui.compose.runningMode.RunningModeScreen
 import app.aaps.ui.compose.scenes.SceneListScreen
 import app.aaps.ui.compose.scenes.wizard.SceneWizardScreen
 import app.aaps.ui.compose.siteRotationDialog.SiteRotationManagementScreen
-import app.aaps.ui.compose.siteRotationDialog.SiteRotationSettingsScreen
 import app.aaps.ui.compose.siteRotationDialog.viewModels.SiteRotationManagementViewModel
 import app.aaps.ui.compose.stats.StatsScreen
 import app.aaps.ui.compose.stats.viewmodels.StatsViewModel
@@ -600,6 +599,7 @@ fun NavGraphBuilder.appNavGraph(
         app.aaps.ui.compose.configuration.PluginCategoryScreen(
             category = category,
             hardwarePumpConfirmation = configState.hardwarePumpConfirmation,
+            pluginSwitchConfirmation = configState.pluginSwitchConfirmation,
             onNavigateBack = { navController.safePopBackStack() },
             onNavigate = { request -> onNavigationRequest(request, navController) },
             onPluginEnableToggle = { pluginId, type, enabled ->
@@ -610,7 +610,12 @@ fun NavGraphBuilder.appNavGraph(
                 configurationViewModel.confirmHardwarePumpSwitch()
                 onRefreshPermissions()
             },
-            onDismissHardwarePump = { configurationViewModel.dismissHardwarePumpDialog() }
+            onDismissHardwarePump = { configurationViewModel.dismissHardwarePumpDialog() },
+            onConfirmPluginSwitch = {
+                configurationViewModel.confirmPluginSwitch()
+                onRefreshPermissions()
+            },
+            onDismissPluginSwitch = { configurationViewModel.dismissPluginSwitchDialog() }
         )
     }
 
@@ -698,16 +703,7 @@ fun NavGraphBuilder.appNavGraph(
         SiteRotationManagementScreen(
             viewModel = siteRotationManagementViewModel,
             onClose = { navController.safePopBackStack() },
-            onPreferenceClick = {
-                navController.navigate(AppRoute.SiteRotationSettings.route)
-            }
-        )
-    }
-
-    composable(AppRoute.SiteRotationSettings.route) {
-        SiteRotationSettingsScreen(
-            viewModel = siteRotationManagementViewModel,
-            onNavigateBack = { navController.safePopBackStack() }
+            siteRotationDef = builtInSearchables.siteRotation
         )
     }
 
@@ -726,6 +722,9 @@ fun NavGraphBuilder.appNavGraph(
             onManageInsulin = { navController.navigate(AppRoute.InsulinManagement.createRoute()) },
             onManageProfile = { navController.navigate(AppRoute.Profile.createRoute()) },
             onProfileSwitch = { navController.navigate(AppRoute.ProfileActivation.createRoute(0)) },
+            onOpenAuthorizedClients = { navController.navigate(AppRoute.AuthorizedClients.route) },
+            onPairWithMaster = { navController.navigate(AppRoute.PairWithMaster.route) },
+            onOpenNsReceiveSettings = { navController.navigate(AppRoute.PreferenceScreen.createRoute("ns_client_synchronization")) },
             onRunObjectives = {
                 val index = activePlugin.getPluginsList().indexOfFirst { it is Objectives }
                 if (index >= 0) navController.navigate(AppRoute.PluginContent.createRoute(index))

@@ -38,7 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.aaps.core.data.model.Scene
+import app.aaps.core.ui.compose.ExcludeFromJacocoGeneratedReport
 import app.aaps.core.ui.compose.icons.IcAutomation
+import app.aaps.core.interfaces.navigation.ElementType
+import app.aaps.core.ui.compose.navigation.color
 import app.aaps.plugins.automation.R
 import app.aaps.plugins.automation.actions.Action
 import app.aaps.plugins.automation.compose.actions.ActionEditor
@@ -75,6 +78,7 @@ fun AutomationEditScreen(
             BasicsSection(state, onTitleChange, onUserActionChange, onEnabledChange)
             ConditionSection(state, onEditTrigger)
             ActionsSection(
+                state = state,
                 liveActions = liveActions,
                 readOnly = state.readOnly,
                 profileNames = profileNames,
@@ -224,6 +228,7 @@ private fun ConditionSection(
 
 @Composable
 private fun ActionsSection(
+    state: AutomationEditUiState,
     liveActions: List<Action>,
     readOnly: Boolean,
     profileNames: List<String>,
@@ -235,7 +240,7 @@ private fun ActionsSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionHeader(stringResource(R.string.action).trimEnd(':'))
-        if (liveActions.isEmpty()) {
+        if (state.actions.isEmpty()) {
             Text(
                 text = stringResource(R.string.automation_missing_action),
                 style = MaterialTheme.typography.bodyMedium,
@@ -243,20 +248,20 @@ private fun ActionsSection(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
             )
         } else {
-            liveActions.forEachIndexed { index, action ->
-                val full = action.shortDescription().ifEmpty { action.javaClass.simpleName }
-                val headerTitle = full.substringBefore(':').trim().ifEmpty { full }
-                InlineActionCard(
-                    action = action,
-                    valid = action.isValid(),
-                    shortDescription = headerTitle,
-                    readOnly = readOnly,
-                    profileNames = profileNames,
-                    sceneOptions = sceneOptions,
-                    tick = tick,
-                    onRemove = { onRemoveAction(index) },
-                    onChange = onActionChanged
-                )
+            state.actions.forEachIndexed { index, actionUi ->
+                val action = liveActions.getOrNull(index)
+                if (action != null) {
+                    InlineActionCard(
+                        actionUi = actionUi,
+                        action = action,
+                        readOnly = readOnly,
+                        profileNames = profileNames,
+                        sceneOptions = sceneOptions,
+                        tick = tick,
+                        onRemove = { onRemoveAction(index) },
+                        onChange = onActionChanged
+                    )
+                }
             }
         }
         if (!readOnly) {
@@ -274,9 +279,8 @@ private fun ActionsSection(
 
 @Composable
 private fun InlineActionCard(
+    actionUi: AutomationActionUi,
     action: Action,
-    valid: Boolean,
-    shortDescription: String,
     readOnly: Boolean,
     profileNames: List<String>,
     sceneOptions: List<Scene>,
@@ -285,7 +289,7 @@ private fun InlineActionCard(
     onChange: () -> Unit
 ) {
     val containerColor =
-        if (valid) MaterialTheme.colorScheme.surfaceContainer
+        if (actionUi.valid) MaterialTheme.colorScheme.surfaceContainer
         else MaterialTheme.colorScheme.errorContainer
     Surface(
         color = containerColor,
@@ -294,18 +298,19 @@ private fun InlineActionCard(
     ) {
         Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                val icon = action.composeIcon()
+                val icon = actionUi.icon
                 if (icon != null) {
+                    val tint = actionUi.elementType.color()
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = action.composeIconTint() ?: MaterialTheme.colorScheme.onSurface,
+                        tint = tint,
                         modifier = Modifier.size(20.dp)
                     )
                 }
                 androidx.compose.foundation.layout.Box(modifier = Modifier.size(6.dp))
                 Text(
-                    text = shortDescription,
+                    text = actionUi.title.substringBefore(':').trim().ifEmpty { actionUi.title },
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
@@ -331,6 +336,7 @@ private fun InlineActionCard(
 
 // ---------- Previews ----------
 
+@ExcludeFromJacocoGeneratedReport
 private fun sampleEditState(
     readOnly: Boolean = false,
     hasTrigger: Boolean = true,
@@ -355,6 +361,7 @@ private fun sampleEditState(
     titleError = false
 )
 
+@ExcludeFromJacocoGeneratedReport
 @Preview(showBackground = true, widthDp = 380, heightDp = 780)
 @Composable
 private fun PreviewAutomationEditScreenNew() {
@@ -376,6 +383,7 @@ private fun PreviewAutomationEditScreenNew() {
     }
 }
 
+@ExcludeFromJacocoGeneratedReport
 @Preview(showBackground = true, widthDp = 380, heightDp = 780)
 @Composable
 private fun PreviewAutomationEditScreenEdit() {
@@ -397,6 +405,7 @@ private fun PreviewAutomationEditScreenEdit() {
     }
 }
 
+@ExcludeFromJacocoGeneratedReport
 @Preview(showBackground = true, widthDp = 380, heightDp = 780)
 @Composable
 private fun PreviewAutomationEditScreenReadOnly() {
@@ -418,6 +427,7 @@ private fun PreviewAutomationEditScreenReadOnly() {
     }
 }
 
+@ExcludeFromJacocoGeneratedReport
 @Preview(showBackground = true, widthDp = 380, heightDp = 780)
 @Composable
 private fun PreviewAutomationEditScreenUserAction() {

@@ -14,6 +14,7 @@ import app.aaps.core.interfaces.bolus.BatchAction
 import app.aaps.core.interfaces.bolus.BatchExecutor
 import app.aaps.core.interfaces.clientcontrol.ActionProgress
 import app.aaps.core.interfaces.clientcontrol.FailureReason
+import app.aaps.core.ui.clientcontrol.failTextResId
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.db.ProcessedTbrEbData
@@ -28,6 +29,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventCustomActionsChanged
 import app.aaps.core.interfaces.rx.events.EventInitializationChanged
+import app.aaps.core.interfaces.rx.events.EventShowDialog
 import app.aaps.core.interfaces.sync.NsClient
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.BooleanKey
@@ -37,7 +39,7 @@ import app.aaps.core.keys.interfaces.VisibilityContext
 import app.aaps.core.objects.extensions.toStringMedium
 import app.aaps.core.objects.extensions.toStringShort
 import app.aaps.core.ui.R
-import app.aaps.core.ui.compose.navigation.ElementType
+import app.aaps.core.interfaces.navigation.ElementType
 import app.aaps.ui.R as UiR
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -219,8 +221,11 @@ class ManageViewModel @Inject constructor(
                 is ActionProgress.Prepared -> _sideEffect.tryEmit(SideEffect.ShowConfirmation(elementType, prepared.id, prepared.lines, label))
                 // Offline block (and a master-local failure) surface here; a client round-trip failure already showed on the modal.
                 is ActionProgress.Rejected ->
-                    if (prepared.reason == FailureReason.NotReachable) _sideEffect.tryEmit(SideEffect.ShowError(elementType, rh.gs(R.string.clientcontrol_fail_not_reachable)))
-                    else prepared.detail?.let { _sideEffect.tryEmit(SideEffect.ShowError(elementType, it)) }
+                    if (prepared.reason == FailureReason.NotReachable || prepared.reason == FailureReason.ControlDisabled) rxBus.send(EventShowDialog.Ok(title = label, message = rh.gs(prepared.reason.failTextResId())))
+                    else prepared.detail?.let { detail ->
+                        if (config.AAPSCLIENT) rxBus.send(EventShowDialog.Ok(title = label, message = detail))
+                        else _sideEffect.tryEmit(SideEffect.ShowError(elementType, detail))
+                    }
 
                 else                       -> Unit // Unconfirmed → app-level modal
             }
@@ -233,8 +238,11 @@ class ManageViewModel @Inject constructor(
             // NoPendingBolus (a double-tapped dialog already consumed it) stays silent — the cancel ran once.
             val result = batchExecutor.commit(bolusId, Sources.Actions, label, pumpDirect = true)
             if (result is ActionProgress.Rejected)
-                if (result.reason == FailureReason.NotReachable) _sideEffect.tryEmit(SideEffect.ShowError(elementType, rh.gs(R.string.clientcontrol_fail_not_reachable)))
-                else result.detail?.let { _sideEffect.tryEmit(SideEffect.ShowError(elementType, it)) }
+                if (result.reason == FailureReason.NotReachable || result.reason == FailureReason.ControlDisabled) rxBus.send(EventShowDialog.Ok(title = label, message = rh.gs(result.reason.failTextResId())))
+                else result.detail?.let { detail ->
+                    if (config.AAPSCLIENT) rxBus.send(EventShowDialog.Ok(title = label, message = detail))
+                    else _sideEffect.tryEmit(SideEffect.ShowError(elementType, detail))
+                }
         }
     }
 

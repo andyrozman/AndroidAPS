@@ -11,6 +11,7 @@ import app.aaps.core.data.ui.ConfirmationLine
 import app.aaps.core.interfaces.bolus.BatchAction
 import app.aaps.core.interfaces.bolus.BatchExecutor
 import app.aaps.core.interfaces.clientcontrol.ActionProgress
+import app.aaps.core.ui.clientcontrol.failTextResId
 import app.aaps.core.interfaces.clientcontrol.FailureReason
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
@@ -113,7 +114,10 @@ class InsulinManagementViewModel @Inject constructor(
             val insulins = insulinManager.insulins.map { it.deepClone() }
             val activeICfg = profileFunction.getProfile()?.iCfg
             val activeLabel = activeICfg?.insulinLabel
-            val activeConcentration = profileFunction.getProfile()?.iCfg?.concentration ?: 1.0  // Only insulin with Current Active concentration can be set from Insulin Management
+            // Only insulin with the currently-active concentration can be activated from Insulin Management.
+            // null = no/unknown active profile → never matches a real concentration (avoids a defaulted 1.0
+            // masquerading as U100 and lighting the Activate FAB for a just-saved U100 card).
+            val activeConcentration = activeICfg?.concentration
             val currentIndex = (if (reload) insulinManager.insulinIndex(activeICfg) else targetIndex ?: uiState.value.currentCardIndex)
                 .coerceIn(0, (insulins.size - 1).coerceAtLeast(0))
             val currentICfg = insulins.getOrNull(currentIndex)
@@ -142,7 +146,10 @@ class InsulinManagementViewModel @Inject constructor(
                 autoGenerateName()
                 if (saveAfterAutoName) saveCurrentInsulin()
             }
-            targetIndex?.let { _sideEffect.emit(SideEffect.ScrollToInsulin(it)) }
+            
+            // Force the scroll to the computed currentIndex on reload (entry) or targetIndex request.
+            // This ensures we land on the active insulin when opening the screen, even if the VM state was stale.
+            _sideEffect.emit(SideEffect.ScrollToInsulin(currentIndex))
         }
     }
 
@@ -161,7 +168,12 @@ class InsulinManagementViewModel @Inject constructor(
     private suspend fun updateRunningInsulin() {
         val now = dateUtil.now()
         val activeIcfg = persistenceLayer.getEffectiveProfileSwitchActiveAt(now)?.iCfg
-        _uiState.update { it.copy(activeInsulinLabel = activeIcfg?.insulinLabel) }
+        _uiState.update {
+            it.copy(
+                activeInsulinLabel = activeIcfg?.insulinLabel,
+                activeConcentration = activeIcfg?.concentration
+            )
+        }
     }
 
     /**
@@ -177,7 +189,12 @@ class InsulinManagementViewModel @Inject constructor(
 
     private fun onExternalConfigChange() {
         val incoming = preferences.get(StringNonKey.InsulinConfiguration)
-        if (incoming == lastAppliedConfig) return // our own write echoing back
+        // Our own write echoing back. Two guards, because the store's change event can be delivered
+        // re-entrantly (Main.immediate) inside preferences.put() — before [lastAppliedConfig] is refreshed
+        // by the calling save/add. [insulinManager.lastStoredConfiguration] is stamped at the store choke
+        // point BEFORE the put, so it already matches a self-echo regardless of dispatch timing; a genuine
+        // external (client→master) push arrives via putRemote and never sets it, so it still falls through.
+        if (incoming == lastAppliedConfig || incoming == insulinManager.lastStoredConfiguration) return
         lastAppliedConfig = incoming
         // reload = true: the apply that triggered this ran insulinManager.loadSettings()/reloadInternalState()
         // on a background (WS) thread, so the in-memory list isn't reliably visible here — re-read the
@@ -187,7 +204,13 @@ class InsulinManagementViewModel @Inject constructor(
             config.AAPSCLIENT   -> loadData(reload = true)
             // Master is the conflict authority: ask before discarding an in-progress edit.
             hasUnsavedChanges() -> _uiState.update { it.copy(externalUpdatePending = true) }
-            else                -> loadData(reload = true)
+            // Master, no in-progress edit: adopt the external change but keep the user's card selection.
+            // loadSettings() re-reads the pref synchronously (we're on the Main viewModelScope collector),
+            // then loadData(reload = false) rebuilds state off the fresh list while preserving currentCardIndex.
+            else                -> {
+                insulinManager.loadSettings()
+                loadData(reload = false)
+            }
         }
     }
 
@@ -206,11 +229,15 @@ class InsulinManagementViewModel @Inject constructor(
         viewModelScope.launch {
             insulinManager.loadSettings()
             val insulins = insulinManager.insulins.map { it.deepClone() }
-            val activeLabel = profileFunction.getProfile()?.iCfg?.insulinLabel
+            // Refresh label AND concentration from the same active iCfg so the two active-* fields can
+            // never describe different insulins (the FAB gate reads activeConcentration, isCurrentActive
+            // reads activeInsulinLabel).
+            val activeICfg = profileFunction.getProfile()?.iCfg
             _uiState.update {
                 it.copy(
                     insulins = insulins,
-                    activeInsulinLabel = activeLabel
+                    activeInsulinLabel = activeICfg?.insulinLabel,
+                    activeConcentration = activeICfg?.concentration
                 )
             }
         }
@@ -399,7 +426,7 @@ class InsulinManagementViewModel @Inject constructor(
             return false
         }
         if (editedICfg.peak < hardLimits.minPeak() || editedICfg.peak > hardLimits.maxPeak()) {
-            showSnackbar(rh.gs(CoreUiR.string.value_out_of_hard_limits, rh.gs(CoreUiR.string.insulin_peak), editedICfg.peak))
+            showSnackbar(rh.gs(CoreUiR.string.value_out_of_hard_limits, rh.gs(CoreUiR.string.insulin_peak), editedICfg.peak.toDouble()))
             return false
         }
 
@@ -417,6 +444,10 @@ class InsulinManagementViewModel @Inject constructor(
         stored.insulinPeakTime = editedICfg.insulinPeakTime
         stored.concentration = editedICfg.concentration
         stored.insulinNickname = editedICfg.insulinNickname
+
+        // Sync UI state before store to avoid FAB lag/blocking and ensure hasUnsavedChanges() is false
+        _uiState.update { it.copy(insulins = insulinManager.insulins.map { it.deepClone() }) }
+
         uel.log(Action.STORE_INSULIN, Sources.Insulin, value = ValueWithUnit.SimpleString(editedICfg.insulinLabel))
         insulinManager.storeSettings()
         lastAppliedConfig = preferences.get(StringNonKey.InsulinConfiguration) // mark as our own write
@@ -430,6 +461,10 @@ class InsulinManagementViewModel @Inject constructor(
         val newICfg = source?.deepClone() ?: InsulinType.OREF_RAPID_ACTING.iCfg
         newICfg.insulinLabel = ""
         insulinManager.addNewInsulin(newICfg)
+
+        // Sync UI state before store to ensure hasUnsavedChanges() is false
+        _uiState.update { it.copy(insulins = insulinManager.insulins.map { it.deepClone() }) }
+
         lastAppliedConfig = preferences.get(StringNonKey.InsulinConfiguration) // mark as our own write
         loadData(targetIndex = insulinManager.currentInsulinIndex, reload = false, autoName = state.autoNameEnabled, saveAfterAutoName = true)
     }
@@ -447,8 +482,12 @@ class InsulinManagementViewModel @Inject constructor(
         }
 
         insulinManager.currentInsulinIndex = state.currentCardIndex
-        insulinManager.removeCurrentInsulin()
+        insulinManager.removeCurrentInsulin() // persists internally (storeSettings)
+
         lastAppliedConfig = preferences.get(StringNonKey.InsulinConfiguration) // mark as our own write
+        // Full resync in one atomic update: insulins + coerced index + editor for the new current card.
+        // (A partial insulins-only pre-update would leave the editor on the removed insulin, transiently
+        //  reporting hasUnsavedChanges() == true — and out-of-bounds when the last card is deleted.)
         loadData(reload = false)
         return true
     }
@@ -471,7 +510,7 @@ class InsulinManagementViewModel @Inject constructor(
                     // Offline block (and a master-local failure, e.g. no active profile) surface here; a client round-trip
                     // failure already showed on the app-level modal.
                     is ActionProgress.Rejected ->
-                        if (prepared.reason == FailureReason.NotReachable) showSnackbar(rh.gs(CoreUiR.string.clientcontrol_fail_not_reachable))
+                        if (prepared.reason == FailureReason.NotReachable || prepared.reason == FailureReason.ControlDisabled) showSnackbar(rh.gs(prepared.reason.failTextResId()))
                         else prepared.detail?.let { showSnackbar(it) }
 
                     else                       -> Unit // Unconfirmed → app-level modal
@@ -492,7 +531,7 @@ class InsulinManagementViewModel @Inject constructor(
                     refreshData()
                 }
 
-                result is ActionProgress.Rejected && result.reason == FailureReason.NotReachable -> showSnackbar(rh.gs(CoreUiR.string.clientcontrol_fail_not_reachable))
+                result is ActionProgress.Rejected && (result.reason == FailureReason.NotReachable || result.reason == FailureReason.ControlDisabled) -> showSnackbar(rh.gs(result.reason.failTextResId()))
                 result is ActionProgress.Rejected                                                -> result.detail?.let { showSnackbar(it) }
             }
         }

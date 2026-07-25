@@ -180,4 +180,5 @@
         <item quantity="one">Pod Alert: %1$s</item>
         <item quantity="other">Pod Alerts: %1$s</item>
     </plurals>
+    <string name="omnipod_common_overview_pod_hard_end_date">Pod Hard End</string>
 </resources>

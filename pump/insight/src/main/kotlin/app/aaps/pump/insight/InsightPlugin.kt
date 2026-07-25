@@ -14,8 +14,7 @@ import app.aaps.core.data.pump.defs.ManufacturerType
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.time.T
-import app.aaps.core.interfaces.constraints.Constraint
-import app.aaps.core.interfaces.constraints.PluginConstraints
+import app.aaps.core.interfaces.constraints.PumpPluginConstraints
 import app.aaps.core.interfaces.di.ApplicationScope
 import app.aaps.core.interfaces.insulin.ConcentrationHelper
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -183,7 +182,7 @@ class InsightPlugin @Inject constructor(
         InsightLongNonKey::class.java, InsightDoubleNonKey::class.java,
     ),
     aapsLogger, rh, preferences, commandQueue
-), Pump, Insight, PluginConstraints, InsightConnectionService.StateCallback, OwnDatabasePlugin {
+), Pump, Insight, PumpPluginConstraints, InsightConnectionService.StateCallback, OwnDatabasePlugin {
 
     override val pumpDescription: PumpDescription = PumpDescription().also { it.fillFor(PumpType.ACCU_CHEK_INSIGHT) }
     private val _bolusLock: Any = arrayOfNulls<Any>(0)
@@ -447,7 +446,6 @@ class InsightPlugin @Inject constructor(
 
     override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult {
         val result = pumpEnactResultProvider.get()
-        notificationManager.dismiss(NotificationId.PROFILE_NOT_SET_NOT_INITIALIZED)
         val profileBlocks: MutableList<BasalProfileBlock> = ArrayList()
         for (i in profile.getBasalValues().indices) {
             val basalValue = profile.getBasalValues()[i]
@@ -467,8 +465,7 @@ class InsightPlugin @Inject constructor(
                 val profileBlock: BRProfileBlock = BRProfile1Block()
                 profileBlock.profileBlocks = profileBlocks
                 ParameterBlockUtil.writeConfigurationBlock(service, profileBlock)
-                notificationManager.dismiss(NotificationId.FAILED_UPDATE_PROFILE)
-                notificationManager.post(NotificationId.PROFILE_SET_OK, app.aaps.core.ui.R.string.profile_set_ok, validMinutes = 60)
+                // PROFILE_SET_OK posted (and FAILED cleared) centrally on the return value.
                 result.success(true)
                     .enacted(true)
                     .comment(app.aaps.core.ui.R.string.virtualpump_resultok)
@@ -479,17 +476,21 @@ class InsightPlugin @Inject constructor(
                 }
             } catch (e: AppLayerErrorException) {
                 aapsLogger.info(LTag.PUMP, "Exception while setting profile: " + e.javaClass.canonicalName + " (" + e.errorCode + ")")
-                notificationManager.post(NotificationId.FAILED_UPDATE_PROFILE, app.aaps.core.ui.R.string.failed_update_basal_profile)
+                // FAILED_UPDATE_PROFILE posted centrally (onProfileChanged) from success=false; comment carries the reason.
                 result.comment(ExceptionTranslator.getString(context, e))
             } catch (e: InsightException) {
                 aapsLogger.info(LTag.PUMP, "Exception while setting profile: " + e.javaClass.canonicalName)
-                notificationManager.post(NotificationId.FAILED_UPDATE_PROFILE, app.aaps.core.ui.R.string.failed_update_basal_profile)
+                // FAILED_UPDATE_PROFILE posted centrally (onProfileChanged) from success=false; comment carries the reason.
                 result.comment(ExceptionTranslator.getString(context, e))
             } catch (e: Exception) {
                 aapsLogger.error("Exception while setting profile", e)
-                notificationManager.post(NotificationId.FAILED_UPDATE_PROFILE, app.aaps.core.ui.R.string.failed_update_basal_profile)
+                // FAILED_UPDATE_PROFILE posted centrally (onProfileChanged) from success=false; comment carries the reason.
                 result.comment(ExceptionTranslator.getString(context, e))
             }
+        } ?: run {
+            // Not connected yet — deferred, not a genuine error; the profile is re-pushed on reconnect.
+            // success=true keeps it out of the central failure alarm; enacted=false => no PROFILE_SET_OK.
+            result.success(true).enacted(false)
         }
         return result
     }
@@ -1544,30 +1545,15 @@ class InsightPlugin @Inject constructor(
         }
     }
 
-    override fun applyBasalPercentConstraints(percentRate: Constraint<Int>, profile: Profile): Constraint<Int> {
-        percentRate.setIfGreater(0, rh.gs(app.aaps.core.ui.R.string.limitingpercentrate, 0, rh.gs(app.aaps.core.ui.R.string.itmustbepositivevalue)), this)
-        percentRate.setIfSmaller(
-            pumpDescription.maxTempPercent, rh.gs(app.aaps.core.ui.R.string.limitingpercentrate, pumpDescription.maxTempPercent, rh.gs(app.aaps.core.ui.R.string.pumplimit)), this
-        )
-        return percentRate
-    }
-
-    override fun applyBolusConstraints(insulin: Constraint<Double>): Constraint<Double> {
+    // cU-domain pump limit (PumpPluginConstraints): folded into the IU scan by ConstraintsChecker.
+    // Below the pump's minimum deliverable amount the bolus is dropped to 0 (reasons logged, not surfaced).
+    override fun applyBolusConstraints(insulin: PumpInsulin): PumpInsulin {
         if (!limitsFetched) return insulin
-        insulin.setIfSmaller(maximumBolusAmount, rh.gs(app.aaps.core.ui.R.string.limitingbolus, maximumBolusAmount, rh.gs(app.aaps.core.ui.R.string.pumplimit)), this)
-        if (insulin.value() < minimumBolusAmount) {
-
-            //TODO: Add function to Constraints or use different approach
-            // This only works if the interface of the InsightPlugin is called last.
-            // If not, another constraint could theoretically set the value between 0 and minimumBolusAmount
-            insulin.set(0.0, rh.gs(app.aaps.core.ui.R.string.limitingbolus, minimumBolusAmount, rh.gs(app.aaps.core.ui.R.string.pumplimit)), this)
-        }
-        return insulin
+        val capped = insulin.cU.coerceAtMost(maximumBolusAmount)
+        return PumpInsulin(if (capped < minimumBolusAmount) 0.0 else capped)
     }
 
-    override fun applyExtendedBolusConstraints(insulin: Constraint<Double>): Constraint<Double> {
-        return applyBolusConstraints(insulin)
-    }
+    override fun applyExtendedBolusConstraints(insulin: PumpInsulin): PumpInsulin = applyBolusConstraints(insulin)
 
     override fun onStateChanged(state: InsightState?) {
         if (state == InsightState.CONNECTED) {

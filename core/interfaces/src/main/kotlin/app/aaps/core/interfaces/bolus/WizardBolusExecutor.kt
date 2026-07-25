@@ -65,7 +65,7 @@ interface WizardBolusExecutor {
      * executor's URGENT alarm, NOT via [onError]. [asAdvisor] delivers the correction-only advisor bolus (high-BG "eat
      * later" branch) instead of the carb wizard bolus.
      */
-    suspend fun confirm(bolusId: Long, source: Sources, onError: (String) -> Unit, asAdvisor: Boolean = false): ConfirmResult
+    suspend fun confirm(bolusId: Long, source: Sources, onError: (String) -> Unit, asAdvisor: Boolean = false, correctionU: Double = 0.0): ConfirmResult
 
     /**
      * Canonical wizard / quick-wizard bolus — a type-specific entry point taking exactly the wizard
@@ -220,6 +220,7 @@ interface WizardBolusExecutor {
         val eCarbsGrams: Int = 0,
         val eCarbsDelayMinutes: Int = 0,
         val eCarbsDurationHours: Int = 0,
-        val profileName: String? = null
+        val profileName: String? = null,
+        val source: Sources = Sources.WizardDialog
     )
 }

@@ -3,6 +3,7 @@ package app.aaps.implementation.pump
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.ICfg
 import app.aaps.core.data.pump.defs.PumpDescription
+import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.interfaces.constraints.Constraint
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.insulin.Insulin
@@ -14,6 +15,8 @@ import app.aaps.core.interfaces.pump.Pump
 import app.aaps.core.interfaces.pump.PumpEnactResult
 import app.aaps.core.interfaces.pump.PumpProfile
 import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.pump.defs.fillFor
+import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.shared.tests.TestBase
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.runBlocking
@@ -24,8 +27,10 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import javax.inject.Provider
 
 class PumpWithConcentrationImplTest : TestBase() {
 
@@ -43,7 +48,13 @@ class PumpWithConcentrationImplTest : TestBase() {
     @BeforeEach
     fun setup() {
         whenever(activePlugin.activePumpInternal).thenReturn(pump)
-        sut = PumpWithConcentrationImpl(aapsLogger, activePlugin, profileFunction, constraintsChecker, insulin)
+        // The concentration boundary floors the converted cU to the pump's native step, so the driver needs a
+        // pumpDescription. The pumpDescription-scaling tests below re-stub this with their own description.
+        whenever(pump.pumpDescription).thenReturn(PumpDescription().fillFor(PumpType.DANA_RS))
+        // Feature-2 last-resort guard queries the overall max; default to no effective cap.
+        whenever(constraintsChecker.getMaxBolusAllowed()).thenReturn(ConstraintObject(Double.MAX_VALUE, aapsLogger))
+        whenever(constraintsChecker.getMaxExtendedBolusAllowed()).thenReturn(ConstraintObject(Double.MAX_VALUE, aapsLogger))
+        sut = PumpWithConcentrationImpl(aapsLogger, activePlugin, profileFunction, constraintsChecker, Provider { pumpEnactResult }, insulin)
     }
 
     private suspend fun setupConcentration(concentration: Double) {
@@ -58,7 +69,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     // --- deliverTreatment tests ---
 
     @Test
-    fun `deliverTreatment with U100 passes insulin unchanged`() = runBlocking {
+    fun `deliverTreatment with U100 passes insulin unchanged`() = runBlocking<Unit> {
         setupU100()
         val dbi = DetailedBolusInfo().apply { insulin = 5.0 }
         whenever(pump.deliverTreatment(any())).thenReturn(pumpEnactResult)
@@ -69,7 +80,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     }
 
     @Test
-    fun `deliverTreatment with U200 halves insulin for normal bolus`() = runBlocking {
+    fun `deliverTreatment with U200 halves insulin for normal bolus`() = runBlocking<Unit> {
         setupConcentration(2.0)
         val dbi = DetailedBolusInfo().apply { insulin = 6.0; bolusType = BS.Type.NORMAL }
         whenever(pump.deliverTreatment(any())).thenReturn(pumpEnactResult)
@@ -80,7 +91,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     }
 
     @Test
-    fun `deliverTreatment with U200 does not modify priming bolus`() = runBlocking {
+    fun `deliverTreatment with U200 does not modify priming bolus`() = runBlocking<Unit> {
         setupConcentration(2.0)
         val dbi = DetailedBolusInfo().apply { insulin = 4.0; bolusType = BS.Type.PRIMING }
         whenever(pump.deliverTreatment(any())).thenReturn(pumpEnactResult)
@@ -91,7 +102,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     }
 
     @Test
-    fun `deliverTreatment with U50 doubles insulin for normal bolus`() = runBlocking {
+    fun `deliverTreatment with U50 doubles insulin for normal bolus`() = runBlocking<Unit> {
         setupConcentration(0.5)
         val dbi = DetailedBolusInfo().apply { insulin = 2.0; bolusType = BS.Type.NORMAL }
         whenever(pump.deliverTreatment(any())).thenReturn(pumpEnactResult)
@@ -101,10 +112,39 @@ class PumpWithConcentrationImplTest : TestBase() {
         verify(pump).deliverTreatment(argThat { insulin == 4.0 })
     }
 
+    @Test
+    fun `deliverTreatment with U200 skips pump when bolus floors to zero`() = runBlocking<Unit> {
+        setupConcentration(2.0)
+        // 0.05 IU / 2.0 = 0.025 cU -> below DANA_RS bolus step -> floors to 0.0 cU
+        val dbi = DetailedBolusInfo().apply { insulin = 0.05; bolusType = BS.Type.SMB }
+        whenever(pumpEnactResult.success(any())).thenReturn(pumpEnactResult)
+        whenever(pumpEnactResult.enacted(any())).thenReturn(pumpEnactResult)
+        whenever(pumpEnactResult.bolusDelivered(any())).thenReturn(pumpEnactResult)
+
+        val result = sut.deliverTreatment(dbi)
+
+        verify(pump, never()).deliverTreatment(any())
+        assertThat(result).isSameInstanceAs(pumpEnactResult)
+        verify(pumpEnactResult).success(true)
+        verify(pumpEnactResult).enacted(false)
+        verify(pumpEnactResult).bolusDelivered(0.0)
+    }
+
+    @Test
+    fun `deliverTreatment with zero priming bolus still calls pump`() = runBlocking<Unit> {
+        setupConcentration(2.0)
+        val dbi = DetailedBolusInfo().apply { insulin = 0.0; bolusType = BS.Type.PRIMING }
+        whenever(pump.deliverTreatment(any())).thenReturn(pumpEnactResult)
+
+        sut.deliverTreatment(dbi)
+
+        verify(pump).deliverTreatment(any())
+    }
+
     // --- setTempBasalAbsolute tests ---
 
     @Test
-    fun `setTempBasalAbsolute with U200 halves rate sent to pump`() = runBlocking {
+    fun `setTempBasalAbsolute with U200 halves rate sent to pump`() = runBlocking<Unit> {
         setupConcentration(2.0)
         val constraintResult: Constraint<Double> = mock()
         whenever(constraintResult.value()).thenReturn(4.0)
@@ -118,7 +158,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     }
 
     @Test
-    fun `setTempBasalAbsolute with U100 passes rate unchanged`() = runBlocking {
+    fun `setTempBasalAbsolute with U100 passes rate unchanged`() = runBlocking<Unit> {
         setupU100()
         whenever(profileFunction.getProfile()).thenReturn(effectiveProfile)
         val constraintResult: Constraint<Double> = mock()
@@ -134,7 +174,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     // --- setExtendedBolus tests ---
 
     @Test
-    fun `setExtendedBolus with U200 halves insulin`() = runBlocking {
+    fun `setExtendedBolus with U200 halves insulin`() = runBlocking<Unit> {
         setupConcentration(2.0)
         whenever(pump.setExtendedBolus(any(), any())).thenReturn(pumpEnactResult)
 
@@ -144,7 +184,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     }
 
     @Test
-    fun `setExtendedBolus with U100 passes insulin unchanged`() = runBlocking {
+    fun `setExtendedBolus with U100 passes insulin unchanged`() = runBlocking<Unit> {
         setupU100()
         whenever(pump.setExtendedBolus(any(), any())).thenReturn(pumpEnactResult)
 
@@ -154,7 +194,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     }
 
     @Test
-    fun `setExtendedBolus with U50 doubles insulin`() = runBlocking {
+    fun `setExtendedBolus with U50 doubles insulin`() = runBlocking<Unit> {
         setupConcentration(0.5)
         whenever(pump.setExtendedBolus(any(), any())).thenReturn(pumpEnactResult)
 
@@ -167,7 +207,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     // --- pumpDescription tests ---
 
     @Test
-    fun `pumpDescription scales values for U200`() = runBlocking {
+    fun `pumpDescription scales values for U200`() = runBlocking<Unit> {
         setupConcentration(2.0)
         val desc = PumpDescription().apply {
             bolusStep = 0.1
@@ -211,7 +251,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     }
 
     @Test
-    fun `pumpDescription scales for U50`() = runBlocking {
+    fun `pumpDescription scales for U50`() = runBlocking<Unit> {
         setupConcentration(0.5)
         val desc = PumpDescription().apply {
             bolusStep = 0.1
@@ -234,7 +274,7 @@ class PumpWithConcentrationImplTest : TestBase() {
     // --- setNewBasalProfile tests ---
 
     @Test
-    fun `setNewBasalProfile converts EffectiveProfile to PumpProfile`() = runBlocking {
+    fun `setNewBasalProfile converts EffectiveProfile to PumpProfile`() = runBlocking<Unit> {
         whenever(effectiveProfile.toPump()).thenReturn(pumpProfile)
         whenever(pump.setNewBasalProfile(pumpProfile)).thenReturn(pumpEnactResult)
 

@@ -5,7 +5,6 @@ import android.os.SystemClock
 import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.time.T
-import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationId
 import app.aaps.core.interfaces.profile.Profile
@@ -48,7 +47,6 @@ import kotlin.math.abs
 
 class DanaRKoreanExecutionService : AbstractDanaRExecutionService() {
 
-    @Inject lateinit var constraintChecker: ConstraintsChecker
     @Inject lateinit var danaRPlugin: DanaRPlugin
     @Inject lateinit var danaRKoreanPlugin: DanaRKoreanPlugin
     @Inject lateinit var commandQueue: CommandQueue
@@ -235,7 +233,10 @@ class DanaRKoreanExecutionService : AbstractDanaRExecutionService() {
         danaPump.lastSettingsRead = 0 // force read full settings
         getPumpStatus()
         rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTING))
-        return true
+        // Report the actual write outcome. sendMessage is blocking, so msgSet.failed is populated by now.
+        // Previously this returned true unconditionally, masking a genuine pump rejection as success.
+        // Notifications are handled centrally from this Boolean via AbstractDanaRPlugin + onProfileChanged.
+        return !msgSet.failed
     }
 
     override fun setUserOptions(): PumpEnactResult? = null

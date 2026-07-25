@@ -10,17 +10,11 @@ import app.aaps.core.data.pump.defs.ManufacturerType
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.time.T
-import app.aaps.core.interfaces.constraints.Constraint
-import app.aaps.core.interfaces.constraints.ConstraintsChecker
-import app.aaps.core.interfaces.constraints.PluginConstraints
+import app.aaps.core.interfaces.constraints.PumpPluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.notifications.NotificationId
-import app.aaps.core.interfaces.notifications.NotificationLevel
-import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.plugin.OwnDatabasePlugin
 import app.aaps.core.interfaces.plugin.PluginDescription
-import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.BlePreCheck
 import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.Dana
@@ -47,7 +41,6 @@ import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.ui.compose.icons.IcPluginDanaI
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.pump.dana.DanaPump
@@ -80,14 +73,11 @@ class DanaRSPlugin @Inject constructor(
     private val aapsSchedulers: AapsSchedulers,
     private val rxBus: RxBus,
     private val context: Context,
-    private val constraintChecker: ConstraintsChecker,
     private val danaPump: DanaPump,
-    private val pumpSync: PumpSync,
     private val detailedBolusInfoStorage: DetailedBolusInfoStorage,
     private val temporaryBasalStorage: TemporaryBasalStorage,
     private val fabricPrivacy: FabricPrivacy,
     private val dateUtil: DateUtil,
-    private val notificationManager: NotificationManager,
     private val danaHistoryDatabase: DanaHistoryDatabase,
     private val decimalFormatter: DecimalFormatter,
     private val pumpEnactResultProvider: Provider<PumpEnactResult>,
@@ -110,7 +100,7 @@ class DanaRSPlugin @Inject constructor(
         .description(app.aaps.pump.dana.R.string.description_pump_dana_rs),
     ownPreferences = listOf(DanaStringNonKey::class.java, DanaIntKey::class.java, DanaBooleanKey::class.java, DanaIntentKey::class.java, DanaStringComposedKey::class.java, DanaLongKey::class.java),
     aapsLogger, rh, preferences, commandQueue
-), Pump, Dana, PluginConstraints, OwnDatabasePlugin {
+), Pump, Dana, PumpPluginConstraints, OwnDatabasePlugin {
 
     private val disposable = CompositeDisposable()
     private var danaRSService: DanaRSService? = null
@@ -210,29 +200,15 @@ class DanaRSPlugin @Inject constructor(
     }
 
     // Constraints interface
-    override fun applyBasalConstraints(absoluteRate: Constraint<Double>, profile: Profile): Constraint<Double> {
-        absoluteRate.setIfSmaller(danaPump.maxBasal, rh.gs(app.aaps.core.ui.R.string.limitingbasalratio, danaPump.maxBasal, rh.gs(app.aaps.core.ui.R.string.pumplimit)), this)
-        return absoluteRate
-    }
+    // cU-domain pump limit (PumpPluginConstraints): folded into the IU scan by ConstraintsChecker.
+    override fun applyBasalConstraints(absoluteRate: PumpRate): PumpRate =
+        PumpRate(absoluteRate.cU.coerceAtMost(danaPump.maxBasal))
 
-    override fun applyBasalPercentConstraints(percentRate: Constraint<Int>, profile: Profile): Constraint<Int> {
-        percentRate.setIfGreater(0, rh.gs(app.aaps.core.ui.R.string.limitingpercentrate, 0, rh.gs(app.aaps.core.ui.R.string.itmustbepositivevalue)), this)
-        percentRate.setIfSmaller(
-            pumpDescription.maxTempPercent,
-            rh.gs(app.aaps.core.ui.R.string.limitingpercentrate, pumpDescription.maxTempPercent, rh.gs(app.aaps.core.ui.R.string.pumplimit)),
-            this
-        )
-        return percentRate
-    }
+    // cU-domain pump limit (PumpPluginConstraints): folded into the IU scan by ConstraintsChecker.
+    override fun applyBolusConstraints(insulin: PumpInsulin): PumpInsulin =
+        PumpInsulin(insulin.cU.coerceAtMost(danaPump.maxBolus))
 
-    override fun applyBolusConstraints(insulin: Constraint<Double>): Constraint<Double> {
-        insulin.setIfSmaller(danaPump.maxBolus, rh.gs(app.aaps.core.ui.R.string.limitingbolus, danaPump.maxBolus, rh.gs(app.aaps.core.ui.R.string.pumplimit)), this)
-        return insulin
-    }
-
-    override fun applyExtendedBolusConstraints(insulin: Constraint<Double>): Constraint<Double> {
-        return applyBolusConstraints(insulin)
-    }
+    override fun applyExtendedBolusConstraints(insulin: PumpInsulin): PumpInsulin = applyBolusConstraints(insulin)
 
     // Pump interface
     override fun isConfigured(): Boolean =
@@ -250,20 +226,18 @@ class DanaRSPlugin @Inject constructor(
         val result = pumpEnactResultProvider.get()
         if (!isInitialized()) {
             aapsLogger.error("setNewBasalProfile not initialized")
-            notificationManager.post(NotificationId.PROFILE_NOT_SET_NOT_INITIALIZED, app.aaps.core.ui.R.string.pump_not_initialized_profile_not_set, level = NotificationLevel.IMPORTANT)
+            // Not initialized yet — deferred, not a genuine error; re-pushed on reconnect. success=true keeps it
+            // out of the central failure alarm; enacted stays false so nothing is shown. Profile-set notifications
+            // (OK / clear-failed) are owned centrally by CommandQueueImplementation.onProfileChanged.
+            result.success = true
             result.comment = rh.gs(app.aaps.core.ui.R.string.pump_not_initialized_profile_not_set)
             return result
-        } else {
-            notificationManager.dismiss(NotificationId.PROFILE_NOT_SET_NOT_INITIALIZED)
         }
         return if (danaRSService?.updateBasalsInPump(profile) != true) {
-            notificationManager.post(NotificationId.FAILED_UPDATE_PROFILE, app.aaps.core.ui.R.string.failed_update_basal_profile)
+            // FAILED_UPDATE_PROFILE posted centrally (onProfileChanged) from success=false; comment carries the reason.
             result.comment = rh.gs(app.aaps.core.ui.R.string.failed_update_basal_profile)
             result
         } else {
-            notificationManager.dismiss(NotificationId.PROFILE_NOT_SET_NOT_INITIALIZED)
-            notificationManager.dismiss(NotificationId.FAILED_UPDATE_PROFILE)
-            notificationManager.post(NotificationId.PROFILE_SET_OK, app.aaps.core.ui.R.string.profile_set_ok, validMinutes = 60)
             result.success = true
             result.enacted = true
             result.comment = "OK"
@@ -294,7 +268,7 @@ class DanaRSPlugin @Inject constructor(
         require(detailedBolusInfo.carbs == 0.0) { detailedBolusInfo.toString() }
         require(detailedBolusInfo.insulin > 0) { detailedBolusInfo.toString() }
 
-        detailedBolusInfo.insulin = constraintChecker.applyBolusConstraints(ConstraintObject(detailedBolusInfo.insulin, aapsLogger)).value()
+        // Already constrained in IU (queue) and in cU (PumpWithConcentration boundary); no re-apply here.
         val preferencesSpeed = preferences.get(DanaIntKey.BolusSpeed)
         var speed = 12
         when (preferencesSpeed) {
@@ -476,10 +450,10 @@ class DanaRSPlugin @Inject constructor(
     }
 
     override suspend fun setExtendedBolus(insulin: Double, durationInMinutes: Int): PumpEnactResult {
-        var insulinAfterConstraint = constraintChecker.applyExtendedBolusConstraints(ConstraintObject(insulin, aapsLogger)).value()
-        // needs to be rounded
+        // Already constrained in IU (queue) and in cU (PumpWithConcentration boundary); no re-apply here.
         val durationInHalfHours = max(durationInMinutes / 30, 1)
-        insulinAfterConstraint = Round.roundTo(insulinAfterConstraint, pumpDescription.extendedBolusStep)
+        // round to the pump's native extended-bolus step (cU)
+        val insulinAfterConstraint = Round.roundTo(insulin, pumpDescription.extendedBolusStep)
         val result = pumpEnactResultProvider.get()
         if (danaPump.isExtendedInProgress && abs(danaPump.extendedBolusAmount - insulinAfterConstraint) < pumpDescription.extendedBolusStep) {
             result.enacted = false

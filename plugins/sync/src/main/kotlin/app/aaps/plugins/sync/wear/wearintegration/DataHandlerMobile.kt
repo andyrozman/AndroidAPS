@@ -83,6 +83,7 @@ import app.aaps.core.keys.StringNonKey
 import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.constraints.ConstraintObject
+import app.aaps.core.objects.extensions.apsAdjustedTargetMgdl
 import app.aaps.core.objects.extensions.convertedToAbsolute
 import app.aaps.core.objects.extensions.generateCOBString
 import app.aaps.core.objects.extensions.round
@@ -105,7 +106,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.LinkedList
 import java.util.Locale
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -266,13 +266,13 @@ class DataHandlerMobile @Inject constructor(
             // Commit the parked dose by id through the role-transparent relay (MASTER → local deliver; CLIENT →
             // signed BolusCommit). Consume-once = no double bolus; a failure surfaces to the watch.
             contacting() // CLIENT: show the spinner during the commit round-trip too (no-op on master).
-            // Remove unconditionally (no leak even on a failed commit); mark used + refresh only on a delivered bolus.
-            val quickWizardGuid = quickWizardFixedUsage.remove(it.bolusId)
+            // markAsUsed is done by the MASTER inside the executor's confirm() (a fixed QuickWizard batch carries its
+            // quickWizardGuid) — this device must NOT write the synced QuickWizard pref itself (on a client that pushes
+            // it back over the round-trip → "Update settings … Another action is already in progress"). On a delivered
+            // bolus refresh the tile's lastUsed: immediate on a master; on a client it reflects after the master's mark
+            // syncs back via the cold-doc.
             onCommitResult(batchExecutor.commit(it.bolusId, Sources.Wear, rh.gs(app.aaps.core.ui.R.string.overview_treatment_label))) {
-                quickWizardGuid?.let { guid ->
-                    quickWizard.get(guid)?.markAsUsed()
-                    sendQuickWizardListToWear() // refresh lastUsed so the fixed-mode tile cools down (matches phone)
-                }
+                sendQuickWizardListToWear()
             }
         }
         onEvent<EventData.ActionECarbsPreCheck> { handleECarbsPreCheck(it) }
@@ -302,7 +302,7 @@ class DataHandlerMobile @Inject constructor(
             // NOTE: `it.timeStamp` is NOT a timestamp here — the legacy field name carries the master-assigned
             // consume-once bolusId of the parked prepare. Do not rename the field (wire-compat with older watches).
             contacting() // CLIENT: show the spinner during the commit round-trip too (no-op on master).
-            onCommitResult(wizardExecutor.commit(it.timeStamp, asAdvisor = false, Sources.Wear, rh.gs(app.aaps.core.ui.R.string.boluswizard))) {
+            onCommitResult(wizardExecutor.commit(it.timeStamp, asAdvisor = false, Sources.Wear, rh.gs(app.aaps.core.ui.R.string.boluswizard), correctionU = it.correctionU)) {
                 sendQuickWizardListToWear()
             }
         }
@@ -437,14 +437,9 @@ class DataHandlerMobile @Inject constructor(
 
         // Build autosens-adjusted target (only when no TT active)
         val autosensTarget = if (tempTarget == null && profile != null) {
-            val targetUsed =
-                if (config.APS) loop.lastRun?.constraintsProcessed?.targetBG ?: 0.0
-                else if (config.AAPSCLIENT) processedDeviceStatusData.getAPSResult()?.targetBG ?: 0.0
-                else 0.0
-            if (targetUsed != 0.0 && abs(profile.getTargetMgdl() - targetUsed) > 0.01) {
-                val units = if (profileUtil.units == GlucoseUnit.MGDL) "mg/dL" else "mmol/L"
-                "${profileUtil.fromMgdlToStringInUnits(targetUsed)} $units"
-            } else null
+            val adjustedTarget = profile.apsAdjustedTargetMgdl(loop, config, processedDeviceStatusData)
+            if (adjustedTarget != null) profileUtil.fromMgdlToStringWithUnits(adjustedTarget)
+            else null
         } else null
 
         // Build default range
@@ -604,7 +599,8 @@ class DataHandlerMobile @Inject constructor(
             useTt = preferences.get(BooleanKey.WearWizardTt),
             useTrend = preferences.get(BooleanKey.WearWizardTrend),
             alarm = false,
-            notes = ""
+            notes = "",
+            source = Sources.Wear
         )
         contacting()
         shipPrepared(
@@ -701,17 +697,6 @@ class DataHandlerMobile @Inject constructor(
         )
     }
 
-    // Parked bolusId → QuickWizard guid for a FIXED (INSULIN/CARBS) wear quick-wizard, so the entry is marked used on a
-    // successful commit and the tile cools down for an hour (matches the phone's executeFixedBatch → markAsUsed). The
-    // WIZARD path marks used inside the executor — its PendingBolus carries the entry — but a fixed batch parks entry=null.
-    private val quickWizardFixedUsage = ConcurrentHashMap<Long, String>()
-
-    private fun rememberQuickWizardUsage(bolusId: Long, guid: String) {
-        // Drop ids older than the tile cooldown so a prepared-then-cancelled (never committed) entry can't accumulate.
-        quickWizardFixedUsage.keys.removeAll { dateUtil.now() - it > 3_600_000L } // 1 hour (QuickWizardSource.COOLDOWN_MILLIS)
-        quickWizardFixedUsage[bolusId] = guid
-    }
-
     // internal (not private) so DataHandlerMobileWearBolusTest can drive it without RxBus scaffolding.
     internal suspend fun handleQuickWizardPreCheck(command: EventData.ActionQuickWizardPreCheck) {
         // Branch on the entry mode exactly like the phone (MainViewModel.executeQuickWizard): a fixed INSULIN/CARBS
@@ -724,18 +709,26 @@ class DataHandlerMobile @Inject constructor(
             QuickWizardMode.INSULIN -> sendBatchPreCheck(
                 BatchAction.Bolus(
                     insulin = entry.insulin(), carbs = 0, carbsTimeOffsetMinutes = 0, carbsDurationHours = 0,
-                    recordOnly = false, notes = entry.buttonText(), timestamp = 0L, iCfg = null
+                    recordOnly = false, notes = entry.buttonText(), timestamp = 0L, iCfg = null,
+                    quickWizardGuid = command.guid // the MASTER marks the entry used on commit (SOT) — no local pref write
                 ),
                 label = rh.gs(app.aaps.core.ui.R.string.bolus)
-            ) { bolusId -> rememberQuickWizardUsage(bolusId, command.guid); EventData.ActionBolusConfirmed(bolusId) }
+            ) { bolusId -> EventData.ActionBolusConfirmed(bolusId) }
 
-            QuickWizardMode.CARBS   -> sendBatchPreCheck(
-                BatchAction.Bolus(
-                    insulin = 0.0, carbs = entry.carbs(), carbsTimeOffsetMinutes = 0, carbsDurationHours = 0,
-                    recordOnly = false, notes = entry.buttonText(), timestamp = 0L, iCfg = null
-                ),
-                label = rh.gs(app.aaps.core.ui.R.string.carbs)
-            ) { bolusId -> rememberQuickWizardUsage(bolusId, command.guid); EventData.ActionBolusConfirmed(bolusId) }
+            QuickWizardMode.CARBS   -> {
+                val hasEcarbs = entry.useEcarbs() == QuickWizardEntry.YES
+                sendBatchPreCheck(
+                    BatchAction.Bolus(
+                        insulin = 0.0, carbs = entry.carbs(), carbsTimeOffsetMinutes = 0, carbsDurationHours = 0,
+                        recordOnly = false, notes = entry.buttonText(), timestamp = 0L, iCfg = null,
+                        eCarbsGrams = if (hasEcarbs) entry.carbs2() else 0,
+                        eCarbsDelayMinutes = if (hasEcarbs) entry.time() else 0,
+                        eCarbsDurationHours = if (hasEcarbs) entry.duration() else 0,
+                        quickWizardGuid = command.guid // the MASTER marks the entry used on commit (SOT) — no local pref write
+                    ),
+                    label = rh.gs(app.aaps.core.ui.R.string.carbs)
+                ) { bolusId -> EventData.ActionBolusConfirmed(bolusId) }
+            }
 
             else                    -> {
                 // Role-transparent recompute: MASTER computes + caps + parks + authors lines locally; CLIENT relays a
@@ -1346,14 +1339,10 @@ class DataHandlerMobile @Inject constructor(
             profileUtil.toTargetRangeString(tempTarget.lowTarget, tempTarget.highTarget, GlucoseUnit.MGDL, units)
         } ?: profileFunction.getProfile()?.let { profile ->
             // If the target is not the same as set in the profile then oref has overridden it
-            val targetUsed =
-                if (config.APS) loop.lastRun?.constraintsProcessed?.targetBG ?: 0.0
-                else if (config.AAPSCLIENT) processedDeviceStatusData.getAPSResult()?.targetBG ?: 0.0
-                else 0.0
-
-            if (targetUsed != 0.0 && abs(profile.getTargetMgdl() - targetUsed) > 0.01) {
+            val adjustedTarget = profile.apsAdjustedTargetMgdl(loop, config, processedDeviceStatusData)
+            if (adjustedTarget != null) {
                 tempTargetLevel = 1     // Green
-                profileUtil.toTargetRangeString(targetUsed, targetUsed, GlucoseUnit.MGDL, units)
+                profileUtil.toTargetRangeString(adjustedTarget, adjustedTarget, GlucoseUnit.MGDL, units)
             } else {
                 profileUtil.toTargetRangeString(profile.getTargetLowMgdl(), profile.getTargetHighMgdl(), GlucoseUnit.MGDL, units)
             }
