@@ -1242,12 +1242,13 @@ class TandemMobiPumpPlugin @Inject constructor(
                 changedItems.add("Control IQ")
             }
 
-            val pumpGlobalsResponse = (pumpStatus.settings!![TandemPumpSettingType.QUICK_BOLUS]) as PumpGlobalsResponse
-
-            if (isQuickBolusIncorrectlySet(pumpGlobalsResponse)) {
-                val stringQB = setQuickBolus()
-                changedItems.add(stringQB)
-            }
+            // TODO fix
+            // val pumpGlobalsResponse = (pumpStatus.settings!![TandemPumpSettingType.QUICK_BOLUS]) as PumpGlobalsResponse
+            //
+            // if (isQuickBolusIncorrectlySet(pumpGlobalsResponse)) {
+            //     val stringQB = setQuickBolus()
+            //     changedItems.add(stringQB)
+            // }
 
             // if (isSoundIncorrectlySet(pumpGlobalsResponse)) {
             //     tandemDispatcher.submitDefault("setPumpSounds") {

@@ -4,10 +4,10 @@ import com.jwoglom.pumpx2.BuildConfig
 
 class TandemMobiPluginVersion {
 
-    val devVersion = "4.0.0-dev-a (26.06.2026)"
+    val devVersion = "4.0.0-dev-b (25.07.2026)"
 
     val pumpX2Version = BuildConfig.PUMPX2_VERSION
-    val tandemModuleVersion = "v0.8.19.2"
+    val tandemModuleVersion = "v0.8.20.0"
 
     companion object {
         @JvmStatic
@@ -15,6 +15,5 @@ class TandemMobiPluginVersion {
 
         @JvmStatic
         val downloadHistory = true // it seems we have some issues with history download on new versions
-
     }
 }
