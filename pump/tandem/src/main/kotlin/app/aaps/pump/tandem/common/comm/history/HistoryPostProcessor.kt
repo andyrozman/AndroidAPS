@@ -18,6 +18,7 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusCompletedHistoryLog
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.CannulaFilledHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.CartridgeFilledHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.TubingFilledHistoryLog
@@ -44,7 +45,7 @@ class HistoryPostProcessor @Inject constructor(
         for (historyLog in historyLogs) {
 
             when(historyLog) {
-
+                is CannulaFilledHistoryLog,
                 is TubingFilledHistoryLog -> {
 
                     aapsLogger.info(TAG, "HST: PostProcess - NS Cannula Change")
