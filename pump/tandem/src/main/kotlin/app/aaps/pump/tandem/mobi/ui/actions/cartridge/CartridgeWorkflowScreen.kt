@@ -26,13 +26,21 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import com.jwoglom.pumpx2.pump.messages.Message
 import kotlinx.coroutines.CoroutineScope
@@ -49,11 +57,22 @@ fun CartridgeWorkflowScreen(
     sendPumpCommands: (List<Message>) -> Boolean,
     refreshScope: CoroutineScope,
     showHeader: Boolean = true,
+    aapsLogger: AAPSLogger? = null,
     stepIndicator: @Composable () -> Unit = {},
     body: @Composable ColumnScope.() -> Unit,
     actions: @Composable ColumnScope.() -> Unit,
+    coreCartridgeActionsModel: CoreCartridgeActionsModel
 ) {
     val pullRefreshState = rememberPullToRefreshState()
+    val isNotificationHidden by coreCartridgeActionsModel.hideNotification.collectAsStateWithLifecycle()
+
+
+    // var isInSiteSelectionMode by remember { mutableStateOf(false) }
+    //
+    //
+    // val siteLocation by coreCartridgeActionsModel.siteLocation.collectAsStateWithLifecycle()
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -88,7 +107,10 @@ fun CartridgeWorkflowScreen(
                 HorizontalDivider()
             }
             stepIndicator()
-            if (notifications.isEmpty()) {
+            if (notifications.isEmpty() && !isNotificationHidden) {
+                if (aapsLogger!=null) {
+                    aapsLogger.error(LTag.PUMP, "Notiifcation is empty and notificationHidden=${isNotificationHidden}")
+                }
                 CartridgeNotificationsPanel(resourceHelper = resourceHelper)
             }
             Column(

@@ -51,35 +51,9 @@ class TandemPumpConnectionManager @Inject constructor(
 ): PumpConnectionManager(tandemPumpStatus, tandemPumpUtil, sp, aapsLogger, rxBus, context) {
 
 
-    //     : PumpConnectorInterface
-    //private val selectedConnector: PumpConnectorInterface
-
-    //private val dummyConnector: PumpConnectorInterface
-
-    //private val mobiPumpStatus : TandemMobiPumpStatus = pumpStatus as TandemMobiPumpStatus
-
-    //private val tandemConnector: TandemPumpConnector
-
-    private val disposable = CompositeDisposable()
-    //private var oldFirmware: TandemPumpApiVersion? = null
-    //private var currentFirmware: TandemPumpApiVersion? = null
-    //var inConnectMode = false
-    //var inDisconnectMode = false
-
-
-
-    //@Suppress("PropertyName")
-    // @Suppress("PropertyName")
-    // val TAG= LTag.PUMPCOMM
-
-    //var lateinit tandemCommunicationManager: TandemCommunicationManager
-
-    // var deviceMac: String? = null
-    // var deviceBonded: Boolean = false
-
     override fun connectToPump(): Boolean {
 
-        aapsLogger.info(LTag.PUMPCOMM, "DUB connectToPump")
+        aapsLogger.info(LTag.PUMPCOMM, "connect To Pump")
 
         if (inConnectMode) {
             return false;
@@ -91,16 +65,12 @@ class TandemPumpConnectionManager @Inject constructor(
 
         inConnectMode = true
 
-        // TODO handle states
-        aapsLogger.debug(TAG, "!!!!!! Connect to Pump")
         pumpUtil.driverStatus = PumpDriverState.Connecting
-        // pumpUtil.sleepSeconds(15)
 
         val connected = tandemConnector.connectToPump()
 
         if (connected) {
             pumpUtil.driverStatus = PumpDriverState.Connected
-            //pumpUtil.driverStatus = PumpDriverState.Ready
         } else {
             pumpUtil.driverStatus = PumpDriverState.ErrorCommunicatingWithPump
         }
@@ -111,26 +81,12 @@ class TandemPumpConnectionManager @Inject constructor(
     }
 
 
-
-    override fun determineFirmwareVersion() {
-        if (tandemPumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
-            tandemPumpStatus.tandemPumpFirmware = TandemPumpApiVersion.VERSION_3_5_MOBI;
-        }
-    }
-
-
-
     override fun disconnectFromPump(): Boolean {
 
         aapsLogger.debug(TAG, "DUB Disconnect from Pump")
 
         tandemPumpStatus.setLastCommunicationToNow()
         pumpUtil.driverStatus = PumpDriverState.Disconnected
-
-        // if (tandemPumpStatus.pumpDriverMode== PumpDriverMode.Demo) {
-        //     aapsLogger.debug(TAG, "disconnect from Pump - DummyConnector")
-        //     return dummyConnector.disconnectFromPump();
-        // }
 
         return tandemConnector.disconnectFromPump()
     }
@@ -141,35 +97,15 @@ class TandemPumpConnectionManager @Inject constructor(
         pumpUtil.customCommandType = customCommandType
     }
 
+
     override fun resetDriverStatus() {
         tandemPumpUtil.resetDriverStatusToConnected()
     }
 
+
     override fun getConnector(commandType: PumpCommandType?): PumpConnectorInterface {
-
         aapsLogger.debug(TAG, "getConnector for ${commandType}")
-
         return tandemConnector
-
-        // when(commandType) {
-        //     PumpCommandType.GetTemporaryBasal,
-        //     PumpCommandType.SetTemporaryBasal,
-        //     PumpCommandType.CancelTemporaryBasal,
-        //     PumpCommandType.CustomCommand,
-        //     PumpCommandType.GetBasalProfile,
-        //     PumpCommandType.SetBasalProfile,
-        //     PumpCommandType.GetSettings,
-        //     PumpCommandType.GetPumpStatus,
-        //     PumpCommandType.GetRemainingInsulin,
-        //     PumpCommandType.GetTime,
-        //     PumpCommandType.SetTime,
-        //     PumpCommandType.GetBolus,
-        //     PumpCommandType.SetBolus,
-        //     PumpCommandType.CancelBolus,
-        //     PumpCommandType.GetBatteryStatus        -> return tandemConnector
-        //
-        //     else                    -> return dummyConnector
-        // }
     }
 
 
@@ -280,8 +216,4 @@ class TandemPumpConnectionManager @Inject constructor(
         return tandemConnector.isConnected()
     }
 
-    init {
-        // TODO TandemPumpConnectionManager - remove dummyConnector when not needed anymore
-        //dummyConnector = PumpDummyConnector(pumpStatus, pumpUtil, /*injector,*/ aapsLogger)
-    }
 }

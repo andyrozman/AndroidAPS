@@ -50,6 +50,7 @@
     <string name="common_continue">Continue</string>
     <string name="common_done">Done</string>
     <string name="common_back">Back</string>
+    <string name="common_exit">Exit</string>
 
 
     <!-- UI Data -->
@@ -173,6 +174,7 @@
     <string name="ft_no_label">No</string>
     <string name="ft_no_action">Hold the pump button again to keep filling.</string>
     <string name="ft_motor_warning">If holding the pump button does not move the motor, tap \"Restart Fill\" instead.</string>
+    <string name="ft_to_site_selection">To Site Selection</string>
     <string name="ca_incomplete_load_warning_title">Cartridge fill not complete</string>
     <string name="ca_incomplete_load_warning_body">You haven\'t completed the cartridge fill process, so insulin delivery can\'t begin. To return to fill your tubing/cannula, press Cancel.</string>
     <string name="cc_cancel_confirm_title">Cancel cartridge change?</string>

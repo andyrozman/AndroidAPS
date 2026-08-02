@@ -10,7 +10,6 @@ import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpErrorType
-import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.R
@@ -76,11 +75,17 @@ class TandemPumpCommunicationManager(
             field = value
         }
 
-    //var responses: MutableMap<Int, Message> = mutableMapOf()
+    private var handshakingStartTime: Long = 0L
 
     var bluetoothHandler: TandemBluetoothHandler? = null
 
+    // Thread-safe: added/removed on the TandemPumpOpQueue thread, read/added on the BLE callback
+    // (main) thread. newKeySet gives weakly-consistent iteration so find() can't throw CME.
+    val inFlightRequests: MutableSet<Message> = ConcurrentHashMap.newKeySet()
+    val inFlightResponses: MutableSet<Message> = ConcurrentHashMap.newKeySet()
 
+    var apiVersionResponseReceived = false
+    lateinit var apiVersionResponse: ApiVersionResponse
 
     @Volatile var operationMode: OperationMode = OperationMode.None
 
@@ -132,7 +137,6 @@ class TandemPumpCommunicationManager(
 
         // Conservative until the first status read resolves running-state: set Unknown before
         // flipping connected true so the availability gate never sees a stale (connected, Running).
-        // TODO pumpStatus.pumpRunningState = PumpRunningState.Unknown
         pumpStatus.pumpConnectedFlow.value = connected
         tandemDataStore.postPumpConnected(connected)
 
@@ -142,7 +146,6 @@ class TandemPumpCommunicationManager(
 
     /** Publishes the disconnected delivery state: running-state Unknown + not connected. */
     private fun publishDisconnectedState() {
-        // TODO pumpStatus.pumpRunningState = PumpRunningState.Unknown
         pumpStatus.pumpConnectedFlow.value = false
         tandemDataStore.postPumpConnected(false)
     }
@@ -187,8 +190,6 @@ class TandemPumpCommunicationManager(
     }
 
 
-    private var handshakingStartTime: Long = 0L
-
     override fun onInitialPumpConnection(peripheral: BluetoothPeripheral)  {
         aapsLogger.info(TAG, "onInitialPumpConnection: $peripheral")
 
@@ -208,11 +209,6 @@ class TandemPumpCommunicationManager(
         super.onPumpConnected(peripheral)
     }
 
-
-    // Thread-safe: added/removed on the TandemPumpOpQueue thread, read/added on the BLE callback
-    // (main) thread. newKeySet gives weakly-consistent iteration so find() can't throw CME.
-    val inFlightRequests: MutableSet<Message> = ConcurrentHashMap.newKeySet()
-    val inFlightResponses: MutableSet<Message> = ConcurrentHashMap.newKeySet()
 
     /**
      * Sends command to the pump, if driver is in preventConnect mode any messages will be ignored,
@@ -337,9 +333,6 @@ class TandemPumpCommunicationManager(
     }
 
 
-    var apiVersionResponseReceived = false
-
-
     override fun onReceiveMessage(peripheral: BluetoothPeripheral, message: Message) {
         aapsLogger.info(LTag.PUMPBTCOMM, "Received Response: ${message.opCode()} - ${message.javaClass.simpleName} - Mode: $operationMode")
 
@@ -353,7 +346,6 @@ class TandemPumpCommunicationManager(
         }
     }
 
-    lateinit var apiVersionResponse: ApiVersionResponse
 
     fun receiveMessageInConnectMode(message: Message) {
 
@@ -395,6 +387,7 @@ class TandemPumpCommunicationManager(
             dataStore.postPumpVersionResponse(message)
         }
     }
+
 
     fun receiveMessageInStandardMode(message: Message) {
         if (!this.commandRequestModeRunning) {
@@ -447,6 +440,7 @@ class TandemPumpCommunicationManager(
         }
     }
 
+
     override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
         aapsLogger.error(TAG, "CF: Pump Critical Error: ${reason}")
         dataStore.postDebugLastTandemError(reason)
@@ -484,6 +478,7 @@ class TandemPumpCommunicationManager(
         super.onPumpCriticalError(peripheral, reason)
     }
 
+
     override fun onPumpDisconnected(peripheral: BluetoothPeripheral?, status: HciStatus?): Boolean {
         aapsLogger.error(TAG, "Pump Disconnected: $status")
         forceDisconnect(onDisconnect = true,
@@ -498,7 +493,6 @@ class TandemPumpCommunicationManager(
                                                            hciStatus = hciStatus,
                                                            tandemError = tandemError)
         pumpUtil.driverStatus = PumpDriverState.Disconnected
-        // TODO pumpStatus.pumpRunningState = PumpRunningState.Unknown
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
         tandemConnectionFixer.startConnectionFix()
     }
@@ -519,9 +513,11 @@ class TandemPumpCommunicationManager(
             operationMode==OperationMode.ExternalListenerOperation
     }
 
+
     fun isListenerEnabled(): Boolean {
         return this.communicationListener!=null
     }
+
 
     enum class OperationMode {
         None,

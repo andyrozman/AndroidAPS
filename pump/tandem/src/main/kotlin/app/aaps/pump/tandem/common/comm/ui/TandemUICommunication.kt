@@ -77,9 +77,9 @@ class TandemUICommunication @Inject constructor (
 
     fun sendCommand(request: Message): Boolean {
 
-        aapsLogger.warn(TAG, "Send command $request")
+        aapsLogger.warn(TAG, "Send command $request ")
 
-        aapsLogger.warn(TAG, "Send command ${this.tandemPumpCommunicationManager}")
+        aapsLogger.debug(TAG, "Send command ${this.tandemPumpCommunicationManager}")
 
         if (this.tandemPumpCommunicationManager==null) {
             aapsLogger.error(TAG, "Command ${request.javaClass.name} couldn't be executed because tandemCommunicationManager is null.")
@@ -104,16 +104,12 @@ class TandemUICommunication @Inject constructor (
 
     override fun onReceiveMessage(message: Message) {
 
-        //aapsLogger.error(TAG, "onReceiveMessageListener: $message")
-
         messageCount++
 
         if (message is ApiVersionResponse) {
             aapsLogger.debug(TAG, "Got ApiVersionRequest: $message")
-            //checkPumpInitMessagesReceived(peripheral)
         } else if (message is TimeSinceResetResponse) {
             aapsLogger.debug(TAG,"Got TimeSinceResetResponse: $message")
-            //checkPumpInitMessagesReceived(peripheral)
         }
 
         aapsLogger.debug(TAG , "TUC: Message received: ${message.javaClass.name}")
@@ -139,17 +135,6 @@ class TandemUICommunication @Inject constructor (
                 aapsLogger.info(TAG, "DismissNotificationResponse received: success=${message.isStatusOK}")
             }
             is HomeScreenMirrorResponse -> {
-                // dataStore.basalStatus.value = when (message.basalStatusIcon) {
-                //     HomeScreenMirrorResponse.BasalStatusIcon.BASAL -> BasalStatus.ON
-                //     HomeScreenMirrorResponse.BasalStatusIcon.ZERO_BASAL -> BasalStatus.ZERO
-                //     HomeScreenMirrorResponse.BasalStatusIcon.TEMP_RATE -> BasalStatus.TEMP_RATE
-                //     HomeScreenMirrorResponse.BasalStatusIcon.ZERO_TEMP_RATE -> BasalStatus.ZERO_TEMP_RATE
-                //     HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND -> BasalStatus.PUMP_SUSPENDED
-                //     HomeScreenMirrorResponse.BasalStatusIcon.HYPO_SUSPEND_BASAL_IQ -> BasalStatus.BASALIQ_SUSPENDED
-                //     HomeScreenMirrorResponse.BasalStatusIcon.INCREASE_BASAL -> BasalStatus.CONTROLIQ_INCREASED
-                //     HomeScreenMirrorResponse.BasalStatusIcon.ATTENUATED_BASAL -> BasalStatus.CONTROLIQ_REDUCED
-                //     else -> BasalStatus.UNKNOWN
-                // }
                 val runningState = if (message.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) PumpRunningState.Suspended else PumpRunningState.Running
                 dataStore.pumpRunningState.value = runningState
                 pumpStatus.pumpRunningState = runningState
@@ -157,40 +142,10 @@ class TandemUICommunication @Inject constructor (
                 pumpStatus.pumpStatusMirror = HomeScreenMirrorDto()
                 pumpStatus.pumpStatusMirror!!.parse(message.cargo)
             }
-            // is CurrentBasalStatusResponse -> {
-            //     dataStore.basalRate.value = "${twoDecimalPlaces1000Unit(message.currentBasalRate)} U"
-            // }
-
             is TempRateResponse -> {
                 dataStore.tempRateActive.value = message.active
                 dataStore.tempRateDetails.value = message
             }
-
-//             is BolusCalcDataSnapshotResponse -> {
-// //                    if (!cached) {
-// //                        dataStore.bolusCalcDataSnapshot.value = message
-// //                    }
-//             }
-
-            // is BolusPermissionResponse -> {
-            //     dataStore.bolusPermissionResponse.value = message
-            // }
-            // is RemoteCarbEntryResponse -> {
-            //     dataStore.bolusCarbEntryResponse.value = message
-            // }
-            // is InitiateBolusResponse -> {
-            //     dataStore.bolusInitiateResponse.value = message
-            // }
-            // is CancelBolusResponse -> {
-            //     if (dataStore.bolusCancelResponse.value == null || message.wasCancelled()) {
-            //         dataStore.bolusCancelResponse.value = message
-            //     } else {
-            //         Timber.w("skipping population of bolusCancelResponse: $message because a successful cancellation already existed in the state: ${dataStore.bolusCancelResponse.value}");
-            //     }
-            // }
-            // is CurrentBolusStatusResponse -> {
-            //     dataStore.bolusCurrentResponse.value = message
-            // }
             is TimeSinceResetResponse -> {
                 dataStore.timeSinceResetResponse.value = message
             }

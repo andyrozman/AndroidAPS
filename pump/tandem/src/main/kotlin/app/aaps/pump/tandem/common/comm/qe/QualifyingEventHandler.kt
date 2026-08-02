@@ -167,7 +167,10 @@ class QualifyingEventHandler @Inject constructor(
             QualifyingEvent.HOME_SCREEN_CHANGE,              // Pump home screen updated (reflects delivery state)
             QualifyingEvent.TIME_CHANGE,                     // Pump clock changed — affects scheduling
             QualifyingEvent.BATTERY,                         // Battery level changed
-            QualifyingEvent.REMAINING_INSULIN                // Reservoir level changed
+            QualifyingEvent.REMAINING_INSULIN,                // Reservoir level changed
+
+            // Settings
+            QualifyingEvent.GLOBAL_PUMP_SETTINGS            // Global pump settings changed (display, sound, etc.)
             -> true
 
             // CGM data — AAPS gets CGM data from its own CGM source, not the pump
@@ -176,7 +179,6 @@ class QualifyingEventHandler @Inject constructor(
             QualifyingEvent.CGM_CHANGE,                      // CGM sensor status change
 
             // Tandem closed-loop status — not relevant when AAPS controls the loop
-            // TODO(jwoglom): AAPS may want to track controliq being inadvertently enabled
             // on the pump here as an indicator to stop DIY looping
             QualifyingEvent.BASAL_IQ_STATUS,                 // Basal-IQ algorithm status
             QualifyingEvent.BASAL_IQ,                        // Basal-IQ event
@@ -186,7 +188,6 @@ class QualifyingEventHandler @Inject constructor(
             // Informational events that don't affect AAPS loop decisions
             QualifyingEvent.IOB_CHANGE,                      // Pump-calculated IOB changed (AAPS calculates its own)
             QualifyingEvent.EXTENDED_BOLUS_CHANGE,           // Extended bolus status (not used by AAPS)
-            QualifyingEvent.GLOBAL_PUMP_SETTINGS,            // Global pump settings changed (display, sound, etc.)
             QualifyingEvent.SNOOZE_STATUS,                   // Alert snooze status changed
             QualifyingEvent.PUMPING_STATUS,                  // Pumping mechanism status (motor activity)
             QualifyingEvent.HEARTBEAT                        // Periodic heartbeat signal

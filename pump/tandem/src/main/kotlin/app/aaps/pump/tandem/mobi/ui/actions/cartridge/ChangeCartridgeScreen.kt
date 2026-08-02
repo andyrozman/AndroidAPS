@@ -33,6 +33,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
@@ -61,7 +62,8 @@ fun ChangeCartridgeScreen(
     aapsLogger: AAPSLogger,
     navigateBack: () -> Unit,
     refreshMainAppData: (RefreshData) -> Unit,
-    showHeader: Boolean = true
+    showHeader: Boolean = true,
+    coreCartridgeActionsModel: CoreCartridgeActionsModel
 ) {
     val ds = LocalTandemDataStore.current
     @Suppress("PropertyName")
@@ -202,6 +204,7 @@ fun ChangeCartridgeScreen(
         notifications = notifications,
         sendPumpCommands = sendPumpCommands,
         refreshScope = refreshScope,
+        coreCartridgeActionsModel = coreCartridgeActionsModel,
         body = {
             if (detectingCartridgeState.value != null) {
                 Text(
@@ -337,22 +340,22 @@ val changeCartridgeScreenCommands = listOf(
     LoadStatusRequest()
 )
 
-@Preview(showBackground = true)
-@Composable
-private fun ChangeCartridgeScreenPreview() {
-    MaterialTheme() {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White,
-        ) {
-            setUpPreviewState(LocalTandemDataStore.current)
-            ChangeCartridgeScreen(
-                sendPumpCommands = { _ -> true },
-                navigateBack = {},
-                resourceHelper = ResourceHelperTest(),
-                aapsLogger = AAPSLoggerTest(),
-                refreshMainAppData = {}
-            )
-        }
-    }
-}
+// @Preview(showBackground = true)
+// @Composable
+// private fun ChangeCartridgeScreenPreview() {
+//     MaterialTheme() {
+//         Surface(
+//             modifier = Modifier.fillMaxSize(),
+//             color = Color.White,
+//         ) {
+//             setUpPreviewState(LocalTandemDataStore.current)
+//             ChangeCartridgeScreen(
+//                 sendPumpCommands = { _ -> true },
+//                 navigateBack = {},
+//                 resourceHelper = ResourceHelperTest(),
+//                 aapsLogger = AAPSLoggerTest(),
+//                 refreshMainAppData = {}
+//             )
+//         }
+//     }
+// }

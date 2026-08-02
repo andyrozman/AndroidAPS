@@ -9,6 +9,8 @@ import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.common.data.PumpStatus
 import app.aaps.pump.common.defs.BasalProfileStatus
 import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
 import app.aaps.pump.common.defs.PumpDriverMode
@@ -42,7 +44,8 @@ var LocalTandemDataStore = compositionLocalOf { tandemUiDataStore }
 
 @Singleton
 class TandemPumpStatus @Inject constructor(val sp: SP,
-                                           val rxBus: RxBus
+                                           val rxBus: RxBus,
+                                           val preferences: Preferences
 ) : PumpStatus(PumpType.TANDEM_MOBI_BT) {
 
     lateinit var pumpDescription: PumpDescription
@@ -173,6 +176,9 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
     override fun updateLastConnectionInFragment() {
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
     }
+
+    val showSiteLocationStep: Boolean
+        get() = preferences.get(BooleanKey.SiteRotationManagePump)
 
 
     init {

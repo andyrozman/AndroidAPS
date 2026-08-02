@@ -14,12 +14,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.compose.ComposablePluginContent
 import app.aaps.core.ui.compose.ToolbarConfig
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.mobi.ui.TandemUiController
@@ -64,6 +66,7 @@ class MobiComposeContent(
     private val resourceHelper: ResourceHelper,
     private val tandemUiController: TandemUiController,
 
+
 ) : ComposablePluginContent {
 
 
@@ -74,6 +77,7 @@ class MobiComposeContent(
         onSettings: (() -> Unit)?
     ) {
         val overviewViewModel: MobiOverviewViewModelV2 = hiltViewModel()
+        val coreCartridgeActionsModel: CoreCartridgeActionsModel = hiltViewModel()
 
         // Navigation state
         var currentScreen by remember { mutableStateOf(MobiScreen.OVERVIEW) }
@@ -348,6 +352,7 @@ class MobiComposeContent(
                     resourceHelper = resourceHelper,
                     showHeader = false,
                     refreshMainAppData = { data -> tandemUiController.refreshMainAppData(data) },
+                    coreCartridgeActionsModel = coreCartridgeActionsModel,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     },
@@ -362,6 +367,8 @@ class MobiComposeContent(
                     resourceHelper = resourceHelper,
                     showHeader = false,
                     refreshMainAppData = { data -> tandemUiController.refreshMainAppData(data) },
+                    coreCartridgeActionsModel = coreCartridgeActionsModel,
+                    showSiteSelection = tandemPumpStatus.showSiteLocationStep,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     },
@@ -375,6 +382,7 @@ class MobiComposeContent(
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     resourceHelper = resourceHelper,
                     showHeader = false,
+                    coreCartridgeActionsModel = coreCartridgeActionsModel,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     }

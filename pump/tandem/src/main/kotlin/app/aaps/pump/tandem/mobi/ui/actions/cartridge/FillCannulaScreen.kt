@@ -46,6 +46,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
@@ -75,7 +76,8 @@ fun FillCannulaScreen(
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger,
     navigateBack: () -> Unit,
-    showHeader: Boolean = true
+    showHeader: Boolean = true,
+    coreCartridgeActionsModel: CoreCartridgeActionsModel
 ) {
     val ds = LocalTandemDataStore.current
     @Suppress("PropertyName")
@@ -285,6 +287,7 @@ fun FillCannulaScreen(
         },
         notifications = notifications,
         sendPumpCommands = sendPumpCommands,
+        coreCartridgeActionsModel = coreCartridgeActionsModel,
         refreshScope = refreshScope,
         body = {
             if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
@@ -474,21 +477,21 @@ val fillCannulaScreenCommands = listOf(
     LoadStatusRequest()
 )
 
-@Preview(showBackground = true)
-@Composable
-private fun FillCannulaScreenPreview() {
-    MaterialTheme() {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White,
-        ) {
-            setUpPreviewState(LocalTandemDataStore.current)
-            FillCannulaScreen(
-                sendPumpCommands = { _ -> true },
-                navigateBack = {},
-                resourceHelper = ResourceHelperTest(),
-                aapsLogger = AAPSLoggerTest()
-            )
-        }
-    }
-}
+// @Preview(showBackground = true)
+// @Composable
+// private fun FillCannulaScreenPreview() {
+//     MaterialTheme() {
+//         Surface(
+//             modifier = Modifier.fillMaxSize(),
+//             color = Color.White,
+//         ) {
+//             setUpPreviewState(LocalTandemDataStore.current)
+//             FillCannulaScreen(
+//                 sendPumpCommands = { _ -> true },
+//                 navigateBack = {},
+//                 resourceHelper = ResourceHelperTest(),
+//                 aapsLogger = AAPSLoggerTest()
+//             )
+//         }
+//     }
+// }

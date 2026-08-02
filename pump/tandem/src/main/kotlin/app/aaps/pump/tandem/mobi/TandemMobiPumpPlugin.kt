@@ -86,6 +86,7 @@ import app.aaps.pump.tandem.mobi.driver.TandemMobiPumpDriverConfiguration
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
+import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsFilter
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
 import app.aaps.pump.tandem.common.data.defs.QuickBolusType
@@ -158,7 +159,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     val tandemUiController: TandemUiController,
     val resourceHelper: ResourceHelper,
     pumpEnactResultProvider: Provider<PumpEnactResult>,
-    bolusProgressData: BolusProgressData,
+    bolusProgressData: BolusProgressData
 ) : PumpPluginAbstract(
     pluginDescription = PluginDescription() //
         .mainType(PluginType.PUMP) //

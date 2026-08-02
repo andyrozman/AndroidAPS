@@ -241,7 +241,6 @@ class TandemHistoryConverter @Inject constructor(
 
 
     private fun getDescription(historyLog: HistoryLog?): String? {
-        // TODO DbDataConverter::implement get Description for TandemHistoryRecordDto
         return when(historyLog) {
             is BolusActivatedHistoryLog -> {
                 "Amount: ${historyLog.bolusSize} U, BolusId=${historyLog.bolusId}"

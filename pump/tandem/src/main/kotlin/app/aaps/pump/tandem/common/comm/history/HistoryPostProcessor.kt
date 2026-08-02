@@ -12,6 +12,7 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.utils.DateTimeUtil
+import app.aaps.pump.tandem.common.comm.history.HistoryRetriever.Companion.DEBUG_HISTORY
 import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
@@ -34,13 +35,21 @@ class HistoryPostProcessor @Inject constructor(
     val tandemPumpUtil: TandemPumpUtil
 ) {
 
+    var historyPrefix = ""
+
     companion object {
         val TAG = LTag.PUMPCOMM
     }
 
+
+    fun setupHistoryPostProcessor(debugHistory: Boolean) {
+        historyPrefix = if (debugHistory) "HST: " else ""
+    }
+
+
     fun postProcessHistory(historyLogs: MutableCollection<HistoryLog>) {
 
-        aapsLogger.debug(TAG, "HST: PostProcess History (items=${historyLogs.size})")
+        aapsLogger.debug(TAG, "${historyPrefix}PostProcess History (items=${historyLogs.size})")
 
         for (historyLog in historyLogs) {
 
@@ -48,7 +57,7 @@ class HistoryPostProcessor @Inject constructor(
                 is CannulaFilledHistoryLog,
                 is TubingFilledHistoryLog -> {
 
-                    aapsLogger.info(TAG, "HST: PostProcess - NS Cannula Change")
+                    aapsLogger.info(TAG, "${historyPrefix}PostProcess - NS Cannula Change")
 
                     runBlocking {
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
@@ -63,7 +72,7 @@ class HistoryPostProcessor @Inject constructor(
                 }
                 is CartridgeFilledHistoryLog -> {
 
-                    aapsLogger.info(TAG, "HST: PostProcess - NS Insulin Change")
+                    aapsLogger.info(TAG, "${historyPrefix}PostProcess - NS Insulin Change")
 
                     runBlocking {
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
@@ -80,7 +89,7 @@ class HistoryPostProcessor @Inject constructor(
                 is BolusCompletedHistoryLog -> {
                     runBlocking {
 
-                        aapsLogger.info(TAG, "HST: PostProcess - Bolus - ${historyLog}")
+                        aapsLogger.info(TAG, "${historyPrefix}PostProcess - Bolus - ${historyLog}")
 
                         pumpSync.syncBolusWithPumpId(
                             timestamp = historyLog.pumpTimeSecInstant.toEpochMilli(),
