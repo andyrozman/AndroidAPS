@@ -239,18 +239,7 @@ fun FillTubingScreen(
         body = {
             if (isInSiteSelectionMode) {
                 aapsLogger.error(TAG, "In Site Location Wizard Step")
-
-                SiteLocationPicker(
-                    siteType = TE.Type.CANNULA_CHANGE,
-                    bodyType = coreCartridgeActionsModel.bodyType(),
-                    entries = coreCartridgeActionsModel.siteRotationEntries(),
-                    selectedLocation = siteLocation,
-                    selectedArrow = siteArrow,
-                    onLocationSelected = { coreCartridgeActionsModel.updateSiteLocation(it) },
-                    onArrowSelected = { coreCartridgeActionsModel.updateSiteArrow(it) },
-                    modifier = Modifier.padding(innerPadding)
-                )
-
+                SiteLocationWizardStep(host = coreCartridgeActionsModel)
             } else if (exitFillTubingState.value != null) {
                 Text(
                     text = resourceHelper.gs(R.string.ca_status_heading),
