@@ -5,13 +5,10 @@ package app.aaps.pump.tandem.mobi.ui.actions.cartridge
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -23,23 +20,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.ui.compose.insulin.SelectInsulin
 import app.aaps.pump.common.defs.PumpRunningState
-import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
-import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.EnterChangeCartridgeModeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ExitChangeCartridgeModeRequest
@@ -66,7 +61,7 @@ fun ChangeCartridgeScreen(
     coreCartridgeActionsModel: CoreCartridgeActionsModel
 ) {
     val ds = LocalTandemDataStore.current
-    @Suppress("PropertyName")
+    //@Suppress("PropertyName")
     val TAG = LTag.PUMP
 
     val refreshScope = rememberCoroutineScope()
@@ -75,6 +70,21 @@ fun ChangeCartridgeScreen(
     var showSuspendDialog by remember { mutableStateOf(false) }
     var isSuspending by remember { mutableStateOf(false) }
     var isStartingChangeCartridge by remember { mutableStateOf(false) }
+
+    val availableInsulins by coreCartridgeActionsModel.availableInsulins.collectAsStateWithLifecycle()
+    val selectedInsulin by coreCartridgeActionsModel.selectedInsulin.collectAsStateWithLifecycle()
+    val activeInsulinLabel by coreCartridgeActionsModel.activeInsulinLabel.collectAsStateWithLifecycle()
+
+    val pumpRunningState = ds.pumpRunningState.observeAsState()
+    val inChangeCartridgeMode = ds.inChangeCartridgeMode.observeAsState()
+    val enterChangeCartridgeState = ds.enterChangeCartridgeState.observeAsState()
+    val detectingCartridgeState = ds.detectingCartridgeState.observeAsState()
+
+    val notificationBundle = ds.notificationBundle.observeAsState()
+    val notifications: List<Any> = notificationBundle.value?.get()?.toList() ?: emptyList()
+
+    var isInInsulinSelectionMode by remember { mutableStateOf(false) }
+
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "reloading ChangeCartridgeScreen with force")
@@ -98,14 +108,6 @@ fun ChangeCartridgeScreen(
         aapsLogger.info(TAG, "Periodic alert/alarm poll on ChangeCartridgeScreen")
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
     }
-
-    val pumpRunningState = ds.pumpRunningState.observeAsState()
-    val inChangeCartridgeMode = ds.inChangeCartridgeMode.observeAsState()
-    val enterChangeCartridgeState = ds.enterChangeCartridgeState.observeAsState()
-    val detectingCartridgeState = ds.detectingCartridgeState.observeAsState()
-
-    val notificationBundle = ds.notificationBundle.observeAsState()
-    val notifications: List<Any> = notificationBundle.value?.get()?.toList() ?: emptyList()
 
     fun sendPumpCommand(msg: Message) {
         sendPumpCommands(listOf(msg))
@@ -177,9 +179,10 @@ fun ChangeCartridgeScreen(
         )
     }
 
-    val totalSteps = 4
+    val totalSteps = if (coreCartridgeActionsModel.showInsulinStep) 5 else 4
     val currentStep = when {
-        detectingCartridgeState.value?.isComplete == true -> 4
+        isInInsulinSelectionMode -> 5
+        detectingCartridgeState.value?.isComplete == true && !isInInsulinSelectionMode -> 4
         detectingCartridgeState.value != null -> 3
         enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE -> 2
         inChangeCartridgeMode.value == true -> 1
@@ -206,7 +209,23 @@ fun ChangeCartridgeScreen(
         refreshScope = refreshScope,
         coreCartridgeActionsModel = coreCartridgeActionsModel,
         body = {
-            if (detectingCartridgeState.value != null) {
+            if (isInInsulinSelectionMode) {
+
+                Text(
+                    text = stringResource(app.aaps.core.ui.R.string.select_insulin_description),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                SelectInsulin(
+                    availableInsulins = availableInsulins,
+                    selectedInsulin = selectedInsulin,
+                    activeInsulinLabel = activeInsulinLabel,
+                    onInsulinSelect = coreCartridgeActionsModel::selectInsulin,
+                    concentrationDropDownEnabled = coreCartridgeActionsModel.concentrationEnabled
+                )
+            } else if (detectingCartridgeState.value != null) {
                 Text(
                     text = resourceHelper.gs(R.string.ca_status_heading),
                     style = MaterialTheme.typography.titleMedium,
@@ -283,16 +302,36 @@ fun ChangeCartridgeScreen(
             }
         },
         actions = {
-            if (detectingCartridgeState.value?.isComplete == true) {
+            if (isInInsulinSelectionMode) {
                 PrimaryActionButton(
                     text = resourceHelper.gs(R.string.common_done),
                     onClick = {
-                        ds.completedCartridgeActions.value =
-                            setOf(CompletedCartridgeAction.CHANGE_CARTRIDGE)
-                        ds.loadStatus.value = null
-                        refreshScope.launch { navigateBack() }
+                        coreCartridgeActionsModel.executeInsulinProfileSwitch()
+                        navigateBack()
                     }
                 )
+            } else if (detectingCartridgeState.value?.isComplete == true) {
+                if (totalSteps==5) {
+                    PrimaryActionButton(
+                        text = resourceHelper.gs(R.string.cc_to_insulin_selection),
+                        onClick = {
+                            ds.completedCartridgeActions.value =
+                                setOf(CompletedCartridgeAction.CHANGE_CARTRIDGE)
+                            ds.loadStatus.value = null
+                            isInInsulinSelectionMode = true
+                        }
+                    )
+                } else {
+                    PrimaryActionButton(
+                        text = resourceHelper.gs(R.string.common_done),
+                        onClick = {
+                            ds.completedCartridgeActions.value =
+                                setOf(CompletedCartridgeAction.CHANGE_CARTRIDGE)
+                            ds.loadStatus.value = null
+                            refreshScope.launch { navigateBack() }
+                        }
+                    )
+                }
             } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
                 PrimaryActionButton(
                     text = resourceHelper.gs(R.string.cc_btn_cart_inserted),

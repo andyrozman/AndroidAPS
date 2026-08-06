@@ -1243,13 +1243,13 @@ class TandemMobiPumpPlugin @Inject constructor(
                 changedItems.add("Control IQ")
             }
 
-            // TODO fix
-            // val pumpGlobalsResponse = (pumpStatus.settings!![TandemPumpSettingType.QUICK_BOLUS]) as PumpGlobalsResponse
-            //
-            // if (isQuickBolusIncorrectlySet(pumpGlobalsResponse)) {
-            //     val stringQB = setQuickBolus()
-            //     changedItems.add(stringQB)
-            // }
+            val pumpGlobalsResponse = (pumpStatus.settings!![TandemPumpSettingType.QUICK_BOLUS]) as PumpGlobalsResponse
+
+            if (isQuickBolusIncorrectlySet(pumpGlobalsResponse)) {
+                val stringQB = setQuickBolus()
+                changedItems.add(stringQB)
+                this.newQuickBolusType = null
+            }
 
             // if (isSoundIncorrectlySet(pumpGlobalsResponse)) {
             //     tandemDispatcher.submitDefault("setPumpSounds") {
@@ -1269,6 +1269,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     private fun isQuickBolusIncorrectlySet(pumpGlobalsResponse: PumpGlobalsResponse): Boolean {
+
         if (preferences.getIfExists(TandemStringPreferenceKey.QuickBolusTypePref) != null) {
             val preferenceQBString = preferences.get(TandemStringPreferenceKey.QuickBolusTypePref)
 
@@ -1277,7 +1278,12 @@ class TandemMobiPumpPlugin @Inject constructor(
 
             aapsLogger.info(TAG, "Quick Bolus in Settings=${quickBolusType.name} and on Pump=${quickBolusIncrementPump.name}")
 
-            return (quickBolusType.quickBolusIncrement != quickBolusIncrementPump)
+            if (quickBolusType.quickBolusIncrement != quickBolusIncrementPump) {
+                newQuickBolusType = quickBolusType
+                return true
+            } else {
+                return false
+            }
 
         } else {
             return false

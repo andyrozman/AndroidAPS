@@ -326,6 +326,7 @@ class MobiComposeContent(
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     resourceHelper = resourceHelper,
                     showHeader = false,
+                    coreCartridgeActionsModel = coreCartridgeActionsModel,
                     navigateToChangeCartridge = {
                         currentScreen = MobiScreen.ACTIONS_CHANGE_CARTRIDGE
                     },
@@ -368,7 +369,6 @@ class MobiComposeContent(
                     showHeader = false,
                     refreshMainAppData = { data -> tandemUiController.refreshMainAppData(data) },
                     coreCartridgeActionsModel = coreCartridgeActionsModel,
-                    showSiteSelection = tandemPumpStatus.showSiteLocationStep,
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     },

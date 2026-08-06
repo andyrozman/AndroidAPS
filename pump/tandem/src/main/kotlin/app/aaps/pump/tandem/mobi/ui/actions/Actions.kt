@@ -151,6 +151,7 @@ fun Actions(
         aapsLogger.debug(TAG, "reloading Actions from onStart lifecyclestate")
         fetchDataStoreFields()
         refreshMainAppData(RefreshData.START_ACTIONS)
+        ds.requestInsulinLoadData.value = true
     }
 
     LaunchedEffect(intervalOf(60)) {
@@ -435,7 +436,7 @@ private fun PreviewInsulinActive() {
 @Preview(showBackground = true)
 @Composable
 private fun PreviewInsulinSuspended() {
-    MaterialTheme() {
+    MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,

@@ -310,7 +310,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             is BasalLimitSettingsResponse -> {  settingsMap.put(settingType, message.basalLimit)  }
             is GlobalMaxBolusSettingsResponse -> {  settingsMap.put(settingType, message.maxBolus) }
             is BasalIQStatusResponse  -> {  settingsMap.put(settingType, message.basalIQStatusState)  }
-            is PumpGlobalsResponse    -> {  settingsMap.put(settingType, message.quickBolusEntryType) }  // TODO Pump Globals Response
+            is PumpGlobalsResponse    -> {  settingsMap.put(settingType, message) }
             is PumpFeaturesV2Response -> {
                 settingsMap.put(settingType, pumpUtil.gson.toJson(message))
                 tandemPumpStatus.featuresV2 = message

@@ -179,6 +179,7 @@
     <string name="ca_incomplete_load_warning_body">You haven\'t completed the cartridge fill process, so insulin delivery can\'t begin. To return to fill your tubing/cannula, press Cancel.</string>
     <string name="cc_cancel_confirm_title">Cancel cartridge change?</string>
     <string name="cc_cancel_confirm_body">The cartridge change will be cancelled and the pump will exit cartridge change mode.</string>
+    <string name="cc_to_insulin_selection">To Insulin Selection</string>
     <string name="ft_cancel_confirm_title">Cancel tubing fill?</string>
     <string name="ft_cancel_confirm_body">The tubing fill will be cancelled and the pump will exit fill tubing mode.</string>
     <string name="fc_cancel_confirm_title">Cancel cannula fill?</string>

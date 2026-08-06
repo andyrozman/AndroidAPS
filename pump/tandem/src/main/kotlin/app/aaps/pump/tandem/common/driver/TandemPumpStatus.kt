@@ -177,10 +177,6 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
     }
 
-    val showSiteLocationStep: Boolean
-        get() = preferences.get(BooleanKey.SiteRotationManagePump)
-
-
     init {
         initSettings()
     }

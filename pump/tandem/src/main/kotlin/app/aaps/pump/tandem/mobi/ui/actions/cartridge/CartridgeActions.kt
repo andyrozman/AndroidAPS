@@ -23,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -41,24 +40,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.PumpStatusHeader
-import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 import app.aaps.pump.tandem.mobi.ui.util.Line
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
-import app.aaps.shared.tests.AAPSLoggerTest
 import app.aaps.pump.tandem.R
+import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
 import app.aaps.core.ui.R as Rco
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
@@ -172,6 +168,7 @@ fun CartridgeActions(
     navigateToFillCannula: () -> Unit,
     navigateToSiteReminder: () -> Unit,
     navigateBack: () -> Unit,
+    coreCartridgeActionsModel: CoreCartridgeActionsModel,
     showHeader: Boolean = true
 ) {
 
@@ -196,6 +193,10 @@ fun CartridgeActions(
     LaunchedEffect(Unit) {
         aapsLogger.info(TAG, "Initial LoadStatus poll on CartridgeActions")
         sendPumpCommands(listOf(LoadStatusRequest()))
+        if (ds.requestInsulinLoadData.value == true) {
+            coreCartridgeActionsModel.loadModelData()
+            ds.requestInsulinLoadData.value = false
+        }
     }
 
     LaunchedEffect(intervalOf(60)) {
@@ -383,72 +384,72 @@ val cartridgeActionsCommands = listOf(
     InsulinStatusRequest()
 )
 
-
-@Preview(showBackground = true)
-@Composable
-private fun DefaultPreview() {
-    MaterialTheme() {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White,
-        ) {
-            setUpPreviewState(LocalTandemDataStore.current)
-            CartridgeActions(
-                sendPumpCommands = { _ -> true},
-                navigateBack = {},
-                navigateToChangeCartridge = {},
-                navigateToFillTubing = {},
-                navigateToFillCannula = {},
-                navigateToSiteReminder = {},
-                resourceHelper = ResourceHelperTest(),
-                aapsLogger = AAPSLoggerTest()
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun DefaultPreviewChangeCartridge_InsulinNotStopped() {
-    MaterialTheme() {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White,
-        ) {
-            setUpPreviewState(LocalTandemDataStore.current)
-            CartridgeActions(
-                sendPumpCommands = { _ -> true},
-                navigateBack = {},
-                navigateToChangeCartridge = {},
-                navigateToFillTubing = {},
-                navigateToFillCannula = {},
-                navigateToSiteReminder = {},
-                resourceHelper = ResourceHelperTest(),
-                aapsLogger = AAPSLoggerTest()
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun DefaultPreviewChangeCartridge_InsulinStopped() {
-    MaterialTheme() {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.White,
-        ) {
-            setUpPreviewState(LocalTandemDataStore.current)
-            CartridgeActions(
-                sendPumpCommands = { _ -> true},
-                navigateBack = {},
-                navigateToChangeCartridge = {},
-                navigateToFillTubing = {},
-                navigateToFillCannula = {},
-                navigateToSiteReminder = {},
-                resourceHelper = ResourceHelperTest(),
-                aapsLogger = AAPSLoggerTest()
-            )
-        }
-    }
-}
+//
+// @Preview(showBackground = true)
+// @Composable
+// private fun DefaultPreview() {
+//     MaterialTheme() {
+//         Surface(
+//             modifier = Modifier.fillMaxSize(),
+//             color = Color.White,
+//         ) {
+//             setUpPreviewState(LocalTandemDataStore.current)
+//             CartridgeActions(
+//                 sendPumpCommands = { _ -> true},
+//                 navigateBack = {},
+//                 navigateToChangeCartridge = {},
+//                 navigateToFillTubing = {},
+//                 navigateToFillCannula = {},
+//                 navigateToSiteReminder = {},
+//                 resourceHelper = ResourceHelperTest(),
+//                 aapsLogger = AAPSLoggerTest()
+//             )
+//         }
+//     }
+// }
+//
+// @Preview(showBackground = true)
+// @Composable
+// private fun DefaultPreviewChangeCartridge_InsulinNotStopped() {
+//     MaterialTheme() {
+//         Surface(
+//             modifier = Modifier.fillMaxSize(),
+//             color = Color.White,
+//         ) {
+//             setUpPreviewState(LocalTandemDataStore.current)
+//             CartridgeActions(
+//                 sendPumpCommands = { _ -> true},
+//                 navigateBack = {},
+//                 navigateToChangeCartridge = {},
+//                 navigateToFillTubing = {},
+//                 navigateToFillCannula = {},
+//                 navigateToSiteReminder = {},
+//                 resourceHelper = ResourceHelperTest(),
+//                 aapsLogger = AAPSLoggerTest()
+//             )
+//         }
+//     }
+// }
+//
+// @Preview(showBackground = true)
+// @Composable
+// private fun DefaultPreviewChangeCartridge_InsulinStopped() {
+//     MaterialTheme() {
+//         Surface(
+//             modifier = Modifier.fillMaxSize(),
+//             color = Color.White,
+//         ) {
+//             setUpPreviewState(LocalTandemDataStore.current)
+//             CartridgeActions(
+//                 sendPumpCommands = { _ -> true},
+//                 navigateBack = {},
+//                 navigateToChangeCartridge = {},
+//                 navigateToFillTubing = {},
+//                 navigateToFillCannula = {},
+//                 navigateToSiteReminder = {},
+//                 resourceHelper = ResourceHelperTest(),
+//                 aapsLogger = AAPSLoggerTest()
+//             )
+//         }
+//     }
+// }

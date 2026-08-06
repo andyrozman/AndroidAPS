@@ -145,7 +145,7 @@ class TandemPumpConnectionManager @Inject constructor(
                 if (tandemPumpStatus.serialNumber==0L) {
                     tandemPumpStatus.serialNumber = tandemPumpStatus.tandemPumpVersion!!.serialNum
                     preferences.put(TandemStringPreferenceKey.PumpSerial, "" + tandemPumpStatus.serialNumber)
-                    rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
+                    //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
                 }
             }
             GET_ALARMS -> {

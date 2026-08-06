@@ -94,6 +94,9 @@ class TandemUIDataStore : TandemUiState, TandemUiStateWriter {
     val debugLastReceivedMessage = MutableLiveData<Message?>()
     val debugLastTandemError = MutableLiveData<TandemError?>()
 
+    //
+    val requestInsulinLoadData = MutableLiveData(false)
+
 
     // DATA ----------------------------------
 

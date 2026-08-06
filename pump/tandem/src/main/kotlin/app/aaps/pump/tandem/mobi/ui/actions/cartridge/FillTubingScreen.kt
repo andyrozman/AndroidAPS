@@ -83,7 +83,7 @@ fun FillTubingScreen(
     navigateBack: () -> Unit,
     refreshMainAppData: (RefreshData) -> Unit,
     showHeader: Boolean = true,
-    showSiteSelection: Boolean = false,
+    //showSiteSelection: Boolean = false,
     coreCartridgeActionsModel: CoreCartridgeActionsModel
 ) {
     val ds = LocalTandemDataStore.current
@@ -105,6 +105,8 @@ fun FillTubingScreen(
     val siteLocation by coreCartridgeActionsModel.siteLocation.collectAsStateWithLifecycle()
     val siteArrow by coreCartridgeActionsModel.siteArrow.collectAsStateWithLifecycle()
 
+    var displaySiteStep by remember { mutableStateOf(false) }
+
 
     fun refresh() = refreshScope.launch {
         aapsLogger.info(TAG, "reloading FillTubingScreen with force")
@@ -122,6 +124,7 @@ fun FillTubingScreen(
     LaunchedEffect(Unit) {
         aapsLogger.info(TAG, "Initial alert/alarm poll on FillTubingScreen")
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
+        displaySiteStep = coreCartridgeActionsModel.showSiteLocationStep
     }
 
     LaunchedEffect(intervalOf(10)) {
@@ -205,7 +208,7 @@ fun FillTubingScreen(
         )
     }
 
-    val totalSteps = if (showSiteSelection) 5 else 4
+    val totalSteps = if (displaySiteStep) 5 else 4
     val currentStep = when {
         isInSiteSelectionMode -> 5
         exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED && !isInSiteSelectionMode -> 4
@@ -248,8 +251,6 @@ fun FillTubingScreen(
                     modifier = Modifier.padding(innerPadding)
                 )
 
-
-                //SiteLocationWizardStep(host = coreCartridgeActionsModel)
             } else if (exitFillTubingState.value != null) {
                 Text(
                     text = resourceHelper.gs(R.string.ca_status_heading),
@@ -488,14 +489,17 @@ fun FillTubingScreen(
                         )
                     } else {
                         PrimaryActionButton(
-                            text = if (showSiteSelection) resourceHelper.gs(R.string.ft_to_site_selection) else resourceHelper.gs(R.string.common_done),
+                            text = if (displaySiteStep)
+                                        resourceHelper.gs(R.string.ft_to_site_selection)
+                                   else
+                                        resourceHelper.gs(R.string.common_done),
                             onClick = {
                                 ds.completedCartridgeActions.value =
                                     (ds.completedCartridgeActions.value ?: emptySet()) +
                                         CompletedCartridgeAction.FILL_TUBING
                                 ds.loadStatus.value = null
-                                aapsLogger.error(TAG, "To Site Selection Pressed: showSiteSelection: ${showSiteSelection}")
-                                if (showSiteSelection) {
+                                aapsLogger.error(TAG, "To Site Selection Pressed: showSiteSelection: ${displaySiteStep}")
+                                if (displaySiteStep) {
                                     isInSiteSelectionMode = true
                                     coreCartridgeActionsModel.hideNotifications()
                                 } else {
