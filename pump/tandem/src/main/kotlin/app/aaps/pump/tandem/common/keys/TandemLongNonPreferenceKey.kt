@@ -16,6 +16,12 @@ enum class TandemLongNonPreferenceKey(
 
     LastTbrId("tandem_last_tbr_id", defaultValue = 0L),
     SiteReminderDateTime(key = "tandem_site_reminder_datetime", defaultValue = 0L),
-    HistoryResumeUpperSequence(key = "tandem_history_resume_upper_sequence", defaultValue = 0L, exportable = false)
+    HistoryResumeUpperSequence(key = "tandem_history_resume_upper_sequence", defaultValue = 0L, exportable = false),
+
+    /**
+     * When the user confirmed a site location that is still waiting to be attached to a
+     * CANNULA_CHANGE event. `0` means nothing is pending.
+     */
+    PendingSiteSelectedAt(key = "tandem_pending_site_selected_at", defaultValue = 0L, exportable = false)
 
 }
