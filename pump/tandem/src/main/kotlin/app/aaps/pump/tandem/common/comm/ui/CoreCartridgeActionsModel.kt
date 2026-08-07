@@ -20,6 +20,8 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.compose.siteRotation.BodyType
 import app.aaps.core.ui.compose.siteRotation.SiteLocationStepHost
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
+import app.aaps.pump.tandem.common.keys.TandemStringNonPreferenceKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -122,18 +124,39 @@ class CoreCartridgeActionsModel @Inject constructor(
     //     aapsLogger.error(LTag.PUMP, "moveAfterPriming NOT IMPLEMENTED")
     // }
 
+    /**
+     * Park the selection until the pump reports the cannula fill.
+     *
+     * The CANNULA_CHANGE therapy event is not created here: it is inserted by
+     * `HistoryPostProcessor` when the pump's `CannulaFilledHistoryLog` is retrieved, which happens
+     * after this workflow ends. Preferences are used rather than in-memory state so the selection
+     * survives a process restart while waiting.
+     */
     override fun completeSiteLocation() {
-        // Site location is saved after activation completes (patchStartTime not available yet)
-        //moveStep(PatchStep.ATTACH_PATCH)
-        // TODO completeSiteLocation
-        aapsLogger.error(LTag.PUMP, "completeSiteLocation NOT IMPLEMENTED")
+        val location = _siteLocation.value.takeIf { it != TE.Location.NONE }
+        val arrow = _siteArrow.value.takeIf { it != TE.Arrow.NONE }
+        if (location == null && arrow == null) {
+            clearPendingSiteLocation()
+            return
+        }
+        preferences.put(TandemStringNonPreferenceKey.PendingSiteLocation, location?.name ?: "")
+        preferences.put(TandemStringNonPreferenceKey.PendingSiteArrow, arrow?.name ?: "")
+        preferences.put(TandemLongNonPreferenceKey.PendingSiteSelectedAt, System.currentTimeMillis())
+        aapsLogger.info(LTag.PUMP, "completeSiteLocation: parked location=$location arrow=$arrow")
     }
 
 
     override fun skipSiteLocation() {
-        aapsLogger.error(LTag.PUMP, "skipSiteLocation")
+        aapsLogger.info(LTag.PUMP, "skipSiteLocation")
         _siteLocation.value = TE.Location.NONE
         _siteArrow.value = TE.Arrow.NONE
+        clearPendingSiteLocation()
+    }
+
+    private fun clearPendingSiteLocation() {
+        preferences.put(TandemStringNonPreferenceKey.PendingSiteLocation, "")
+        preferences.put(TandemStringNonPreferenceKey.PendingSiteArrow, "")
+        preferences.put(TandemLongNonPreferenceKey.PendingSiteSelectedAt, 0L)
     }
 
     override fun bodyType(): BodyType =
@@ -148,27 +171,6 @@ class CoreCartridgeActionsModel @Inject constructor(
             _siteRotationEntries.value = persistenceLayer.getTherapyEventDataFromTime(
                 System.currentTimeMillis() - T.days(45).msecs(), false
             ).filter { it.type == TE.Type.CANNULA_CHANGE || it.type == TE.Type.SENSOR_CHANGE }
-        }
-    }
-
-    /** Save site location/arrow to the CANNULA_CHANGE therapy event created during activation. */
-    private fun saveSiteLocationToTherapyEvent(activationTimestamp: Long) {
-        val location = _siteLocation.value.takeIf { it != TE.Location.NONE }
-        val arrow = _siteArrow.value.takeIf { it != TE.Arrow.NONE }
-        aapsLogger.error(LTag.PUMP, "saveSiteLocationToTherapyEvent NOT IMPLEMENTED")
-        if (location != null || arrow != null) {
-
-            // scope.launch {
-            //     try {
-            //         val entries = persistenceLayer.getTherapyEventDataFromToTime(activationTimestamp, activationTimestamp)
-            //             .filter { it.type == TE.Type.CANNULA_CHANGE }
-            //         entries.firstOrNull()?.let { te ->
-            //             persistenceLayer.insertOrUpdateTherapyEvent(te.copy(location = location, arrow = arrow))
-            //         }
-            //     } catch (_: Exception) {
-            //         // location is optional
-            //     }
-            // }
         }
     }
 
