@@ -49,7 +49,6 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.ui.compose.siteRotation.SiteLocationPicker
-import app.aaps.core.ui.compose.siteRotation.SiteLocationWizardStep
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
@@ -225,6 +224,8 @@ fun FillTubingScreen(
         onBack = ::requestCancelOrBack,
         resourceHelper = resourceHelper,
         showHeader = showHeader,
+        // The site picker sizes itself with Modifier.weight() and needs a bounded height.
+        scrollableBody = !isInSiteSelectionMode,
         stepIndicator = {
             WizardStepIndicator(
                 currentStep = currentStep,
@@ -239,7 +240,17 @@ fun FillTubingScreen(
         body = {
             if (isInSiteSelectionMode) {
                 aapsLogger.error(TAG, "In Site Location Wizard Step")
-                SiteLocationWizardStep(host = coreCartridgeActionsModel)
+
+                SiteLocationPicker(
+                    siteType = TE.Type.CANNULA_CHANGE,
+                    bodyType = coreCartridgeActionsModel.bodyType(),
+                    entries = coreCartridgeActionsModel.siteRotationEntries(),
+                    selectedLocation = siteLocation,
+                    selectedArrow = siteArrow,
+                    onLocationSelected = { coreCartridgeActionsModel.updateSiteLocation(it) },
+                    onArrowSelected = { coreCartridgeActionsModel.updateSiteArrow(it) },
+                    modifier = Modifier.padding(innerPadding)
+                )
             } else if (exitFillTubingState.value != null) {
                 Text(
                     text = resourceHelper.gs(R.string.ca_status_heading),

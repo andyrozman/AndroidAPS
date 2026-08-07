@@ -57,6 +57,13 @@ fun CartridgeWorkflowScreen(
     sendPumpCommands: (List<Message>) -> Boolean,
     refreshScope: CoroutineScope,
     showHeader: Boolean = true,
+    /**
+     * Whether the [body] slot scrolls. Keep `true` for text-based steps. Set to `false` when [body]
+     * hosts a component that sizes itself with `Modifier.weight()` (e.g. the site location picker):
+     * a scrollable parent measures its children with an unbounded height, which collapses every
+     * weighted child to 0 px.
+     */
+    scrollableBody: Boolean = true,
     aapsLogger: AAPSLogger? = null,
     stepIndicator: @Composable () -> Unit = {},
     body: @Composable ColumnScope.() -> Unit,
@@ -92,7 +99,6 @@ fun CartridgeWorkflowScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(
                     top = innerPadding.calculateTopPadding(),
                     bottom = innerPadding.calculateBottomPadding(),
@@ -113,13 +119,16 @@ fun CartridgeWorkflowScreen(
                 }
                 CartridgeNotificationsPanel(resourceHelper = resourceHelper)
             }
+            // Body takes the remaining height, so the action bar stays pinned to the bottom and
+            // weight-based content in [body] gets a bounded height to measure against.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1f)
+                    .then(if (scrollableBody) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                     .padding(16.dp),
                 content = body,
             )
-            Spacer(modifier = Modifier.weight(1f))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
