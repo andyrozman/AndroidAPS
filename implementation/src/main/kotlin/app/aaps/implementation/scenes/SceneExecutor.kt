@@ -21,7 +21,6 @@ import app.aaps.core.data.ui.ConfirmationRole
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.bolus.WizardBolusExecutor
 import app.aaps.core.interfaces.db.PersistenceLayer
-import app.aaps.core.interfaces.insulin.Insulin
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
@@ -55,7 +54,6 @@ import app.aaps.core.ui.compose.formatMinutesAsDuration
 @Singleton
 class SceneExecutor @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val insulin: Insulin,
     private val persistenceLayer: PersistenceLayer,
     private val profileFunction: ProfileFunction,
     private val profileRepository: ProfileRepository,
@@ -163,7 +161,6 @@ class SceneExecutor @Inject constructor(
      * @return Result of the execution
      */
     suspend fun activate(scene: Scene, durationMinutes: Int = scene.defaultDurationMinutes): SceneExecutionResult {
-        aapsLogger.info(LTag.UI, "XXXX activate() entry scene='${scene.name}' id=${scene.id} duration=${durationMinutes}min actions=${scene.actions.size}")
 
         // Defensive precondition gate — covers automation rules and races
         // where UI state lagged behind reality. UI normally disables the entry
@@ -183,41 +180,24 @@ class SceneExecutor @Inject constructor(
         //   scheduleExpiryWorker handles any leftover work.
         if (activeSceneManager.isActive()) {
             val previouslyExpired = activeSceneManager.isExpired()
-            aapsLogger.info(LTag.UI, "XXXX activate() — winding down previous active scene '${activeSceneManager.getActiveState()?.scene?.name}' expired=$previouslyExpired")
             if (!previouslyExpired) {
                 deactivate()
             } else {
                 activeSceneManager.clearActive()
             }
         } else {
-            aapsLogger.info(LTag.UI, "XXXX activate() — no previous active scene")
         }
 
         val now = dateUtil.now()
         val durationMs = T.mins(durationMinutes.toLong()).msecs()
-        aapsLogger.info(LTag.UI, "XXXX activate() now=$now durationMs=$durationMs")
 
         // Capture pre-activation SMB flag (the only "truly prior" state) before making changes.
-        aapsLogger.info(LTag.UI, "XXXX activate() calling capturePriorSmb()")
-        val priorSmb = try {
-            capturePriorSmb(scene)
-        } catch (e: Throwable) {
-            aapsLogger.error(LTag.UI, "XXXX activate() capturePriorSmb FAILED", e)
-            throw e
-        }
-        aapsLogger.info(LTag.UI, "XXXX activate() capturePriorSmb() returned: $priorSmb")
+        val priorSmb = capturePriorSmb(scene)
 
         // Execute each action
         val actionResults = mutableListOf<SceneExecutionResult.ActionResult>()
-        for ((idx, action) in scene.actions.withIndex()) {
-            aapsLogger.info(LTag.UI, "XXXX activate() executing action $idx/${scene.actions.size}: ${action::class.simpleName}")
-            val result = try {
-                executeAction(action, durationMinutes, now)
-            } catch (e: Throwable) {
-                aapsLogger.error(LTag.UI, "XXXX activate() executeAction #$idx FAILED", e)
-                throw e
-            }
-            aapsLogger.info(LTag.UI, "XXXX activate() action $idx result: success=${result.success} err=${result.errorMessage}")
+        for (action in scene.actions) {
+            val result = executeAction(action, durationMinutes, now)
             actionResults.add(result)
         }
 
@@ -237,15 +217,12 @@ class SceneExecutor @Inject constructor(
             priorSmb = priorSmb,
             scopedRecords = scopedRecords
         )
-        aapsLogger.info(LTag.UI, "XXXX activate() setting active state for '${scene.name}'")
         activeSceneManager.setActive(activeState)
 
         // Schedule expiry notification if duration-based
         if (durationMs > 0) {
-            aapsLogger.info(LTag.UI, "XXXX activate() scheduling expiry worker in ${durationMs}ms")
             scheduleExpiryWorker(scene.name, durationMs)
         } else {
-            aapsLogger.info(LTag.UI, "XXXX activate() durationMs==0, no expiry worker scheduled (indefinite)")
         }
 
         // Log user entry
@@ -310,13 +287,10 @@ class SceneExecutor @Inject constructor(
      * Marks the scene as expired so the banner shows "Dismiss" instead of "End Scene".
      */
     suspend fun onExpiry() {
-        aapsLogger.info(LTag.UI, "XXXX onExpiry() entry")
         val activeState = activeSceneManager.getActiveState()
         if (activeState == null) {
-            aapsLogger.info(LTag.UI, "XXXX onExpiry() — no active state, returning")
             return
         }
-        aapsLogger.info(LTag.UI, "XXXX onExpiry() scene='${activeState.scene.name}' endAction=${activeState.scene.endAction}")
 
         val now = dateUtil.now()
 
@@ -332,14 +306,12 @@ class SceneExecutor @Inject constructor(
         // TT / LoopMode / CarePortal records self-expire via their own timestamp+duration queries.
         for (action in activeState.scene.actions) {
             if (action is SceneAction.SmbToggle || action is SceneAction.ProfileSwitch) {
-                aapsLogger.info(LTag.UI, "XXXX onExpiry() reverting ${action::class.simpleName}")
                 revertAction(action, activeState, now)
             }
         }
 
         // Mark as expired (keep state for banner display) instead of clearing.
         // Lifecycle change rides the existing RunningConfigurationPublisher cycle to clients.
-        aapsLogger.info(LTag.UI, "XXXX onExpiry() calling markExpired()")
         activeSceneManager.markExpired()
 
         // Log
@@ -433,7 +405,10 @@ class SceneExecutor @Inject constructor(
                     // Use the BASE profile name as fallback — getProfileName() returns the display name
                     // including temp-% suffix (e.g. "Test (60%)"), which doesn't exist in the profile store.
                     val profileName = action.profileName.ifEmpty { profileFunction.getOriginalProfileName() }
-                    if (store != null) {
+                    // The switch has to record an insulin. A scene runs unattended, so with nothing in force there is
+                    // nobody to ask — fail the action rather than stamp an arbitrary catalogue entry onto it.
+                    val iCfg = profileFunction.getRunningOrRequestedICfg()
+                    if (store != null && iCfg != null) {
                         // Scene-driven profile write: suppress the central "Basal profile in pump updated"
                         // notification for the pump write this insert triggers (issue #4959). createProfileSwitch
                         // wrote a PS row (and will emit) iff it returns non-null; silencedProfileWrite resets the
@@ -454,7 +429,7 @@ class SceneExecutor @Inject constructor(
                                     ValueWithUnit.Percent(action.percentage),
                                     ValueWithUnit.Minute(sceneDurationMinutes)
                                 ),
-                                iCfg = insulin.iCfg
+                                iCfg = iCfg
                             )
                         }
                         SceneExecutionResult.ActionResult(
@@ -463,8 +438,10 @@ class SceneExecutor @Inject constructor(
                             recordId = ps?.id,
                             errorMessage = if (ps == null) "createProfileSwitch returned null for '$profileName'" else null
                         )
-                    } else {
+                    } else if (store == null) {
                         SceneExecutionResult.ActionResult(action, success = false, errorMessage = rh.gs(CoreUiR.string.scene_no_profile_store))
+                    } else {
+                        SceneExecutionResult.ActionResult(action, success = false, errorMessage = rh.gs(CoreUiR.string.profile_switch_no_insulin))
                     }
                 }
 

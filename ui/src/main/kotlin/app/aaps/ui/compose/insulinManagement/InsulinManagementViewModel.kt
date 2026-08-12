@@ -421,11 +421,11 @@ class InsulinManagementViewModel @Inject constructor(
         editedICfg.setPeak(state.editorPeakMinutes)
 
         // Validation
-        if (editedICfg.dia < hardLimits.minDia() || editedICfg.dia > hardLimits.maxDia()) {
+        if (editedICfg.dia !in hardLimits.diaRange()) {
             showSnackbar(rh.gs(CoreUiR.string.value_out_of_hard_limits, rh.gs(CoreUiR.string.insulin_dia), editedICfg.dia))
             return false
         }
-        if (editedICfg.peak < hardLimits.minPeak() || editedICfg.peak > hardLimits.maxPeak()) {
+        if (editedICfg.peak !in hardLimits.peakRange()) {
             showSnackbar(rh.gs(CoreUiR.string.value_out_of_hard_limits, rh.gs(CoreUiR.string.insulin_peak), editedICfg.peak.toDouble()))
             return false
         }
@@ -466,7 +466,8 @@ class InsulinManagementViewModel @Inject constructor(
         _uiState.update { it.copy(insulins = insulinManager.insulins.map { it.deepClone() }) }
 
         lastAppliedConfig = preferences.get(StringNonKey.InsulinConfiguration) // mark as our own write
-        loadData(targetIndex = insulinManager.currentInsulinIndex, reload = false, autoName = state.autoNameEnabled, saveAfterAutoName = true)
+        // addNewInsulin appends, so the card to open is the last one.
+        loadData(targetIndex = insulinManager.insulins.lastIndex, reload = false, autoName = state.autoNameEnabled, saveAfterAutoName = true)
     }
 
     fun deleteCurrentInsulin(): Boolean {
@@ -481,8 +482,7 @@ class InsulinManagementViewModel @Inject constructor(
             return false
         }
 
-        insulinManager.currentInsulinIndex = state.currentCardIndex
-        insulinManager.removeCurrentInsulin() // persists internally (storeSettings)
+        insulinManager.removeInsulin(state.currentCardIndex) // persists internally (storeSettings)
 
         lastAppliedConfig = preferences.get(StringNonKey.InsulinConfiguration) // mark as our own write
         // Full resync in one atomic update: insulins + coerced index + editor for the new current card.
@@ -564,6 +564,7 @@ class InsulinManagementViewModel @Inject constructor(
     val concentrationEnabled: Boolean
         get() = preferences.get(BooleanKey.GeneralInsulinConcentration)
 
-    fun diaRange(): ClosedFloatingPointRange<Double> = hardLimits.minDia()..hardLimits.maxDia()
-    fun peakRange(): ClosedFloatingPointRange<Double> = hardLimits.minPeak().toDouble()..hardLimits.maxPeak().toDouble()
+    fun diaRange(): ClosedFloatingPointRange<Double> = hardLimits.diaRange()
+    /** Peak limits as a Double range, because the sliders work with Double. */
+    fun peakRange(): ClosedFloatingPointRange<Double> = hardLimits.peakRange().let { it.first.toDouble()..it.last.toDouble() }
 }

@@ -9,14 +9,13 @@ import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
-import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.configuration.ConfigBuilder
 import app.aaps.core.interfaces.configuration.ExternalOptions
-import app.aaps.core.interfaces.insulin.Insulin
+import app.aaps.core.interfaces.insulin.InsulinManager
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.profile.ProfileFunction
@@ -72,7 +71,7 @@ abstract class AbstractDanaEmulatorUiTest {
     @Inject lateinit var configBuilder: ConfigBuilder
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var profileRepository: ProfileRepository
-    @Inject lateinit var insulin: Insulin
+    @Inject lateinit var insulinManager: InsulinManager
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var config: Config
@@ -220,8 +219,9 @@ abstract class AbstractDanaEmulatorUiTest {
             }
         ) { "The profile store never published '$PROFILE_NAME'" }
 
-        // Mirrors ActionProfileSwitch: an indefinite 100% switch to the seeded profile, on the
-        // running insulin config (this test does not vary insulin).
+        // Mirrors ActionProfileSwitch: an indefinite 100% switch to the seeded profile. This is the FIRST
+        // switch on a fresh install, so nothing is in force yet and there is no "current insulin" to inherit
+        // — the seeded catalogue entry is picked explicitly, which is what the user does when filling.
         val switch = runBlocking {
             profileFunction.createProfileSwitch(
                 profileStore = store,
@@ -233,7 +233,7 @@ abstract class AbstractDanaEmulatorUiTest {
                 action = Action.PROFILE_SWITCH,
                 source = Sources.Aaps,
                 listValues = emptyList(),
-                iCfg = insulin.iCfg
+                iCfg = insulinManager.insulins.first()
             )
         }
         checkNotNull(switch) {
@@ -322,23 +322,13 @@ abstract class AbstractDanaEmulatorUiTest {
      * completes — tapping into that window is what mis-fired onto Unpair and timed out on absent
      * buttons.
      */
-    protected fun queueIdle() = commandQueue.size() == 0 && commandQueue.performing() == null && !queueWorkerRunning()
-
-    /**
-     * Whether WorkManager still has the command-queue worker alive.
-     *
-     * The queue emptying (`size()==0 && performing==null`) is *not* the same as the worker being
-     * gone: after its last command the `QueueWorker` still runs a "queue empty → disconnect → exit"
-     * tail, during which WorkManager reports it RUNNING. A command added in that window is stranded —
-     * `CommandQueueImplementation.notifyAboutNewCommand` skips scheduling a new worker while one is
-     * still running (`if (!workIsRunning())`), and the dying worker never re-polls the queue. That is
-     * the intermittent "bolus recorded but never delivered" flake, so idle has to mean the worker is
-     * actually finished too. Mirrors `CommandQueueImplementation.workIsRunning`.
-     */
-    private fun queueWorkerRunning(): Boolean =
-        WorkManager.getInstance(instrumentation.targetContext)
-            .getWorkInfosForUniqueWork(QUEUE_WORK_NAME).get()
-            .any { it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.BLOCKED }
+    // With the app-owned CommandExecutor, an empty queue with nothing performing is a sufficient idle
+    // signal. The old "is the WorkManager worker still running its disconnect tail?" check existed only
+    // to avoid a stranded command: the dying worker never re-polled the queue and
+    // notifyAboutNewCommand skipped scheduling a new one while it was still RUNNING. The single
+    // long-lived loop removes that race — signal() buffers a conflated wake it consumes on the next
+    // receive(), re-draining instead of stranding — so the worker-liveness check is gone.
+    protected fun queueIdle() = commandQueue.size() == 0 && commandQueue.performing() == null
 
     /** Blocks until [queueIdle], then lets the resulting recomposition land. */
     protected fun waitForQueueIdle() {
@@ -615,8 +605,6 @@ abstract class AbstractDanaEmulatorUiTest {
 
         private const val INIT_PUMP_TIMEOUT = 60_000L
         private const val QUEUE_IDLE_TIMEOUT = 60_000L
-        /** The command queue's WorkManager unique-work name (CommandQueueModule.commandQueueJobName). */
-        private const val QUEUE_WORK_NAME = "CommandQueue"
         private const val PROFILE_STORE_TIMEOUT = 20_000L
         private const val BOLUS_TIMEOUT = 60_000L
         private const val COMMAND_TIMEOUT = 60_000L
