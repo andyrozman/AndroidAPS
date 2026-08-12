@@ -3,9 +3,13 @@
 package app.aaps.pump.tandem.mobi.ui.actions.cartridge
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +31,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.insulin.SelectInsulin
+import app.aaps.core.ui.compose.pump.StepProgressIndicator
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
@@ -58,6 +64,7 @@ fun ChangeCartridgeScreen(
     navigateBack: () -> Unit,
     refreshMainAppData: (RefreshData) -> Unit,
     showHeader: Boolean = true,
+    onStepChanged: (Int) -> Unit,
     coreCartridgeActionsModel: CoreCartridgeActionsModel
 ) {
     val ds = LocalTandemDataStore.current
@@ -197,11 +204,14 @@ fun ChangeCartridgeScreen(
         onBack = ::requestCancelOrBack,
         resourceHelper = resourceHelper,
         showHeader = showHeader,
+        showBack = (currentStep == 1),
+        onStepChanged = onStepChanged,
+        currentStep = currentStep,
         stepIndicator = {
-            WizardStepIndicator(
-                currentStep = currentStep,
-                totalSteps = totalSteps,
-                resourceHelper = resourceHelper,
+            StepProgressIndicator(
+                currentStep = currentStep -1,
+                totalSteps = totalSteps //,
+                //resourceHelper = resourceHelper,
             )
         },
         notifications = notifications,
@@ -302,72 +312,87 @@ fun ChangeCartridgeScreen(
             }
         },
         actions = {
-            if (isInInsulinSelectionMode) {
-                PrimaryActionButton(
-                    text = resourceHelper.gs(R.string.common_done),
-                    onClick = {
-                        coreCartridgeActionsModel.executeInsulinProfileSwitch()
-                        navigateBack()
-                    }
-                )
-            } else if (detectingCartridgeState.value?.isComplete == true) {
-                if (totalSteps==5) {
-                    PrimaryActionButton(
-                        text = resourceHelper.gs(R.string.cc_to_insulin_selection),
-                        onClick = {
-                            ds.completedCartridgeActions.value =
-                                setOf(CompletedCartridgeAction.CHANGE_CARTRIDGE)
-                            ds.loadStatus.value = null
-                            isInInsulinSelectionMode = true
-                        }
-                    )
-                } else {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = AapsSpacing.extraLarge),
+                horizontalArrangement = Arrangement.spacedBy(AapsSpacing.large)
+            ) {
+
+                if (isInInsulinSelectionMode) {
                     PrimaryActionButton(
                         text = resourceHelper.gs(R.string.common_done),
                         onClick = {
-                            ds.completedCartridgeActions.value =
-                                setOf(CompletedCartridgeAction.CHANGE_CARTRIDGE)
-                            ds.loadStatus.value = null
-                            refreshScope.launch { navigateBack() }
-                        }
+                            coreCartridgeActionsModel.executeInsulinProfileSwitch()
+                            navigateBack()
+                        },
+                        modifier = Modifier.weight(1f)
                     )
-                }
-            } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
-                PrimaryActionButton(
-                    text = resourceHelper.gs(R.string.cc_btn_cart_inserted),
-                    onClick = {
-                        refreshScope.launch {
-                            sendPumpCommand(ExitChangeCartridgeModeRequest())
-                        }
+                } else if (detectingCartridgeState.value?.isComplete == true) {
+                    if (totalSteps == 5) {
+                        PrimaryActionButton(
+                            text = resourceHelper.gs(R.string.cc_to_insulin_selection),
+                            onClick = {
+                                ds.completedCartridgeActions.value =
+                                    setOf(CompletedCartridgeAction.CHANGE_CARTRIDGE)
+                                ds.loadStatus.value = null
+                                isInInsulinSelectionMode = true
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        PrimaryActionButton(
+                            text = resourceHelper.gs(R.string.common_done),
+                            onClick = {
+                                ds.completedCartridgeActions.value =
+                                    setOf(CompletedCartridgeAction.CHANGE_CARTRIDGE)
+                                ds.loadStatus.value = null
+                                refreshScope.launch { navigateBack() }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
-                )
-            } else if (inChangeCartridgeMode.value != true) {
-                if (pumpRunningState.value != PumpRunningState.Suspended) {
-                    SecondaryActionButton(
-                        text = resourceHelper.gs(R.string.ca_btn_suspend_insulin),
-                        onClick = { showSuspendDialog = true },
-                        enabled = !hasActiveNotifications,
-                        loading = isSuspending
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                PrimaryActionButton(
-                    text = resourceHelper.gs(R.string.cc_btn_begin),
-                    onClick = {
-                        isStartingChangeCartridge = true
-                        sendPumpCommand(EnterChangeCartridgeModeRequest())
-                        refreshScope.launch {
-                            // 5s watchdog so the spinner doesn't stick.
-                            repeat(5) {
-                                if (inChangeCartridgeMode.value == true) return@repeat
-                                withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                } else if (enterChangeCartridgeState.value?.state == EnterChangeCartridgeModeStateStreamResponse.ChangeCartridgeState.READY_TO_CHANGE) {
+                    PrimaryActionButton(
+                        text = resourceHelper.gs(R.string.cc_btn_cart_inserted),
+                        onClick = {
+                            refreshScope.launch {
+                                sendPumpCommand(ExitChangeCartridgeModeRequest())
                             }
-                            isStartingChangeCartridge = false
-                        }
-                    },
-                    enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications,
-                    loading = isStartingChangeCartridge
-                )
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                } else if (inChangeCartridgeMode.value != true) {
+                    if (pumpRunningState.value != PumpRunningState.Suspended) {
+                        SecondaryActionButton(
+                            text = resourceHelper.gs(R.string.ca_btn_suspend_insulin),
+                            onClick = { showSuspendDialog = true },
+                            enabled = !hasActiveNotifications,
+                            loading = isSuspending,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                    }
+                    PrimaryActionButton(
+                        text = resourceHelper.gs(R.string.cc_btn_begin),
+                        onClick = {
+                            isStartingChangeCartridge = true
+                            sendPumpCommand(EnterChangeCartridgeModeRequest())
+                            refreshScope.launch {
+                                // 5s watchdog so the spinner doesn't stick.
+                                repeat(5) {
+                                    if (inChangeCartridgeMode.value == true) return@repeat
+                                    withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                                }
+                                isStartingChangeCartridge = false
+                            }
+                        },
+                        enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications,
+                        loading = isStartingChangeCartridge,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     )

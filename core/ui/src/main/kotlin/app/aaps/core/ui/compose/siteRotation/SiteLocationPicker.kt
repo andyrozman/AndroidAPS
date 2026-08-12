@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -65,10 +66,14 @@ fun SiteLocationPicker(
     onLocationSelected: (TE.Location) -> Unit,
     onArrowSelected: (TE.Arrow) -> Unit,
     modifier: Modifier = Modifier,
+    showSitesSelector: Boolean = true,
+    compactView: Boolean = false,
     selectedLocationString: String? = null
 ) {
     var showPumpSites by rememberSaveable { mutableStateOf(siteType == TE.Type.CANNULA_CHANGE) }
     var showCgmSites by rememberSaveable { mutableStateOf(siteType == TE.Type.SENSOR_CHANGE) }
+
+    var sitesSelectionsVisible by rememberSaveable { mutableStateOf(!compactView) }
 
     val isPumpType = siteType == TE.Type.CANNULA_CHANGE
     val isCgmType = siteType == TE.Type.SENSOR_CHANGE
@@ -117,63 +122,77 @@ fun SiteLocationPicker(
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
+
+            IconButton(
+                onClick = { sitesSelectionsVisible = !sitesSelectionsVisible },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = IcCannulaChange,
+                    contentDescription = stringResource(R.string.select_arrow),
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AapsSpacing.extraLarge, vertical = AapsSpacing.medium),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            MultiChoiceSegmentedButtonRow(modifier = Modifier.weight(1f)) {
-                SegmentedButton(
-                    checked = effectiveShowPumpSites,
-                    onCheckedChange = { if (!isPumpType) showPumpSites = it },
-                    enabled = !isPumpType,
-                    shape = SegmentedButtonDefaults.itemShape(0, 2),
-                    icon = {}
-                ) {
-                    Icon(
-                        imageVector = IcCannulaChange,
-                        contentDescription = stringResource(R.string.careportal_pump_site_management),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                SegmentedButton(
-                    checked = effectiveShowCgmSites,
-                    onCheckedChange = { if (!isCgmType) showCgmSites = it },
-                    enabled = !isCgmType,
-                    shape = SegmentedButtonDefaults.itemShape(1, 2),
-                    icon = {}
-                ) {
-                    Icon(
-                        imageVector = IcCgmInsert,
-                        contentDescription = stringResource(R.string.careportal_cgm_site_management),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            val tooltipState = remember { TooltipState() }
-            val scope = rememberCoroutineScope()
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-                tooltip = {
-                    PlainTooltip {
-                        Text(stringResource(R.string.site_filter_info))
-                    }
-                },
-                state = tooltipState
+        if (sitesSelectionsVisible) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AapsSpacing.extraLarge, vertical = AapsSpacing.medium),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = { scope.launch { tooltipState.show() } },
-                    modifier = Modifier.size(32.dp)
+                MultiChoiceSegmentedButtonRow(modifier = Modifier.weight(1f)) {
+                    SegmentedButton(
+                        checked = effectiveShowPumpSites,
+                        onCheckedChange = { if (!isPumpType) showPumpSites = it },
+                        enabled = !isPumpType,
+                        shape = SegmentedButtonDefaults.itemShape(0, 2),
+                        icon = {}
+                    ) {
+                        Icon(
+                            imageVector = IcCannulaChange,
+                            contentDescription = stringResource(R.string.careportal_pump_site_management),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    SegmentedButton(
+                        checked = effectiveShowCgmSites,
+                        onCheckedChange = { if (!isCgmType) showCgmSites = it },
+                        enabled = !isCgmType,
+                        shape = SegmentedButtonDefaults.itemShape(1, 2),
+                        icon = {}
+                    ) {
+                        Icon(
+                            imageVector = IcCgmInsert,
+                            contentDescription = stringResource(R.string.careportal_cgm_site_management),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                val tooltipState = remember { TooltipState() }
+                val scope = rememberCoroutineScope()
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+                    tooltip = {
+                        PlainTooltip {
+                            Text(stringResource(R.string.site_filter_info))
+                        }
+                    },
+                    state = tooltipState
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    IconButton(
+                        onClick = { scope.launch { tooltipState.show() } },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
@@ -230,9 +249,15 @@ fun SiteLocationPicker(
                 entries = displayEntries,
                 showEditButton = false,
                 onEntryClick = { onLocationSelected(it.location) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                modifier = if (compactView) {
+                    Modifier
+                        .fillMaxWidth()
+                        .height(80.dp)
+                } else {
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                }
             )
         }
     }

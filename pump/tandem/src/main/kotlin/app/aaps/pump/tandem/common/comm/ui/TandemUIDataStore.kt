@@ -96,6 +96,7 @@ class TandemUIDataStore : TandemUiState, TandemUiStateWriter {
 
     //
     val requestInsulinLoadData = MutableLiveData(false)
+    val preventQueueFlagSetting = MutableLiveData(false)
 
 
     // DATA ----------------------------------

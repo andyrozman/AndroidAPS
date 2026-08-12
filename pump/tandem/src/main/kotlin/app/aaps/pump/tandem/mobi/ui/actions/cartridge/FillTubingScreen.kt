@@ -3,6 +3,7 @@
 package app.aaps.pump.tandem.mobi.ui.actions.cartridge
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -48,12 +49,16 @@ import app.aaps.core.data.model.TE
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.ui.compose.AapsSpacing
+import app.aaps.core.ui.compose.pump.StepProgressIndicator
 import app.aaps.core.ui.compose.siteRotation.SiteLocationPicker
 import app.aaps.core.ui.compose.siteRotation.SiteLocationWizardStep
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
+import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModelInterface
+import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModelTest
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
@@ -83,8 +88,10 @@ fun FillTubingScreen(
     navigateBack: () -> Unit,
     refreshMainAppData: (RefreshData) -> Unit,
     showHeader: Boolean = true,
+    onStepChanged: (Int) -> Unit,
+
     //showSiteSelection: Boolean = false,
-    coreCartridgeActionsModel: CoreCartridgeActionsModel
+    coreCartridgeActionsModel: CoreCartridgeActionsModelInterface
 ) {
     val ds = LocalTandemDataStore.current
     @Suppress("PropertyName")
@@ -99,6 +106,7 @@ fun FillTubingScreen(
     var isCompletingFillTubing by remember { mutableStateOf(false) }
     var showDisconnectConfirmDialog by remember { mutableStateOf(false) }
 
+    // TODO this is for testing only (true, original value false)
     var isInSiteSelectionMode by remember { mutableStateOf(false) }
 
 
@@ -208,6 +216,7 @@ fun FillTubingScreen(
         )
     }
 
+
     val totalSteps = if (displaySiteStep) 5 else 4
     val currentStep = when {
         isInSiteSelectionMode -> 5
@@ -225,20 +234,27 @@ fun FillTubingScreen(
         onBack = ::requestCancelOrBack,
         resourceHelper = resourceHelper,
         showHeader = showHeader,
+        showBack = (currentStep == 1),
+        // The site picker sizes itself with Modifier.weight() and needs a bounded height.
+        scrollableBody = !isInSiteSelectionMode,
         stepIndicator = {
-            WizardStepIndicator(
-                currentStep = currentStep,
-                totalSteps = totalSteps,
-                resourceHelper = resourceHelper,
+            StepProgressIndicator(
+                currentStep = currentStep - 1,
+                totalSteps = totalSteps //,
+                //resourceHelper = resourceHelper,
             )
         },
         notifications = notifications,
         sendPumpCommands = sendPumpCommands,
         refreshScope = refreshScope,
+        onStepChanged = onStepChanged,
+        currentStep = currentStep,
         coreCartridgeActionsModel = coreCartridgeActionsModel,
         body = {
             if (isInSiteSelectionMode) {
                 aapsLogger.error(TAG, "In Site Location Wizard Step")
+
+                //SiteLocationWizardStep(host = coreCartridgeActionsModel)
 
                 SiteLocationPicker(
                     siteType = TE.Type.CANNULA_CHANGE,
@@ -248,7 +264,8 @@ fun FillTubingScreen(
                     selectedArrow = siteArrow,
                     onLocationSelected = { coreCartridgeActionsModel.updateSiteLocation(it) },
                     onArrowSelected = { coreCartridgeActionsModel.updateSiteArrow(it) },
-                    modifier = Modifier.padding(innerPadding)
+                    showSitesSelector = true, // TODO rrr
+                    compactView = true
                 )
 
             } else if (exitFillTubingState.value != null) {
@@ -448,122 +465,120 @@ fun FillTubingScreen(
             }
         },
         actions = {
-            if (isInSiteSelectionMode) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = AapsSpacing.extraLarge),
+                horizontalArrangement = Arrangement.spacedBy(AapsSpacing.large)
+            ) {
+
+                if (isInSiteSelectionMode) {
 
                     SecondaryActionButton(
                         text = resourceHelper.gs(R.string.common_exit),
                         onClick = {
                             coreCartridgeActionsModel.skipSiteLocation()
+                            isInSiteSelectionMode = false
                             navigateBack()
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
+                        modifier = Modifier.weight(1f)
                     )
                     PrimaryActionButton(
                         text = resourceHelper.gs(R.string.common_done),
                         onClick = {
                             coreCartridgeActionsModel.completeSiteLocation()
+                            isInSiteSelectionMode = false
                             navigateBack()
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
+                        modifier = Modifier.weight(1f)
                     )
-                }
-            } else if (exitFillTubingState.value != null) {
-                if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
-                    if (willRestartFill) {
-                        PrimaryActionButton(
-                            text = resourceHelper.gs(R.string.ft_btn_restart),
-                            onClick = {
-                                ds.exitFillTubingState.value = null
-                                willRestartFill = false
-                                sendPumpCommands(listOf(EnterFillTubingModeRequest()))
-                            },
-                            enabled = pumpRunningState.value == PumpRunningState.Suspended
-                        )
-                    } else {
-                        PrimaryActionButton(
-                            text = if (displaySiteStep)
-                                        resourceHelper.gs(R.string.ft_to_site_selection)
-                                   else
-                                        resourceHelper.gs(R.string.common_done),
-                            onClick = {
-                                ds.completedCartridgeActions.value =
-                                    (ds.completedCartridgeActions.value ?: emptySet()) +
-                                        CompletedCartridgeAction.FILL_TUBING
-                                ds.loadStatus.value = null
-                                aapsLogger.error(TAG, "To Site Selection Pressed: showSiteSelection: ${displaySiteStep}")
-                                if (displaySiteStep) {
-                                    isInSiteSelectionMode = true
-                                    coreCartridgeActionsModel.hideNotifications()
-                                } else {
-                                    navigateBack()
-                                }
-                            },
-                            enabled = pumpRunningState.value == PumpRunningState.Suspended
-                        )
-                    }
-                }
-            } else if (inFillTubingMode.value == true) {
-                if (fillTubingState.value?.buttonDown == false) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                refreshScope.launch {
-                                    sendPumpCommands(listOf(ExitFillTubingModeRequest()))
-                                    willRestartFill = true
-                                }
-                            },
-                            enabled = pumpRunningState.value == PumpRunningState.Suspended,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondary
-                            )
-                        ) {
-                            Text(
+
+                } else if (exitFillTubingState.value != null) {
+                    if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
+                        if (willRestartFill) {
+                            PrimaryActionButton(
                                 text = resourceHelper.gs(R.string.ft_btn_restart),
-                                style = MaterialTheme.typography.titleMedium
+                                onClick = {
+                                    ds.exitFillTubingState.value = null
+                                    willRestartFill = false
+                                    sendPumpCommands(listOf(EnterFillTubingModeRequest()))
+                                },
+                                enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            PrimaryActionButton(
+                                text = if (displaySiteStep)
+                                    resourceHelper.gs(R.string.ft_to_site_selection)
+                                else
+                                    resourceHelper.gs(R.string.common_done),
+                                onClick = {
+                                    ds.completedCartridgeActions.value =
+                                        (ds.completedCartridgeActions.value ?: emptySet()) +
+                                            CompletedCartridgeAction.FILL_TUBING
+                                    ds.loadStatus.value = null
+                                    aapsLogger.error(TAG, "To Site Selection Pressed: showSiteSelection: ${displaySiteStep}")
+                                    if (displaySiteStep) {
+                                        isInSiteSelectionMode = true
+                                        coreCartridgeActionsModel.hideNotifications()
+                                    } else {
+                                        navigateBack()
+                                    }
+                                },
+                                enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                                modifier = Modifier.weight(1f)
                             )
                         }
-                        PrimaryActionButton(
-                            text = resourceHelper.gs(R.string.ft_btn_complete),
-                            onClick = {
-                                isCompletingFillTubing = true
-                                sendPumpCommands(listOf(ExitFillTubingModeRequest()))
-                                refreshScope.launch {
-                                    repeat(5) {
-                                        if (exitFillTubingState.value != null) return@repeat
-                                        withContext(Dispatchers.IO) { Thread.sleep(1000) }
-                                    }
-                                    isCompletingFillTubing = false
-                                }
-                            },
-                            enabled = pumpRunningState.value == PumpRunningState.Suspended && hasDisplayedFlow,
-                            loading = isCompletingFillTubing,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
-                        )
                     }
+                } else if (inFillTubingMode.value == true) {
+                    if (fillTubingState.value?.buttonDown == false) {
+                        SecondaryActionButton(
+                            text = resourceHelper.gs(R.string.ft_btn_restart),
+                                onClick = {
+                                    refreshScope.launch {
+                                        sendPumpCommands(listOf(ExitFillTubingModeRequest()))
+                                        willRestartFill = true
+                                    }
+                                },
+                                enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                                modifier = Modifier.weight(1f)
+                                // modifier = Modifier
+                                //     .weight(1f)
+                                //     .height(56.dp),
+                                // colors = ButtonDefaults.buttonColors(
+                                //     containerColor = MaterialTheme.colorScheme.secondary
+                                // )
+                            )
+                            PrimaryActionButton(
+                                text = resourceHelper.gs(R.string.ft_btn_complete),
+                                onClick = {
+                                    isCompletingFillTubing = true
+                                    sendPumpCommands(listOf(ExitFillTubingModeRequest()))
+                                    refreshScope.launch {
+                                        repeat(5) {
+                                            if (exitFillTubingState.value != null) return@repeat
+                                            withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                                        }
+                                        isCompletingFillTubing = false
+                                    }
+                                },
+                                enabled = pumpRunningState.value == PumpRunningState.Suspended && hasDisplayedFlow,
+                                loading = isCompletingFillTubing,
+                                modifier = Modifier
+                                    .weight(1f)
+                            )
+
+                    }
+                } else {
+                    PrimaryActionButton(
+                        text = resourceHelper.gs(R.string.ft_btn_begin),
+                        onClick = { showDisconnectConfirmDialog = true },
+                        enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications,
+                        loading = isStartingFillTubing,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-            } else {
-                PrimaryActionButton(
-                    text = resourceHelper.gs(R.string.ft_btn_begin),
-                    onClick = { showDisconnectConfirmDialog = true },
-                    enabled = pumpRunningState.value == PumpRunningState.Suspended && !hasActiveNotifications,
-                    loading = isStartingFillTubing
-                )
             }
         }
     )
@@ -595,3 +610,29 @@ val fillTubingScreenCommands = listOf(
 //         }
 //     }
 // }
+
+@Preview(showBackground = true)
+@Composable
+private fun FillTubingScreenPreview() {
+    MaterialTheme() {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White,
+        ) {
+            setUpPreviewState(LocalTandemDataStore.current)
+            FillTubingScreen(
+                sendPumpCommands = { _ -> true },
+                navigateBack = {},
+                resourceHelper = ResourceHelperTest(),
+                aapsLogger = AAPSLoggerTest(),
+                refreshMainAppData = {},
+                onStepChanged = {},
+                coreCartridgeActionsModel = CoreCartridgeActionsModelTest()
+            )
+        }
+    }
+}
+
+
+
+

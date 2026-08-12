@@ -95,6 +95,8 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
 
     var bolusStep: Double = 0.1   // ??
 
+    var preventQueueExecution = false
+
     // Tandem specific
     var pumpStatusMirror: HomeScreenMirrorDto? = null
     var settings: MutableMap<PumpConfigurationTypeInterface, Any>? = null

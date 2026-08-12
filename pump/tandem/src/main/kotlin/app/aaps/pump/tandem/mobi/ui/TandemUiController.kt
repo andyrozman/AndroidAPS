@@ -95,7 +95,10 @@ class TandemUiController @Inject constructor(
         }
 
         this.tandemUICommunication.tandemPumpCommunicationManager = null
-        tandemPumpUtil.preventConnect = false
+        tandemPumpUtil.preventConnect = false // TODO remove replaced with preventueueExecution
+
+        aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi (exiting Actions/Data)")
+        tandemPumpStatus.preventQueueExecution = false
     }
 
     enum class AdditionalConfigurationScreens {

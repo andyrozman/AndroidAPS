@@ -397,6 +397,8 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
+    //val preventQueueExecution: Boolean = true
+
     private fun reconnectAfterDataChange() {
         aapsLogger.info(LTag.PUMP, "DUB Connection data changed... validating parameters and reconnecting if possible.")
         // new pump connected, we need to reset driver
@@ -749,7 +751,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         // the queue at USER_INITIATED priority and AAPS Loop can safely interleave.
         // PumpAvailability is intentionally NOT folded in here — mutating ops handle availability
         // via fast-fail at dispatch, not by stalling AAPS's command queue on isBusy().
-        val isBusy = tandemDispatcher.isBusy() || tandemPumpUtil.preventConnect
+        val isBusy = tandemDispatcher.isBusy() || tandemPumpUtil.preventConnect || pumpStatus.preventQueueExecution
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isBusy: $isBusy")
         return isBusy
     }
@@ -1617,7 +1619,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     private fun finishAction(overviewKey: String?) {
         //if (overviewKey != null) rxBus.send(EventRefreshOverview(overviewKey, false))
         //triggerUIChange()
-        setRefreshButtonEnabled(true)
+        //setRefreshButtonEnabled(true)
     }
 
 

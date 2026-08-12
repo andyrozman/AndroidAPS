@@ -43,10 +43,14 @@ import androidx.compose.ui.unit.dp
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.ui.compose.AapsSpacing
+import app.aaps.core.ui.compose.pump.StepProgressIndicator
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
+import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModelInterface
+import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModelTest
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
@@ -77,7 +81,8 @@ fun FillCannulaScreen(
     aapsLogger: AAPSLogger,
     navigateBack: () -> Unit,
     showHeader: Boolean = true,
-    coreCartridgeActionsModel: CoreCartridgeActionsModel
+    onStepChanged: (Int) -> Unit,
+    coreCartridgeActionsModel: CoreCartridgeActionsModelInterface
 ) {
     val ds = LocalTandemDataStore.current
     @Suppress("PropertyName")
@@ -278,11 +283,14 @@ fun FillCannulaScreen(
         onBack = ::requestCancelOrBack,
         resourceHelper = resourceHelper,
         showHeader = showHeader,
+        showBack = (currentStep == 1),
+        onStepChanged = onStepChanged,
+        currentStep = currentStep,
         stepIndicator = {
-            WizardStepIndicator(
-                currentStep = currentStep,
-                totalSteps = totalSteps,
-                resourceHelper = resourceHelper,
+            StepProgressIndicator(
+                currentStep = currentStep - 1,
+                totalSteps = totalSteps //,
+                //resourceHelper = resourceHelper,
             )
         },
         notifications = notifications,
@@ -423,49 +431,61 @@ fun FillCannulaScreen(
             }
         },
         actions = {
-            if (fillCannulaState.value != null) {
-                if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = AapsSpacing.extraLarge),
+                horizontalArrangement = Arrangement.spacedBy(AapsSpacing.large)
+            ) {
+
+                if (fillCannulaState.value != null) {
+                    if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
+                        PrimaryActionButton(
+                            text = resourceHelper.gs(R.string.ca_btn_resume_insulin),
+                            onClick = { showResumeDialog = true },
+                            enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                            loading = isResuming,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        SecondaryActionButton(
+                            text = resourceHelper.gs(R.string.common_done),
+                            onClick = { showExitWithoutResumeDialog = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                } else {
+                    if (pumpRunningState.value != PumpRunningState.Suspended) {
+                        SecondaryActionButton(
+                            text = resourceHelper.gs(R.string.ca_btn_suspend_insulin),
+                            onClick = { showSuspendDialog = true },
+                            enabled = !hasActiveNotifications,
+                            loading = isSuspending,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
                     PrimaryActionButton(
-                        text = resourceHelper.gs(R.string.ca_btn_resume_insulin),
-                        onClick = { showResumeDialog = true },
-                        enabled = pumpRunningState.value == PumpRunningState.Suspended,
-                        loading = isResuming,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    SecondaryActionButton(
-                        text = resourceHelper.gs(R.string.common_done),
-                        onClick = { showExitWithoutResumeDialog = true },
-                    )
-                }
-            } else {
-                if (pumpRunningState.value != PumpRunningState.Suspended) {
-                    SecondaryActionButton(
-                        text = resourceHelper.gs(R.string.ca_btn_suspend_insulin),
-                        onClick = { showSuspendDialog = true },
-                        enabled = !hasActiveNotifications,
-                        loading = isSuspending
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                PrimaryActionButton(
-                    text = if (allowedCannulaFillAmount(cannulaFillAmount))
-                        resourceHelper.gs(R.string.fc_btn_fill_cannula_u, cannulaFillAmount!!)
-                    else
-                        resourceHelper.gs(R.string.fc_title),
-                    onClick = {
-                        refreshScope.launch {
-                            cannulaFillAmount.let {
-                                if (allowedCannulaFillAmount(it)) {
-                                    sendPumpCommand(FillCannulaRequest(InsulinUnit.from1To1000(it).toInt()))
+                        text = if (allowedCannulaFillAmount(cannulaFillAmount))
+                            resourceHelper.gs(R.string.fc_btn_fill_cannula_u, cannulaFillAmount!!)
+                        else
+                            resourceHelper.gs(R.string.fc_title),
+                        onClick = {
+                            refreshScope.launch {
+                                cannulaFillAmount.let {
+                                    if (allowedCannulaFillAmount(it)) {
+                                        sendPumpCommand(FillCannulaRequest(InsulinUnit.from1To1000(it).toInt()))
+                                    }
                                 }
                             }
-                        }
-                    },
-                    enabled = pumpRunningState.value == PumpRunningState.Suspended &&
-                        cannulaFillAmount != null &&
-                        allowedCannulaFillAmount(cannulaFillAmount) &&
-                        !hasActiveNotifications
-                )
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = pumpRunningState.value == PumpRunningState.Suspended &&
+                            cannulaFillAmount != null &&
+                            allowedCannulaFillAmount(cannulaFillAmount) &&
+                            !hasActiveNotifications
+                    )
+                }
             }
         }
     )
@@ -477,21 +497,23 @@ val fillCannulaScreenCommands = listOf(
     LoadStatusRequest()
 )
 
-// @Preview(showBackground = true)
-// @Composable
-// private fun FillCannulaScreenPreview() {
-//     MaterialTheme() {
-//         Surface(
-//             modifier = Modifier.fillMaxSize(),
-//             color = Color.White,
-//         ) {
-//             setUpPreviewState(LocalTandemDataStore.current)
-//             FillCannulaScreen(
-//                 sendPumpCommands = { _ -> true },
-//                 navigateBack = {},
-//                 resourceHelper = ResourceHelperTest(),
-//                 aapsLogger = AAPSLoggerTest()
-//             )
-//         }
-//     }
-// }
+@Preview(showBackground = true)
+@Composable
+private fun FillCannulaScreenPreview() {
+    MaterialTheme() {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White,
+        ) {
+            setUpPreviewState(LocalTandemDataStore.current)
+            FillCannulaScreen(
+                sendPumpCommands = { _ -> true },
+                navigateBack = {},
+                resourceHelper = ResourceHelperTest(),
+                onStepChanged = {},
+                coreCartridgeActionsModel = CoreCartridgeActionsModelTest(),
+                aapsLogger = AAPSLoggerTest()
+            )
+        }
+    }
+}

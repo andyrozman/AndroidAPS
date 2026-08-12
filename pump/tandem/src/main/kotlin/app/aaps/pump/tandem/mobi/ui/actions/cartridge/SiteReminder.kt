@@ -35,23 +35,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.data.defs.SiteReminderPreset
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.pump.tandem.mobi.ui.util.LifecycleStateObserver
-import app.aaps.shared.tests.AAPSLoggerTest
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.datetime.time.timepicker

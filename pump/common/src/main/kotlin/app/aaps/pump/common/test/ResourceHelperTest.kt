@@ -18,11 +18,11 @@ class ResourceHelperTest: ResourceHelper {
 
 
     override fun gs(@StringRes id: Int): String {
-        return "Unknown String ${id}"
+        return "${id}"
     }
 
     override fun gs(id: Int, vararg args: Any?): String {
-        TODO("Not yet implemented")
+        return "${id}"
     }
 
     override fun gq(id: Int, quantity: Int, vararg args: Any?): String {

@@ -43,7 +43,7 @@ class CoreCartridgeActionsModel @Inject constructor(
     private val preferences: Preferences,
     private val persistenceLayer: PersistenceLayer
 
-) : ViewModel(), SiteLocationStepHost {
+) : ViewModel(), CoreCartridgeActionsModelInterface {
 
     // Site location state (for SITE_LOCATION step)
     private val _siteLocation = MutableStateFlow(TE.Location.NONE)
@@ -66,7 +66,7 @@ class CoreCartridgeActionsModel @Inject constructor(
 
     val TAG = LTag.PUMP
 
-    val showSiteLocationStep: Boolean
+    override val showSiteLocationStep: Boolean
         get() = preferences.get(BooleanKey.SiteRotationManagePump)
 
     /** Whether the insulin change step should be shown (multiple insulins available) */
@@ -77,11 +77,11 @@ class CoreCartridgeActionsModel @Inject constructor(
         get() = preferences.get(BooleanKey.GeneralInsulinConcentration)
 
     private val _hideNotification = MutableStateFlow(false)
-    val hideNotification: StateFlow<Boolean> = _hideNotification.asStateFlow()
+    override val hideNotification: StateFlow<Boolean> = _hideNotification.asStateFlow()
 
     // region SiteLocationStepHost
 
-    fun hideNotifications() {
+    override fun hideNotifications() {
         this._hideNotification.value = true;
     }
 
@@ -97,8 +97,10 @@ class CoreCartridgeActionsModel @Inject constructor(
         _siteRotationEntries.value = emptyList()
 
         _availableInsulins.value = emptyList()
-        _selectedInsulin.value = null;
-        _activeInsulinLabel.value = null;
+        _selectedInsulin.value = null
+        _activeInsulinLabel.value = null
+
+        _hideNotification.value = false
     }
 
     fun loadModelData() {
@@ -127,6 +129,8 @@ class CoreCartridgeActionsModel @Inject constructor(
         //moveStep(PatchStep.ATTACH_PATCH)
         // TODO completeSiteLocation
         aapsLogger.error(LTag.PUMP, "completeSiteLocation NOT IMPLEMENTED")
+
+        _hideNotification.value = false
     }
 
 
@@ -134,6 +138,7 @@ class CoreCartridgeActionsModel @Inject constructor(
         aapsLogger.error(LTag.PUMP, "skipSiteLocation")
         _siteLocation.value = TE.Location.NONE
         _siteArrow.value = TE.Arrow.NONE
+        _hideNotification.value = false
     }
 
     override fun bodyType(): BodyType =
@@ -148,7 +153,10 @@ class CoreCartridgeActionsModel @Inject constructor(
             _siteRotationEntries.value = persistenceLayer.getTherapyEventDataFromTime(
                 System.currentTimeMillis() - T.days(45).msecs(), false
             ).filter { it.type == TE.Type.CANNULA_CHANGE || it.type == TE.Type.SENSOR_CHANGE }
+            aapsLogger.error(TAG, "Site Rotation ENtries: ${_siteRotationEntries}")
         }
+        val btype = bodyType()
+        aapsLogger.error(TAG, "Body Type: ${btype}")
     }
 
     /** Save site location/arrow to the CANNULA_CHANGE therapy event created during activation. */
@@ -212,5 +220,51 @@ class CoreCartridgeActionsModel @Inject constructor(
             profileFunction.createProfileSwitchWithNewInsulin(selected, Sources.Tandem)
         }
     }
+
+}
+
+
+class CoreCartridgeActionsModelTest(
+    val hideNotificationInitial: Boolean = true
+) : CoreCartridgeActionsModelInterface {
+
+    private val _hideNotification = MutableStateFlow(hideNotificationInitial)
+    override val hideNotification: StateFlow<Boolean> = _hideNotification.asStateFlow()
+
+    //override val hideNotification: StateFlow<Boolean>,
+    override val showSiteLocationStep: Boolean = true
+
+    private val _siteLocation = MutableStateFlow(TE.Location.NONE)
+    override val siteLocation: StateFlow<TE.Location> = _siteLocation.asStateFlow()
+
+    private val _siteArrow = MutableStateFlow(TE.Arrow.NONE)
+    override val siteArrow: StateFlow<TE.Arrow> = _siteArrow.asStateFlow()
+
+    private val _siteRotationEntries = MutableStateFlow<List<TE>>(emptyList())
+
+
+    override fun hideNotifications() {
+        TODO("Not yet implemented")
+    }
+
+    override fun updateSiteLocation(location: TE.Location) {
+
+    }
+
+    override fun updateSiteArrow(arrow: TE.Arrow) {
+
+    }
+
+    override fun completeSiteLocation() {
+
+    }
+
+    override fun skipSiteLocation() {
+
+    }
+
+    override fun bodyType(): BodyType = BodyType.MAN
+
+    override fun siteRotationEntries(): List<TE> = _siteRotationEntries.value
 
 }

@@ -15,7 +15,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.compose.ComposablePluginContent
@@ -70,6 +74,7 @@ class MobiComposeContent(
 ) : ComposablePluginContent {
 
 
+
     @Composable
     override fun Render(
         setToolbarConfig: (ToolbarConfig) -> Unit,
@@ -81,6 +86,8 @@ class MobiComposeContent(
 
         // Navigation state
         var currentScreen by remember { mutableStateOf(MobiScreen.OVERVIEW) }
+
+        var currentWizardStep by remember { mutableStateOf(1) }
 
         // Suppress AAPS auto-reconnect only while the user is in the cartridge-change workflow
         // (cartridge change owns the pump comm channel for a long, stateful, multi-step
@@ -153,10 +160,12 @@ class MobiComposeContent(
         }
 
         val navIconBackToCartridgeActions: @Composable () -> Unit = {
-            IconButton(onClick = { currentScreen = MobiScreen.ACTIONS }) {
+            IconButton(onClick = { currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Rco.string.back))
             }
         }
+
+        val noNavigationIcon: @Composable () -> Unit = {}
 
 
         val settingsAction: @Composable RowScope.() -> Unit = {
@@ -167,36 +176,70 @@ class MobiComposeContent(
             }
         }
 
-        LaunchedEffect(currentScreen) {
-            setToolbarConfig(
-                when (currentScreen) {
-                    MobiScreen.OVERVIEW     -> ToolbarConfig(title = pluginName, navigationIcon = overviewNavIcon, actions = settingsAction)
-                    MobiScreen.ACTIONS      -> ToolbarConfig(title = resourceHelper.gs(R.string.ui_a_title),
-                                                             navigationIcon = nvaIconBackFromActions, actions = {})
-                    MobiScreen.DATA         -> ToolbarConfig(title = resourceHelper.gs(R.string.data_data),
-                                                             navigationIcon = nvaIconBackFromData, actions = {})
-                    MobiScreen.DATA_NOTIFICATIONS -> ToolbarConfig(title = resourceHelper.gs(R.string.data_notifications),
-                                                                   navigationIcon = navIconBackToData, actions = {})
-                    MobiScreen.DATA_EVENTS -> ToolbarConfig(title = resourceHelper.gs(R.string.data_events),
-                                                            navigationIcon = navIconBackToData, actions = {})
-                    MobiScreen.DATA_HISTORY -> ToolbarConfig(title = resourceHelper.gs(R.string.data_pump_history),
-                                                             navigationIcon = navIconBackToData, actions = {})
-                    MobiScreen.ACTIONS_CARTRIDGE_ACTIONS -> ToolbarConfig(title = resourceHelper.gs(R.string.ca_label),
-                                                                          navigationIcon = navIconBackToActions, actions = {})
-                    MobiScreen.ACTIONS_PUMP_INFO -> ToolbarConfig(title = resourceHelper.gs(R.string.pi_title),
-                                                                  navigationIcon = navIconBackToActions, actions = {})
-                    MobiScreen.ACTIONS_DEBUG_COMMANDS -> ToolbarConfig(title = resourceHelper.gs(R.string.debug_commands_title),
-                                                                       navigationIcon = navIconBackToPumpInfo, actions = {})
-                    MobiScreen.ACTIONS_CHANGE_CARTRIDGE -> ToolbarConfig(title = resourceHelper.gs(R.string.cc_title),
-                                                                         navigationIcon = navIconBackToCartridgeActions, actions = {})
-                    MobiScreen.ACTIONS_FILL_TUBING -> ToolbarConfig(title = resourceHelper.gs(R.string.ft_title),
-                                                                    navigationIcon = navIconBackToCartridgeActions, actions = {})
-                    MobiScreen.ACTIONS_FILL_CANNULA -> ToolbarConfig(title = resourceHelper.gs(R.string.fc_title),
-                                                                     navigationIcon = navIconBackToCartridgeActions, actions = {})
-                    MobiScreen.ACTIONS_SITE_REMINDER -> ToolbarConfig(title = resourceHelper.gs(R.string.sr_title),
-                                                                      navigationIcon = navIconBackToCartridgeActions, actions = {})
-                }
-            )
+        LaunchedEffect(currentScreen, currentWizardStep) {
+                setToolbarConfig(
+                    when (currentScreen) {
+                        MobiScreen.OVERVIEW                  -> ToolbarConfig(title = pluginName, navigationIcon = overviewNavIcon, actions = settingsAction)
+                        MobiScreen.ACTIONS                   -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.ui_a_title),
+                            navigationIcon = nvaIconBackFromActions, actions = {})
+
+                        MobiScreen.DATA                      -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.data_data),
+                            navigationIcon = nvaIconBackFromData, actions = {})
+
+                        MobiScreen.DATA_NOTIFICATIONS        -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.data_notifications),
+                            navigationIcon = navIconBackToData, actions = {})
+
+                        MobiScreen.DATA_EVENTS               -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.data_events),
+                            navigationIcon = navIconBackToData, actions = {})
+
+                        MobiScreen.DATA_HISTORY              -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.data_pump_history),
+                            navigationIcon = navIconBackToData, actions = {})
+
+                        MobiScreen.ACTIONS_CARTRIDGE_ACTIONS -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.ca_label),
+                            navigationIcon = navIconBackToActions, actions = {})
+
+                        MobiScreen.ACTIONS_PUMP_INFO         -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.pi_title),
+                            navigationIcon = navIconBackToActions, actions = {})
+
+                        MobiScreen.ACTIONS_DEBUG_COMMANDS    -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.debug_commands_title),
+                            navigationIcon = navIconBackToPumpInfo, actions = {})
+
+                        MobiScreen.ACTIONS_CHANGE_CARTRIDGE  -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.cc_title),
+                            navigationIcon = if (currentWizardStep == 1)
+                                navIconBackToCartridgeActions
+                            else
+                                noNavigationIcon , actions = {})
+
+                        MobiScreen.ACTIONS_FILL_TUBING       -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.ft_title),
+                            navigationIcon =
+                                if (currentWizardStep == 1)
+                                    navIconBackToCartridgeActions
+                                else
+                                    noNavigationIcon, actions = {})
+
+                        MobiScreen.ACTIONS_FILL_CANNULA      -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.fc_title),
+                            navigationIcon = if (currentWizardStep == 1)
+                                navIconBackToCartridgeActions
+                            else
+                                noNavigationIcon, actions = {})
+
+                        MobiScreen.ACTIONS_SITE_REMINDER     -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.sr_title),
+                            navigationIcon = navIconBackToCartridgeActions, actions = {})
+
+                    }
+                )
         }
 
         // Handle one-time events from overview
@@ -210,6 +253,17 @@ class MobiComposeContent(
                     MobiOverviewEventv2.StartData            -> currentScreen = MobiScreen.DATA
                 }
             }
+        }
+
+
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        DisposableEffect(lifecycle) {
+            val observer = LifecycleEventObserver { _, event ->
+                aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi Tab dispose")
+                tandemPumpStatus.preventQueueExecution = false
+            }
+            lifecycle.addObserver(observer)
+            onDispose { lifecycle.removeObserver(observer) }
         }
 
         when (currentScreen) {
@@ -354,6 +408,9 @@ class MobiComposeContent(
                     showHeader = false,
                     refreshMainAppData = { data -> tandemUiController.refreshMainAppData(data) },
                     coreCartridgeActionsModel = coreCartridgeActionsModel,
+                    onStepChanged = { step ->
+                        currentWizardStep = step
+                    },
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     },
@@ -369,6 +426,9 @@ class MobiComposeContent(
                     showHeader = false,
                     refreshMainAppData = { data -> tandemUiController.refreshMainAppData(data) },
                     coreCartridgeActionsModel = coreCartridgeActionsModel,
+                    onStepChanged = { step ->
+                        currentWizardStep = step
+                    },
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     },
@@ -383,6 +443,9 @@ class MobiComposeContent(
                     resourceHelper = resourceHelper,
                     showHeader = false,
                     coreCartridgeActionsModel = coreCartridgeActionsModel,
+                    onStepChanged = { step ->
+                        currentWizardStep = step
+                    },
                     navigateBack = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
                     }

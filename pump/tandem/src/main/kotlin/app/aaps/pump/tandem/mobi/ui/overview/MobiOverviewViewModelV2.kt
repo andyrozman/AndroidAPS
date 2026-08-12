@@ -107,7 +107,18 @@ class MobiOverviewViewModelV2 @Inject constructor(
     val events: SharedFlow<MobiOverviewEventv2> = _events
 
     var displayDriver = true
-    var buttonsEnabled = mutableStateOf<Boolean>(true)
+    //var buttonsEnabled = mutableStateOf<Boolean>(true)
+
+
+    val buttonsEnabledFlow = MutableStateFlow<Boolean>(true)
+    var buttonsEnabled: Boolean
+        get() = buttonsEnabledFlow.value
+        set(value) {
+            buttonsEnabledFlow.value = value
+        }
+
+
+
 
     var mapSemaphore = mapOf(
         Pair("NOTIFICATIONS", rh.gs(R.string.pump_data_status_notification)),
@@ -159,6 +170,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
         tandemPumpStatus.lastConnectionFlow,
         pumpErrorFlow,
         tandemPumpStatus.semaphoreInfoFlow,
+        buttonsEnabledFlow,
         communicationStatus.refreshTrigger,
         tickerFlow(60_000L)
     ) { values ->
@@ -177,6 +189,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
         val lastConnectionTime = values[11] as Long
         val pumpError = values[12] as String?
         val semaphoreInfo = values[13] as SemaphoreInfoDto
+        val buttonsEnabledLocal = values[14] as Boolean
 
         buildUiState(
             currentActivity = currentActivity,
@@ -192,7 +205,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
             activeBolusData = activeBolus,
             lastConnectionTime = lastConnectionTime,
             pumpError = pumpError,
-            semaphoreInfo = semaphoreInfo
+            semaphoreInfo = semaphoreInfo,
+            buttonsEnabledLocal = buttonsEnabledLocal
         )
     }.stateIn(scope, SharingStarted.WhileSubscribed(5000), buildInitialState())
 
@@ -211,7 +225,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
             .toObservable(EventRefreshButtonState::class.java)
             .observeOn(aapsSchedulers.main)
             .subscribe({
-                           buttonsEnabled.value = it.newState
+                           buttonsEnabled = it.newState
                            rxTrigger.value = System.currentTimeMillis()
                        },
                        { aapsLogger.error(LTag.PUMP, "Error: ${it.message}", it) })
@@ -249,7 +263,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
     }
 
     private fun setButtonState(enabled: Boolean) {
-        this.buttonsEnabled.value = enabled
+        this.buttonsEnabled = enabled
     }
 
     fun onDataClick() {
@@ -344,7 +358,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
             activeBolusData = tandemPumpStatus.activeBolusData,
             lastConnectionTime = tandemPumpStatus.lastConnection,
             pumpError = pumpError,
-            semaphoreInfo = tandemPumpStatus.semaphoreInfo
+            semaphoreInfo = tandemPumpStatus.semaphoreInfo,
+            buttonsEnabledLocal = buttonsEnabled
         )
     }
 
@@ -363,7 +378,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
         activeBolusData: BolusData?,
         lastConnectionTime: Long,
         pumpError: String?,
-        semaphoreInfo: SemaphoreInfoDto
+        semaphoreInfo: SemaphoreInfoDto,
+        buttonsEnabledLocal: Boolean
     ): PumpOverviewUiState {
 
         // Status banner: communication status from shared helper, or pump-specific warning
@@ -445,7 +461,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
                 statusBanner = statusBanner,
                 queueStatus = queueStatus,
                 infoRows = pumpRows,
-                primaryActions = buildPrimaryActions(pumpRunningState),
+                primaryActions = buildPrimaryActions(pumpRunningState = pumpRunningState,
+                                                     buttonsEnabledLocal = false),
                 //managementActions = managementActions
             )
         }
@@ -522,7 +539,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
             statusBanner = statusBanner,
             queueStatus = queueStatus,
             infoRows = pumpRows,
-            primaryActions = buildPrimaryActions(pumpRunningState),
+            primaryActions = buildPrimaryActions(pumpRunningState = pumpRunningState,
+                                                 buttonsEnabledLocal = buttonsEnabledLocal),
             //managementActions = managementActions
         )
     }
@@ -589,7 +607,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
     }
 
 
-    private fun buildPrimaryActions(pumpRunningState: PumpRunningState): List<PumpAction> {
+    private fun buildPrimaryActions(pumpRunningState: PumpRunningState, buttonsEnabledLocal: Boolean): List<PumpAction> {
         if (primaryActionsEnabled==null || primaryActionsEnabled.isEmpty()) {
             primaryActionsEnabled = listOf(
                 PumpAction(
@@ -662,7 +680,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
             PumpRunningState.Unknown   -> primaryActionsDisabled
             PumpRunningState.Suspended -> primaryActionsEnabled
             PumpRunningState.Running   -> {
-                if (buttonsEnabled.value)
+                if (buttonsEnabledLocal)
                     primaryActionsEnabled
                 else
                     primaryActionsDisabled

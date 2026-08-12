@@ -1,0 +1,170 @@
+OK        tandem/common/comm/data/CommunicationListener.kt
+OK        tandem/common/comm/data/DisconnectDataDto.kt
+OK        tandem/common/comm/data/PumpStateX2.kt
+
+OK        tandem/common/comm/history/HistoryPostProcessor.kt
+OK        tandem/common/comm/history/HistoryRetriever.kt                Could be extended with watchdog if needed
+
+          tandem/common/comm/maint/TandemConnectionFixer.kt
+          tandem/common/comm/maint/TandemPairingManager.kt
+
+          tandem/common/comm/qe/QualifyingEventHandler.kt
+
+OK        tandem/common/comm/TandemDataConverter.kt
+          tandem/common/comm/TandemPumpCommunicationManager.kt
+
+          tandem/common/comm/ui/CoreCartridgeActionsModel.kt
+          tandem/common/comm/ui/TandemUICommunication.kt
+OK        tandem/common/comm/ui/TandemUIDataStore.kt
+
+          tandem/common/concurrency
+          tandem/common/concurrency/BlockingPumpOp.kt
+          tandem/common/concurrency/CommSuspendGate.kt
+          tandem/common/concurrency/Priority.kt
+          tandem/common/concurrency/PumpAvailability.kt
+          tandem/common/concurrency/PumpAvailabilitySync.kt
+          tandem/common/concurrency/PumpDispatcherScope.kt
+          tandem/common/concurrency/PumpOp.kt
+          tandem/common/concurrency/PumpOpQueue.kt
+          tandem/common/concurrency/RateLimit.kt
+          tandem/common/concurrency/TandemDispatcher.kt
+
+          tandem/common/database/cleanup/TandemPumpDbCleanup.kt
+
+          tandem/common/database/dao/TandemCleanupDao.kt
+          tandem/common/database/dao/TandemHistoryRecordDao.kt
+          tandem/common/database/dao/TandemQualifyingEventsDao.kt
+
+          tandem/common/database/data/DbDataHandler.kt
+          tandem/common/database/data/TandemHistoryConverter.kt
+
+          tandem/common/database/data/defs/DatabaseQueryParameters.kt
+          tandem/common/database/data/defs/DatabaseTarget.kt
+
+          tandem/common/database/data/dto/TandemHistoryRecordDto.kt
+          tandem/common/database/data/dto/TandemQualifyingEventDto.kt
+
+          tandem/common/database/data/entity/TandemHistoryRecordEntity.kt
+          tandem/common/database/data/entity/TandemQualifyingEventEntity.kt
+
+          tandem/common/database/TandemPumpDatabase.kt
+
+          tandem/common/data/IDPSegmentDto.kt
+          tandem/common/data/PumpProfileDto.kt
+          tandem/common/data/SemaphoreInfoDto.kt
+
+          tandem/common/data/defs/QualifyingEventsFilter.kt
+          tandem/common/data/defs/QualifyingEventsRange.kt
+          tandem/common/data/defs/QuickBolusType.kt
+          tandem/common/data/defs/RefreshData.kt
+          tandem/common/data/defs/SiteReminderPreset.kt
+          tandem/common/data/defs/TandemCommandType.kt
+          tandem/common/data/defs/TandemNotificationType.kt
+          tandem/common/data/defs/TandemPumpApiVersion.kt
+          tandem/common/data/defs/TandemPumpSettingType.kt
+
+OK        tandem/common/data/history/HistoryData.kt
+
+          tandem/common/driver/config/TandemHistoryDataProvider.kt
+          tandem/common/driver/config/TandemPumpDriverConfiguration.kt
+
+          tandem/common/driver/connector/TandemPumpConnectionManager.kt
+          tandem/common/driver/connector/TandemPumpConnector.kt
+
+          tandem/common/driver/connector/def/ControlCommandResponse.kt
+          tandem/common/driver/connector/def/TandemCustomCommand.kt
+
+          tandem/common/driver/connector/response/AlarmStatusDto.kt
+          tandem/common/driver/connector/response/AlertStatusDto.kt
+          tandem/common/driver/connector/response/HomeScreenMirrorDto.kt
+          tandem/common/driver/connector/response/MalfunctionStatusDto.kt
+          tandem/common/driver/connector/response/PumpGlobalsDto.kt
+          tandem/common/driver/connector/response/PumpVersionDto.kt
+          tandem/common/driver/connector/response/StatusResponse.kt
+
+          tandem/common/driver/TandemPumpStatus.kt
+
+          tandem/common/events/EventDatabaseAddQEData.kt
+          tandem/common/events/EventHandleQualifyingEvent.kt
+          tandem/common/events/EventPumpNeedsPairingCode.kt
+          tandem/common/events/EventRefreshPumpData.kt
+          tandem/common/events/EventTandemPairingStatus.kt
+
+          tandem/common/keys/TandemBooleanPreferenceKey.kt
+          tandem/common/keys/TandemIntentPreferenceKey.kt
+          tandem/common/keys/TandemIntPreferenceKey.kt
+          tandem/common/keys/TandemLongNonPreferenceKey.kt
+          tandem/common/keys/TandemStringNonPreferenceKey.kt
+          tandem/common/keys/TandemStringPreferenceKey.kt
+
+          tandem/common/service/TandemService.kt
+
+          tandem/common/util/AdaptiveIntentPreference.txt
+          tandem/common/util/PumpX2L.kt
+          tandem/common/util/TandemPumpUtil.kt
+
+          tandem/di/TandemDatabaseModule.kt
+          tandem/di/TandemModuleImpl.kt
+          tandem/di/TandemModule.kt
+
+          tandem/mobi/TandemMobiPluginVersion.kt
+          tandem/mobi/TandemMobiPumpPlugin.kt
+tandem.common.comm.ui.CoreCartridgeActionsModel
+          tandem/mobi/driver/TandemMobiPumpDriverConfiguration.kt
+
+          tandem/mobi/ui/actions/Actions.kt
+          tandem/mobi/ui/ActionsActivity.txt
+
+          tandem/mobi/ui/actions/DebugCommands.kt
+          tandem/mobi/ui/actions/MobiSilhouetteWithFill.kt
+          tandem/mobi/ui/actions/PumpInfo.kt
+          tandem/mobi/ui/actions/PumpStatusHeader.kt
+          tandem/mobi/ui/actions/StartStopInsulinScreen.kt
+
+          tandem/mobi/ui/actions/cartridge/CartridgeActions.kt
+          tandem/mobi/ui/actions/cartridge/CartridgeNotificationsPanel.kt
+          tandem/mobi/ui/actions/cartridge/CartridgeWorkflowScreen.kt
+          tandem/mobi/ui/actions/cartridge/ChangeCartridgeScreen.kt
+          tandem/mobi/ui/actions/cartridge/CompletedCartridgeAction.kt
+          tandem/mobi/ui/actions/cartridge/FillCannulaScreen.kt
+          tandem/mobi/ui/actions/cartridge/FillTubingScreen.kt
+          tandem/mobi/ui/actions/cartridge/SiteReminder.kt
+
+          tandem/mobi/ui/TandemMobiPumpFragment.txt
+          tandem/mobi/ui/TandemUiController.kt
+
+          tandem/mobi/ui/DataActivity.txt
+          tandem/mobi/ui/data/DataDisplayMain.kt
+          tandem/mobi/ui/data/HistoryEntryDisplay.kt
+          tandem/mobi/ui/data/History.kt
+          tandem/mobi/ui/data/Notifications.kt
+          tandem/mobi/ui/data/QualifyingEvents.kt
+
+          tandem/mobi/ui/overview/MobiComposeContent.kt
+          tandem/mobi/ui/overview/MobiOverviewScreen.kt
+          tandem/mobi/ui/overview/MobiOverviewViewModel.txt
+          tandem/mobi/ui/overview/MobiOverviewViewModelV2.kt
+          tandem/mobi/ui/overview/MobiSemaphorePumpInfoRow.kt
+
+          tandem/mobi/ui/util/ComposeComponents.kt
+
+          tandem/mobi/ui/wizard/TandemMobiConnectionWizardActivity.kt
+          tandem/mobi/ui/wizard/TandemMobiConnectionWizardViewModel.kt
+          tandem/mobi/ui/wizard/TandemMobiWizardState.kt
+          tandem/mobi/ui/wizard/WizardNavigation.kt
+
+          tandem/mobi/ui/wizard/screens/ConnectionCompleteScreen.kt
+          tandem/mobi/ui/wizard/screens/DeviceListScreen.kt
+          tandem/mobi/ui/wizard/screens/EnterPINScreen.kt
+          tandem/mobi/ui/wizard/screens/ErrorScreen.kt
+          tandem/mobi/ui/wizard/screens/ExistingPumpScreen.kt
+          tandem/mobi/ui/wizard/screens/IntroductionScreen.kt
+          tandem/mobi/ui/wizard/screens/PairingScreen.kt
+
+
+
+
+
+X         tandem/t_slim
+X         tandem/t_slim/TandemSlimPumpFragment.txt
+X         tandem/t_slim/TandemSlimPumpPlugin.txt
