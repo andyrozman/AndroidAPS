@@ -1327,8 +1327,10 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         // The GENERAL bit here writes what PumpGlobalsResponse reads back as buttonAnnun - the
         // read and write messages use different names for the same pump setting.
-        // isSoundIncorrectlySet() also checks fillTubingAnnun, but SetPumpSoundsRequest has no
-        // field for it, so that one can never be corrected by this request.
+        // isSoundIncorrectlySet() also checks bolusAnnun and fillTubingAnnun. Neither has a
+        // matching field anywhere in pumpX2 (checked every request class with an Annun field,
+        // and the fill-tubing mode requests take no parameters at all), so this request can
+        // never correct either one - there is currently no known way to write them.
         val changeBitmask = SetPumpSoundsRequest.ChangeBitmask.toBitmask(
             SetPumpSoundsRequest.ChangeBitmask.QUICK_BOLUS,
             SetPumpSoundsRequest.ChangeBitmask.GENERAL,
