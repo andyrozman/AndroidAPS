@@ -1323,18 +1323,29 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     private fun setPumpSounds(soundVolume: PumpGlobalsResponse.AnnunciationEnum): DataCommandResponse<AdditionalResponseDataInterface?> {
 
-        //aapsLogger.info(LTag.PUMPCOMM, "set All Pump Sounds to ${soundVolume.name}")
+        aapsLogger.info(LTag.PUMPCOMM, "set All Pump Sounds to ${soundVolume.name}")
 
-        // TODO setPumpSounds
-        aapsLogger.error(LTag.PUMPCOMM, "set GeneralAnnun to ${soundVolume.name} NOT IMPLEMENTED")
+        // The GENERAL bit here writes what PumpGlobalsResponse reads back as buttonAnnun - the
+        // read and write messages use different names for the same pump setting.
+        // isSoundIncorrectlySet() also checks fillTubingAnnun, but SetPumpSoundsRequest has no
+        // field for it, so that one can never be corrected by this request.
+        val changeBitmask = SetPumpSoundsRequest.ChangeBitmask.toBitmask(
+            SetPumpSoundsRequest.ChangeBitmask.QUICK_BOLUS,
+            SetPumpSoundsRequest.ChangeBitmask.GENERAL,
+            SetPumpSoundsRequest.ChangeBitmask.REMINDER,
+            SetPumpSoundsRequest.ChangeBitmask.ALERT,
+            SetPumpSoundsRequest.ChangeBitmask.ALARM
+        )
 
-        val pumpSoundRequest = SetPumpSoundsRequest(soundVolume, // quicbolus
-                                                    soundVolume, //general
-                                                    soundVolume,  // reminder
-                                                    soundVolume,  // alert
-                                                    soundVolume, // alarm
-                                                    null, // cgmAlert
-                                                    SetPumpSoundsRequest.ChangeBitmask.GENERAL)
+        val pumpSoundRequest = SetPumpSoundsRequest(0, // firstByteUnknown
+                                                    soundVolume.id(), // quickBolus
+                                                    soundVolume.id(), // general (== PumpGlobalsResponse.buttonAnnun)
+                                                    soundVolume.id(), // reminder
+                                                    soundVolume.id(), // alert
+                                                    soundVolume.id(), // alarm
+                                                    0, // cgmAlertAnnunA (not changed, bit not set)
+                                                    0, // cgmAlertAnnunB (not changed, bit not set)
+                                                    changeBitmask)
 
         val responseMessage: SetPumpSoundsResponse? = getCommunicationManager()
             ?.sendCommand(pumpSoundRequest) as SetPumpSoundsResponse?
@@ -1352,13 +1363,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                 null
             )
         }
-
-            return DataCommandResponse(
-                PumpCommandType.CustomCommand, false,
-                "Error getting response from sending SetPumpSoundsRequest: NOT YET IMPLEMENTED",
-                null
-            )
-
     }
 
     private fun dismissNotificationAlert(value: Long): DataCommandResponse<AdditionalResponseDataInterface?> {
