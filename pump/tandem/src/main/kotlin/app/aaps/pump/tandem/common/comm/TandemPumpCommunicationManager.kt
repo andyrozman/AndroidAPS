@@ -1,6 +1,8 @@
 package app.aaps.pump.tandem.common.comm
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -37,6 +39,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
+import com.welie.blessed.ConnectionPriority
 import com.welie.blessed.ConnectionState
 import com.welie.blessed.BluetoothPeripheral
 import com.welie.blessed.HciStatus
@@ -79,6 +82,19 @@ class TandemPumpCommunicationManager(
 
     var bluetoothHandler: TandemBluetoothHandler? = null
 
+    // Periodically re-asserts CONNECTION_PRIORITY_HIGH while the link is healthy (see
+    // CONNECTION_PRIORITY_REASSERT_INTERVAL_MS). Self-stops once the peripheral drops.
+    private val connectionPriorityHandler = Handler(Looper.getMainLooper())
+    private val connectionPriorityReassert = object : Runnable {
+        override fun run() {
+            if (isConnectionHealthy()) {
+                aapsLogger.debug(TAG, "Re-asserting connection priority HIGH")
+                peripheral.requestConnectionPriority(ConnectionPriority.HIGH)
+                connectionPriorityHandler.postDelayed(this, CONNECTION_PRIORITY_REASSERT_INTERVAL_MS)
+            }
+        }
+    }
+
     // Thread-safe: added/removed on the TandemPumpOpQueue thread, read/added on the BLE callback
     // (main) thread. newKeySet gives weakly-consistent iteration so find() can't throw CME.
     val inFlightRequests: MutableSet<Message> = ConcurrentHashMap.newKeySet()
@@ -94,6 +110,12 @@ class TandemPumpCommunicationManager(
         val COMMAND_TIMEOUT = 5 * 1000  // 5s (in ms) timeout for receiving pump command response
         val HANDSHAKE_TIMEOUT = 30 * 1000L  // 30s (in ms) timeout for handshake (pairing) connecting flow
         val CONNECT_TIMEOUT = 60 * 1000L // 60s (in ms) timeout for complete connecting flow
+
+        // Re-assert CONNECTION_PRIORITY_HIGH on this cadence. The Mobi renegotiates down to its
+        // power-saving profile (interval=30ms, latency=29, timeout=2s) ~15s after connect, and that
+        // 2s supervision timeout causes the frequent CONNECTION_TIMEOUT drops. Holding HIGH
+        // (interval=15ms, latency=0, timeout=5s) widens the supervision window and reduces drops.
+        const val CONNECTION_PRIORITY_REASSERT_INTERVAL_MS = 10_000L
     }
 
 
@@ -155,6 +177,8 @@ class TandemPumpCommunicationManager(
 
         aapsLogger.info(TAG, "disconnect()")
 
+        stopConnectionPriorityReassert()
+
         // Fully tear down the BLE handler: cancel any live peripheral
         // connection, stop the central, and null the pumpx2 singleton so the
         // next connect() builds a fresh handler. blessed's close() alone does
@@ -168,6 +192,21 @@ class TandemPumpCommunicationManager(
         publishDisconnectedState()
 
         return connected
+    }
+
+    fun isConnectionHealthy(): Boolean {
+        return connected &&
+            ::peripheral.isInitialized &&
+            peripheral.state == ConnectionState.CONNECTED
+    }
+
+    private fun scheduleConnectionPriorityReassert() {
+        connectionPriorityHandler.removeCallbacks(connectionPriorityReassert)
+        connectionPriorityHandler.postDelayed(connectionPriorityReassert, CONNECTION_PRIORITY_REASSERT_INTERVAL_MS)
+    }
+
+    private fun stopConnectionPriorityReassert() {
+        connectionPriorityHandler.removeCallbacks(connectionPriorityReassert)
     }
 
 
@@ -207,6 +246,7 @@ class TandemPumpCommunicationManager(
         aapsLogger.info(TAG, "onPumpConnected: $peripheral")
 
         super.onPumpConnected(peripheral)
+        scheduleConnectionPriorityReassert()
     }
 
 
