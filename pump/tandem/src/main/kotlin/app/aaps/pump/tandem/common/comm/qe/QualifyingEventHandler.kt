@@ -81,7 +81,7 @@ class QualifyingEventHandler @Inject constructor(
         rxBus.send(EventDatabaseAddQEData(listOfEvents))
 
         tandemPumpStatus.semaphoreEvents = true
-        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
+        //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
     }
 
 

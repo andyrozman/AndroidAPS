@@ -22,6 +22,7 @@ import app.aaps.core.ui.compose.pump.tickerFlow
 
 import android.content.Context
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.mutableStateOf
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.PumpRate
@@ -221,14 +222,14 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
         displayDriver = preferences.get(TandemBooleanPreferenceKey.DisplayDriverVersion)
 
-        disposable += rxBus
-            .toObservable(EventRefreshButtonState::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({
-                           buttonsEnabled = it.newState
-                           rxTrigger.value = System.currentTimeMillis()
-                       },
-                       { aapsLogger.error(LTag.PUMP, "Error: ${it.message}", it) })
+        // x disposable += rxBus
+        //     .toObservable(EventRefreshButtonState::class.java)
+        //     .observeOn(aapsSchedulers.main)
+        //     .subscribe({
+        //                    buttonsEnabled = it.newState
+        //                    rxTrigger.value = System.currentTimeMillis()
+        //                },
+        //                { aapsLogger.error(LTag.PUMP, "Error: ${it.message}", it) })
 
         disposable += rxBus
             .toObservable(EventPumpDriverStateChanged::class.java)
@@ -337,9 +338,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
                 currentActivity = rh.gs(pumpDriverState!!.resourceId)
             }
         }
-
-        // TODO
-        //updatePumpStatus()
     }
 
 
@@ -462,7 +460,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
                 queueStatus = queueStatus,
                 infoRows = pumpRows,
                 primaryActions = buildPrimaryActions(pumpRunningState = pumpRunningState,
-                                                     buttonsEnabledLocal = false),
+                                                     buttonsEnabledLocal = false,
+                                                     statusBanner = communicationStatus.statusBanner()),
                 //managementActions = managementActions
             )
         }
@@ -540,7 +539,8 @@ class MobiOverviewViewModelV2 @Inject constructor(
             queueStatus = queueStatus,
             infoRows = pumpRows,
             primaryActions = buildPrimaryActions(pumpRunningState = pumpRunningState,
-                                                 buttonsEnabledLocal = buttonsEnabledLocal),
+                                                 buttonsEnabledLocal = buttonsEnabledLocal,
+                                                 statusBanner = communicationStatus.statusBanner()),
             //managementActions = managementActions
         )
     }
@@ -607,13 +607,13 @@ class MobiOverviewViewModelV2 @Inject constructor(
     }
 
 
-    private fun buildPrimaryActions(pumpRunningState: PumpRunningState, buttonsEnabledLocal: Boolean): List<PumpAction> {
+    private fun buildPrimaryActions(pumpRunningState: PumpRunningState, buttonsEnabledLocal: Boolean, statusBanner: StatusBanner?): List<PumpAction> {
         if (primaryActionsEnabled==null || primaryActionsEnabled.isEmpty()) {
             primaryActionsEnabled = listOf(
                 PumpAction(
                     label = rh.gs(app.aaps.core.ui.R.string.refresh),
                     //iconRes = app.aaps.core.ui.R.drawable.ic_refresh,
-                    icon = IcLoopClosed, // TODO dev4
+                    icon = Icons.Filled.Refresh, // TODO dev4
                     category = ActionCategory.PRIMARY,
                     enabled = true,
                     visible = true,
@@ -647,7 +647,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
                 PumpAction(
                     label = rh.gs(app.aaps.core.ui.R.string.refresh),
                     //iconRes = app.aaps.core.ui.R.drawable.ic_refresh,
-                    icon = IcLoopClosed, // TODO dev4
+                    icon = Icons.Filled.Refresh, // TODO dev4
                     category = ActionCategory.PRIMARY,
                     enabled = false,
                     visible = true,
@@ -676,16 +676,23 @@ class MobiOverviewViewModelV2 @Inject constructor(
             )
         }
 
-        return when(pumpRunningState) {
-            PumpRunningState.Unknown   -> primaryActionsDisabled
-            PumpRunningState.Suspended -> primaryActionsEnabled
-            PumpRunningState.Running   -> {
-                if (buttonsEnabledLocal)
-                    primaryActionsEnabled
-                else
-                    primaryActionsDisabled
-            }
-        }
+        // TOOD testing different solutions
+        return if (statusBanner==null)
+            primaryActionsEnabled
+        else
+            primaryActionsDisabled
+
+
+        // return when(pumpRunningState) {
+        //     PumpRunningState.Unknown   -> primaryActionsDisabled
+        //     PumpRunningState.Suspended -> primaryActionsEnabled
+        //     PumpRunningState.Running   -> {
+        //         if (buttonsEnabledLocal)
+        //             primaryActionsEnabled
+        //         else
+        //             primaryActionsDisabled
+        //     }
+        // }
     }
 
 
