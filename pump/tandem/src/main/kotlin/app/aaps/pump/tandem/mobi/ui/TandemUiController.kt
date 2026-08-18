@@ -186,10 +186,12 @@ class TandemUiController @Inject constructor(
             }
             RefreshData.START_ACTIONS       -> {
                 tandemPumpUtil.preventConnect = true
+                tandemPumpStatus.preventQueueExecution = true
                 ds.reminderDateTime.value = tandemPumpStatus.tandemSiteReminder
             }
             RefreshData.START_DATA       -> {
                 tandemPumpUtil.preventConnect = true
+                tandemPumpStatus.preventQueueExecution = true
             }
         }
     }
