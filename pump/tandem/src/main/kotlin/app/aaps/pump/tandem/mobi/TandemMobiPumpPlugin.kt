@@ -674,20 +674,16 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         //aapsLogger.debug(LTag.PUMP, logPrefix + "DUB isConnecting [status=$status]")
 
-        val unreachable = (error!=null && error==PumpErrorType.PumpUnreachable)
+        // Limited override - PumpUnreachable only. It is LATCHED by onPumpCriticalError on
+        // transient link failures (e.g. INSUFFICIENT_AUTHORIZATION /
+        // CONNECTION_UPDATE_FAILED while separating from the pump) and is never cleared,
+        // so letting it drive isConnecting() left the command queue stuck in its
+        // "connecting" branch even after a successful reconnect. Any other latched error
+        // keeps the legacy behavior.
+        val unreachable = (error != null && error == PumpErrorType.PumpUnreachable)
 
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "DUB isConnecting [status=$status]")
-        return status == PumpDriverState.Connecting || unreachable
-
-        // return !isServiceSet || tandemService?.isInitialized != true
-
-        // if (!driverInitialized)
-        //     return false
-        //
-        // val driverStatus = tandemUtil.driverStatus
-        // if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
-        //
-        // return driverStatus == PumpDriverState.Connecting
+        return status == PumpDriverState.Connecting && !unreachable
     }
 
     // override fun connect(reason: String) {

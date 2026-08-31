@@ -196,7 +196,7 @@ androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidge
 com-jakewharton-timber = { group = "com.jakewharton.timber", name = "timber", version="5.0.1" }
 com-github-weliem-blessed-android = { group = "com.github.weliem", name = "blessed-android", version="2.4.0" }
 io-github-vanpra-compose-dialogs-datetime = { group = "io.github.vanpra.compose-material-dialogs", name = "datetime", version="0.9.0" }
-com-github-jwoglom-pumpx2-android = { group = "com.github.jwoglom.pumpX2", name = "pumpx2-android", version="v1.9.1" }
+com-github-jwoglom-pumpx2-android = { group = "com.github.jwoglom.pumpX2", name = "pumpx2-android", version="v1.9.0-tandem-2" }
 androidx-compose-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 

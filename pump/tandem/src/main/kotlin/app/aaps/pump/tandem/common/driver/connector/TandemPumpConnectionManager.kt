@@ -56,7 +56,11 @@ class TandemPumpConnectionManager @Inject constructor(
         aapsLogger.info(LTag.PUMPCOMM, "connect To Pump")
 
         if (inConnectMode) {
-            return false;
+            // Another attempt holds the lock (its blocking connect loop is still waiting).
+            // This used to return silently, which made repeated connect calls no-ops
+            // invisible in the logs.
+            aapsLogger.warn(LTag.PUMPCOMM, "connectToPump skipped: another connect attempt is in progress")
+            return false
         }
 
         if (this.tandemConnector.isConnected()) {

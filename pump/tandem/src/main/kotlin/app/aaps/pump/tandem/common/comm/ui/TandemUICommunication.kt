@@ -139,6 +139,10 @@ class TandemUICommunication @Inject constructor (
                 dataStore.pumpRunningState.value = runningState
                 pumpStatus.pumpRunningState = runningState
 
+                // Ground truth of actual delivery state - command ACKs (e.g. ResumePumping)
+                // can report success while the pump has not actually resumed.
+                dataStore.mirrorBasalStatus.value = message.basalStatusIcon
+
                 pumpStatus.pumpStatusMirror = HomeScreenMirrorDto()
                 pumpStatus.pumpStatusMirror!!.parse(message.cargo)
             }
