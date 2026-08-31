@@ -1281,6 +1281,16 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
             tandemPumpStatus.pumpRunningState = runningState
             // Mirror to UI LiveData so the UI reflects loop-observed state.
             tandemDataStore.postPumpRunningState(runningState)
+
+            // A successful status read proves the link is up. If pumpConnectedFlow is still
+            // false (stale after a drop whose auto-reconnect bypassed connect()), repair it
+            // here so the availability gate resolves within one status cycle instead of
+            // blocking delivery (TBR/bolus) for hours.
+            if (!tandemPumpStatus.pumpConnectedFlow.value) {
+                aapsLogger.error(LTag.PUMP, "getPumpStatus: status read succeeded but pumpConnectedFlow is false — repairing stale connection state")
+                tandemPumpStatus.pumpConnectedFlow.value = true
+                tandemDataStore.postPumpConnected(true)
+            }
             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
 
             return DataCommandResponse(

@@ -404,6 +404,13 @@ class TandemPumpCommunicationManager(
             this.connected = true
             this.operationMode = OperationMode.StandardOperation
 
+            // This handler runs on EVERY (re)connect, including pumpx2's internal auto-reconnect
+            // after an RF drop — a path that bypasses connect(). Publish the connection fact here
+            // so pumpConnectedFlow can never go stale-false while the link is demonstrably up.
+            // (Stale false made PumpAvailabilitySync hold Unknown and fast-fail all delivery ops.)
+            pumpStatus.pumpConnectedFlow.value = true
+            dataStore.postPumpConnected(true)
+
         } else if (message is PumpVersionResponse) {
             dataStore.postPumpVersionResponse(message)
         }
@@ -523,6 +530,10 @@ class TandemPumpCommunicationManager(
                                                            hciStatus = hciStatus,
                                                            tandemError = tandemError)
         pumpUtil.driverStatus = PumpDriverState.Disconnected
+        // Unplanned drops must drop the connection flow too: PumpAvailabilitySync maps
+        // (connected=false, running) to Unknown, which is the conservative gate state until
+        // the link (and a status read) come back.
+        publishDisconnectedState()
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
         if (!plannedDisconnect) {
             // The ConnectionFixer recovers from *unplanned* failures; during a planned

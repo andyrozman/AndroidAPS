@@ -17,6 +17,7 @@ import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.defs.TempBasalPair
@@ -64,6 +65,15 @@ class TandemPumpConnectionManager @Inject constructor(
         }
 
         if (this.tandemConnector.isConnected()) {
+            // The pumpx2 layer can be connected (auto-reconnect) while pumpConnectedFlow is
+            // still false from an earlier drop — a stale flow makes PumpAvailabilitySync hold
+            // Unknown and every delivery op fast-fail. Repair instead of reporting a "fixed"
+            // connection that the availability gate still treats as disconnected.
+            if (!tandemPumpStatus.pumpConnectedFlow.value) {
+                aapsLogger.warn(TAG, "connectToPump: link is up but pumpConnectedFlow is stale (false) — republishing connected state")
+                tandemPumpStatus.pumpConnectedFlow.value = true
+                tandemDataStore.postPumpConnected(true)
+            }
             return true
         }
 

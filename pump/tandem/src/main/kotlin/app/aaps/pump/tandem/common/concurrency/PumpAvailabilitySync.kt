@@ -55,6 +55,18 @@ class PumpAvailabilitySync @Inject constructor(
 
     private fun recompute(connected: Boolean, running: PumpRunningState) {
         when {
+            // Watchdog: status reads report the pump running, yet the connection flow says
+            // otherwise. This signature means pumpConnectedFlow is stale (an auto-reconnect
+            // path bypassed connect()). getPumpStatus() self-heals this within one status
+            // cycle; if this error persists, a new connection path is skipping flow updates.
+            !connected && running == PumpRunningState.Running -> {
+                logger.error(
+                    LTag.PUMP,
+                    "PumpAvailabilitySync: divergence — pump reports Running but pumpConnectedFlow=false; " +
+                        "delivery gate is blocking ops (self-heals on next successful status read)"
+                )
+                availability.markUnknown("not connected (divergence: status reads report Running)")
+            }
             !connected -> availability.markUnknown("not connected")
             running == PumpRunningState.Suspended -> availability.markDisabled("pump suspended")
             running == PumpRunningState.Running -> availability.markEnabled("pump running")
