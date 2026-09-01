@@ -18,6 +18,7 @@ import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.common.defs.BolusType
 import app.aaps.pump.common.defs.PumpConfigurationTypeInterface
+import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.defs.TempBasalPair
@@ -1290,6 +1291,18 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                 aapsLogger.error(LTag.PUMP, "getPumpStatus: status read succeeded but pumpConnectedFlow is false — repairing stale connection state")
                 tandemPumpStatus.pumpConnectedFlow.value = true
                 tandemDataStore.postPumpConnected(true)
+            }
+
+            // A successful status read likewise invalidates error state recorded against the
+            // previous link, and recovers a driverStatus latched at ErrorCommunicatingWithPump
+            // by a mid-link failure (no reconnect occurred, so TimeSinceReset never fired).
+            // The PumpUtil errorType latch itself is core-frozen; its consumers are latch-tolerant.
+            if (tandemPumpStatus.errorDescription != null) {
+                tandemPumpStatus.errorDescription = null
+            }
+            if (tandemPumpUtil.driverStatus == PumpDriverState.ErrorCommunicatingWithPump) {
+                tandemPumpUtil.resetDriverStatusToConnected()
+                aapsLogger.error(LTag.PUMP, "getPumpStatus: driverStatus was latched at ErrorCommunicatingWithPump despite a successful status read — resetting to Connected")
             }
             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
 

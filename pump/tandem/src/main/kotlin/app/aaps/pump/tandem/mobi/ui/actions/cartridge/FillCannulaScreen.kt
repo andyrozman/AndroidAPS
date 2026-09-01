@@ -45,7 +45,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.pump.StepProgressIndicator
-import app.aaps.pump.common.defs.PumpRunningState
+
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
@@ -134,7 +134,6 @@ fun FillCannulaScreen(
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
     }
 
-    val pumpRunningState = ds.pumpRunningState.observeAsState()
     val fillCannulaState = ds.fillCannulaState.observeAsState()
     val mirrorBasalStatus = ds.mirrorBasalStatus.observeAsState()
 
@@ -213,14 +212,23 @@ fun FillCannulaScreen(
                     isSuspending = true
                     sendPumpCommand(SuspendPumpingRequest())
                     refreshScope.launch {
+                        // Mirror-confirmed suspend - same ground truth as the resume path
+                        // (basalStatusIcon=SUSPEND), not the ACK-derived pumpRunningState: both
+                        // are mirror-fed today, but the raw icon cannot silently regress to
+                        // ACK-trust if that derivation changes.
+                        var suspendedConfirmed = false
                         repeat(5) {
-                            if (pumpRunningState.value == PumpRunningState.Suspended) {
+                            if (mirrorBasalStatus.value == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) {
+                                suspendedConfirmed = true
                                 return@repeat
                             }
                             withContext(Dispatchers.IO) { Thread.sleep(1000) }
                             sendPumpCommand(HomeScreenMirrorRequest())
                         }
                         isSuspending = false
+                        if (!suspendedConfirmed) {
+                            aapsLogger.error(TAG, "FC-NAV: suspend NOT confirmed by mirror within 5s - optimistic UI state stands until next mirror sample")
+                        }
                     }
                 }) { Text(resourceHelper.gs(R.string.ca_btn_suspend_insulin)) }
             },

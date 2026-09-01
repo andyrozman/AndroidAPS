@@ -411,6 +411,16 @@ class TandemPumpCommunicationManager(
             pumpStatus.pumpConnectedFlow.value = true
             dataStore.postPumpConnected(true)
 
+            // A successful (re)handshake also invalidates any error state recorded against the
+            // previous link. errorDescription is tandem-owned; the PumpUtil error latch is
+            // core-frozen, but its only consumers are latch-tolerant (isConnecting gate) or
+            // self-recover via the ~5-min history refresh.
+            if (pumpStatus.errorDescription != null) {
+                pumpStatus.errorDescription = null
+                rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
+                aapsLogger.info(TAG, "Cleared pump error state after successful reconnect")
+            }
+
         } else if (message is PumpVersionResponse) {
             dataStore.postPumpVersionResponse(message)
         }
