@@ -1,0 +1,198 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 5,
+    "identityHash": "0bdcbcc1b129f62b1f5b1e288184ede8",
+    "entities": [
+      {
+        "tableName": "history_records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sequenceId` INTEGER NOT NULL, `pumpSerial` INTEGER NOT NULL, `typeId` INTEGER NOT NULL, `pumpTime` INTEGER NOT NULL, `payload` BLOB NOT NULL, `entitySubId` INTEGER, `entitySubIdName` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`sequenceId`, `pumpSerial`))",
+        "fields": [
+          {
+            "fieldPath": "sequenceId",
+            "columnName": "sequenceId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pumpSerial",
+            "columnName": "pumpSerial",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "typeId",
+            "columnName": "typeId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pumpTime",
+            "columnName": "pumpTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payload",
+            "columnName": "payload",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entitySubId",
+            "columnName": "entitySubId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "entitySubIdName",
+            "columnName": "entitySubIdName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sequenceId",
+            "pumpSerial"
+          ]
+        },
+        "indices": [
+          {
+            "name": "idx_history_records_pumpTime",
+            "unique": false,
+            "columnNames": [
+              "pumpTime"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_history_records_pumpTime` ON `${TABLE_NAME}` (`pumpTime`)"
+          }
+        ]
+      },
+      {
+        "tableName": "qualifying_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `pumpSerial` INTEGER NOT NULL, `dateTime` INTEGER NOT NULL, `name` TEXT NOT NULL, `description` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pumpSerial",
+            "columnName": "pumpSerial",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateTime",
+            "columnName": "dateTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "idx_qualifying_events_dateTime",
+            "unique": false,
+            "columnNames": [
+              "dateTime"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_qualifying_events_dateTime` ON `${TABLE_NAME}` (`dateTime`)"
+          }
+        ]
+      },
+      {
+        "tableName": "site_change",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `pumpSerial` INTEGER NOT NULL, `dateTime` INTEGER NOT NULL, `siteLocation` TEXT, `siteArrow` TEXT, `storedInEvent` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pumpSerial",
+            "columnName": "pumpSerial",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateTime",
+            "columnName": "dateTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "siteLocation",
+            "columnName": "siteLocation",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "siteArrow",
+            "columnName": "siteArrow",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "storedInEvent",
+            "columnName": "storedInEvent",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "idx_site_change_dateTime",
+            "unique": false,
+            "columnNames": [
+              "dateTime"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `idx_site_change_dateTime` ON `${TABLE_NAME}` (`dateTime`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0bdcbcc1b129f62b1f5b1e288184ede8')"
+    ]
+  }
+}

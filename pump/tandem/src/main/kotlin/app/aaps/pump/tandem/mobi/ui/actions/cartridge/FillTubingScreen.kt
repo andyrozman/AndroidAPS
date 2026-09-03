@@ -89,8 +89,6 @@ fun FillTubingScreen(
     refreshMainAppData: (RefreshData) -> Unit,
     showHeader: Boolean = true,
     onStepChanged: (Int) -> Unit,
-
-    //showSiteSelection: Boolean = false,
     coreCartridgeActionsModel: CoreCartridgeActionsModelInterface
 ) {
     val ds = LocalTandemDataStore.current
@@ -255,6 +253,8 @@ fun FillTubingScreen(
                 aapsLogger.error(TAG, "In Site Location Wizard Step")
 
                 //SiteLocationWizardStep(host = coreCartridgeActionsModel)
+
+                coreCartridgeActionsModel.setTime()
 
                 SiteLocationPicker(
                     siteType = TE.Type.CANNULA_CHANGE,

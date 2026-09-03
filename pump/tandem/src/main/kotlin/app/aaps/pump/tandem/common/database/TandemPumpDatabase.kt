@@ -14,15 +14,20 @@ import app.aaps.pump.tandem.common.database.cleanup.PumpDbCleanup
 import app.aaps.pump.tandem.common.database.dao.TandemCleanupDao
 import app.aaps.pump.tandem.common.database.dao.TandemHistoryRecordDao
 import app.aaps.pump.tandem.common.database.dao.TandemQualifyingEventsDao
+import app.aaps.pump.tandem.common.database.dao.TandemSiteChangeDao
 import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.database.data.entity.TandemQualifyingEventEntity
-import java.util.concurrent.TimeUnit
+import app.aaps.pump.tandem.common.database.data.entity.TandemSiteChangeEntity
+
 
 @Database(
-    entities = [TandemHistoryRecordEntity::class, TandemQualifyingEventEntity::class],
+    entities = [TandemHistoryRecordEntity::class,
+                TandemQualifyingEventEntity::class,
+                TandemSiteChangeEntity::class],
     exportSchema = true,
     version = TandemPumpDatabase.VERSION,
-    autoMigrations = [AutoMigration(from = 1, to = 2)]
+    autoMigrations = [AutoMigration(from = 1, to = 2),
+        AutoMigration(from = 4, to = 5)]
 )
 abstract class TandemPumpDatabase : RoomDatabase() {
 
@@ -30,11 +35,13 @@ abstract class TandemPumpDatabase : RoomDatabase() {
 
     abstract fun qualifyingEventsDao(): TandemQualifyingEventsDao
 
+    abstract fun siteChangeDao() : TandemSiteChangeDao
+
     abstract fun cleanupDao(): TandemCleanupDao
 
     companion object {
 
-        const val VERSION = 4
+        const val VERSION = 5
 
         fun build(context: Context, aapsLogger: AAPSLogger, aapsSchedulers: AapsSchedulers) =
             Room.databaseBuilder(
