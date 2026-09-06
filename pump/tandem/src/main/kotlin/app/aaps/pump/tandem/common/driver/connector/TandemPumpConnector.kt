@@ -1692,32 +1692,48 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
     private fun getCorrectRequest(command: TandemCommandType): Message {
-        return when(this.tandemPumpStatus.tandemPumpFirmware) {
 
-            // TODO(jwoglom): we can use builder methods in PumpX2 given the api version
-            TandemPumpApiVersion.VERSION_2_1_to_2_4,
-            -> {
-                when(command) {
-                    TandemCommandType.ControlIQInfo  -> ControlIQInfoV1Request()
-                    TandemCommandType.CurrentBattery -> CurrentBatteryV1Request()
-                }
+        return if (this.tandemPumpStatus.tandemPumpFirmware == TandemPumpApiVersion.VERSION_2_1_to_2_4) {
+            when(command) {
+                TandemCommandType.ControlIQInfo  -> ControlIQInfoV1Request()
+                TandemCommandType.CurrentBattery -> CurrentBatteryV1Request()
             }
-
-            TandemPumpApiVersion.VERSION_2_5_OR_HIGHER,
-            TandemPumpApiVersion.VERSION_3_0,
-            TandemPumpApiVersion.VERSION_3_2,
-            TandemPumpApiVersion.VERSION_3_4,
-            TandemPumpApiVersion.VERSION_3_5_MOBI,
-            TandemPumpApiVersion.VERSION_3_6_MOBI,
-            TandemPumpApiVersion.VERSION_3_8_MOBI,
-            TandemPumpApiVersion.VERSION_4_x -> {
-                when(command) {
-                    TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()
-                    TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
-                }
+        } else if (this.tandemPumpStatus.tandemPumpFirmware == TandemPumpApiVersion.Unknown) {
+            throw Exception("Unidentified version: ${this.tandemPumpStatus.tandemPumpFirmware} - ${tandemPumpStatus.apiVersionResponse?.apiVersion}")
+        } else {
+            when(command) {
+                TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()
+                TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
             }
-            else -> throw Exception("Unidentified version: ${this.tandemPumpStatus.tandemPumpFirmware} - ${tandemPumpStatus.apiVersionResponse?.apiVersion}")
         }
+
+        // TODO remove this
+        // return when(this.tandemPumpStatus.tandemPumpFirmware) {
+        //
+        //     // TODO(jwoglom): we can use builder methods in PumpX2 given the api version
+        //     TandemPumpApiVersion.VERSION_2_1_to_2_4,
+        //     -> {
+        //         when(command) {
+        //             TandemCommandType.ControlIQInfo  -> ControlIQInfoV1Request()
+        //             TandemCommandType.CurrentBattery -> CurrentBatteryV1Request()
+        //         }
+        //     }
+        //
+        //     TandemPumpApiVersion.VERSION_2_5_OR_HIGHER,
+        //     TandemPumpApiVersion.VERSION_3_0,
+        //     TandemPumpApiVersion.VERSION_3_2,
+        //     TandemPumpApiVersion.VERSION_3_4,
+        //     TandemPumpApiVersion.VERSION_3_5_MOBI,
+        //     TandemPumpApiVersion.VERSION_3_6_MOBI,
+        //     TandemPumpApiVersion.VERSION_3_8_MOBI,
+        //     TandemPumpApiVersion.VERSION_4_x -> {
+        //         when(command) {
+        //             TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()
+        //             TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
+        //         }
+        //     }
+        //     else -> throw Exception("Unidentified version: ${this.tandemPumpStatus.tandemPumpFirmware} - ${tandemPumpStatus.apiVersionResponse?.apiVersion}")
+        // }
     }
 
 

@@ -60,10 +60,9 @@ class HistoryPostProcessor @Inject constructor(
         for (historyLog in historyLogs) {
 
             when(historyLog) {
-                is CannulaFilledHistoryLog,
-                is TubingFilledHistoryLog -> {
+                is CannulaFilledHistoryLog -> {
 
-                    aapsLogger.error(TAG, "${historyPrefix}PostProcess - NS Cannula Change -> TubingFilledHistoryLog")
+                    aapsLogger.error(TAG, "${historyPrefix}PostProcess - NS Cannula Change -> CannulaFilledHistoryLog")
 
                     runBlocking {
 
@@ -80,6 +79,8 @@ class HistoryPostProcessor @Inject constructor(
                             pumpSerial = pumpStatus.serialNumber.toString()
                         )
 
+                        // TODO this won't work at the moment, since site selection needs to go into different action "Fill Cannula"
+                        //    instead of "Fill Tubbing"
                         if (siteChangeRecord!=null) {
 
                             aapsLogger.error(TAG, "Site change Record found: $siteChangeRecord")
