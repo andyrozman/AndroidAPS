@@ -14,6 +14,7 @@ import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
 import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.database.data.entity.TandemQualifyingEventEntity
+import app.aaps.pump.tandem.common.database.data.entity.TandemSiteChangeEntity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
@@ -88,9 +89,6 @@ class DbDataHandler @Inject constructor(
     // }
 
 
-    // fun addHistoryRecords(listOfHistoryEntries: List<TandemHistoryRecordEntity>) {
-    //     tandemPumpDatabase.historyRecordDao().saveAll(listOfHistoryEntries)
-    // }
 
     fun addHistoryLogs(listOfHistoryEntries: MutableCollection<HistoryLog>, debugHistoryDownload: Boolean = false) {
 
@@ -125,6 +123,38 @@ class DbDataHandler @Inject constructor(
                 { aapsLogger.debug(TAG, "Inserted QualifyingEvents: ${listOfEvents.size} ") },
                 { error -> aapsLogger.error(TAG, "Failed to insert QualifyingEvents: ${error.message}", error) }
             )
+    }
+
+
+    fun addSiteChange(
+        tandemSiteChangeEntity: TandemSiteChangeEntity
+    ) {
+        tandemPumpDatabase.siteChangeDao()
+            .save(tandemSiteChangeEntity)
+            .subscribeOn(aapsSchedulers.io)
+            .observeOn(aapsSchedulers.main)
+            .subscribe(
+                { aapsLogger.debug(TAG, "Inserted SiteChange Record") },
+                { error -> aapsLogger.error(TAG, "Failed to insert SiteChange: ${error.message}", error) }
+            )
+    }
+
+
+    fun updateSiteChangeWithStoredTrue(siteChangeRecord: TandemSiteChangeEntity) {
+        tandemPumpDatabase.siteChangeDao()
+            .updateSiteChangeWithStoredInEventTrue(siteChangeRecord.id)
+            .subscribeOn(aapsSchedulers.io)
+            .observeOn(aapsSchedulers.main)
+            .subscribe(
+                { aapsLogger.debug(TAG, "Updated SiteChange Record [id=${siteChangeRecord.id}]") },
+                { error -> aapsLogger.error(TAG, "Failed to update SiteChange[id=${siteChangeRecord.id}]: ${error.message}", error) }
+            )
+    }
+
+
+    fun getUnassignedSiteChanges() : List<TandemSiteChangeEntity> {
+        return tandemPumpDatabase.siteChangeDao()
+            .allNotStoredWithSerialBlocking(pumpStatus.serialNumber)
     }
 
     fun getLatestHistorySequenceIds(limit: Int): Set<Long> {

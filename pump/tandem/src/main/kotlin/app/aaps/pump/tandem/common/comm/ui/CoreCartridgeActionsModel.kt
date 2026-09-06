@@ -19,6 +19,8 @@ import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.compose.siteRotation.BodyType
 import app.aaps.core.ui.compose.siteRotation.SiteLocationStepHost
+import app.aaps.pump.tandem.common.database.data.DbDataHandler
+import app.aaps.pump.tandem.common.database.data.entity.TandemSiteChangeEntity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,20 +29,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// TODO clean up the code
-
 @HiltViewModel
 @Stable
 class CoreCartridgeActionsModel @Inject constructor(
     private val aapsLogger: AAPSLogger,
-    //private val medtrumPlugin: MedtrumPlugin,
-    private val commandQueue: CommandQueue,
-    //val medtrumPump: MedtrumPump,
     private val pumpStatus: TandemPumpStatus,
     private val insulinManager: InsulinManager,
     private val profileFunction: ProfileFunction,
-    private val profileRepository: ProfileRepository,
     private val preferences: Preferences,
+    private val dbDataHandler: DbDataHandler,
     private val persistenceLayer: PersistenceLayer
 
 ) : ViewModel(), CoreCartridgeActionsModelInterface {
@@ -53,6 +50,8 @@ class CoreCartridgeActionsModel @Inject constructor(
     override val siteArrow: StateFlow<TE.Arrow> = _siteArrow.asStateFlow()
 
     private val _siteRotationEntries = MutableStateFlow<List<TE>>(emptyList())
+
+    private var timeOfSelectionStart: Long = 0
 
     // Insulin selection state
     private val _availableInsulins = MutableStateFlow<List<ICfg>>(emptyList())
@@ -85,6 +84,10 @@ class CoreCartridgeActionsModel @Inject constructor(
         this._hideNotification.value = true;
     }
 
+    override fun setTime() {
+        this.timeOfSelectionStart = System.currentTimeMillis()
+    }
+
     fun isNotififcationShowed(): Boolean {
         return !(_hideNotification.value)
     }
@@ -101,7 +104,10 @@ class CoreCartridgeActionsModel @Inject constructor(
         _activeInsulinLabel.value = null
 
         _hideNotification.value = false
+
+        this.timeOfSelectionStart = 0
     }
+
 
     fun loadModelData() {
         reset()
@@ -114,32 +120,45 @@ class CoreCartridgeActionsModel @Inject constructor(
         _siteLocation.value = location
     }
 
+
     override fun updateSiteArrow(arrow: TE.Arrow) {
         _siteArrow.value = arrow
     }
 
-    /** Navigate from ATTACH to SITE_LOCATION if enabled, otherwise straight to ACTIVATE. */
-    // fun moveAfterPriming() {
-    //     //moveStep(if (showSiteLocationStep) PatchStep.SITE_LOCATION else PatchStep.ATTACH_PATCH)
-    //     aapsLogger.error(LTag.PUMP, "moveAfterPriming NOT IMPLEMENTED")
-    // }
 
     override fun completeSiteLocation() {
-        // Site location is saved after activation completes (patchStartTime not available yet)
-        //moveStep(PatchStep.ATTACH_PATCH)
-        // TODO completeSiteLocation
-        aapsLogger.error(LTag.PUMP, "completeSiteLocation NOT IMPLEMENTED")
+
+        val location = _siteLocation.value.takeIf { it != TE.Location.NONE }
+        val arrow = _siteArrow.value.takeIf { it != TE.Arrow.NONE }
+
+        if (location != null || arrow != null) {
+            aapsLogger.info(LTag.PUMP, "completeSiteLocation: location=$location, arrow=$arrow, time=$timeOfSelectionStart")
+            viewModelScope.launch {
+                val entity = TandemSiteChangeEntity(
+                    dateTime = timeOfSelectionStart,
+                    pumpSerial = pumpStatus.serialNumber,
+                    siteLocation = location?.name,
+                    siteArrow = arrow?.name
+                );
+
+                dbDataHandler.addSiteChange(entity)
+            }
+        } else {
+            aapsLogger.info(LTag.PUMP, "completeSiteLocation: both location and arrow not set.")
+        }
 
         _hideNotification.value = false
+        timeOfSelectionStart = 0L
     }
 
 
     override fun skipSiteLocation() {
-        aapsLogger.error(LTag.PUMP, "skipSiteLocation")
+        aapsLogger.info(LTag.PUMP, "skipSiteLocation")
         _siteLocation.value = TE.Location.NONE
         _siteArrow.value = TE.Arrow.NONE
         _hideNotification.value = false
     }
+
 
     override fun bodyType(): BodyType =
         BodyType.fromPref(preferences.get(IntKey.SiteRotationUserProfile))
@@ -147,46 +166,42 @@ class CoreCartridgeActionsModel @Inject constructor(
     override fun siteRotationEntries(): List<TE> = _siteRotationEntries.value
 
     fun loadSiteRotationEntries() {
-        // TODO remove sensor change perhaps
-        aapsLogger.error(LTag.PUMP, "loadSiteRotationEntries")
+        aapsLogger.info(LTag.PUMP, "loadSiteRotationEntries")
         viewModelScope.launch {
             _siteRotationEntries.value = persistenceLayer.getTherapyEventDataFromTime(
                 System.currentTimeMillis() - T.days(45).msecs(), false
             ).filter { it.type == TE.Type.CANNULA_CHANGE || it.type == TE.Type.SENSOR_CHANGE }
-            aapsLogger.error(TAG, "Site Rotation ENtries: ${_siteRotationEntries}")
-        }
-        val btype = bodyType()
-        aapsLogger.error(TAG, "Body Type: ${btype}")
-    }
-
-    /** Save site location/arrow to the CANNULA_CHANGE therapy event created during activation. */
-    private fun saveSiteLocationToTherapyEvent(activationTimestamp: Long) {
-        val location = _siteLocation.value.takeIf { it != TE.Location.NONE }
-        val arrow = _siteArrow.value.takeIf { it != TE.Arrow.NONE }
-        aapsLogger.error(LTag.PUMP, "saveSiteLocationToTherapyEvent NOT IMPLEMENTED")
-        if (location != null || arrow != null) {
-
-            // scope.launch {
-            //     try {
-            //         val entries = persistenceLayer.getTherapyEventDataFromToTime(activationTimestamp, activationTimestamp)
-            //             .filter { it.type == TE.Type.CANNULA_CHANGE }
-            //         entries.firstOrNull()?.let { te ->
-            //             persistenceLayer.insertOrUpdateTherapyEvent(te.copy(location = location, arrow = arrow))
-            //         }
-            //     } catch (_: Exception) {
-            //         // location is optional
-            //     }
-            // }
+            aapsLogger.debug(TAG, "Site Rotation Entries: ${_siteRotationEntries}")
         }
     }
+
+    // /** Save site location/arrow to the CANNULA_CHANGE therapy event created during activation. */
+    // private fun saveSiteLocationToTherapyEvent(activationTimestamp: Long) {
+    //     val location = _siteLocation.value.takeIf { it != TE.Location.NONE }
+    //     val arrow = _siteArrow.value.takeIf { it != TE.Arrow.NONE }
+    //     aapsLogger.error(LTag.PUMP, "saveSiteLocationToTherapyEvent NOT IMPLEMENTED")
+    //     if (location != null || arrow != null) {
+    //
+    //         // scope.launch {
+    //         //     try {
+    //         //         val entries = persistenceLayer.getTherapyEventDataFromToTime(activationTimestamp, activationTimestamp)
+    //         //             .filter { it.type == TE.Type.CANNULA_CHANGE }
+    //         //         entries.firstOrNull()?.let { te ->
+    //         //             persistenceLayer.insertOrUpdateTherapyEvent(te.copy(location = location, arrow = arrow))
+    //         //         }
+    //         //     } catch (_: Exception) {
+    //         //         // location is optional
+    //         //     }
+    //         // }
+    //     }
+    // }
 
     // endregion
 
 
     fun loadInsulins() {
-        aapsLogger.error(LTag.PUMP, "in loadInsulins")
+        aapsLogger.info(LTag.PUMP, "loadInsulins")
         if (_availableInsulins.value.isNotEmpty()) return
-        aapsLogger.error(LTag.PUMP, "in loadInsulins - loading")
         viewModelScope.launch {
             val insulins = insulinManager.insulins.map { it.deepClone() }
             val activeLabel = profileFunction.getProfile()?.iCfg?.insulinLabel
@@ -194,29 +209,32 @@ class CoreCartridgeActionsModel @Inject constructor(
             _availableInsulins.value = insulins
             _selectedInsulin.value = current
             _activeInsulinLabel.value = activeLabel
-            aapsLogger.error(LTag.PUMP, "loadInsulins: selectedInsulin: ${_selectedInsulin.value}, activeInsulinLabel: ${_activeInsulinLabel.value}")
+            aapsLogger.info(LTag.PUMP, "loadInsulins: selectedInsulin: ${_selectedInsulin.value}, activeInsulinLabel: ${_activeInsulinLabel.value}")
         }
     }
 
 
     fun selectInsulin(iCfg: ICfg) {
-        aapsLogger.error(LTag.PUMP, "selectInsulin: ${iCfg}")
+        aapsLogger.info(LTag.PUMP, "selectInsulin: ${iCfg}")
         _selectedInsulin.value = iCfg
     }
 
 
     /** Execute profile switch if user selected a different insulin. Called after activation completes. */
     fun executeInsulinProfileSwitch() {
-        aapsLogger.error(TAG, "executeInsulinProfileSwitch - start")
+        aapsLogger.info(TAG, "executeInsulinProfileSwitch - start")
         val selected = _selectedInsulin.value ?: return
         viewModelScope.launch {
             // Recompute from the currently active profile instead of trusting the cached value,
             // which is captured during initializePatchStep — before PROFILE_GATE selection has
             // produced an EffectiveProfileSwitch — and is not refreshed across activation sessions.
             val activeLabel = profileFunction.getProfile()?.iCfg?.insulinLabel
-            aapsLogger.error(TAG, "executeInsulinProfileSwitch: ${activeLabel}")
-            if (selected.insulinLabel == activeLabel) return@launch
-            aapsLogger.error(TAG, "executeInsulinProfileSwitch: different insulin create switch")
+            aapsLogger.info(TAG, "executeInsulinProfileSwitch: ${activeLabel}")
+            if (selected.insulinLabel == activeLabel) {
+                aapsLogger.info(TAG, "executeInsulinProfileSwitch: Switch not needed, same insulin.")
+                return@launch
+            }
+            aapsLogger.info(TAG, "executeInsulinProfileSwitch: different insulin create switch")
             profileFunction.createProfileSwitchWithNewInsulin(selected, Sources.Tandem)
         }
     }
@@ -244,7 +262,9 @@ class CoreCartridgeActionsModelTest(
 
 
     override fun hideNotifications() {
-        TODO("Not yet implemented")
+    }
+
+    override fun setTime() {
     }
 
     override fun updateSiteLocation(location: TE.Location) {

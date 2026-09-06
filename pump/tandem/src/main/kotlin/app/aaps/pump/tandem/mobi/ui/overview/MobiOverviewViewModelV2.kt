@@ -381,9 +381,9 @@ class MobiOverviewViewModelV2 @Inject constructor(
     ): PumpOverviewUiState {
 
         // Status banner: communication status from shared helper, or pump-specific warning
-        val statusBanner = buildStatusBanner(pumpRunningState, communicationStatus.statusBanner())
+        val statusBanner = buildStatusBanner(pumpState = pumpRunningState,
+                                             statusBanner = communicationStatus.statusBanner())
         val queueStatus = communicationStatus.queueStatus()
-
 
         // Last bolus
         val lastBolus = if (lastBolus != null) {
@@ -446,11 +446,6 @@ class MobiOverviewViewModelV2 @Inject constructor(
         //  4. BT State
         infoGroup.list.add(PumpInfoRow(label = rh.gs(R.string.pump_bt_state_label),
                                        value = currentActivity))
-
-        //  6. Pump Status TODO maybe use StatusBanner ?
-        // infoGroup.list.add(PumpInfoRow(label = rh.gs(R.string.pump_status_label),
-        //                                value = rh.gs(pumpRunningState.resourceId),
-        //                                level = pumpRunningState.statusLevel))
 
         pumpRows.add(infoGroup)
 
