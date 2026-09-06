@@ -185,12 +185,18 @@ class TandemUiController @Inject constructor(
                 }
             }
             RefreshData.START_ACTIONS       -> {
-                tandemPumpUtil.preventConnect = true
+                aapsLogger.info(TAG, "UI workflow latch: preventQueueExecution = true (Actions screen started)")
+                // NOTE: preventConnect is intentionally NOT latched here. It belongs to the
+                // cartridge-change workflow only (setCartridgeChangeMode) per b14f1abb52 —
+                // latching it on screen entry re-introduces the overnight lockout: the
+                // MobiComposeContent lifecycle reset clears preventQueueExecution but NOT
+                // preventConnect, leaving isBusy() stuck true (2026-09-06, ~5.4h, no SMBs).
                 tandemPumpStatus.preventQueueExecution = true
                 ds.reminderDateTime.value = tandemPumpStatus.tandemSiteReminder
             }
             RefreshData.START_DATA       -> {
-                tandemPumpUtil.preventConnect = true
+                aapsLogger.info(TAG, "UI workflow latch: preventQueueExecution = true (Data screen started)")
+                // See START_ACTIONS: preventConnect must not be latched on screen entry.
                 tandemPumpStatus.preventQueueExecution = true
             }
         }

@@ -74,10 +74,14 @@ class TandemPumpCommunicationManager(
     var dataStore: TandemUiStateWriter = tandemDataStore
 
     var communicationListener : CommunicationListener? = null
-        set(value) {  if (value==null)
-            operationMode=OperationMode.StandardOperation
-        else
-            operationMode=OperationMode.ExternalListenerOperation
+        set(value) {
+            // NOTE: `field = value` must run UNCONDITIONALLY. It previously sat inside the else
+            // branch, so passing null switched operationMode back to StandardOperation but left
+            // the stale listener attached - responses then routed to a dead listener instance
+            // (observed 2026-08-31 22:56: a HistoryLogStatusResponse was silently dropped and the
+            // history download wedged the CommandExecutor for its full timeout).
+            operationMode = if (value==null) OperationMode.StandardOperation
+                           else OperationMode.ExternalListenerOperation
             field = value
         }
 

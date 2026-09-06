@@ -86,9 +86,11 @@ class TandemUICommunication @Inject constructor (
             return false
         }
 
-        if (!tandemPumpCommunicationManager!!.isListenerEnabled()) {
-            tandemPumpCommunicationManager!!.communicationListener = this
-        }
+        // Always (re)bind: the listener from a previous download cycle (or a UI screen) may
+        // still be attached, and stale instances drop history responses (receivedLogStatus etc.
+        // never invoked). Rebinding is idempotent and guarantees the active instance routes
+        // this download's responses into the shared HistoryRetriever.
+        tandemPumpCommunicationManager!!.communicationListener = this
 
         if (!tandemPumpCommunicationManager!!.isPumpFullyConnected()) {
             aapsLogger.warn(TAG, "Command ${request::javaClass.name} couldn't be executed because pump is not fully connected yet.")
@@ -229,16 +231,22 @@ class TandemUICommunication @Inject constructor (
 
                 if (::historyRetriever.isInitialized) {
                     historyRetriever.receivedStatus(message)
+                } else {
+                    aapsLogger.error(TAG, "HistoryLogStatusResponse dropped: historyRetriever not initialized on this TandemUICommunication instance")
                 }
             }
             is HistoryLogResponse -> {
                 if (::historyRetriever.isInitialized) {
                     historyRetriever.receivedLogResponse(message)
+                } else {
+                    aapsLogger.error(TAG, "HistoryLogResponse dropped: historyRetriever not initialized on this TandemUICommunication instance")
                 }
             }
             is HistoryLogStreamResponse -> {
                 if (::historyRetriever.isInitialized) {
                     historyRetriever.receivedLogStreamResponse(message)
+                } else {
+                    aapsLogger.error(TAG, "HistoryLogStreamResponse dropped: historyRetriever not initialized on this TandemUICommunication instance")
                 }
             }
             is ResumePumpingResponse    -> {
