@@ -139,17 +139,40 @@ class HistoryRetriever @Inject constructor(
         downloadRunning = true
         startDataRetrieval()
 
+        // Progress watchdog: every message the per-download TandemUICommunication receives counts
+        // as progress. A stalled stream (RF drop mid-chunk, or a misrouted response that a stale
+        // listener instance dropped - both observed 2026-08-31/09-01) previously wedged this loop,
+        // and with it the whole CommandExecutor, for the full 60-min timeout. Un-wedge after
+        // WATCHDOG_TIMEOUT_MS of no messages instead.
+        var lastMessageCount = -1
+        var lastProgressMs = System.currentTimeMillis()
+
         while (downloadRunning) {
             aapsLogger.debug("${historyPrefix}download running")
             pumpUtil.sleepSeconds(5)
 
+            if (communication.messageCount != lastMessageCount) {
+                lastMessageCount = communication.messageCount
+                lastProgressMs = System.currentTimeMillis()
+            } else if (System.currentTimeMillis() - lastProgressMs > WATCHDOG_TIMEOUT_MS) {
+                aapsLogger.error(TAG, "${historyPrefix}No messages received for ${WATCHDOG_TIMEOUT_MS / 1000}s (messages=$lastMessageCount) - aborting history download.")
+                downloadRunning = false
+                this.communication.tandemPumpCommunicationManager = null
+                currentRequest = null
+                setSemaphore()
+                endProgress()
+                return false
+            }
+
             if (timeoutTime < System.currentTimeMillis()) {
                 if (communication.messageCount==0) {
                     aapsLogger.error(TAG, "[History] Timeout reached while trying to read history, with no messages read.")
+                    this.communication.tandemPumpCommunicationManager = null
                     return false
                 } else {
                     aapsLogger.error(TAG, "[History] Timeout reached while trying to read history, with ${communication.messageCount} messages read.")
                     downloadRunning = false
+                    this.communication.tandemPumpCommunicationManager = null
                     return false
                 }
             }
@@ -203,9 +226,27 @@ class HistoryRetriever @Inject constructor(
         downloadRunning = true
         startDataRetrieval()
 
+        // Same progress watchdog as downloadHistory(): this loop previously had NO timeout at
+        // all, so a stalled silent download wedged the CommandExecutor indefinitely.
+        var lastMessageCount = -1
+        var lastProgressMs = System.currentTimeMillis()
+
         while(downloadRunning) {
             aapsLogger.debug("${historyPrefix}download running")
             pumpUtil.sleepSeconds(5)
+
+            if (communication.messageCount != lastMessageCount) {
+                lastMessageCount = communication.messageCount
+                lastProgressMs = System.currentTimeMillis()
+            } else if (System.currentTimeMillis() - lastProgressMs > WATCHDOG_TIMEOUT_MS) {
+                aapsLogger.error(TAG, "${historyPrefix}Silent download: no messages received for ${WATCHDOG_TIMEOUT_MS / 1000}s (messages=$lastMessageCount) - aborting.")
+                downloadRunning = false
+                this.communication.tandemPumpCommunicationManager = null
+                currentRequest = null
+                setSemaphore()
+                endProgress()
+                return mutableListOf()
+            }
         }
 
         this.communication.tandemPumpCommunicationManager = null

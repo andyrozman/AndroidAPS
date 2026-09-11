@@ -62,16 +62,26 @@ class TandemPumpCommunicationManager(
     lateinit var peripheral: BluetoothPeripheral
     @Volatile var connected = false
     @Volatile var errorConnecting = false
+
+    // True while the *host* (command queue / user) has intentionally disconnected, e.g. the
+    // idle-disconnect after waitForDisconnectionInSeconds(). Used to veto pumpX2's internal
+    // auto-reconnect for planned teardowns: resurrecting the link creates a zombie connection
+    // that occupies the pump's single connection slot and blocks the next real connectToPump().
+    @Volatile var plannedDisconnect = false
     var commandRequestModeRunning: Boolean = false
         get() { return inFlightRequests.isNotEmpty() }
 
     var dataStore: TandemUiStateWriter = tandemDataStore
 
     var communicationListener : CommunicationListener? = null
-        set(value) {  if (value==null)
-            operationMode=OperationMode.StandardOperation
-        else
-            operationMode=OperationMode.ExternalListenerOperation
+        set(value) {
+            // NOTE: `field = value` must run UNCONDITIONALLY. It previously sat inside the else
+            // branch, so passing null switched operationMode back to StandardOperation but left
+            // the stale listener attached - responses then routed to a dead listener instance
+            // (observed 2026-08-31 22:56: a HistoryLogStatusResponse was silently dropped and the
+            // history download wedged the CommandExecutor for its full timeout).
+            operationMode = if (value==null) OperationMode.StandardOperation
+                           else OperationMode.ExternalListenerOperation
             field = value
         }
 
@@ -94,6 +104,7 @@ class TandemPumpCommunicationManager(
         val COMMAND_TIMEOUT = 5 * 1000  // 5s (in ms) timeout for receiving pump command response
         val HANDSHAKE_TIMEOUT = 30 * 1000L  // 30s (in ms) timeout for handshake (pairing) connecting flow
         val CONNECT_TIMEOUT = 60 * 1000L // 60s (in ms) timeout for complete connecting flow
+        val CONNECT_TOTAL_TIMEOUT = 180 * 1000L // 180s (in ms) hard cap for the whole connect call
     }
 
 
@@ -106,6 +117,7 @@ class TandemPumpCommunicationManager(
         }
 
         connected = false
+        plannedDisconnect = false
         val connectStartTime = System.currentTimeMillis()
         operationMode = OperationMode.ConnectionMode
         bluetoothHandler!!.startScan()
@@ -128,6 +140,15 @@ class TandemPumpCommunicationManager(
                     pumpUtil.driverStatus == PumpDriverState.Connecting &&
                     System.currentTimeMillis() - connectStartTime > CONNECT_TIMEOUT) {
                 aapsLogger.error(TAG, "Connection timeout after ${CONNECT_TIMEOUT / 1000}s, forcing disconnect")
+                errorConnecting = true
+                forceDisconnect(onDisconnect = false, tandemError = null)
+            } else if (System.currentTimeMillis() - connectStartTime > CONNECT_TOTAL_TIMEOUT) {
+                // Hard cap independent of handshakingStartTime: when the link drops BEFORE
+                // service discovery completes, handshakingStartTime stays 0 and neither of
+                // the timeouts above can fire - this loop then blocked forever holding
+                // inConnectMode=true, silently swallowing every future connect attempt.
+                aapsLogger.error(TAG, "Connect total deadline (${CONNECT_TOTAL_TIMEOUT / 1000}s) exceeded - aborting connect")
+                handshakingStartTime = 0L
                 errorConnecting = true
                 forceDisconnect(onDisconnect = false, tandemError = null)
             }
@@ -154,6 +175,10 @@ class TandemPumpCommunicationManager(
     fun disconnect(): Boolean {
 
         aapsLogger.info(TAG, "disconnect()")
+
+        // Mark as host-initiated BEFORE tearing down, so the pumpX2 disconnect callback knows
+        // not to auto-reconnect (see onPumpDisconnected).
+        plannedDisconnect = true
 
         // Fully tear down the BLE handler: cancel any live peripheral
         // connection, stop the central, and null the pumpx2 singleton so the
@@ -383,6 +408,23 @@ class TandemPumpCommunicationManager(
             this.connected = true
             this.operationMode = OperationMode.StandardOperation
 
+            // This handler runs on EVERY (re)connect, including pumpx2's internal auto-reconnect
+            // after an RF drop — a path that bypasses connect(). Publish the connection fact here
+            // so pumpConnectedFlow can never go stale-false while the link is demonstrably up.
+            // (Stale false made PumpAvailabilitySync hold Unknown and fast-fail all delivery ops.)
+            pumpStatus.pumpConnectedFlow.value = true
+            dataStore.postPumpConnected(true)
+
+            // A successful (re)handshake also invalidates any error state recorded against the
+            // previous link. errorDescription is tandem-owned; the PumpUtil error latch is
+            // core-frozen, but its only consumers are latch-tolerant (isConnecting gate) or
+            // self-recover via the ~5-min history refresh.
+            if (pumpStatus.errorDescription != null) {
+                pumpStatus.errorDescription = null
+                rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
+                aapsLogger.info(TAG, "Cleared pump error state after successful reconnect")
+            }
+
         } else if (message is PumpVersionResponse) {
             dataStore.postPumpVersionResponse(message)
         }
@@ -481,9 +523,18 @@ class TandemPumpCommunicationManager(
 
     override fun onPumpDisconnected(peripheral: BluetoothPeripheral?, status: HciStatus?): Boolean {
         aapsLogger.error(TAG, "Pump Disconnected: $status")
+        // Veto pumpX2's auto-reconnect when the queue/host intentionally disconnected:
+        // the command queue owns the connection lifecycle, and an autonomous reconnect here
+        // creates a zombie link that blocks the next real connectToPump(). Genuine RF drops
+        // still return true and keep the 250ms auto-reconnect.
+        val shouldReconnect = !plannedDisconnect
+        if (plannedDisconnect) {
+            aapsLogger.info(TAG, "Planned (host-initiated) disconnect - suppressing pumpX2 auto-reconnect")
+        }
         forceDisconnect(onDisconnect = true,
                         hciStatus = status)
-        return super.onPumpDisconnected(peripheral, status)
+        plannedDisconnect = false
+        return shouldReconnect && super.onPumpDisconnected(peripheral, status)
     }
 
     fun forceDisconnect(onDisconnect: Boolean, hciStatus: HciStatus? = null,  tandemError: TandemError? = null) {
@@ -493,8 +544,16 @@ class TandemPumpCommunicationManager(
                                                            hciStatus = hciStatus,
                                                            tandemError = tandemError)
         pumpUtil.driverStatus = PumpDriverState.Disconnected
+        // Unplanned drops must drop the connection flow too: PumpAvailabilitySync maps
+        // (connected=false, running) to Unknown, which is the conservative gate state until
+        // the link (and a status read) come back.
+        publishDisconnectedState()
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
-        tandemConnectionFixer.startConnectionFix()
+        if (!plannedDisconnect) {
+            // The ConnectionFixer recovers from *unplanned* failures; during a planned
+            // teardown it would just re-connect the link we were asked to close.
+            tandemConnectionFixer.startConnectionFix()
+        }
     }
 
 

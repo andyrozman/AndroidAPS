@@ -674,20 +674,16 @@ class TandemMobiPumpPlugin @Inject constructor(
 
         //aapsLogger.debug(LTag.PUMP, logPrefix + "DUB isConnecting [status=$status]")
 
-        val unreachable = (error!=null && error==PumpErrorType.PumpUnreachable)
+        // Limited override - PumpUnreachable only. It is LATCHED by onPumpCriticalError on
+        // transient link failures (e.g. INSUFFICIENT_AUTHORIZATION /
+        // CONNECTION_UPDATE_FAILED while separating from the pump) and is never cleared,
+        // so letting it drive isConnecting() left the command queue stuck in its
+        // "connecting" branch even after a successful reconnect. Any other latched error
+        // keeps the legacy behavior.
+        val unreachable = (error != null && error == PumpErrorType.PumpUnreachable)
 
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "DUB isConnecting [status=$status]")
-        return status == PumpDriverState.Connecting || unreachable
-
-        // return !isServiceSet || tandemService?.isInitialized != true
-
-        // if (!driverInitialized)
-        //     return false
-        //
-        // val driverStatus = tandemUtil.driverStatus
-        // if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
-        //
-        // return driverStatus == PumpDriverState.Connecting
+        return status == PumpDriverState.Connecting && !unreachable
     }
 
     // override fun connect(reason: String) {
@@ -747,11 +743,25 @@ class TandemMobiPumpPlugin @Inject constructor(
         //  - tandemDispatcher.isBusy(): an op is queued or in flight on PumpOpQueue's single dispatcher.
         //  - tandemPumpUtil.preventConnect: cartridge-change workflow is in progress and owns the
         //    pump comm channel. AAPS auto-reconnect must stand down for its duration.
-        // Browsing Actions / Data does NOT set preventConnect — those sends are serialized by
+        // Browsing Actions / Data does NOT set preventConnect (restored b14f1abb52 narrowing:
+        // preventConnect belongs to the cartridge-change workflow only, via
+        // setCartridgeChangeMode) — those sends are serialized by
         // the queue at USER_INITIATED priority and AAPS Loop can safely interleave.
         // PumpAvailability is intentionally NOT folded in here — mutating ops handle availability
         // via fast-fail at dispatch, not by stalling AAPS's command queue on isBusy().
-        val isBusy = tandemDispatcher.isBusy() || tandemPumpUtil.preventConnect || pumpStatus.preventQueueExecution
+        // UI-workflow latch watchdog: START_ACTIONS/START_DATA latch preventQueueExecution;
+        // releases happen on navigation-leave, tab dispose and lifecycle events. If every release
+        // path is missed, the latch locks the Loop out indefinitely (2026-09-06: ~5.4h overnight,
+        // no SMBs, PumpActivityFab stuck on) - isQueueExecutionPrevented() auto-releases stale
+        // latches here. A concurrently latched preventConnect (cartridge-change mode) is cleared
+        // with it: a >TTL-old latch means every release path was already missed.
+        val queuePreventedBefore = pumpStatus.preventQueueExecution
+        val queuePrevented = pumpStatus.isQueueExecutionPrevented()
+        if (queuePreventedBefore && !queuePrevented) {
+            aapsLogger.error(LTag.PUMP, "Clearing paired preventConnect after stale UI workflow latch auto-release")
+            tandemPumpUtil.preventConnect = false
+        }
+        val isBusy = tandemDispatcher.isBusy() || tandemPumpUtil.preventConnect || queuePrevented
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isBusy: $isBusy")
         return isBusy
     }

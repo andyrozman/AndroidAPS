@@ -3,6 +3,8 @@ package app.aaps.pump.tandem.common.driver
 import androidx.compose.runtime.compositionLocalOf
 import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
@@ -45,8 +47,20 @@ var LocalTandemDataStore = compositionLocalOf { tandemUiDataStore }
 @Singleton
 class TandemPumpStatus @Inject constructor(val sp: SP,
                                            val rxBus: RxBus,
-                                           val preferences: Preferences
+                                           val preferences: Preferences,
+                                           private val aapsLogger: AAPSLogger
 ) : PumpStatus(PumpType.TANDEM_MOBI_BT) {
+
+    companion object {
+
+        // Safety backstop: the UI workflow latch (preventQueueExecution / preventConnect) is
+        // released on navigation-leave, tab dispose and lifecycle events. If every release path
+        // is missed, this latch locked the Loop out overnight (2026-09-06: ~5.4h, no SMBs,
+        // PumpActivityFab stuck on, scheduled status refresh suppressed) because the latch
+        // carried no timestamp and its release is wired only to UI navigation/lifecycle events.
+        // Auto-release latches older than this TTL.
+        private const val UI_WORKFLOW_LATCH_TTL_MS = 30 * 60_000L
+    }
 
     lateinit var pumpDescription: PumpDescription
     var errorDescription: String? = null
@@ -95,7 +109,40 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
 
     var bolusStep: Double = 0.1   // ??
 
+    // UI workflow latch: latched by TandemUiController.refreshMainAppData(START_ACTIONS/START_DATA)
+    // when the Actions/Data screens start, released on navigation-leave / tab dispose /
+    // lifecycle events. preventQueueExecutionSinceMs records when it was latched so a missed
+    // release can be detected (and bounded by isQueueExecutionPrevented()).
+    // NOTE: preventConnect is deliberately NOT part of this latch — it belongs to the
+    // cartridge-change workflow only (setCartridgeChangeMode), per the b14f1abb52 narrowing.
+    var preventQueueExecutionSinceMs = 0L
+        private set
+
     var preventQueueExecution = false
+        set(value) {
+            if (value && !field) preventQueueExecutionSinceMs = System.currentTimeMillis()
+            if (!value) preventQueueExecutionSinceMs = 0L
+            field = value
+        }
+
+    /**
+     * Latch state with TTL backstop. Returns true while the UI workflow latch is active; a latch
+     * older than [UI_WORKFLOW_LATCH_TTL_MS] is auto-released so a missed unlatch cannot lock the
+     * Loop out indefinitely. The caller (TandemMobiPumpPlugin.isBusy) clears any latched
+     * preventConnect it observes alongside a stale release.
+     */
+    fun isQueueExecutionPrevented(): Boolean {
+        if (!preventQueueExecution) return false
+        val sinceMs = preventQueueExecutionSinceMs
+        if (sinceMs > 0L && System.currentTimeMillis() - sinceMs > UI_WORKFLOW_LATCH_TTL_MS) {
+            aapsLogger.error(
+                LTag.PUMP,
+                "UI workflow latch stale (${(System.currentTimeMillis() - sinceMs) / 60000} min) - auto-releasing preventQueueExecution (paired preventConnect must also be cleared by caller)"
+            )
+            preventQueueExecution = false
+        }
+        return preventQueueExecution
+    }
 
     // Tandem specific
     var pumpStatusMirror: HomeScreenMirrorDto? = null

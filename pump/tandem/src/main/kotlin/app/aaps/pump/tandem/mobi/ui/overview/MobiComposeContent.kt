@@ -256,6 +256,36 @@ class MobiComposeContent(
         }
 
 
+        // Release the UI-workflow comm locks whenever navigation LEAVES the Actions/Data
+        // screens. Those screens latch preventConnect + preventQueueExecution on entry
+        // (refreshMainAppData START_ACTIONS / START_DATA) and the only other release is the
+        // ACTIONS-tab toolbar back-arrow - so leaving via the system back gesture, a bottom
+        // tab switch or any future route stalled the command queue in "busy" indefinitely.
+        val actionsScreens = setOf(
+            MobiScreen.ACTIONS,
+            MobiScreen.ACTIONS_CARTRIDGE_ACTIONS,
+            MobiScreen.ACTIONS_CHANGE_CARTRIDGE,
+            MobiScreen.ACTIONS_FILL_TUBING,
+            MobiScreen.ACTIONS_FILL_CANNULA,
+            MobiScreen.ACTIONS_PUMP_INFO,
+            MobiScreen.ACTIONS_DEBUG_COMMANDS,
+            MobiScreen.ACTIONS_SITE_REMINDER
+        )
+        val dataScreens = setOf(MobiScreen.DATA, MobiScreen.DATA_NOTIFICATIONS, MobiScreen.DATA_EVENTS, MobiScreen.DATA_HISTORY)
+        var lastScreen by remember { mutableStateOf<MobiScreen?>(null) }
+        LaunchedEffect(currentScreen) {
+            val leftActions = lastScreen in actionsScreens && currentScreen !in actionsScreens
+            val leftData = lastScreen in dataScreens && currentScreen !in dataScreens
+            if (leftActions || leftData) {
+                aapsLogger.info(LTag.PUMP, "Leaving ${lastScreen} -> ${currentScreen}: releasing UI workflow comm locks")
+                tandemUiController.disposeTandemUiCommunication(
+                    TandemUiController.AdditionalConfigurationScreens.Data.takeIf { leftData }
+                        ?: TandemUiController.AdditionalConfigurationScreens.Actions
+                )
+            }
+            lastScreen = currentScreen
+        }
+
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         DisposableEffect(lifecycle) {
             val observer = LifecycleEventObserver { _, event ->

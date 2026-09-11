@@ -45,7 +45,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.pump.StepProgressIndicator
-import app.aaps.pump.common.defs.PumpRunningState
+
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
@@ -69,6 +69,7 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRe
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateStreamResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -122,7 +123,10 @@ fun FillCannulaScreen(
 
     LaunchedEffect(Unit) {
         aapsLogger.info(TAG, "Initial alert/alarm poll on FillCannulaScreen")
-        sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
+        // Mirror FIRST so pumpSuspended reflects reality before the buttons enable. The
+        // cached fillCannulaState is intentionally KEPT: re-entering this screen after a
+        // completed fill should still show the "filled" state.
+        sendPumpCommands(listOf(HomeScreenMirrorRequest(), AlertStatusRequest(), AlarmStatusRequest()))
     }
 
     LaunchedEffect(intervalOf(10)) {
@@ -130,8 +134,34 @@ fun FillCannulaScreen(
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
     }
 
-    val pumpRunningState = ds.pumpRunningState.observeAsState()
     val fillCannulaState = ds.fillCannulaState.observeAsState()
+    val mirrorBasalStatus = ds.mirrorBasalStatus.observeAsState()
+
+    // Delivery state shown by the buttons - newest source wins:
+    //  1. commands on this screen set it optimistically (instant feedback),
+    //  2. HomeScreenMirror samples are ground truth and correct it, but only outside the
+    //     short grace window right after a command (a mirror captured before the command
+    //     took effect must not flip the UI back).
+    var uiSuspended by remember { mutableStateOf<Boolean?>(null) }
+    var uiSetAtMs by remember { mutableStateOf(0L) }
+    val mirrorIcon = mirrorBasalStatus.value
+
+    LaunchedEffect(mirrorIcon) {
+        val m = mirrorIcon ?: return@LaunchedEffect
+        val inGrace = uiSuspended != null && System.currentTimeMillis() - uiSetAtMs < MIRROR_GRACE_MS
+        if (!inGrace) {
+            uiSuspended = m == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND
+            uiSetAtMs = System.currentTimeMillis()
+        }
+    }
+
+    val pumpSuspended = uiSuspended == true
+    val deliveryKnown = uiSuspended != null
+
+    fun setDeliverySuspended(v: Boolean) {
+        uiSuspended = v
+        uiSetAtMs = System.currentTimeMillis()
+    }
 
     val notificationBundle = ds.notificationBundle.observeAsState()
     val notifications: List<Any> = notificationBundle.value?.get()?.toList() ?: emptyList()
@@ -144,6 +174,7 @@ fun FillCannulaScreen(
         if (isInActiveMode) {
             showCancelDialog = true
         } else {
+            aapsLogger.info(TAG, "FC-NAV: requestCancelOrBack -> navigateBack (not active mode)")
             navigateBack()
         }
     }
@@ -177,17 +208,27 @@ fun FillCannulaScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showSuspendDialog = false
+                    setDeliverySuspended(true)
                     isSuspending = true
                     sendPumpCommand(SuspendPumpingRequest())
                     refreshScope.launch {
+                        // Mirror-confirmed suspend - same ground truth as the resume path
+                        // (basalStatusIcon=SUSPEND), not the ACK-derived pumpRunningState: both
+                        // are mirror-fed today, but the raw icon cannot silently regress to
+                        // ACK-trust if that derivation changes.
+                        var suspendedConfirmed = false
                         repeat(5) {
-                            if (pumpRunningState.value == PumpRunningState.Suspended) {
+                            if (mirrorBasalStatus.value == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) {
+                                suspendedConfirmed = true
                                 return@repeat
                             }
                             withContext(Dispatchers.IO) { Thread.sleep(1000) }
                             sendPumpCommand(HomeScreenMirrorRequest())
                         }
                         isSuspending = false
+                        if (!suspendedConfirmed) {
+                            aapsLogger.error(TAG, "FC-NAV: suspend NOT confirmed by mirror within 5s - optimistic UI state stands until next mirror sample")
+                        }
                     }
                 }) { Text(resourceHelper.gs(R.string.ca_btn_suspend_insulin)) }
             },
@@ -208,21 +249,41 @@ fun FillCannulaScreen(
                 TextButton(onClick = {
                     showResumeDialog = false
                     isResuming = true
-                    sendPumpCommand(ResumePumpingRequest())
                     refreshScope.launch {
-                        repeat(5) {
-                            if (pumpRunningState.value == PumpRunningState.Running) {
-                                return@repeat
+                        // Verified resume: ResumePumpingResponse can ACK success while the
+                        // pump stays suspended (observed 2026-08-25). HomeScreenMirror's
+                        // basalStatusIcon is the ground truth - BUT note the loop may be
+                        // running a zero-temp, in which case the icon is ZERO_TEMP_RATE,
+                        // not BASAL. Anything != SUSPEND means delivering.
+                        var resumed = false
+                        repeat(3) {
+                            if (resumed) return@repeat
+                            sendPumpCommand(ResumePumpingRequest())
+                            repeat(6) {
+                                withContext(Dispatchers.IO) { Thread.sleep(1000) }
+                                sendPumpCommand(HomeScreenMirrorRequest())
+                                val icon = mirrorBasalStatus.value
+                                if (icon != null && icon != HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) {
+                                    resumed = true
+                                    return@repeat
+                                }
                             }
-                            withContext(Dispatchers.IO) { Thread.sleep(1000) }
-                            sendPumpCommand(HomeScreenMirrorRequest())
                         }
                         isResuming = false
-                        ds.completedCartridgeActions.value =
-                            (ds.completedCartridgeActions.value ?: emptySet()) +
-                                CompletedCartridgeAction.FILL_CANNULA
-                        ds.loadStatus.value = null
-                        navigateBack()
+                        if (resumed) {
+                            ds.completedCartridgeActions.value =
+                                (ds.completedCartridgeActions.value ?: emptySet()) +
+                                    CompletedCartridgeAction.FILL_CANNULA
+                            ds.loadStatus.value = null
+                            aapsLogger.info(TAG, "FC-NAV: resume VERIFIED -> navigateBack")
+                            setDeliverySuspended(false)
+                            navigateBack()
+                        } else {
+                            aapsLogger.error(TAG, "FC-NAV: resume NOT verified after retries - showing exit warning")
+                            // Delivery did not resume - keep the screen open with the
+                            // exit warning so this cannot silently pass.
+                            showExitWithoutResumeDialog = true
+                        }
                     }
                 }) { Text(resourceHelper.gs(R.string.ca_btn_resume_insulin)) }
             },
@@ -339,7 +400,7 @@ fun FillCannulaScreen(
                     text = resourceHelper.gs(R.string.fc_filling_state, fillCannulaState.value?.stateId),
                     style = MaterialTheme.typography.bodyMedium
                 )
-            } else if (pumpRunningState.value == PumpRunningState.Suspended) {
+            } else if (pumpSuspended) {
                 Text(
                     text = resourceHelper.gs(R.string.ca_before_you_start_heading),
                     style = MaterialTheme.typography.titleMedium,
@@ -443,7 +504,7 @@ fun FillCannulaScreen(
                         PrimaryActionButton(
                             text = resourceHelper.gs(R.string.ca_btn_resume_insulin),
                             onClick = { showResumeDialog = true },
-                            enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                            enabled = deliveryKnown && pumpSuspended,
                             loading = isResuming,
                             modifier = Modifier.weight(1f)
                         )
@@ -455,7 +516,7 @@ fun FillCannulaScreen(
                         )
                     }
                 } else {
-                    if (pumpRunningState.value != PumpRunningState.Suspended) {
+                if (deliveryKnown && !pumpSuspended) {
                         SecondaryActionButton(
                             text = resourceHelper.gs(R.string.ca_btn_suspend_insulin),
                             onClick = { showSuspendDialog = true },
@@ -480,7 +541,7 @@ fun FillCannulaScreen(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        enabled = pumpRunningState.value == PumpRunningState.Suspended &&
+                        enabled = deliveryKnown && pumpSuspended &&
                             cannulaFillAmount != null &&
                             allowedCannulaFillAmount(cannulaFillAmount) &&
                             !hasActiveNotifications
@@ -490,6 +551,11 @@ fun FillCannulaScreen(
         }
     )
 }
+
+// Grace window (ms) after a user suspend/resume during which mirror samples do not
+// override the optimistic UI state - a sample captured before the command took effect is
+// stale and would flip the screen back.
+private const val MIRROR_GRACE_MS = 8000L
 
 val fillCannulaScreenCommands = listOf(
     HomeScreenMirrorRequest(),
