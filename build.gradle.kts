@@ -34,7 +34,6 @@ val kotlinMetadataVersion = libs.versions.kotlin.get()
 
 allprojects {
     repositories {
-        mavenLocal()
         google()
         mavenCentral()
         maven("https://jitpack.io")
