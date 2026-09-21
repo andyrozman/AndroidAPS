@@ -1269,7 +1269,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         if (responseMessage!=null) {
 
             val gsonData = getJsonStringFromObject(responseMessage)
-            aapsLogger.debug(LTag.PUMPCOMM, " MirrorResponse: $gsonData")
+            //aapsLogger.debug(LTag.PUMPCOMM, " MirrorResponse: $gsonData")
 
             val homeScreenMirrorDto = HomeScreenMirrorDto()
             homeScreenMirrorDto.parse(responseMessage.cargo)

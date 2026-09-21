@@ -40,11 +40,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.aaps.core.data.model.TE
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.pump.StepProgressIndicator
+import app.aaps.core.ui.compose.siteRotation.SiteLocationPicker
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
@@ -99,6 +102,14 @@ fun FillCannulaScreen(
     var isSuspending by remember { mutableStateOf(false) }
     var isResuming by remember { mutableStateOf(false) }
 
+    // TODO this is for testing only (true, original value false)
+    var isInSiteSelectionMode by remember { mutableStateOf(false) }
+
+    val siteLocation by coreCartridgeActionsModel.siteLocation.collectAsStateWithLifecycle()
+    val siteArrow by coreCartridgeActionsModel.siteArrow.collectAsStateWithLifecycle()
+
+    var displaySiteStep by remember { mutableStateOf(false) }
+
     fun allowedCannulaFillAmount(units: Double?): Boolean {
         return units != null && units > 0 && units <= 3.0
     }
@@ -123,6 +134,7 @@ fun FillCannulaScreen(
     LaunchedEffect(Unit) {
         aapsLogger.info(TAG, "Initial alert/alarm poll on FillCannulaScreen")
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
+        // TODO disabled for now displaySiteStep = coreCartridgeActionsModel.showSiteLocationStep
     }
 
     LaunchedEffect(intervalOf(10)) {
@@ -268,8 +280,9 @@ fun FillCannulaScreen(
         )
     }
 
-    val totalSteps = 3
+    val totalSteps = if (displaySiteStep) 4 else 3
     val currentStep = when {
+        isInSiteSelectionMode -> 4
         fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED -> 3
         fillCannulaState.value != null -> 2
         else -> 1
@@ -298,7 +311,25 @@ fun FillCannulaScreen(
         coreCartridgeActionsModel = coreCartridgeActionsModel,
         refreshScope = refreshScope,
         body = {
-            if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
+
+            if (isInSiteSelectionMode) {
+                aapsLogger.error(TAG, "In Site Location Wizard Step")
+
+                coreCartridgeActionsModel.setTime()
+
+                SiteLocationPicker(
+                    siteType = TE.Type.CANNULA_CHANGE,
+                    bodyType = coreCartridgeActionsModel.bodyType(),
+                    entries = coreCartridgeActionsModel.siteRotationEntries(),
+                    selectedLocation = siteLocation,
+                    selectedArrow = siteArrow,
+                    onLocationSelected = { coreCartridgeActionsModel.updateSiteLocation(it) },
+                    onArrowSelected = { coreCartridgeActionsModel.updateSiteArrow(it) },
+                    showSitesSelector = true, // TODO rrr
+                    compactView = true
+                )
+
+            } else if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
                 Spacer(modifier = Modifier.height(24.dp))
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -438,21 +469,42 @@ fun FillCannulaScreen(
                 horizontalArrangement = Arrangement.spacedBy(AapsSpacing.large)
             ) {
 
-                if (fillCannulaState.value != null) {
-                    if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
-                        PrimaryActionButton(
-                            text = resourceHelper.gs(R.string.ca_btn_resume_insulin),
-                            onClick = { showResumeDialog = true },
-                            enabled = pumpRunningState.value == PumpRunningState.Suspended,
-                            loading = isResuming,
-                            modifier = Modifier.weight(1f)
-                        )
+                if (isInSiteSelectionMode) {
 
-                        SecondaryActionButton(
-                            text = resourceHelper.gs(R.string.common_done),
-                            onClick = { showExitWithoutResumeDialog = true },
-                            modifier = Modifier.weight(1f)
-                        )
+                    PrimaryActionButton(
+                        text = resourceHelper.gs(R.string.ca_btn_resume_insulin),
+                        onClick = { showResumeDialog = true },
+                        enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                        loading = isResuming,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    SecondaryActionButton(
+                        text = resourceHelper.gs(R.string.common_done),
+                        onClick = { showExitWithoutResumeDialog = true },
+                        modifier = Modifier.weight(1f)
+                    )
+
+                } else if (fillCannulaState.value != null) {
+                    if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
+
+                        if (displaySiteStep) {
+
+                        } else {
+                            PrimaryActionButton(
+                                text = resourceHelper.gs(R.string.ca_btn_resume_insulin),
+                                onClick = { showResumeDialog = true },
+                                enabled = pumpRunningState.value == PumpRunningState.Suspended,
+                                loading = isResuming,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            SecondaryActionButton(
+                                text = resourceHelper.gs(R.string.common_done),
+                                onClick = { showExitWithoutResumeDialog = true },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 } else {
                     if (pumpRunningState.value != PumpRunningState.Suspended) {

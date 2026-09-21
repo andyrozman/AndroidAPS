@@ -12,7 +12,6 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
-import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.data.history.HistoryRange
 import app.aaps.pump.tandem.common.data.history.HistoryRequestInfo
 import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
@@ -71,7 +70,6 @@ class HistoryRetriever @Inject constructor(
     val dbDataHandler: DbDataHandler,
     val uiInteraction: UiInteraction,
     val notificationManager: NotificationManager,
-    val tandemDispatcher: TandemDispatcher,
     val historyPostProcessor: HistoryPostProcessor
 ) {
 
@@ -276,9 +274,8 @@ class HistoryRetriever @Inject constructor(
 
         startProgress()
 
-        submitHistoryRequest("historyLogStatus") {
-            communication.sendCommand(HistoryLogStatusRequest())
-        }
+        communication.sendCommand(HistoryLogStatusRequest())
+
     }
 
     /**
@@ -294,9 +291,9 @@ class HistoryRetriever @Inject constructor(
      * the dispatcher's `sendUiCommand` extension — that one targets the singleton instance,
      * which doesn't know about this retriever.
      */
-    private fun submitHistoryRequest(name: String, send: () -> Unit) {
-        tandemDispatcher.submitBackground(name) { send() }
-    }
+    // private fun submitHistoryRequest(name: String, send: () -> Unit) {
+    //     tandemDispatcher.submitBackground(name) { send() }
+    // }
 
 
     fun receivedStatus(message: HistoryLogStatusResponse) {
@@ -606,9 +603,9 @@ class HistoryRetriever @Inject constructor(
         currentRequest = queue.removeFirst()
         aapsLogger.info(TAG, "${historyPrefix}executeNextLogGet (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence}, count=${currentRequest!!.numberOfLogs})")
         val req = HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs)
-        submitHistoryRequest("historyLogChunk[${currentRequest!!.startSequence}-${currentRequest!!.endSequence}]") {
+        //submitHistoryRequest("historyLogChunk[${currentRequest!!.startSequence}-${currentRequest!!.endSequence}]") {
             this.communication.sendCommand(req)
-        }
+        //}
     }
 
 

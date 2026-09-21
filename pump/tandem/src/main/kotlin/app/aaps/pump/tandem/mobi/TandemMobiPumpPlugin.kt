@@ -47,24 +47,6 @@ import app.aaps.pump.common.data.PumpStatus
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.common.sync.PumpSyncStorage
 import app.aaps.pump.common.utils.ProfileUtil
-import app.aaps.pump.tandem.common.concurrency.PumpAvailabilitySync
-import app.aaps.pump.tandem.common.concurrency.PumpDispatcherScope
-import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
-import app.aaps.pump.tandem.common.concurrency.cancelBolus
-import app.aaps.pump.tandem.common.concurrency.cancelTemporaryBasal
-import app.aaps.pump.tandem.common.concurrency.deliverBolus
-import app.aaps.pump.tandem.common.concurrency.executeCustomCommand
-import app.aaps.pump.tandem.common.concurrency.getBasalProfile
-import app.aaps.pump.tandem.common.concurrency.getBatteryLevel
-import app.aaps.pump.tandem.common.concurrency.getBolus
-import app.aaps.pump.tandem.common.concurrency.getConfiguration
-import app.aaps.pump.tandem.common.concurrency.getPumpStatus
-import app.aaps.pump.tandem.common.concurrency.getRemainingInsulin
-import app.aaps.pump.tandem.common.concurrency.getTemporaryBasal
-import app.aaps.pump.tandem.common.concurrency.getTime
-import app.aaps.pump.tandem.common.concurrency.setBasalProfile
-import app.aaps.pump.tandem.common.concurrency.setTemporaryBasal
-import app.aaps.pump.tandem.common.concurrency.setTime
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import kotlin.time.Duration.Companion.minutes
 import app.aaps.pump.common.R as Rc
@@ -95,6 +77,7 @@ import app.aaps.pump.tandem.common.data.defs.SiteReminderPreset
 import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpSettingType
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
+import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.driver.connector.def.ControlCommandResponse
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
@@ -147,11 +130,10 @@ class TandemMobiPumpPlugin @Inject constructor(
     val pumpStatus: TandemPumpStatus,
     val qualifyingEventHandler: QualifyingEventHandler,
     dateUtil: DateUtil,
-    val tandemDispatcher: TandemDispatcher,
-    @Suppress("unused") val pumpAvailabilitySync: PumpAvailabilitySync, // eager-construct so observers attach
     aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
     pumpSyncStorage: PumpSyncStorage,
+    val pumpConnectionManager: TandemPumpConnectionManager,
     tandemPumpDriverConfiguration: TandemMobiPumpDriverConfiguration,
     decimalFormatter: DecimalFormatter,
     val dbDataHandler: DbDataHandler,
@@ -743,15 +725,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
     override fun isBusy(): Boolean {
-        // Two orthogonal "don't dispatch right now" signals:
-        //  - tandemDispatcher.isBusy(): an op is queued or in flight on PumpOpQueue's single dispatcher.
-        //  - tandemPumpUtil.preventConnect: cartridge-change workflow is in progress and owns the
-        //    pump comm channel. AAPS auto-reconnect must stand down for its duration.
-        // Browsing Actions / Data does NOT set preventConnect — those sends are serialized by
-        // the queue at USER_INITIATED priority and AAPS Loop can safely interleave.
-        // PumpAvailability is intentionally NOT folded in here — mutating ops handle availability
-        // via fast-fail at dispatch, not by stalling AAPS's command queue on isBusy().
-        val isBusy = tandemDispatcher.isBusy() || tandemPumpUtil.preventConnect || pumpStatus.preventQueueExecution
+        val isBusy = tandemPumpUtil.preventConnect || pumpStatus.preventQueueExecution
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isBusy: $isBusy")
         return isBusy
     }
@@ -831,7 +805,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     PumpDataRefreshType.PumpTime         -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_PumpTime")
-                        tandemDispatcher.submitDefault("getTime") { getTime() }
+                        pumpConnectionManager.getTime()
                         if (checkTimeAndOptionallySetTime(readTime = true)) {
                             resetDisplay = true
                         }
@@ -847,7 +821,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     PumpDataRefreshType.BatteryStatus -> {
                         aapsLogger.error(LTag.PUMP, "Refresh_BatteryStatus")
-                        tandemDispatcher.submitDefault("getBatteryLevel") { getBatteryLevel() }
+                        pumpConnectionManager.getBatteryLevel()
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Battery))
                         //refreshTypesNeededToReschedule.add(key)
                         resetTime = true
@@ -861,7 +835,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                     // this is for simple status refresh (only PumpStatus without Alerts/Alarms or history
                     PumpDataRefreshType.Custom_1 -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_Custom_1 (simple pump status after UI)")
-                        tandemDispatcher.submitDefault("getPumpStatus") { getPumpStatus() }
+                        pumpConnectionManager.getPumpStatus()
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
                     }
 
@@ -878,7 +852,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
                     PumpDataRefreshType.RemainingInsulin -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_RemainingInsulin")
-                        tandemDispatcher.submitDefault("getRemainingInsulin") { getRemainingInsulin() }
+                        pumpConnectionManager.getRemainingInsulin()
                         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Reservoir))
 
                         //resetDisplay = true
@@ -926,7 +900,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                 return
             }
 
-            val tbr = tandemDispatcher.submitDefault("readTBR") { readTBR() }
+            val tbr = readTBR()
 
             // if current tbr is null
             if (tbr==null) {
@@ -991,7 +965,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     private fun getFullPumpStatus(readHistory: Boolean) {
         aapsLogger.info(LTag.PUMP, "Refresh_PumpStatus")
-        tandemDispatcher.submitDefault("getPumpStatus") { getPumpStatus() }
+        pumpConnectionManager.getPumpStatus()
 
         readNotificationsForSemaphore()
 
@@ -1010,9 +984,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         var notificationFound = false
 
         for (command in commandList) {
-            val customCommandResponse = tandemDispatcher.submitDefault("getNotifications:$command") {
-                executeCustomCommand(command)
-            }
+            val customCommandResponse = pumpConnectionManager.executeCustomCommand(command)
 
             if (customCommandResponse.isSuccess) {
                 val valueOfResponse = customCommandResponse.value
@@ -1071,12 +1043,12 @@ class TandemMobiPumpPlugin @Inject constructor(
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
 
         // remaining insulin (>50 = 4h; 50-20 = 1h; 15m) -
-        tandemDispatcher.submitDefault("getRemainingInsulin") { getRemainingInsulin() }
+        pumpConnectionManager.getRemainingInsulin()
         scheduleNextRefresh(PumpDataRefreshType.RemainingInsulin, 1)
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Reservoir))
 
         // remaining power (1h) -
-        tandemDispatcher.submitDefault("getBatteryLevel") { getBatteryLevel() }
+        pumpConnectionManager.getBatteryLevel()
         scheduleNextRefresh(PumpDataRefreshType.BatteryStatus, 2)
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Battery))
 
@@ -1085,17 +1057,15 @@ class TandemMobiPumpPlugin @Inject constructor(
         // this.pumpStatus.tandemSiteReminder = if (reminder>0) null else reminder
 
         // configuration (once and then if history shows config changes)
-        tandemDispatcher.submitDefault("getConfiguration") { getConfiguration() }
+        pumpConnectionManager.getConfiguration()
         checkThatSettingsAreEnforced()
 
         // pump info
-        tandemDispatcher.submitDefault("getPumpInfo") {
-            executeCustomCommand(TandemCustomCommand.GET_PUMP_INFO)
-        }
+        pumpConnectionManager.executeCustomCommand(TandemCustomCommand.GET_PUMP_INFO)
 
         // get TBR (if needed)
         if (pumpStatus.pumpStatusMirror==null || pumpStatus.pumpStatusMirror!!.isTemporaryBasalRunning()) {
-            val tbrRun = tandemDispatcher.submitDefault("readTBR") { readTBR() }
+            val tbrRun = readTBR()
 
             if (tbrRun!=null && pumpStatus.currentTempBasalInternal==null) {
                 pumpStatus.currentTempBasalInternal = tbrRun
@@ -1105,14 +1075,12 @@ class TandemMobiPumpPlugin @Inject constructor(
         }
 
         // get last bolus
-        tandemDispatcher.submitDefault("getBolus") { getBolus() }
+        pumpConnectionManager.getBolus()
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Bolus))
 
         // get basal profile
-        tandemDispatcher.submitDefault("getBasalProfile") {
-            getBasalProfile()
-            refreshBasalRateDisplay()
-        }
+        pumpConnectionManager.getBasalProfile()
+        refreshBasalRateDisplay()
 
         pumpStatus.setLastCommunicationToNow()
         setRefreshButtonEnabled(true)
@@ -1127,6 +1095,19 @@ class TandemMobiPumpPlugin @Inject constructor(
         return true
     }
 
+
+    private fun readTBR(): TempBasalPair? {
+        val temporaryBasalResponse = pumpConnectionManager.getTemporaryBasal()
+
+        aapsLogger.info(LTag.PUMP, "TBR readTBR $temporaryBasalResponse")
+
+        return if (temporaryBasalResponse.value!=null) {
+            val tbr = temporaryBasalResponse.value!!
+            tbr
+        } else {
+            null
+        }
+    }
 
     override fun isThisProfileSet(profile: PumpProfile): Boolean {
 
@@ -1212,9 +1193,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             aapsLogger.debug(TAG, "Current Max Bolus: ${maxBolus}, Required: $maxBolusRequired")
 
             if (maxBolus != maxBolusRequired) {
-                tandemDispatcher.submitDefault("setMaxBolus") {
-                    executeCustomCommand(TandemCustomCommand.SET_MAX_BOLUS, maxBolusRequired)
-                }
+                pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_MAX_BOLUS, maxBolusRequired)
                 changedItems.add("Max Bolus")
             }
 
@@ -1230,18 +1209,14 @@ class TandemMobiPumpPlugin @Inject constructor(
             aapsLogger.debug(TAG, "Current Max Basal: ${maxBasalInt}, Required: $maxBasalRequired")
 
             if (maxBasalInt != maxBasalRequired) {
-                tandemDispatcher.submitDefault("setMaxBasal") {
-                    executeCustomCommand(TandemCustomCommand.SET_MAX_BASAL, maxBasalRequired)
-                }
+                pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_MAX_BASAL, maxBasalRequired)
                 changedItems.add("Max Basal")
             }
 
             val controlIQEnabled = (pumpStatus.settings!![TandemPumpSettingType.CONTROL_IQ_ENABLED]) as Boolean
 
             if (controlIQEnabled) {
-                tandemDispatcher.submitDefault("setControlIQ") {
-                    executeCustomCommand(TandemCustomCommand.SET_CONTROL_IQ, false)
-                }
+                pumpConnectionManager.executeCustomCommand(TandemCustomCommand.SET_CONTROL_IQ, false)
                 changedItems.add("Control IQ")
             }
 
@@ -1318,10 +1293,8 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     private fun setQuickBolus(): String {
 
-        tandemDispatcher.submitDefault("setQuickBolus") {
-            executeCustomCommand(command = TandemCustomCommand.SET_QUICK_BOLUS,
-                                 data = newQuickBolusType)
-        }
+        pumpConnectionManager.executeCustomCommand(command = TandemCustomCommand.SET_QUICK_BOLUS,
+                             data = newQuickBolusType)
 
         val stringQuickBolus = rh.gs(this.newQuickBolusType!!.friendlyName)
 
@@ -1334,7 +1307,7 @@ class TandemMobiPumpPlugin @Inject constructor(
         aapsLogger.info(LTag.PUMP, logPrefix + "checkTimeAndOptionallySetTime - Start")
 
         if (readTime) {
-            tandemDispatcher.submitDefault("getTime") { getTime() }
+            pumpConnectionManager.getTime()
         }
 
         try {
@@ -1353,7 +1326,7 @@ class TandemMobiPumpPlugin @Inject constructor(
                         tandemPumpUtil.sendNotification(TandemNotificationType.TimeDifferenceTooBig, 60, diff)
                     } else {
 
-                        val time = tandemDispatcher.submitDefault("setTime") { setTime() }
+                        val time = pumpConnectionManager.setTime()
 
                         if (time.isSuccess) {
                             tandemPumpUtil.sendNotification(TandemNotificationType.DateTimeUpdated)
@@ -1374,18 +1347,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult = tandemDispatcher.submitMutating(
-        name = "deliverBolus",
-        maxDuration = 10.minutes,
-        unavailable = { e ->
-            PumpEnactResultObject(rh).success(false).enacted(false)
-                .comment(rh.gs(Rc.string.pump_cmd_err_bolus_could_not_be_delivered) + " (${e.availability})")
-        }
-    ) {
-        deliverBolusBody(detailedBolusInfo)
-    }
-
-    private fun PumpDispatcherScope.deliverBolusBody(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
+    override fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, logPrefix + "deliverBolus - " + BolusDeliveryType.DeliveryPrepared)
         return if (detailedBolusInfo.insulin > pumpStatus.reservoirRemainingUnits) {
             PumpEnactResultObject(rh) //
@@ -1405,7 +1367,7 @@ class TandemMobiPumpPlugin @Inject constructor(
 
             bolusDeliveryType = BolusDeliveryType.DeliveryPrepared
 
-            val commandResponse = deliverBolus(detailedBolusInfo)
+            val commandResponse = pumpConnectionManager.deliverBolus(detailedBolusInfo)
 
             if (commandResponse.isSuccess) {
                 val now = System.currentTimeMillis()
@@ -1426,9 +1388,9 @@ class TandemMobiPumpPlugin @Inject constructor(
                 pumpStatus.reservoirRemainingUnits -= detailedBolusInfo.insulin
 
                 incrementStatistics(if (detailedBolusInfo.bolusType == BS.Type.SMB)
-                    TandemLongNonPreferenceKey.SmbBoluses
-                else
-                    TandemLongNonPreferenceKey.StandardBoluses)
+                                        TandemLongNonPreferenceKey.SmbBoluses
+                                    else
+                                        TandemLongNonPreferenceKey.StandardBoluses)
 
                 if (detailedBolusInfo.carbs > 0.0) {
                     runBlocking {
@@ -1475,13 +1437,6 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
     override fun stopBolusDelivering() {
-        // CRITICAL — must run during the gating bolus workflow.
-        tandemDispatcher.submitCritical("stopBolusDelivering") {
-            stopBolusDeliveringBody()
-        }
-    }
-
-    private fun PumpDispatcherScope.stopBolusDeliveringBody() {
         aapsLogger.debug(TAG, "stopBolusDelivering")
 
         if (bolusDeliveryType==BolusDeliveryType.Delivering ||
@@ -1490,7 +1445,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             bolusDeliveryType = BolusDeliveryType.CancelDelivery // we don't want to come here twice
 
             aapsLogger.info(TAG, "Cancelling Bolus")
-            val cancelBolusResponse = cancelBolus(BolusData())
+            val cancelBolusResponse = pumpConnectionManager.cancelBolus(BolusData())
 
             if (cancelBolusResponse.isSuccess) {
                 bolusDeliveryType = BolusDeliveryType.Idle
@@ -1512,20 +1467,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     // if enforceNew===true current temp basal is canceled and new TBR set (duration is prolonged),
     // if false and the same rate is requested enacted=false and success=true is returned and TBR is not changed
     override suspend fun setTempBasalPercent(percent: Int, durationInMinutes: Int,
-                                     enforceNew: Boolean, tbrType: TemporaryBasalType
-    ): PumpEnactResult = tandemDispatcher.submitMutating(
-        name = "setTempBasalPercent",
-        maxDuration = 2.minutes,
-        unavailable = { e ->
-            PumpEnactResultObject(rh).success(false).enacted(false)
-                .comment(rh.gs(Rc.string.pump_cmd_err_tbr_could_not_be_delivered) + " (${e.availability})")
-        }
-    ) {
-        setTempBasalPercentBody(percent, durationInMinutes, enforceNew, tbrType)
-    }
-
-    private fun PumpDispatcherScope.setTempBasalPercentBody(percent: Int, durationInMinutes: Int,
-                                        enforceNew: Boolean, tbrType: TemporaryBasalType
+                                             enforceNew: Boolean, tbrType: TemporaryBasalType
     ): PumpEnactResult {
         setRefreshButtonEnabled(false)
 
@@ -1560,7 +1502,7 @@ class TandemMobiPumpPlugin @Inject constructor(
             }
 
             // now start new TBR
-            val commandResponse  = setTemporaryBasal(percent, durationInMinutes)
+            val commandResponse  = pumpConnectionManager.setTemporaryBasal(percent, durationInMinutes)
 
             aapsLogger.info(LTag.PUMP, logPrefix + "setTempBasalPercent - setTBR. Response: " + commandResponse)
             if (commandResponse.isSuccess) {
@@ -1600,19 +1542,12 @@ class TandemMobiPumpPlugin @Inject constructor(
 
     override suspend fun setTempBasalAbsolute(absoluteRate: Double, durationInMinutes: Int,
                                       enforceNew: Boolean, tbrType: TemporaryBasalType
-    ): PumpEnactResult = tandemDispatcher.submitMutating(
-        name = "setTempBasalAbsolute",
-        maxDuration = 2.minutes,
-        unavailable = { e ->
-            PumpEnactResultObject(rh).success(false).enacted(false)
-                .comment(rh.gs(Rc.string.pump_cmd_err_tbr_could_not_be_delivered) + " (${e.availability})")
-        }
-    ) {
+    ): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, "TBR setTempBasalAbsolute called with a rate of $absoluteRate for $durationInMinutes min [enforce=$enforceNew,tbrType=${tbrType.name}].")
         val unroundedPercentage = ((absoluteRate / baseBasalRate.cU) * 100).toInt()
         aapsLogger.info(LTag.PUMP, "TBR abs=$absoluteRate,base=${pumpStatus.basalProfileForHour},percent: $unroundedPercentage")
         // Already inside a queued op — call body directly to avoid nested submit (deadlock).
-        setTempBasalPercentBody(unroundedPercentage, durationInMinutes, enforceNew, tbrType)
+        return setTempBasalPercent(unroundedPercentage, durationInMinutes, enforceNew, tbrType)
     }
 
 
@@ -1624,8 +1559,8 @@ class TandemMobiPumpPlugin @Inject constructor(
 
 
 
-    private fun PumpDispatcherScope.readTBR(): TempBasalPair? {
-        val temporaryBasalResponse = getTemporaryBasal()
+    private fun eadTBR(): TempBasalPair? {
+        val temporaryBasalResponse = pumpConnectionManager.getTemporaryBasal()
 
         aapsLogger.info(LTag.PUMP, "TBR readTBR $temporaryBasalResponse")
 
@@ -1638,18 +1573,7 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override suspend fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult = tandemDispatcher.submitMutating(
-        name = "cancelTempBasal",
-        maxDuration = 1.minutes,
-        unavailable = { e ->
-            PumpEnactResultObject(rh).success(false).enacted(false)
-                .comment(rh.gs(Rc.string.pump_cmd_err_cant_cancel_tbr) + " (${e.availability})")
-        }
-    ) {
-        cancelTempBasalBody(enforceNew)
-    }
-
-    private fun PumpDispatcherScope.cancelTempBasalBody(enforceNew: Boolean): PumpEnactResult {
+    override suspend fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult {
         return try {
             aapsLogger.info(TAG, "TBR cancelTempBasal - started")
             setRefreshButtonEnabled(false)
@@ -1694,9 +1618,9 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    private fun PumpDispatcherScope.sendCancelTbrToPump(): Boolean {
+    private fun sendCancelTbrToPump(): Boolean {
 
-        val commandResponseCancel = cancelTemporaryBasal()
+        val commandResponseCancel = pumpConnectionManager.cancelTemporaryBasal()
 
         if (commandResponseCancel.isSuccess) {
             aapsLogger.info(TAG, "cancelTempBasal - Cancel TBR successful.")
@@ -1731,25 +1655,13 @@ class TandemMobiPumpPlugin @Inject constructor(
     }
 
 
-    override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult = tandemDispatcher.submitMutating(
-        name = "setNewBasalProfile",
-        maxDuration = 2.minutes,
-        unavailable = { e ->
-            PumpEnactResultObject(rh).success(false).enacted(false)
-                .comment(rh.gs(Rc.string.pump_cmd_err_basal_profile_could_not_be_set) + " (${e.availability})")
-        }
-    ) {
-        setNewBasalProfileBody(profile)
-    }
-
-
-    private fun PumpDispatcherScope.setNewBasalProfileBody(profile: PumpProfile): PumpEnactResult {
+    override suspend fun setNewBasalProfile(profile: PumpProfile): PumpEnactResult {
         aapsLogger.info(LTag.PUMP, "setNewBasalProfile - start")
         return try {
             setRefreshButtonEnabled(false)
             val resultCommandResponse: DataCommandResponse<Boolean?>
 
-            resultCommandResponse = setBasalProfile(profile)
+            resultCommandResponse = pumpConnectionManager.setBasalProfile(profile)
 
             aapsLogger.info(LTag.PUMP, logPrefix + "Basal Profile was set: " + resultCommandResponse)
 
