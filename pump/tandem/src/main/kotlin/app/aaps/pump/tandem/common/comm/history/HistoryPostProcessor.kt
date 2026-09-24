@@ -43,11 +43,12 @@ class HistoryPostProcessor @Inject constructor(
 
     fun postProcessHistory(historyLogs: MutableCollection<HistoryLog>) {
 
-        aapsLogger.error(TAG, "${historyPrefix}PostProcess History (items=${historyLogs.size})")
+        //aapsLogger.error(TAG, "${historyPrefix}PostProcess History (items=${historyLogs.size})")
 
         for (historyLog in historyLogs) {
 
             when(historyLog) {
+
                 is CannulaFilledHistoryLog -> {
 
                     aapsLogger.error(TAG, "${historyPrefix}PostProcess - NS Cannula Change -> CannulaFilledHistoryLog")
@@ -98,6 +99,7 @@ class HistoryPostProcessor @Inject constructor(
                         }
                     }
                 }
+
                 is CartridgeFilledHistoryLog -> {
 
                     aapsLogger.error(TAG, "${historyPrefix}PostProcess - NS Insulin Change -> CartridgeFilledHistoryLog")
@@ -136,7 +138,6 @@ class HistoryPostProcessor @Inject constructor(
 
             }
         }
-
     }
 
 
@@ -152,7 +153,6 @@ class HistoryPostProcessor @Inject constructor(
         }
         return null;
     }
-
 
 
 }
