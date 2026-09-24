@@ -1,6 +1,5 @@
 package app.aaps.pump.eopatch
 
-import android.Manifest
 import android.os.SystemClock
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.ManufacturerType
@@ -8,9 +7,12 @@ import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.data.time.T
+import app.aaps.core.interfaces.InterfacesStrings
+import app.aaps.core.interfaces.di.PumpDriver
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.plugin.PermissionGroup
+import app.aaps.core.interfaces.notifications.NotificationManager
+import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.protection.ProtectionCheck
 import app.aaps.core.interfaces.pump.BlePreCheck
@@ -25,6 +27,7 @@ import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.actions.CustomAction
 import app.aaps.core.interfaces.pump.actions.CustomActionType
+import app.aaps.core.interfaces.pump.comment
 import app.aaps.core.interfaces.pump.defs.fillFor
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.queue.CustomCommand
@@ -34,6 +37,8 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.keys.interfaces.TextRef
+import app.aaps.core.keys.interfaces.TextRef.Companion.withArgs
 import app.aaps.core.keys.interfaces.withEntries
 import app.aaps.core.ui.compose.icons.IcPluginEopatch
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
@@ -65,15 +70,23 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
-import javax.inject.Inject
-import javax.inject.Provider
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.IntKey as MetroIntKey
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlin.math.abs
+import app.aaps.core.ui.R as CoreUiR
 
-@Singleton
-class EopatchPumpPlugin @Inject constructor(
+@ContributesIntoMap(AppScope::class, binding = binding<PluginBase>())
+@PumpDriver
+@MetroIntKey(1110)
+@SingleIn(AppScope::class)
+@Inject
+class EopatchPumpPlugin(
     aapsLogger: AAPSLogger,
-    rh: ResourceHelper,
+    override val rh: ResourceHelper,
     preferences: Preferences,
     commandQueue: CommandQueue,
     private val aapsSchedulers: AapsSchedulers,
@@ -84,12 +97,13 @@ class EopatchPumpPlugin @Inject constructor(
     private val patchManagerExecutor: PatchManagerExecutor,
     private val alarmManager: IAlarmManager,
     private val preferenceManager: PreferenceManager,
-    private val pumpEnactResultProvider: Provider<PumpEnactResult>,
+    private val pumpEnactResultProvider: () -> PumpEnactResult,
     private val patchConfig: PatchConfig,
     private val normalBasalManager: NormalBasalManager,
     private val protectionCheck: ProtectionCheck,
     private val blePreCheck: BlePreCheck,
-    private val bolusProgressData: BolusProgressData
+    private val bolusProgressData: BolusProgressData,
+    notificationManager: NotificationManager
 ) : PumpPluginBase(
     pluginDescription = PluginDescription()
         .mainType(PluginType.PUMP)
@@ -100,13 +114,11 @@ class EopatchPumpPlugin @Inject constructor(
             )
         }
         .icon(IcPluginEopatch)
-        .pluginName(R.string.eopatch)
-        .shortName(R.string.eopatch_shortname)
-        .description(R.string.eopatch_pump_description),
-    ownPreferences = listOf(
-        EopatchIntKey::class.java, EopatchBooleanKey::class.java, EopatchStringNonKey::class.java
-    ),
-    aapsLogger, rh, preferences, commandQueue
+        .pluginName(TextRef.AndroidRes(R.string.eopatch))
+        .shortName(TextRef.AndroidRes(R.string.eopatch_shortname))
+        .description(TextRef.AndroidRes(R.string.eopatch_pump_description)),
+    ownPreferences = EopatchIntKey.entries + EopatchBooleanKey.entries + EopatchStringNonKey.entries,
+    aapsLogger, rh, preferences, commandQueue, notificationManager
 ), Pump {
 
     private val mDisposables = CompositeDisposable()
@@ -120,15 +132,6 @@ class EopatchPumpPlugin @Inject constructor(
         }
     private val mPumpDescription = PumpDescription().fillFor(mPumpType)
 
-    override fun requiredPermissions(): List<PermissionGroup> = super.requiredPermissions() + listOf(
-        PermissionGroup(
-            permissions = listOf(Manifest.permission.SCHEDULE_EXACT_ALARM),
-            rationaleTitle = R.string.permission_exact_alarm_title,
-            rationaleDescription = R.string.permission_exact_alarm_description,
-            special = true,
-        )
-    )
-
     override suspend fun onStart() {
         super.onStart()
         val newScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -140,6 +143,9 @@ class EopatchPumpPlugin @Inject constructor(
         // event was racy under the suspend onStart() migration (the event could fire before the
         // subscription was registered), causing the patch to appear deactivated after an app update.
         preferenceManager.init()
+        // Opens the patch BLE client and its observers. Was an `init` block on the class, so it ran for
+        // every user at construction; on this lifecycle it runs only when eopatch is the enabled pump.
+        patchManagerExecutor.init()
         patchManager.init()
         alarmManager.init()
 
@@ -237,12 +243,12 @@ class EopatchPumpPlugin @Inject constructor(
         if (patchConfig.isActivated) {
             if (preferenceManager.patchState.isTempBasalActive) {
                 val cancelResult = cancelTempBasal(true)
-                if (!cancelResult.success) return pumpEnactResultProvider.get().isTempCancel(true).comment(app.aaps.core.ui.R.string.canceling_tbr_failed)
+                if (!cancelResult.success) return pumpEnactResultProvider().isTempCancel(true).comment(app.aaps.core.ui.R.string.canceling_tbr_failed)
             }
 
             if (preferenceManager.patchState.isExtBolusActive) {
                 val cancelResult = cancelExtendedBolus()
-                if (!cancelResult.success) return pumpEnactResultProvider.get().comment(app.aaps.core.ui.R.string.canceling_eb_failed)
+                if (!cancelResult.success) return pumpEnactResultProvider().comment(app.aaps.core.ui.R.string.canceling_eb_failed)
             }
             var isSuccess: Boolean? = null
             val result: BehaviorSubject<Boolean> = BehaviorSubject.create()
@@ -270,16 +276,16 @@ class EopatchPumpPlugin @Inject constructor(
             aapsLogger.info(LTag.PUMP, "Basal Profile was set: $isSuccess")
             return if (isSuccess) {
                 // PROFILE_SET_OK posted centrally (onProfileChanged) on success && enacted.
-                pumpEnactResultProvider.get().success(true).enacted(true)
+                pumpEnactResultProvider().success(true).enacted(true)
             } else {
-                pumpEnactResultProvider.get().success(false).enacted(false).comment(app.aaps.core.ui.R.string.failed_update_basal_profile)
+                pumpEnactResultProvider().success(false).enacted(false).comment(app.aaps.core.ui.R.string.failed_update_basal_profile)
             }
         } else {
             // Patch not activated — the basal is stored now and written when the patch is activated. Deferred,
             // not an actual change: enacted=false => no PROFILE_SET_OK.
             normalBasalManager.setNormalBasal(profile)
             preferenceManager.flushNormalBasalManager()
-            return pumpEnactResultProvider.get().success(true).enacted(false)
+            return pumpEnactResultProvider().success(true).enacted(false)
         }
     }
 
@@ -347,9 +353,9 @@ class EopatchPumpPlugin @Inject constructor(
         disposable.dispose()
 
         return if (isSuccess && abs(askedInsulin - detailedBolusInfo.insulin) < pumpDescription.bolusStep)
-            pumpEnactResultProvider.get().success(true).enacted(true).bolusDelivered(askedInsulin)
+            pumpEnactResultProvider().success(true).enacted(true).bolusDelivered(askedInsulin)
         else
-            pumpEnactResultProvider.get().success(false)/*.enacted(false)*/.bolusDelivered(Round.roundTo(detailedBolusInfo.insulin, 0.01))
+            pumpEnactResultProvider().success(false)/*.enacted(false)*/.bolusDelivered(Round.roundTo(detailedBolusInfo.insulin, 0.01))
     }
 
     override fun stopBolusDelivering() {
@@ -358,7 +364,7 @@ class EopatchPumpPlugin @Inject constructor(
                 .subscribeOn(aapsSchedulers.io)
                 .observeOn(aapsSchedulers.main)
                 .subscribe {
-                    val status = rh.gs(app.aaps.core.interfaces.R.string.bolus_delivered_successfully, (it.injectedBolusAmount * 0.05f))
+                    val status = InterfacesStrings.bolus_delivered_successfully.withArgs(it.injectedBolusAmount * 0.05f)
                     bolusProgressData.updateProgress(bolusProgressData.state.value?.percent ?: 100, status)
                 }
         )
@@ -387,15 +393,15 @@ class EopatchPumpPlugin @Inject constructor(
                     }
                     aapsLogger.info(LTag.PUMP, "setTempBasalAbsolute - tbrCurrent:${readTBR()}")
                 }
-                .map { pumpEnactResultProvider.get().success(true).enacted(true).duration(durationInMinutes).absolute(absoluteRate).isPercent(false).isTempCancel(false) }
+                .map { pumpEnactResultProvider().success(true).enacted(true).duration(durationInMinutes).absolute(absoluteRate).isPercent(false).isTempCancel(false) }
                 .onErrorReturnItem(
-                    pumpEnactResultProvider.get().success(false).enacted(false)
+                    pumpEnactResultProvider().success(false).enacted(false)
                         .comment("Internal error")
                 )
                 .blockingGet()
         } else {
             aapsLogger.info(LTag.PUMP, "setTempBasalAbsolute - normal basal is not active")
-            return pumpEnactResultProvider.get().success(false).enacted(false)
+            return pumpEnactResultProvider().success(false).enacted(false)
         }
     }
 
@@ -422,15 +428,15 @@ class EopatchPumpPlugin @Inject constructor(
                     }
                     aapsLogger.info(LTag.PUMP, "setTempBasalPercent - tbrCurrent:${readTBR()}")
                 }
-                .map { pumpEnactResultProvider.get().success(true).enacted(true).duration(durationInMinutes).percent(percent).isPercent(true).isTempCancel(false) }
+                .map { pumpEnactResultProvider().success(true).enacted(true).duration(durationInMinutes).percent(percent).isPercent(true).isTempCancel(false) }
                 .onErrorReturnItem(
-                    pumpEnactResultProvider.get().success(false).enacted(false)
+                    pumpEnactResultProvider().success(false).enacted(false)
                         .comment("Internal error")
                 )
                 .blockingGet()
         } else {
             aapsLogger.info(LTag.PUMP, "setTempBasalPercent - normal basal is not active")
-            return pumpEnactResultProvider.get().success(false).enacted(false)
+            return pumpEnactResultProvider().success(false).enacted(false)
         }
     }
 
@@ -452,9 +458,9 @@ class EopatchPumpPlugin @Inject constructor(
                     )
                 }
             }
-            .map { pumpEnactResultProvider.get().success(true).enacted(true) }
+            .map { pumpEnactResultProvider().success(true).enacted(true) }
             .onErrorReturnItem(
-                pumpEnactResultProvider.get().success(false).enacted(false).bolusDelivered(0.0)
+                pumpEnactResultProvider().success(false).enacted(false).bolusDelivered(0.0)
                     .comment(rh.gs(app.aaps.core.ui.R.string.error))
             )
             .blockingGet()
@@ -465,14 +471,14 @@ class EopatchPumpPlugin @Inject constructor(
 
         if (tbrCurrent == null) {
             aapsLogger.debug(LTag.PUMP, "cancelTempBasal - TBR already false.")
-            return pumpEnactResultProvider.get().success(true).enacted(false)
+            return pumpEnactResultProvider().success(true).enacted(false)
         }
 
         if (!preferenceManager.patchState.isTempBasalActive) {
             return if (pumpSync.expectedPumpState().temporaryBasal != null) {
-                pumpEnactResultProvider.get().success(true).enacted(true).isTempCancel(true)
+                pumpEnactResultProvider().success(true).enacted(true).isTempCancel(true)
             } else
-                pumpEnactResultProvider.get().success(true).isTempCancel(true)
+                pumpEnactResultProvider().success(true).isTempCancel(true)
         }
 
         return patchManagerExecutor.stopTempBasal()
@@ -491,9 +497,9 @@ class EopatchPumpPlugin @Inject constructor(
             .doOnError {
                 aapsLogger.error(LTag.PUMP, "cancelTempBasal() - $it")
             }
-            .map { pumpEnactResultProvider.get().success(true).enacted(true).isTempCancel(true) }
+            .map { pumpEnactResultProvider().success(true).enacted(true).isTempCancel(true) }
             .onErrorReturnItem(
-                pumpEnactResultProvider.get().success(false).enacted(false)
+                pumpEnactResultProvider().success(false).enacted(false)
                     .comment(rh.gs(app.aaps.core.ui.R.string.error))
             )
             .blockingGet()
@@ -514,9 +520,9 @@ class EopatchPumpPlugin @Inject constructor(
                         )
                     }
                 }
-                .map { pumpEnactResultProvider.get().success(true).enacted(true).isTempCancel(true) }
+                .map { pumpEnactResultProvider().success(true).enacted(true).isTempCancel(true) }
                 .onErrorReturnItem(
-                    pumpEnactResultProvider.get().success(false).enacted(false)
+                    pumpEnactResultProvider().success(false).enacted(false)
                         .comment(rh.gs(app.aaps.core.ui.R.string.canceling_eb_failed))
                 )
                 .blockingGet()
@@ -529,9 +535,9 @@ class EopatchPumpPlugin @Inject constructor(
                     pumpType = PumpType.EOFLOW_EOPATCH2,
                     pumpSerial = serialNumber()
                 )
-                pumpEnactResultProvider.get().success(true).enacted(true).isTempCancel(true)
+                pumpEnactResultProvider().success(true).enacted(true).isTempCancel(true)
             } else
-                pumpEnactResultProvider.get()
+                pumpEnactResultProvider()
         }
     }
 
@@ -542,7 +548,7 @@ class EopatchPumpPlugin @Inject constructor(
     override val isFakingTempsByExtendedBoluses: Boolean = false
 
     override suspend fun loadTDDs(): PumpEnactResult {
-        return pumpEnactResultProvider.get()
+        return pumpEnactResultProvider()
     }
 
     override fun canHandleDST(): Boolean {
@@ -573,8 +579,14 @@ class EopatchPumpPlugin @Inject constructor(
         key = "eopatch_settings",
         titleResId = R.string.eopatch,
         items = listOf(
-            EopatchIntKey.LowReservoirReminder.withEntries((10..50 step 5).associateWith { "$it U" }),
-            EopatchIntKey.ExpirationReminder.withEntries((1..24).associateWith { "$it hr" }),
+            // Labels come from the translated unit format templates. Building them as "$it U" or
+            // "$it hr" in code would put text where no translator can reach it.
+            EopatchIntKey.LowReservoirReminder.withEntries(
+                (10..50 step 5).associateWith { TextRef.AndroidRes(CoreUiR.string.units_format_insulin_int, listOf(it)) }
+            ),
+            EopatchIntKey.ExpirationReminder.withEntries(
+                (1..24).associateWith { TextRef.AndroidRes(CoreUiR.string.units_format_hours, listOf(it)) }
+            ),
             EopatchBooleanKey.BuzzerReminder
         ),
         icon = pluginDescription.icon

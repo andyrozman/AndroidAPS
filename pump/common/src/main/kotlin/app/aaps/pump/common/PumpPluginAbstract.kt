@@ -11,6 +11,7 @@ import app.aaps.core.data.pump.defs.TimeChangeType
 import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
@@ -22,17 +23,17 @@ import app.aaps.core.interfaces.pump.PumpProfile
 import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.PumpSync.TemporaryBasalType
+import app.aaps.core.interfaces.pump.comment
 import app.aaps.core.interfaces.pump.defs.fillFor
 import app.aaps.core.interfaces.pump.mapState
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.interfaces.rx.events.EventAppExit
 import app.aaps.core.interfaces.rx.events.EventCustomActionsChanged
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
-import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.interfaces.LongNonPreferenceKey
 import app.aaps.core.keys.interfaces.NonPreferenceKey
 import app.aaps.core.keys.interfaces.Preferences
@@ -45,10 +46,13 @@ import app.aaps.pump.common.driver.refresh.PumpDataRefreshType
 import app.aaps.pump.common.sync.PumpDbEntryCarbs
 import app.aaps.pump.common.sync.PumpSyncEntriesCreator
 import app.aaps.pump.common.sync.PumpSyncStorage
-import io.reactivex.rxjava3.disposables.CompositeDisposable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
-import javax.inject.Provider
 
 /**
  * Created by andy on 23.04.18.
@@ -56,7 +60,7 @@ import javax.inject.Provider
 // When using this class, make sure that your first step is to create mConnection (see MedtronicPumpPlugin)
 abstract class PumpPluginAbstract protected constructor(
     pluginDescription: PluginDescription,
-    ownPreferences: List<Class<out NonPreferenceKey>> = emptyList(),
+    ownPreferences: List<NonPreferenceKey> = emptyList(),
     pumpType: PumpType,
     rh: ResourceHelper,
     aapsLogger: AAPSLogger,
@@ -64,27 +68,27 @@ abstract class PumpPluginAbstract protected constructor(
     commandQueue: CommandQueue,
     var rxBus: RxBus,
     var context: Context,
-    var fabricPrivacy: FabricPrivacy,
-    var aapsSchedulers: AapsSchedulers,
     var pumpSync: PumpSync,
     var pumpSyncStorage: PumpSyncStorage,
     val pumpDriverConfigurationInternal: PumpDriverConfiguration,
     var decimalFormatter: DecimalFormatter,
     var dateUtil: DateUtil,
-    protected val pumpEnactResultProvider: Provider<PumpEnactResult>,
-    var bolusProgressData: BolusProgressData
+    protected val pumpEnactResultProvider: () -> PumpEnactResult,
+    var bolusProgressData: BolusProgressData,
+    notificationManager: NotificationManager
 ) : PumpPluginBase(
     pluginDescription = pluginDescription,
     ownPreferences = ownPreferences,
     aapsLogger = aapsLogger,
     rh = rh,
     preferences = preferences,
-    commandQueue = commandQueue
+    commandQueue = commandQueue,
+    notificationManager = notificationManager
 ),
     Pump, PluginConstraints,
     /*Constraints,*/ PumpSyncEntriesCreator {
 
-    protected val disposable = CompositeDisposable()
+    private var scope: CoroutineScope? = null
 
     // Pump capabilities
     final override var pumpDescription = PumpDescription()
@@ -118,12 +122,15 @@ abstract class PumpPluginAbstract protected constructor(
         if (hasService()) {
             val intent = Intent(context, serviceClass)
             context.bindService(intent, serviceConnection!!, Context.BIND_AUTO_CREATE)
-            disposable.add(
-                rxBus
-                    .toObservable(EventAppExit::class.java)
-                    .observeOn(aapsSchedulers.io)
-                    .subscribe({ context.unbindService(serviceConnection!!) }, fabricPrivacy::logException)
-            )
+            // Own scope on IO, like the io scheduler used before, cancelled in onStop like the
+            // CompositeDisposable was cleared. UNDISPATCHED because RxBus has no replay, so a
+            // scheduled collector could miss an exit sent before it starts.
+            val newScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+            scope = newScope
+            rxBus.toFlow(EventAppExit::class)
+                .collectResilient(newScope, aapsLogger, LTag.PUMP, start = CoroutineStart.UNDISPATCHED) {
+                    context.unbindService(serviceConnection!!)
+                }
         }
         serviceRunning = true
         onStartScheduledPumpActions()
@@ -137,7 +144,8 @@ abstract class PumpPluginAbstract protected constructor(
             }
         }
         serviceRunning = false
-        disposable.clear()
+        scope?.cancel()
+        scope = null
         super.onStop()
     }
 
@@ -288,7 +296,7 @@ abstract class PumpPluginAbstract protected constructor(
             if (detailedBolusInfo.insulin == 0.0 && detailedBolusInfo.carbs == 0.0) {
                 // neither carbs nor bolus requested
                 aapsLogger.error("deliverTreatment: Invalid input")
-                pumpEnactResultProvider.get().success(false).enacted(false)
+                pumpEnactResultProvider().success(false).enacted(false)
                     .bolusDelivered(0.0)
                     .comment(app.aaps.core.ui.R.string.invalid_input)
             } else if (detailedBolusInfo.insulin > 0) {
@@ -302,7 +310,7 @@ abstract class PumpPluginAbstract protected constructor(
 
                 bolusProgressData.updateProgress(percent = 100)
                 aapsLogger.debug(LTag.PUMP, "deliverTreatment: Carb only treatment.")
-                pumpEnactResultProvider.get().success(true).enacted(true)
+                pumpEnactResultProvider().success(true).enacted(true)
                     .bolusDelivered(0.0)
                     .comment(app.aaps.core.ui.R.string.ok)
             }
@@ -324,7 +332,7 @@ abstract class PumpPluginAbstract protected constructor(
     protected abstract fun triggerUIChange()
 
     private fun getOperationNotSupportedWithCustomText(resourceId: Int): PumpEnactResult =
-        pumpEnactResultProvider.get().success(false).enacted(false).comment(resourceId)
+        pumpEnactResultProvider().success(false).enacted(false).comment(resourceId)
 
     init {
         pumpDescription.fillFor(pumpType)
