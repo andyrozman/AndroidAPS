@@ -6,7 +6,7 @@ import app.aaps.pump.common.driver.PumpDriverConfiguration
 import app.aaps.pump.common.driver.db.PumpDriverDatabaseOperation
 import app.aaps.pump.common.driver.db.PumpDriverDummyDatabaseOperation
 import app.aaps.pump.common.driver.history.PumpHistoryDataProvider
-import javax.inject.Inject
+import dev.zacsweers.metro.Inject
 
 abstract class TandemPumpDriverConfiguration constructor(
     //private var pumpBLESelector: TandemBLESelector,

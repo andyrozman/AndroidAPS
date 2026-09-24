@@ -6,32 +6,31 @@ import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.pump.tandem.common.database.TandemPumpDatabase
 import app.aaps.pump.tandem.common.database.dao.TandemHistoryRecordDao
 import app.aaps.pump.tandem.common.database.dao.TandemQualifyingEventsDao
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.BindingContainer
+import dev.zacsweers.metro.ContributesTo
+import dev.zacsweers.metro.Provides
 
-@Module
-@InstallIn(SingletonComponent::class)
-@Suppress("unused")
-class TandemDatabaseModule {
-
-    @Provides
-    @Singleton
-    internal fun provideDatabase(context: Context,
-                                 aapsLogger: AAPSLogger,
-                                 aapsSchedulers: AapsSchedulers): TandemPumpDatabase =
-        TandemPumpDatabase.build(context, aapsLogger, aapsSchedulers)
-
-    @Provides
-    @Singleton
-    internal fun provideHistoryRecordDao(historyDatabase: TandemPumpDatabase): TandemHistoryRecordDao =
-        historyDatabase.historyRecordDao()
-
-    @Provides
-    @Singleton
-    internal fun provideTandemQualifyingEventsDao(historyDatabase: TandemPumpDatabase): TandemQualifyingEventsDao =
-        historyDatabase.qualifyingEventsDao()
-
-}
+// @ContributesTo(AppScope::class)
+// @BindingContainer
+// @Suppress("unused")
+// class TandemDatabaseModule {
+//
+//     @Provides
+//
+//     internal fun provideDatabase(context: Context,
+//                                  aapsLogger: AAPSLogger,
+//                                  aapsSchedulers: AapsSchedulers): TandemPumpDatabase =
+//         TandemPumpDatabase.build(context, aapsLogger, aapsSchedulers)
+//
+//     @Provides
+//     @Singleton
+//     internal fun provideHistoryRecordDao(historyDatabase: TandemPumpDatabase): TandemHistoryRecordDao =
+//         historyDatabase.historyRecordDao()
+//
+//     @Provides
+//     @Singleton
+//     internal fun provideTandemQualifyingEventsDao(historyDatabase: TandemPumpDatabase): TandemQualifyingEventsDao =
+//         historyDatabase.qualifyingEventsDao()
+//
+// }

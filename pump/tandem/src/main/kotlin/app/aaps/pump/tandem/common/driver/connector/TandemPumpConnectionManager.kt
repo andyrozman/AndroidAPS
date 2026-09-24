@@ -32,16 +32,17 @@ import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
+import dev.zacsweers.metro.AppScope
 import io.reactivex.rxjava3.disposables.CompositeDisposable
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-@Singleton
-class TandemPumpConnectionManager @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class TandemPumpConnectionManager(
     val tandemPumpStatus: TandemPumpStatus,
     val tandemPumpUtil: TandemPumpUtil,
     sp: SP,
-    //injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
     rxBus: RxBus,
     context: Context,

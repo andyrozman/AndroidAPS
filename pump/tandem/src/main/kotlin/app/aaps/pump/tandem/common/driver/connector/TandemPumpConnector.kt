@@ -135,12 +135,11 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionRespon
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusDeliveryHistoryLog
+import dev.zacsweers.metro.AppScope
 import org.joda.time.DateTime
 import java.time.Instant
-import javax.inject.Inject
-import javax.inject.Singleton
-
-
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /**
  * All commands that will be supported need to be implemented here (look at PumpConnectorInterface), and they also need
@@ -149,19 +148,20 @@ import javax.inject.Singleton
  * Any command will be used from TandemPumpConnectionManager, if its not used there, then it doesn't need to be
  * implemented.
  */
-@Singleton
-class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpStatus,
-                                              var context: Context,
-                                              var tandemPumpUtil: TandemPumpUtil,
-                                              var rxBus: RxBus,
-                                              var resourceHelper: ResourceHelper,
-                                              var preferences: Preferences,
-                                              var sp: SP,
-                                              var tandemConnectionFixer: TandemConnectionFixer,
-                                              aapsLogger: AAPSLogger,
-                                              val pumpX2L: PumpX2L,
-                                              private var tandemDataConverter: TandemDataConverter,
-                                              var bolusProgressData: BolusProgressData
+@SingleIn(AppScope::class)
+@Inject
+class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
+                          var context: Context,
+                          var tandemPumpUtil: TandemPumpUtil,
+                          var rxBus: RxBus,
+                          var resourceHelper: ResourceHelper,
+                          var preferences: Preferences,
+                          var sp: SP,
+                          var tandemConnectionFixer: TandemConnectionFixer,
+                          aapsLogger: AAPSLogger,
+                          val pumpX2L: PumpX2L,
+                          private var tandemDataConverter: TandemDataConverter,
+                          var bolusProgressData: BolusProgressData
 ): PumpDummyConnector(tandemPumpStatus, tandemPumpUtil, aapsLogger) {
 
     private var tandemPumpCommunicationManager: TandemPumpCommunicationManager? = null

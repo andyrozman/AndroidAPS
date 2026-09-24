@@ -15,7 +15,7 @@ import app.aaps.core.ui.R as Rco
 
 @Composable
 fun MobiOverviewScreen(
-    viewModel: MobiOverviewViewModelV2
+    viewModel: MobiOverviewViewModel
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 

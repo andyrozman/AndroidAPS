@@ -35,15 +35,15 @@ import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 
 import androidx.compose.runtime.collectAsState
+import app.aaps.core.ui.compose.MetroAppCompatActivity
 import app.aaps.pump.common.events.EventPumpForceDisconnect
-import dagger.android.support.DaggerAppCompatActivity
-import javax.inject.Inject
+import dev.zacsweers.metro.Inject
 
 /**
  * Jetpack Compose-based wizard for pairing Tandem Mobi pump
  * Follows the pattern of Omnipod Dash activation wizard
  */
-class TandemMobiConnectionWizardActivity : DaggerAppCompatActivity() {
+class TandemMobiConnectionWizardActivity : MetroAppCompatActivity() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var rxBus: RxBus

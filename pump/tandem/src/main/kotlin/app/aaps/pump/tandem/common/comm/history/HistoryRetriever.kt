@@ -30,11 +30,12 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusR
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
+import dev.zacsweers.metro.AppScope
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlin.collections.mutableListOf
 
 /*
@@ -58,8 +59,9 @@ import kotlin.collections.mutableListOf
 
  */
 
-@Singleton
-class HistoryRetriever @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class HistoryRetriever(
     val pumpStatus: TandemPumpStatus,
     val tandemPumpConnector: TandemPumpConnector,
     val aapsLogger: AAPSLogger,

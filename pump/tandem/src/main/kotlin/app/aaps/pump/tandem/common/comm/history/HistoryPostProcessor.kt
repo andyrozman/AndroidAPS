@@ -14,13 +14,16 @@ import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusCompletedHistor
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.CannulaFilledHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.CartridgeFilledHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
+import dev.zacsweers.metro.AppScope
 import kotlinx.coroutines.runBlocking
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
+
 import kotlin.math.abs
 
-@Singleton
-class HistoryPostProcessor @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class HistoryPostProcessor(
     val pumpStatus: TandemPumpStatus,
     val aapsLogger: AAPSLogger,
     val pumpSync: PumpSync,

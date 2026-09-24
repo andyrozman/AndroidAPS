@@ -67,20 +67,22 @@ import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbConnectedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbDisconnectedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UsbEnumeratedHistoryLog
+import dev.zacsweers.metro.AppScope
 import java.util.stream.Collectors
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-@Singleton
-class TandemHistoryConverter @Inject constructor(
+
+@SingleIn(AppScope::class)
+@Inject
+class TandemHistoryConverter(
     val tandemPumpStatus: TandemPumpStatus,
     val aapsLogger: AAPSLogger,
     val preferences: Preferences,
     val tandemPumpUtil: TandemPumpUtil) {
 
-    val historyLogParser = HistoryLogParser()
-    //val pumpStatus = MainAppData.tandemPumpStatus
     var showUndefinedLogsCargo = false
+
 
     fun getTandemHistoryRecordEntity(historyLog: HistoryLog): TandemHistoryRecordEntity {
 
@@ -127,7 +129,6 @@ class TandemHistoryConverter @Inject constructor(
     }
 
 
-    // TODO(jwoglom): separate bolusID and tempRateId columns? and consistent "Id"/"ID" capitalization
     private fun getEntitySubId(historyLog: HistoryLog?): Int? {
 
         return when(historyLog) {
@@ -331,9 +332,6 @@ class TandemHistoryConverter @Inject constructor(
         } else {
             var className = historyLog.javaClass.simpleName
             className = className.replace("HistoryLog", "")
-
-            // TODO split name by uppercase characters for TandemHistoryRecordDto
-
             return className
         }
     }

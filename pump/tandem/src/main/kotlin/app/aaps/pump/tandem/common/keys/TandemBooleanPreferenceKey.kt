@@ -1,13 +1,14 @@
 package app.aaps.pump.tandem.common.keys
 
 import app.aaps.core.keys.interfaces.BooleanPreferenceKey
+import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.pump.tandem.R
 
 enum class TandemBooleanPreferenceKey(
     override val key: String,
     override val defaultValue: Boolean,
-    override val titleResId: Int = 0,
-    override val summaryResId: Int? = null,
+    val titleResId: Int = 0,
+    val summaryResId: Int? = null,
     override val calculatedDefaultValue: Boolean = false,
     override val engineeringModeOnly: Boolean = false,
     override val defaultedBySM: Boolean = false,
@@ -34,6 +35,9 @@ enum class TandemBooleanPreferenceKey(
 
     AutoConfirmLowBasalDelivery(key ="pref_tandem_auto_confirm_low_basal_delivery", defaultValue = false,
                                 titleResId = R.string.tandem_cfg_auto_confirm_low_basal_delivery,
-                                summaryResId = R.string.tandem_cfg_auto_confirm_low_basal_delivery_summary)
+                                summaryResId = R.string.tandem_cfg_auto_confirm_low_basal_delivery_summary);
+
+    override val title: TextRef = TextRef.AndroidRes(titleResId)
+    override val summary: TextRef? = summaryResId?.let { TextRef.AndroidRes(it) }
 
 }

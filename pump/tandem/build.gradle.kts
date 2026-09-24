@@ -1,8 +1,8 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
-    //alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.metro)
     id("android-module-dependencies")
     id("test-module-dependencies")
     id("jacoco-module-dependencies")
@@ -12,12 +12,12 @@ android {
 
     namespace = "app.aaps.pump.tandem"
 
-    defaultConfig {
-        ksp {
-            arg("room.incremental", "true")
-            arg("room.schemaLocation", "$projectDir/schemas")
-        }
-    }
+    // defaultConfig {
+    //     ksp {
+    //         arg("room.incremental", "true")
+    //         arg("room.schemaLocation", "$projectDir/schemas")
+    //     }
+    // }
 
 
     // buildFeatures {
@@ -27,6 +27,12 @@ android {
     // composeOptions {
     //     kotlinCompilerExtensionVersion="1.5.3"
     // }
+}
+
+
+ksp {
+    arg("room.incremental", "true")
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 
@@ -54,16 +60,16 @@ dependencies {
     // api(libs.androidx.room.runtime)
     // api(libs.androidx.room.rxjava3)
 
-    ksp(libs.androidx.room.compiler)
-    ksp(libs.com.google.dagger.compiler)
-    ksp(libs.com.google.dagger.hilt.compiler)
-    ksp(libs.com.google.dagger.android.processor)
+    //ksp(libs.androidx.room.compiler)
+    // ksp(libs.com.google.dagger.compiler)
+    // ksp(libs.com.google.dagger.hilt.compiler)
+    // ksp(libs.com.google.dagger.android.processor)
 
     // compose dependencies
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
 
-    implementation(libs.androidx.hilt.navigation.compose)
+    //implementation(libs.androidx.hilt.navigation.compose)
 
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)

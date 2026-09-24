@@ -20,17 +20,16 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.events.EventDatabaseAddQEData
 import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
-import app.aaps.pump.tandem.common.util.PumpX2L
-import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
-import dagger.android.HasAndroidInjector
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-@Singleton
-class QualifyingEventHandler @Inject constructor(
+
+@SingleIn(AppScope::class)
+@Inject
+class QualifyingEventHandler(
     val tandemPumpStatus: TandemPumpStatus,
-    //val dbDataHandler: DbDataHandler,
     val rxBus: RxBus,
     val aapsLogger: AAPSLogger,
     val aapsSchedulers: AapsSchedulers,
@@ -38,11 +37,8 @@ class QualifyingEventHandler @Inject constructor(
     ) {
 
     companion object {
-
+        val TAG = LTag.PUMP
     }
-
-    @Suppress("PropertyName")
-    val TAG = LTag.PUMP
 
 
     fun handleEventReceivedFromPump(event : EventHandleQualifyingEvent) {

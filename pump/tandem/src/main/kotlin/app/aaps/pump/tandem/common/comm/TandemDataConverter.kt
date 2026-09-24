@@ -25,9 +25,13 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResp
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusDeliveryHistoryLog
-import javax.inject.Inject
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-class TandemDataConverter @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class TandemDataConverter(
     var aapsLogger: AAPSLogger,
     var sp: SP,
     var pumpStatus: TandemPumpStatus,

@@ -31,6 +31,7 @@ composeUi = "1.12.1"
 # composeBom still decides the Android versions.
 composeMultiplatform = "1.12.0"
 jetbrainsLifecycle = "2.11.0"
+navigationCompose = "2.9.8"
 
 [plugins]
 android-library = { id = "com.android.library" }
@@ -219,6 +220,7 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 sh-calvin-reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version = "3.1.0" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version = "1.2.0" }
+androidx-compose-navigation = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
 # Compose Multiplatform. Explicit coordinates rather than the `compose.xxx` DSL accessors, which
 # are deprecated since 1.11.1.

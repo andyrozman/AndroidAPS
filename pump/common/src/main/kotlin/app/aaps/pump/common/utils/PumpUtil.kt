@@ -230,13 +230,13 @@ open class PumpUtil constructor(
         if (notificationType.validMinutes==null || notificationType.validMinutes == -1) {
             notificationManager.post(
                 id = notificationType.notificationType,
-                textRes = notificationType.resourceId,
+                text = resourceHelper.gs(notificationType.resourceId),
                 level = notificationType.notificationUrgency
             )
         } else {
             notificationManager.post(
                 id = notificationType.notificationType,
-                textRes = notificationType.resourceId,
+                text = resourceHelper.gs(notificationType.resourceId),
                 level = notificationType.notificationUrgency,
                 validMinutes = notificationType.validMinutes!!
             )
@@ -250,15 +250,13 @@ open class PumpUtil constructor(
         if (notificationType.validMinutes==null || notificationType.validMinutes == -1) {
             notificationManager.post(
                 id = notificationType.notificationType,
-                textRes = notificationType.resourceId,
-                formatArgs = parameters,
+                text = resourceHelper.gs(notificationType.resourceId, parameters),
                 level = notificationType.notificationUrgency
             )
         } else {
             notificationManager.post(
                 id = notificationType.notificationType,
-                textRes = notificationType.resourceId,
-                formatArgs = parameters,
+                text = resourceHelper.gs(notificationType.resourceId, parameters),
                 level = notificationType.notificationUrgency,
                 validMinutes = notificationType.validMinutes!!
             )

@@ -41,13 +41,14 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
+import dev.zacsweers.metro.AppScope
 import java.time.Instant
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-
-@Singleton
-class TandemUICommunication @Inject constructor (
+@SingleIn(AppScope::class)
+@Inject
+class TandemUICommunication(
     var dataStore: TandemUIDataStore,
     var pumpStatus: TandemPumpStatus,
     var aapsLogger: AAPSLogger,

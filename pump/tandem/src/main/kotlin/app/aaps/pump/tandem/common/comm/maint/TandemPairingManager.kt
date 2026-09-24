@@ -249,7 +249,7 @@ class TandemPairingManager constructor(
     //     pair(peripheral, challenge, pairingCode)
     // }
 
-    // TODO 1.4.4
+
     // override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse?) {
     //
     //     aapsLogger.info(TAG, "TANDEMDBG: onInvalidPairingCode")
@@ -336,7 +336,7 @@ class TandemPairingManager constructor(
         // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
         input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
 
-        MaterialAlertDialogBuilder(context /*, app.aaps.core.ui.R.style.DialogTheme*/)   // TODO dev4
+        MaterialAlertDialogBuilder(context)
             .setTitle(resourceHelper.gs(R.string.tandem_ble_config_pairing_title))
             .setMessage(resourceHelper.gs(R.string.tandem_ble_config_pairing_message, btName, btAddress))
             .setView(input)

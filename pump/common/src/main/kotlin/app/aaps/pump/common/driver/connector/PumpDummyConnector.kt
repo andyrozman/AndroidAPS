@@ -3,7 +3,6 @@ package app.aaps.pump.common.driver.connector
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
-import dagger.android.HasAndroidInjector
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.driver.connector.commands.parameters.PumpHistoryFilterInterface
 import app.aaps.pump.common.driver.connector.commands.response.ResultCommandResponse
@@ -18,14 +17,13 @@ import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.utils.PumpUtil
 import org.joda.time.DateTime
-import javax.inject.Singleton
 
-@Singleton
+
+
 open class PumpDummyConnector(var pumpStatus: PumpStatus,
                               var pumpUtil: PumpUtil,
-                              //injector: HasAndroidInjector,
                               aapsLogger: AAPSLogger
-) : PumpConnectorAbstract(/*injector,*/ aapsLogger) {
+) : PumpConnectorAbstract(aapsLogger) {
 
     // var pumpStatus: YpsopumpPumpStatus? = null // ???
 

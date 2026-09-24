@@ -17,11 +17,15 @@ import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
+import dev.zacsweers.metro.AppScope
 import java.time.LocalDateTime
 import java.time.ZoneId
-import javax.inject.Inject
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-class TandemUiController @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class TandemUiController(
     var aapsLogger: AAPSLogger,
     var tandemPumpStatus: TandemPumpStatus,
     var tandemPumpUtil: TandemPumpUtil,

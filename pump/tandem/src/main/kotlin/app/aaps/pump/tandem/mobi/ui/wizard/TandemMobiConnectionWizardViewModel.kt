@@ -1,5 +1,6 @@
 package app.aaps.pump.tandem.mobi.ui.wizard
 
+import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -7,6 +8,7 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.os.ParcelUuid
+import androidx.annotation.RequiresPermission
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -30,7 +32,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
-import javax.inject.Inject
+import dev.zacsweers.metro.Inject
 
 /**
  * ViewModel for the Tandem Mobi connection wizard
@@ -55,15 +57,16 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
     private val scannedDevicesMap = ConcurrentHashMap<String, ScannedDevice>()
 
     init {
+        // TODO Metro
         // Subscribe to pairing status events
-        disposable += rxBus
-            .toObservable(EventTandemPairingStatus::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ event ->
-                handlePairingEvent(event)
-            }, { throwable ->
-                aapsLogger.error(LTag.PUMP, "Error receiving pairing event", throwable)
-            })
+        // disposable += rxBus
+        //     .toObservable(EventTandemPairingStatus::class.java)
+        //     .observeOn(aapsSchedulers.main)
+        //     .subscribe({ event ->
+        //         handlePairingEvent(event)
+        //     }, { throwable ->
+        //         aapsLogger.error(LTag.PUMP, "Error receiving pairing event", throwable)
+        //     })
     }
 
     fun setPairingManager(manager: TandemPairingManager) {
@@ -145,6 +148,7 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
         }
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun handleScanResult(result: ScanResult) {
         val device = result.device
         val scannedDevice = ScannedDevice(

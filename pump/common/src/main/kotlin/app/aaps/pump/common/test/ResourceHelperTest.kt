@@ -1,10 +1,5 @@
 package app.aaps.pump.common.test
 
-import android.content.Context
-import android.content.res.AssetFileDescriptor
-import android.graphics.Bitmap
-import android.graphics.drawable.Drawable
-import android.util.DisplayMetrics
 import androidx.annotation.StringRes
 import app.aaps.core.interfaces.resources.ResourceHelper
 
@@ -33,45 +28,45 @@ class ResourceHelperTest: ResourceHelper {
         TODO("Not yet implemented")
     }
 
-    override fun gc(id: Int): Int {
-        TODO("Not yet implemented")
-    }
-
-    override fun gd(id: Int): Drawable? {
-        TODO("Not yet implemented")
-    }
-
-    override fun gb(id: Int): Boolean {
-        TODO("Not yet implemented")
-    }
-
-    override fun gcs(id: Int): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun gsa(id: Int): Array<String> {
-        TODO("Not yet implemented")
-    }
-
-    override fun openRawResourceFd(id: Int): AssetFileDescriptor? {
-        TODO("Not yet implemented")
-    }
-
-    override fun decodeResource(id: Int): Bitmap {
-        TODO("Not yet implemented")
-    }
-
-    override fun getDisplayMetrics(): DisplayMetrics {
-        TODO("Not yet implemented")
-    }
-
-    override fun dpToPx(dp: Int): Int {
-        return -1
-    }
-
-    override fun dpToPx(dp: Float): Int {
-        return -1
-    }
+    // override fun gc(id: Int): Int {
+    //     TODO("Not yet implemented")
+    // }
+    //
+    // override fun gd(id: Int): Drawable? {
+    //     TODO("Not yet implemented")
+    // }
+    //
+    // override fun gb(id: Int): Boolean {
+    //     TODO("Not yet implemented")
+    // }
+    //
+    // override fun gcs(id: Int): String {
+    //     TODO("Not yet implemented")
+    // }
+    //
+    // override fun gsa(id: Int): Array<String> {
+    //     TODO("Not yet implemented")
+    // }
+    //
+    // override fun openRawResourceFd(id: Int): AssetFileDescriptor? {
+    //     TODO("Not yet implemented")
+    // }
+    //
+    // override fun decodeResource(id: Int): Bitmap {
+    //     TODO("Not yet implemented")
+    // }
+    //
+    // override fun getDisplayMetrics(): DisplayMetrics {
+    //     TODO("Not yet implemented")
+    // }
+    //
+    // override fun dpToPx(dp: Int): Int {
+    //     return -1
+    // }
+    //
+    // override fun dpToPx(dp: Float): Int {
+    //     return -1
+    // }
 
     override fun shortTextMode(): Boolean {
         return false

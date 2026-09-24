@@ -27,10 +27,11 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusRespon
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV2Response
+import dev.zacsweers.metro.AppScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.*
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 // Single concrete UI datastore instance. UI / UI-feed code uses this (read + write) via
 // [tandemUiDataStore] or the [LocalTandemDataStore] composition local.
@@ -42,10 +43,11 @@ var tandemDataStore: TandemUiStateWriter = tandemUiDataStore
 
 var LocalTandemDataStore = compositionLocalOf { tandemUiDataStore }
 
-@Singleton
-class TandemPumpStatus @Inject constructor(val sp: SP,
-                                           val rxBus: RxBus,
-                                           val preferences: Preferences
+@SingleIn(AppScope::class)
+@Inject
+class TandemPumpStatus(val sp: SP,
+                       val rxBus: RxBus,
+                       val preferences: Preferences
 ) : PumpStatus(PumpType.TANDEM_MOBI_BT) {
 
     lateinit var pumpDescription: PumpDescription

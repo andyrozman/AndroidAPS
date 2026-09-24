@@ -1,9 +1,11 @@
 package app.aaps.pump.tandem.common.util
 
+import android.Manifest
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationManager
@@ -27,14 +29,16 @@ import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.messages.Message
+import dev.zacsweers.metro.AppScope
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-@Singleton
-class TandemPumpUtil @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class TandemPumpUtil(
     aapsLogger: AAPSLogger,
     rxBus: RxBus,
     context: Context,
@@ -198,6 +202,7 @@ class TandemPumpUtil @Inject constructor(
      * nothing to unbond against. Async — returns quickly; actual unbond arrives via
      * ACTION_BOND_STATE_CHANGED broadcast.
      */
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun removeAndroidBond(btAddress: String?): Boolean {
         if (btAddress.isNullOrEmpty()) {
             aapsLogger.info(LTag.PUMPBTCOMM, "removeAndroidBond: no address provided, skipping")

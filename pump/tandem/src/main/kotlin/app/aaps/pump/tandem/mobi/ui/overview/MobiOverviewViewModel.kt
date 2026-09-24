@@ -24,12 +24,9 @@ import android.content.Context
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.mutableStateOf
-import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.rx.AapsSchedulers
-import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.core.ui.compose.icons.IcLoopClosed
 import app.aaps.core.ui.compose.pump.PumpInfoGroup
 import app.aaps.core.ui.compose.pump.PumpInfoInterface
 import app.aaps.pump.common.defs.BasalProfileStatus
@@ -39,7 +36,6 @@ import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
-import app.aaps.pump.common.events.EventPumpDriverStateChanged
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.SemaphoreInfoDto
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
@@ -48,10 +44,9 @@ import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.TandemMobiPumpPlugin
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
 import io.reactivex.rxjava3.disposables.CompositeDisposable
-import io.reactivex.rxjava3.kotlin.plusAssign
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -64,8 +59,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.common.R as Rc
@@ -80,9 +76,11 @@ sealed class MobiOverviewEventv2 {
     data object OpenHistory : MobiOverviewEventv2()
 }
 
-@HiltViewModel
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
+@ViewModelKey
 @Stable
-class MobiOverviewViewModelV2 @Inject constructor(
+@Inject
+class MobiOverviewViewModel(
     private val aapsLogger: AAPSLogger,
     private val rh: ResourceHelper,
     private val profileFunction: ProfileFunction,
@@ -95,12 +93,11 @@ class MobiOverviewViewModelV2 @Inject constructor(
     private val ch: ConcentrationHelper,
     private val tandemUtil: TandemPumpUtil,
     protected val preferences: Preferences,
-    @ApplicationContext private val context: Context
+    private val context: Context
 ) : ViewModel() {
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    private val communicationStatus = PumpCommunicationStatus(rxBus, commandQueue, context, scope)
-    //private val stateBuilder = PumpOverviewStateBuilder(rh)
+    private val communicationStatus = PumpCommunicationStatus(rxBus, commandQueue, rh, scope)
 
     private val disposable = CompositeDisposable()
 
@@ -222,34 +219,16 @@ class MobiOverviewViewModelV2 @Inject constructor(
 
         displayDriver = preferences.get(TandemBooleanPreferenceKey.DisplayDriverVersion)
 
-        // x disposable += rxBus
-        //     .toObservable(EventRefreshButtonState::class.java)
-        //     .observeOn(aapsSchedulers.main)
-        //     .subscribe({
-        //                    buttonsEnabled = it.newState
-        //                    rxTrigger.value = System.currentTimeMillis()
-        //                },
-        //                { aapsLogger.error(LTag.PUMP, "Error: ${it.message}", it) })
 
-        disposable += rxBus
-            .toObservable(EventPumpDriverStateChanged::class.java)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({
-                           updateCurrentActivity(it.driverStatus)
-                           rxTrigger.value = System.currentTimeMillis()
-                       },
-                       { aapsLogger.error(LTag.PUMP, "Error: ${it.message}", it) })
-
+        // TODO Metro
         // disposable += rxBus
-        //     .toObservable(EventPumpFragmentValuesChanged::class.java)
+        //     .toObservable(EventPumpDriverStateChanged::class.java)
         //     .observeOn(aapsSchedulers.main)
         //     .subscribe({
-        //                    updateGUI(it.updateType)
+        //                    updateCurrentActivity(it.driverStatus)
         //                    rxTrigger.value = System.currentTimeMillis()
         //                },
         //                { aapsLogger.error(LTag.PUMP, "Error: ${it.message}", it) })
-        //
-        //
 
         updateCurrentActivity(tandemUtil.driverStatus)
 
@@ -607,8 +586,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
             primaryActionsEnabled = listOf(
                 PumpAction(
                     label = rh.gs(app.aaps.core.ui.R.string.refresh),
-                    //iconRes = app.aaps.core.ui.R.drawable.ic_refresh,
-                    icon = Icons.Filled.Refresh, // TODO dev4
+                    icon = Icons.Filled.Refresh,
                     category = ActionCategory.PRIMARY,
                     enabled = true,
                     visible = true,
@@ -641,8 +619,7 @@ class MobiOverviewViewModelV2 @Inject constructor(
             primaryActionsDisabled = listOf(
                 PumpAction(
                     label = rh.gs(app.aaps.core.ui.R.string.refresh),
-                    //iconRes = app.aaps.core.ui.R.drawable.ic_refresh,
-                    icon = Icons.Filled.Refresh, // TODO dev4
+                    icon = Icons.Filled.Refresh,
                     category = ActionCategory.PRIMARY,
                     enabled = false,
                     visible = true,
