@@ -17,6 +17,7 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.StringPreferenceKey
 import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.defs.PumpDriverState
+import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.common.events.EventPumpDriverStateChanged
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import app.aaps.pump.common.utils.PumpUtil
@@ -26,9 +27,11 @@ import app.aaps.pump.tandem.common.events.EventRefreshPumpData
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
+import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.models.PairingCodeType
 import dev.zacsweers.metro.AppScope
 import java.nio.ByteBuffer
 import java.security.MessageDigest
@@ -48,6 +51,9 @@ class TandemPumpUtil(
     var tandemPumpStatus: TandemPumpStatus,
 
 ): PumpUtil(aapsLogger, rxBus, context, resourceHelper, notificationManager, preferences) {
+
+    var pairingCodeType = PairingCodeType.SHORT_6CHAR  // defaults to 6char for Mobi (if we would implement tslim, we could set this differently from main pumpPlugin class
+
 
     fun getTimeFromPumpAsEpochMillis(pumpTime: Long): Long {
         return Dates.fromJan12008EpochSecondsToDate(pumpTime).toEpochMilli();
@@ -90,16 +96,30 @@ class TandemPumpUtil(
             preferences.get(booleanPreferenceKey)
     }
 
-    // fun isSame(d1: Double, d2: Double): Boolean {
-    //     val diff = d1 - d2
-    //     return Math.abs(diff) <= 0.000001
-    // }
-    //
-    // fun isSame(d1: Double, d2: Int): Boolean {
-    //     val diff = d1 - d2
-    //     return Math.abs(diff) <= 0.000001
-    // }
 
+    override fun setPumpCommandExecutionActivity(pumpDriverState: PumpDriverState, pumpCommandType: PumpCommandType?) {
+        val commandType: PumpCommandType? = currentCommand
+        val customCommandTypeInterface : TandemCustomCommand? = customCommandType as TandemCustomCommand?
+
+        if (commandType == null) {
+            currentActivity = resourceHelper.gs(pumpDriverState.resourceId)
+        } else {
+            if (commandType == PumpCommandType.CustomCommand) {
+                if (customCommandTypeInterface==null) {
+                    currentActivity = resourceHelper.gs(commandType.resourceId)
+                } else {
+                    currentActivity = customCommandTypeInterface.getDescription()
+                }
+            } else {
+                if (commandType == PumpCommandType.GetHistoryWithParameters) {
+                    val progress: String = historyProgress.orEmpty()
+                    currentActivity = resourceHelper.gs(commandType.resourceId, progress)
+                } else {
+                    currentActivity = resourceHelper.gs(commandType.resourceId)
+                }
+            }
+        }
+    }
 
 
     fun refreshPumpStatus(data: List<RefreshData>) {
@@ -261,9 +281,11 @@ class TandemPumpUtil(
     }
 
 
-    val TBR_PREFIX: Int = 100000000;
+    val TBR_PREFIX: Int = 100000000
 
-    val BOLUS_PREFIX: Int = 500000000;
+    val BOLUS_PREFIX: Int = 500000000
+
+    val MAX_BOLUS_SEGMENTS: Int = 16
 
     // we don't use real pumpId, because each of items would have a lot of entries, but each of boluses or tbr has
     // also uniqueId, which is the one we use, prefixed, so that we differentiate

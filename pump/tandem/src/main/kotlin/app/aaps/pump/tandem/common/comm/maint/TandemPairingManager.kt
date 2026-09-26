@@ -78,7 +78,7 @@ class TandemPairingManager constructor(
     var pumpSync: PumpSync,
     // var activity: PumpBLEConfigActivity,
     var pumpX2L: PumpX2L,
-    var aapsSchedulers: AapsSchedulers
+    //var aapsSchedulers: AapsSchedulers
 ) : TandemPump(context, Optional.of(btAddress)) {
 
     @Suppress("PropertyName")

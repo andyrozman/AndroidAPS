@@ -47,7 +47,7 @@ class TandemMobiConnectionWizardActivity : MetroAppCompatActivity() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var rxBus: RxBus
-    @Inject lateinit var aapsSchedulers: AapsSchedulers
+    //@Inject lateinit var aapsSchedulers: AapsSchedulers
     @Inject lateinit var preferences: Preferences
     @Inject lateinit var tandemPumpUtil: TandemPumpUtil
     @Inject lateinit var pumpStatus: TandemPumpStatus
@@ -66,7 +66,7 @@ class TandemMobiConnectionWizardActivity : MetroAppCompatActivity() {
         viewModel = TandemMobiConnectionWizardViewModel(
             aapsLogger = aapsLogger,
             rxBus = rxBus,
-            aapsSchedulers = aapsSchedulers,
+            //aapsSchedulers = aapsSchedulers,
             preferences = preferences,
             tandemPumpUtil = tandemPumpUtil
         )
@@ -134,7 +134,7 @@ class TandemMobiConnectionWizardActivity : MetroAppCompatActivity() {
             pumpSync = pumpSync,
             //activity = dummyActivity,
             pumpX2L = pumpX2L,
-            aapsSchedulers = aapsSchedulers
+            //aapsSchedulers = aapsSchedulers
         ).also { manager ->
             viewModel.setPairingManager(manager)
             // Note: Pairing data already cleared by handleExistingPumpRemoval if needed

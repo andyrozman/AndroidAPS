@@ -94,8 +94,8 @@ class TandemPumpConnectionManager(
 
 
     override fun setCurrentPumpCommandType(commandType: PumpCommandType, customCommandType: CustomCommandTypeInterface?) {
-        pumpUtil.currentCommand = commandType
         pumpUtil.customCommandType = customCommandType
+        pumpUtil.currentCommand = commandType
     }
 
 

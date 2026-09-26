@@ -39,7 +39,8 @@ import androidx.compose.ui.zIndex
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.pump.common.test.ResourceHelperTest
+import app.aaps.pump.common.test.PreviewAAPSLogger
+import app.aaps.pump.common.test.PreviewResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
@@ -49,7 +50,6 @@ import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.pump.tandem.mobi.ui.util.DateTimeInTwoLines
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
-import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -214,9 +214,9 @@ private fun DefaultPreview_QualifyingEvents() {
             QualifyingEvents(
                 innerPadding = PaddingValues(),
                 navigateBack = { },
-                aapsLogger = AAPSLoggerTest(),
+                resourceHelper = PreviewResourceHelper(),
+                aapsLogger = PreviewAAPSLogger(),
                 refreshDatabase = { _,_ ->},
-                resourceHelper = ResourceHelperTest(),
                 refreshMainAppData = {}
             )
         }

@@ -70,7 +70,7 @@ class TandemUiController(
 
     fun disposeTandemUiCommunication(disposeType: AdditionalConfigurationScreens) {
         if (disposeType==AdditionalConfigurationScreens.Actions) {
-            aapsLogger.error(LTag.PUMP, "Actions window was closed. Sending event to refresh.")
+            aapsLogger.info(LTag.PUMP, "Actions window was closed. Sending event to refresh.")
 
             //aapsLogger.error(LTag.PUMP, "Reminder Date found")
 

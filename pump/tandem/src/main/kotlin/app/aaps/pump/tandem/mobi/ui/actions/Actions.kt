@@ -51,7 +51,6 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
-import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
@@ -61,8 +60,9 @@ import app.aaps.pump.tandem.mobi.ui.util.LifecycleStateObserver
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.tandemUiDataStore
+import app.aaps.pump.common.test.PreviewAAPSLogger
+import app.aaps.pump.common.test.PreviewResourceHelper
 import app.aaps.pump.tandem.mobi.ui.util.compactTBRDisplay
-import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
@@ -423,9 +423,9 @@ private fun PreviewInsulinActive() {
             setUpPreviewState(LocalTandemDataStore.current)
             Actions(
                 sendPumpCommands = { _ -> true},
-                aapsLogger = AAPSLoggerTest(),
+                aapsLogger = PreviewAAPSLogger(),
                 navigateToCartridgeActions = {},
-                resourceHelper = ResourceHelperTest(),
+                resourceHelper = PreviewResourceHelper(),
                 navigateToPumpInfo = {},
                 refreshMainAppData = {}
             )
@@ -445,10 +445,10 @@ private fun PreviewInsulinSuspended() {
             LocalTandemDataStore.current.pumpRunningState.value = PumpRunningState.Suspended
             Actions(
                 sendPumpCommands = { _ -> true},
-                aapsLogger = AAPSLoggerTest(),
+                aapsLogger = PreviewAAPSLogger(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {},
-                resourceHelper = ResourceHelperTest(),
+                resourceHelper = PreviewResourceHelper(),
                 refreshMainAppData = {}
             )
         }

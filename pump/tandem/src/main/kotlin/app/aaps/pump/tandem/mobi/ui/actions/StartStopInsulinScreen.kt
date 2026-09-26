@@ -2,7 +2,6 @@
 
 package app.aaps.pump.tandem.mobi.ui.actions
 
-import android.widget.Spinner
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,7 +41,8 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpRunningState
-import app.aaps.pump.common.test.ResourceHelperTest
+import app.aaps.pump.common.test.PreviewAAPSLogger
+import app.aaps.pump.common.test.PreviewResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.core.ui.R as Rco
@@ -50,7 +50,6 @@ import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.util.AlertBanner
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
-import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.ResumePumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
@@ -299,8 +298,8 @@ private fun StartStopInsulinScreenPreview_Running() {
             StartStopInsulinScreen(
                 sendPumpCommands = { _ -> true },
                 navigateBack = {},
-                resourceHelper = ResourceHelperTest(),
-                aapsLogger = AAPSLoggerTest(),
+                resourceHelper = PreviewResourceHelper(),
+                aapsLogger = PreviewAAPSLogger(),
                 refreshMainAppData = {}
             )
         }
@@ -320,8 +319,8 @@ private fun StartStopInsulinScreenPreview_Suspended() {
             StartStopInsulinScreen(
                 sendPumpCommands = { _ -> true },
                 navigateBack = {},
-                resourceHelper = ResourceHelperTest(),
-                aapsLogger = AAPSLoggerTest(),
+                resourceHelper = PreviewResourceHelper(),
+                aapsLogger = PreviewAAPSLogger(),
                 refreshMainAppData = {}
             )
         }

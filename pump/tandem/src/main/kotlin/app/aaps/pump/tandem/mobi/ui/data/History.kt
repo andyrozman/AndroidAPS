@@ -43,13 +43,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 import app.aaps.pump.common.driver.history.PumpHistoryPeriod
-import app.aaps.pump.common.test.ResourceHelperTest
+import app.aaps.pump.common.test.PreviewAAPSLogger
+import app.aaps.pump.common.test.PreviewResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
@@ -60,7 +60,6 @@ import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 
 import app.aaps.pump.tandem.mobi.ui.util.DateTimeInTwoLines
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
-import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -421,9 +420,9 @@ private fun DefaultPreview_History() {
             History(
                 innerPadding = PaddingValues(),
                 navigateBack = { },
-                aapsLogger = AAPSLoggerTest(),
+                resourceHelper = PreviewResourceHelper(),
+                aapsLogger = PreviewAAPSLogger(),
                 refreshDatabase = { _,_ ->},
-                resourceHelper = ResourceHelperTest(),
                 refreshMainAppData = {}
             )
         }
@@ -453,9 +452,9 @@ private fun DefaultPreview_HistoryDark() {
             History(
                 innerPadding = PaddingValues(),
                 navigateBack = { },
-                aapsLogger = AAPSLoggerTest(),
+                resourceHelper = PreviewResourceHelper(),
+                aapsLogger = PreviewAAPSLogger(),
                 refreshDatabase = { _,_ ->},
-                resourceHelper = ResourceHelperTest(),
                 refreshMainAppData = {}
             )
         }

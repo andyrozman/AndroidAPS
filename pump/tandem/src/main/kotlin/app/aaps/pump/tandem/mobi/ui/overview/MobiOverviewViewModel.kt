@@ -139,12 +139,12 @@ class MobiOverviewViewModel(
 
     protected val rxTrigger = MutableStateFlow(0L)
 
-    val currentActivityFlow = MutableStateFlow<String>("")
-    var currentActivity: String
-        get() = currentActivityFlow.value
-        set(value) {
-            currentActivityFlow.value = value
-        }
+    // val currentActivityFlow = MutableStateFlow<String>("")
+    // var currentActivity: String
+    //     get() = currentActivityFlow.value
+    //     set(value) {
+    //         currentActivityFlow.value = value
+    //     }
 
     val pumpErrorFlow = MutableStateFlow<String?>(null)
     var pumpError: String?
@@ -154,7 +154,7 @@ class MobiOverviewViewModel(
         }
 
     val uiState: StateFlow<PumpOverviewUiState> = combine(
-        currentActivityFlow,
+        tandemUtil.currentActivityFlow,
         tandemPumpStatus.pumpRunningStateFlow,
         tandemPlugin.baseBasalRateFlow,
         tandemPumpStatus.lastBolusDataFlow,
@@ -216,30 +216,15 @@ class MobiOverviewViewModel(
 
 
     init {
-
         displayDriver = preferences.get(TandemBooleanPreferenceKey.DisplayDriverVersion)
-
-
-        // TODO Metro
-        // disposable += rxBus
-        //     .toObservable(EventPumpDriverStateChanged::class.java)
-        //     .observeOn(aapsSchedulers.main)
-        //     .subscribe({
-        //                    updateCurrentActivity(it.driverStatus)
-        //                    rxTrigger.value = System.currentTimeMillis()
-        //                },
-        //                { aapsLogger.error(LTag.PUMP, "Error: ${it.message}", it) })
-
-        updateCurrentActivity(tandemUtil.driverStatus)
-
     }
 
 
     suspend fun onRefreshClick() {
-        setButtonState(false)
+        //setButtonState(false)   TODO check if this works
         tandemPlugin.resetStatusState()
         commandQueue.readStatus(rh.gs(Rc.string.requested_by_user))
-        setButtonState(true)
+        //setButtonState(true)
     }
 
     private fun setButtonState(enabled: Boolean) {
@@ -255,74 +240,74 @@ class MobiOverviewViewModel(
     }
 
 
-    @Synchronized
-    private fun updateCurrentActivity(pumpDriverState: PumpDriverState?) {
-        val resActivity = Rc.string.pump_current_activity
-
-        //aapsLogger.info(LTag.PUMP, "DUB Update Current activity: ${pumpDriverState!!.name}")
-
-        when (pumpDriverState) {
-            //null,
-            PumpDriverState.Ready,
-            PumpDriverState.Sleeping                   -> {
-                currentActivity = rh.gs(pumpDriverState.resourceId)
-                // icon {fa-bed}
-            }
-            PumpDriverState.Connecting,
-            PumpDriverState.Handshaking,
-            PumpDriverState.Disconnecting              ->  {
-                currentActivity = rh.gs(pumpDriverState.resourceId)
-                // {fa-bluetooth spin}
-            }
-            PumpDriverState.Connected,
-            PumpDriverState.Disconnected               -> {
-                currentActivity = rh.gs(pumpDriverState.resourceId)
-                // {fa-bluetooth}
-            }
-
-            PumpDriverState.ErrorCommunicatingWithPump -> {
-                currentActivity = "Error ???"
-                // fa-bed
-                val errorType = tandemUtil.errorType
-
-                pumpError = if (errorType != null) errorType.name else null
-                //aapsLogger.warn(LTag.PUMP, "Errors are not supported.")
-            }
-
-            PumpDriverState.ExecutingCommand           -> {
-                val commandType: PumpCommandType? = tandemUtil.currentCommand
-                val customCommandTypeInterface : TandemCustomCommand? = tandemUtil.customCommandType as TandemCustomCommand?
-                // {fa-bluetooth}
-                if (commandType == null) {
-                    currentActivity = rh.gs(pumpDriverState.resourceId)
-                } else {
-                    if (commandType == PumpCommandType.CustomCommand) {
-                        if (customCommandTypeInterface==null) {
-                            currentActivity = rh.gs(commandType.resourceId)
-                        } else {
-                            currentActivity = customCommandTypeInterface.getDescription()
-                        }
-                    } else {
-                        if (commandType == PumpCommandType.GetHistoryWithParameters) {
-                            val progress: String = tandemUtil.historyProgress.orEmpty()
-                            currentActivity = rh.gs(commandType.resourceId, progress)
-                        } else {
-                            currentActivity = rh.gs(commandType.resourceId)
-                        }
-                    }
-                }
-            }
-
-            else                                       -> {
-                currentActivity = rh.gs(pumpDriverState!!.resourceId)
-            }
-        }
-    }
+    // @Synchronized
+    // private fun updateCurrentActivity(pumpDriverState: PumpDriverState?) {
+    //     val resActivity = Rc.string.pump_current_activity
+    //
+    //     //aapsLogger.info(LTag.PUMP, "DUB Update Current activity: ${pumpDriverState!!.name}")
+    //
+    //     when (pumpDriverState) {
+    //         //null,
+    //         PumpDriverState.Ready,
+    //         PumpDriverState.Sleeping                   -> {
+    //             currentActivity = rh.gs(pumpDriverState.resourceId)
+    //             // icon {fa-bed}
+    //         }
+    //         PumpDriverState.Connecting,
+    //         PumpDriverState.Handshaking,
+    //         PumpDriverState.Disconnecting              ->  {
+    //             currentActivity = rh.gs(pumpDriverState.resourceId)
+    //             // {fa-bluetooth spin}
+    //         }
+    //         PumpDriverState.Connected,
+    //         PumpDriverState.Disconnected               -> {
+    //             currentActivity = rh.gs(pumpDriverState.resourceId)
+    //             // {fa-bluetooth}
+    //         }
+    //
+    //         PumpDriverState.ErrorCommunicatingWithPump -> {
+    //             currentActivity = "Error ???"
+    //             // fa-bed
+    //             val errorType = tandemUtil.errorType
+    //
+    //             pumpError = if (errorType != null) errorType.name else null
+    //             //aapsLogger.warn(LTag.PUMP, "Errors are not supported.")
+    //         }
+    //
+    //         PumpDriverState.ExecutingCommand           -> {
+    //             val commandType: PumpCommandType? = tandemUtil.currentCommand
+    //             val customCommandTypeInterface : TandemCustomCommand? = tandemUtil.customCommandType as TandemCustomCommand?
+    //             // {fa-bluetooth}
+    //             if (commandType == null) {
+    //                 currentActivity = rh.gs(pumpDriverState.resourceId)
+    //             } else {
+    //                 if (commandType == PumpCommandType.CustomCommand) {
+    //                     if (customCommandTypeInterface==null) {
+    //                         currentActivity = rh.gs(commandType.resourceId)
+    //                     } else {
+    //                         currentActivity = customCommandTypeInterface.getDescription()
+    //                     }
+    //                 } else {
+    //                     if (commandType == PumpCommandType.GetHistoryWithParameters) {
+    //                         val progress: String = tandemUtil.historyProgress.orEmpty()
+    //                         currentActivity = rh.gs(commandType.resourceId, progress)
+    //                     } else {
+    //                         currentActivity = rh.gs(commandType.resourceId)
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //
+    //         else                                       -> {
+    //             currentActivity = rh.gs(pumpDriverState!!.resourceId)
+    //         }
+    //     }
+    // }
 
 
     private fun buildInitialState(): PumpOverviewUiState {
         return buildUiState(
-            currentActivity = currentActivity,
+            currentActivity = tandemUtil.currentActivity,
             pumpRunningState = tandemPumpStatus.pumpRunningState,
             baseBasalRate = tandemPlugin.baseBasalRate,
             lastBolus = tandemPumpStatus.lastBolusData,

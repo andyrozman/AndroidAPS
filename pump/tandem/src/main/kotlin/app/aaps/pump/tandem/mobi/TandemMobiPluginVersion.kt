@@ -7,7 +7,7 @@ class TandemMobiPluginVersion {
     val devVersion = "4.0.0-dev-c (24.09.2026)"
 
     val pumpX2Version = BuildConfig.PUMPX2_VERSION
-    val tandemModuleVersion = "v0.9.1.0"
+    val tandemModuleVersion = "v0.9.2.4"
 
     companion object {
         @JvmStatic

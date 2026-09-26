@@ -12,7 +12,6 @@ import app.aaps.pump.tandem.common.database.dao.TandemQualifyingEventsDao
 import app.aaps.pump.tandem.common.database.dao.TandemSiteChangeDao
 import app.aaps.pump.tandem.common.driver.tandemUiDataStore
 import app.aaps.pump.tandem.common.service.TandemService
-import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.ClassKey
@@ -24,25 +23,33 @@ import dev.zacsweers.metro.SingleIn
 
 @ContributesTo(AppScope::class)
 @BindingContainer
-object TandemMobiBindings {
+object TandemDatabaseBindings {
 
     @Provides
     @SingleIn(AppScope::class)
-    fun provideTandemUIDataStore(): TandemUIDataStore = tandemUiDataStore
+    fun provideDatabase(context: Context,
+                        aapsLogger: AAPSLogger,
+                        aapsSchedulers: AapsSchedulers): TandemPumpDatabase =
+        TandemPumpDatabase.build(context, aapsLogger, aapsSchedulers)
 
     @Provides
-    @FeatureMemberInjectors
-    @IntoMap
-    @ClassKey(TandemService::class)
-    fun bindTandemService(
-        injector: MembersInjector<TandemService>
-    ): MembersInjector<*> = injector
-
+    @SingleIn(AppScope::class)
+    fun provideHistoryRecordDao(historyDatabase: TandemPumpDatabase): TandemHistoryRecordDao =
+        historyDatabase.historyRecordDao()
 
     @Provides
-    @FeatureMemberInjectors
-    @IntoMap
-    @ClassKey(TandemMobiConnectionWizardActivity::class)
-    fun bindInsightAlertActivity(injector: MembersInjector<TandemMobiConnectionWizardActivity>): MembersInjector<*> = injector
+    @SingleIn(AppScope::class)
+    fun provideTandemQualifyingEventsDao(historyDatabase: TandemPumpDatabase): TandemQualifyingEventsDao =
+        historyDatabase.qualifyingEventsDao()
+
+    @Provides
+    @SingleIn(AppScope::class)
+    fun provideTandemSiteChangeDao(historyDatabase: TandemPumpDatabase): TandemSiteChangeDao =
+        historyDatabase.siteChangeDao()
+
+    @Provides
+    @SingleIn(AppScope::class)
+    fun provideTandemCleanupDao(historyDatabase: TandemPumpDatabase): TandemCleanupDao =
+        historyDatabase.cleanupDao()
 
 }

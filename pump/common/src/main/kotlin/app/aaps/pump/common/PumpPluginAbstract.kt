@@ -281,7 +281,7 @@ abstract class PumpPluginAbstract protected constructor(
         return try {
             deliverBolus(detailedBolusInfo)
         } finally {
-            triggerUIChange()
+            //triggerUIChange()
         }
     }
 
@@ -315,7 +315,7 @@ abstract class PumpPluginAbstract protected constructor(
                     .comment(app.aaps.core.ui.R.string.ok)
             }
         } finally {
-            triggerUIChange()
+            //triggerUIChange()
         }
     }
 
@@ -329,7 +329,7 @@ abstract class PumpPluginAbstract protected constructor(
 
     protected abstract fun deliverBolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult
 
-    protected abstract fun triggerUIChange()
+    //protected abstract fun triggerUIChange()
 
     private fun getOperationNotSupportedWithCustomText(resourceId: Int): PumpEnactResult =
         pumpEnactResultProvider().success(false).enacted(false).comment(resourceId)

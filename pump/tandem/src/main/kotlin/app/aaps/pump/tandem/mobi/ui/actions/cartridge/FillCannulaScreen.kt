@@ -49,18 +49,16 @@ import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.pump.StepProgressIndicator
 import app.aaps.core.ui.compose.siteRotation.SiteLocationPicker
 import app.aaps.pump.common.defs.PumpRunningState
-import app.aaps.pump.common.test.ResourceHelperTest
 import app.aaps.pump.tandem.R
-import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModelInterface
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModelTest
-import app.aaps.core.ui.R as Rco
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 
 import app.aaps.pump.tandem.mobi.ui.util.DecimalOutlinedText
+import app.aaps.pump.common.test.PreviewAAPSLogger
+import app.aaps.pump.common.test.PreviewResourceHelper
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
-import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.FillCannulaRequest
@@ -561,10 +559,10 @@ private fun FillCannulaScreenPreview() {
             FillCannulaScreen(
                 sendPumpCommands = { _ -> true },
                 navigateBack = {},
-                resourceHelper = ResourceHelperTest(),
+                resourceHelper = PreviewResourceHelper(),
                 onStepChanged = {},
                 coreCartridgeActionsModel = CoreCartridgeActionsModelTest(),
-                aapsLogger = AAPSLoggerTest()
+                aapsLogger = PreviewAAPSLogger()
             )
         }
     }

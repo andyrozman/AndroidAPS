@@ -203,13 +203,11 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
                 btAddressUsed = null
             }
 
-            // TODO(jwoglom): AAPS should conditionally set this to allow for safer pump simulation
             PumpState.enableActionsAffectingInsulinDelivery()
 
             val cfg = TandemConfig()
                 .withFilterToBluetoothMac(newBtAddress)
-                // TODO(jwoglom): this should be configurable to allow for old firmware tslim x2 pump simulation
-                .withPairingCodeType(PairingCodeType.SHORT_6CHAR)
+                .withPairingCodeType(tandemPumpUtil.pairingCodeType)
 
             this.tandemPumpCommunicationManager = TandemPumpCommunicationManager(
                 context = context,
@@ -681,9 +679,6 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
 
     override fun cancelBolus(bolusData: BolusData?): DataCommandResponse<AdditionalResponseDataInterface?> {
         if (bolusId==0) {
-            // TODO(jwoglom): since this is a safety critical path, we need to handle bolusId being null
-            // and fall back on requesting active bolus ID and then canceling it. and also do the same
-            // if we get a rejection (status!=0) on CancelBolusResponse.
             aapsLogger.warn(TAG, "cancelBolus: no BolusId found, fetching the active bolus ID as fallback")
 
             val currentBolus: CurrentBolusStatusResponse? = getCommunicationManager()?.sendCommand(CurrentBolusStatusRequest()) as CurrentBolusStatusResponse?
@@ -709,6 +704,7 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
 
 
         return if (responseMessage != null && responseMessage.status == CancelBolusResponse.CancelStatus.SUCCESS) {
+            bolusId = 0
             DataCommandResponse(
                 PumpCommandType.CancelBolus,
                 true,
@@ -716,13 +712,13 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
                 null
             )
         } else {
+            bolusId = 0
             DataCommandResponse(
                 PumpCommandType.CancelBolus,
                 false,
                 "Error cancelling bolus, got status ${responseMessage?.statusId}: $responseMessage",
                 null
             )
-
         }
     }
 
@@ -1001,7 +997,7 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
         val idpSegments = tandemDataConverter.getIDPSegmentsFromProfile(profile)
 
         // TODO(jwoglom): make and use PumpX2 const
-        if (idpSegments.size>16) {
+        if (idpSegments.size> 16) {
             aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile - You have more than 16 basal segments. Profile must be adjusted to have only 16 segments. Last valid segment (16) will be extended over remaining time.")
             tandemPumpUtil.sendNotification(TandemNotificationType.TandemBasalProfileError);
         }
@@ -1706,34 +1702,6 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
                 TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
             }
         }
-
-        // TODO remove this
-        // return when(this.tandemPumpStatus.tandemPumpFirmware) {
-        //
-        //     // TODO(jwoglom): we can use builder methods in PumpX2 given the api version
-        //     TandemPumpApiVersion.VERSION_2_1_to_2_4,
-        //     -> {
-        //         when(command) {
-        //             TandemCommandType.ControlIQInfo  -> ControlIQInfoV1Request()
-        //             TandemCommandType.CurrentBattery -> CurrentBatteryV1Request()
-        //         }
-        //     }
-        //
-        //     TandemPumpApiVersion.VERSION_2_5_OR_HIGHER,
-        //     TandemPumpApiVersion.VERSION_3_0,
-        //     TandemPumpApiVersion.VERSION_3_2,
-        //     TandemPumpApiVersion.VERSION_3_4,
-        //     TandemPumpApiVersion.VERSION_3_5_MOBI,
-        //     TandemPumpApiVersion.VERSION_3_6_MOBI,
-        //     TandemPumpApiVersion.VERSION_3_8_MOBI,
-        //     TandemPumpApiVersion.VERSION_4_x -> {
-        //         when(command) {
-        //             TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()
-        //             TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
-        //         }
-        //     }
-        //     else -> throw Exception("Unidentified version: ${this.tandemPumpStatus.tandemPumpFirmware} - ${tandemPumpStatus.apiVersionResponse?.apiVersion}")
-        // }
     }
 
 

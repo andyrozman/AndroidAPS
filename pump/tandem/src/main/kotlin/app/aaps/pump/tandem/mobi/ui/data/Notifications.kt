@@ -40,7 +40,8 @@ import androidx.compose.ui.zIndex
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.pump.common.test.ResourceHelperTest
+import app.aaps.pump.common.test.PreviewAAPSLogger
+import app.aaps.pump.common.test.PreviewResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
@@ -48,10 +49,8 @@ import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
-import app.aaps.shared.tests.AAPSLoggerTest
 
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
@@ -296,9 +295,9 @@ private fun DefaultPreview_Notifications() {
             setUpPreviewState(LocalTandemDataStore.current)
             Notifications(
                 sendPumpCommands = { _ -> true},
-                aapsLogger = AAPSLoggerTest(),
+                resourceHelper = PreviewResourceHelper(),
+                aapsLogger = PreviewAAPSLogger(),
                 navigateBack = {},
-                resourceHelper = ResourceHelperTest(),
                 refreshMainAppData = {}
             )
         }

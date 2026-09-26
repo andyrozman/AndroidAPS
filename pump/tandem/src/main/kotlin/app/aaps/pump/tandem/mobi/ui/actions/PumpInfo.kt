@@ -26,7 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.pump.common.test.ResourceHelperTest
+import app.aaps.pump.common.test.PreviewResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
@@ -149,7 +149,7 @@ private fun DefaultPreview_PumpInfo() {
                 //navController = null,
                 navigateBack = { },
                 tandemPumpStatus = null,
-                resourceHelper = ResourceHelperTest()
+                resourceHelper = PreviewResourceHelper()
             )
         }
     }

@@ -15,7 +15,9 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.tandem.common.comm.maint.TandemPairingManager
 import app.aaps.pump.tandem.common.events.EventTandemPairingStatus
 import app.aaps.pump.tandem.common.events.PairingError
@@ -33,6 +35,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import dev.zacsweers.metro.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
 /**
  * ViewModel for the Tandem Mobi connection wizard
@@ -40,7 +47,6 @@ import dev.zacsweers.metro.Inject
 class TandemMobiConnectionWizardViewModel @Inject constructor(
     private val aapsLogger: AAPSLogger,
     private val rxBus: RxBus,
-    private val aapsSchedulers: AapsSchedulers,
     private val preferences: Preferences,
     private val tandemPumpUtil: TandemPumpUtil
 ) : ViewModel() {
@@ -48,16 +54,16 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
     private val _state = MutableStateFlow(TandemMobiWizardState())
     val state: StateFlow<TandemMobiWizardState> = _state.asStateFlow()
 
-    private val disposable = CompositeDisposable()
+    //private val disposable = CompositeDisposable()
     private var pairingManager: TandemPairingManager? = null
 
     // BLE scanning properties
     private var bleScanner: BluetoothLeScanner? = null
     private var scanCallback: ScanCallback? = null
     private val scannedDevicesMap = ConcurrentHashMap<String, ScannedDevice>()
+    private val mainScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     init {
-        // TODO Metro
         // Subscribe to pairing status events
         // disposable += rxBus
         //     .toObservable(EventTandemPairingStatus::class.java)
@@ -67,6 +73,11 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
         //     }, { throwable ->
         //         aapsLogger.error(LTag.PUMP, "Error receiving pairing event", throwable)
         //     })
+
+        rxBus.toFlow(EventTandemPairingStatus::class)
+            .collectResilient(mainScope, aapsLogger, LTag.PUMPCOMM, start = CoroutineStart.UNDISPATCHED)
+            { handlePairingEvent(it) }
+
     }
 
     fun setPairingManager(manager: TandemPairingManager) {
@@ -384,6 +395,6 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopDeviceScan()
-        disposable.clear()
+        mainScope.cancel()
     }
 }

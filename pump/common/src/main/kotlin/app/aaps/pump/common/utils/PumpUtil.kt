@@ -3,11 +3,9 @@ package app.aaps.pump.common.utils
 import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.notifications.NotificationId
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.data.DateTimeDto
@@ -25,6 +23,7 @@ import com.google.gson.JsonParseException
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import java.lang.reflect.Type
@@ -39,6 +38,20 @@ open class PumpUtil constructor(
 ) {
 
     var preventConnect: Boolean = false
+
+    val currentActivityFlow = MutableStateFlow<String>("")
+    var currentActivity: String
+        get() = currentActivityFlow.value
+        set(value) {
+            currentActivityFlow.value = value
+        }
+
+    val errorDetailsFlow = MutableStateFlow<String>("")
+    var errorDetails: String
+        get() = errorDetailsFlow.value
+        set(value) {
+            errorDetailsFlow.value = value
+        }
 
     //private var driverStatusInternal: PumpDriverState
     private var pumpCommandType: PumpCommandType? = null
@@ -119,6 +132,9 @@ open class PumpUtil constructor(
         }
 
     var customCommandType: CustomCommandTypeInterface? = null
+        // set(value) {
+        //     field = value
+        // }
 
     @Synchronized
     fun workWithStatusAndCommand(
@@ -140,7 +156,8 @@ open class PumpUtil constructor(
                 driverStatusInternal = driverStatusIn!!
                 this.pumpCommandType = null
                 //aapsLogger.debug(LTag.PUMP, "SetStatus: DriverStatus: " + driverStatusInternal);
-                rxBus.send(EventPumpDriverStateChanged(driverStatusInternal))
+                //rxBus.send(EventPumpDriverStateChanged(driverStatusInternal))
+                updateCurrentActivity(driverStatusInternal, null)
             }
 
             StatusChange.GetCommand -> return this.pumpCommandType
@@ -148,7 +165,8 @@ open class PumpUtil constructor(
             StatusChange.SetCommand -> {
                 driverStatusInternal = driverStatusIn!!
                 this.pumpCommandType = pumpCommandType
-                rxBus.send(EventPumpDriverStateChanged(driverStatusInternal))
+                //rxBus.send(EventPumpDriverStateChanged(driverStatusInternal))
+                updateCurrentActivity(driverStatusInternal, pumpCommandType)
             }
 
             StatusChange.GetError   -> return errorTypeInternal
@@ -157,11 +175,74 @@ open class PumpUtil constructor(
                 errorTypeInternal = pumpErrorType!!
                 this.pumpCommandType = null
                 driverStatusInternal = PumpDriverState.ErrorCommunicatingWithPump
-                rxBus.send(EventPumpDriverStateChanged(driverStatusInternal))
+                updateCurrentActivity(driverStatusInternal, null, errorTypeInternal)
+                //rxBus.send(EventPumpDriverStateChanged(driverStatusInternal))
+                //updateCurrentActivity(driverStatusInternal)
             }
         }
         return null
     }
+
+
+    @Synchronized
+    open fun updateCurrentActivity(pumpDriverState: PumpDriverState?, pumpCommandType: PumpCommandType?,
+                                   pumpErrorType: PumpErrorType? = null) {
+        //val resActivity = Rc.string.pump_current_activity
+
+        //aapsLogger.info(LTag.PUMP, "DUB Update Current activity: ${pumpDriverState!!.name}")
+
+        when (pumpDriverState) {
+            //null,
+            PumpDriverState.Ready,
+            PumpDriverState.Sleeping                   -> {
+                currentActivity = resourceHelper.gs(pumpDriverState.resourceId)
+                // icon {fa-bed}
+            }
+            PumpDriverState.Connecting,
+            PumpDriverState.Handshaking,
+            PumpDriverState.Disconnecting              ->  {
+                currentActivity = resourceHelper.gs(pumpDriverState.resourceId)
+                // {fa-bluetooth spin}
+            }
+            PumpDriverState.Connected,
+            PumpDriverState.Disconnected               -> {
+                currentActivity = resourceHelper.gs(pumpDriverState.resourceId)
+                // {fa-bluetooth}
+            }
+
+            PumpDriverState.ErrorCommunicatingWithPump -> {
+                if (pumpErrorType==null) {
+                    currentActivity = resourceHelper.gs(pumpDriverState.resourceId) + " - Unknown"
+                } else {
+                    currentActivity = resourceHelper.gs(pumpErrorType.resourceId)
+                }
+            }
+
+            PumpDriverState.ExecutingCommand           -> {
+                setPumpCommandExecutionActivity(pumpDriverState, pumpCommandType)
+            }
+
+            else                                       -> {
+                currentActivity = resourceHelper.gs(pumpDriverState!!.resourceId)
+            }
+        }
+    }
+
+    /**
+     * This method sets which pump command we are executing. This works for all basic commandTypes. If your pump has special
+     * sub command you can extend this method to include that data. Just override in pump specific PumpUtil class. As sample
+     * see TandemPumpUtil in tandem project.
+     *
+     * @see PumpCommandType
+     */
+    open fun setPumpCommandExecutionActivity(pumpDriverState: PumpDriverState, pumpCommandType: PumpCommandType?) {
+        if (pumpCommandType == null) {
+            currentActivity = resourceHelper.gs(pumpDriverState.resourceId)
+        } else {
+            currentActivity = resourceHelper.gs(pumpCommandType.resourceId)
+        }
+    }
+
 
     fun sleepSeconds(seconds: Long) {
         try {
@@ -170,6 +251,7 @@ open class PumpUtil constructor(
             e.printStackTrace()
         }
     }
+
 
     fun sleep(miliseconds: Long) {
         try {
@@ -195,16 +277,10 @@ open class PumpUtil constructor(
         return DateTimeDto(year, month, dayOfMonth, hourOfDay, minute, second)
     }
 
-    fun fromDpToSize(dpSize: Int): Int {
-        val scale = context.resources.displayMetrics.density
-        val pixelsFl = ((dpSize * scale) + 0.5f)
-        return pixelsFl.toInt()
-    }
 
     enum class StatusChange {
         GetStatus, GetCommand, SetStatus, SetCommand, GetError, SetError
     }
-
 
 
     fun isSame(d1: Double, d2: Double): Boolean {
@@ -212,21 +288,17 @@ open class PumpUtil constructor(
         return Math.abs(diff) <= 0.000001
     }
 
+
     fun isSame(d1: Double, d2: Int): Boolean {
         val diff = d1 - d2
         return Math.abs(diff) <= 0.000001
     }
 
+
     fun sendNotification(notificationType: NotificationTypeInterface) {
-        // val notification = Notification( //
-        //     notificationType.notificationType,  //
-        //     resourceHelper.gs(notificationType.resourceId),  //
-        //     notificationType.notificationUrgency
-        // )
 
-        aapsLogger.error(LTag.PUMP, "NotificationType: $notificationType")
+        aapsLogger.info(LTag.PUMP, "Send Notification: type: $notificationType")
 
-        // rxBus.send(EventNewNotification(notification))
         if (notificationType.validMinutes==null || notificationType.validMinutes == -1) {
             notificationManager.post(
                 id = notificationType.notificationType,
@@ -241,12 +313,14 @@ open class PumpUtil constructor(
                 validMinutes = notificationType.validMinutes!!
             )
         }
-
-        //notificationManager.post(NotificationId.INSIGHT_DATE_TIME_UPDATED, app.aaps.core.ui.R.string.pump_time_updated, validMinutes = 60)
-
     }
+
 
     fun sendNotification(notificationType: NotificationTypeInterface, vararg parameters: Any?) {
+
+        aapsLogger.info(LTag.PUMP, "Send Notification(with Params): type: ${notificationType}," +
+            "parameters: \${parameters.joinToString(prefix = \"[\", postfix = \"]\")}")
+
         if (notificationType.validMinutes==null || notificationType.validMinutes == -1) {
             notificationManager.post(
                 id = notificationType.notificationType,
@@ -260,19 +334,6 @@ open class PumpUtil constructor(
                 level = notificationType.notificationUrgency,
                 validMinutes = notificationType.validMinutes!!
             )
-        }
-    }
-
-
-    fun isAAPSDarkTheme(isSystemDarkTheme: Boolean): Boolean {
-        val colorscheme = preferences.get(StringKey.GeneralDarkMode)
-
-        if (colorscheme.equals("dark")) {
-            return true
-        } else if (colorscheme.equals("light")) {
-            return false
-        } else {
-            return isSystemDarkTheme
         }
     }
 
@@ -284,11 +345,6 @@ open class PumpUtil constructor(
 
         @JvmStatic var driverStatusInternal: PumpDriverState = PumpDriverState.Sleeping
         @JvmStatic private var errorTypeInternal: PumpErrorType? = null
-
-        // var gson: Gson = GsonBuilder()
-        //     .registerTypeAdapter(DateTime::class.java,
-        //                          JsonSerializer<DateTime?> { json, typeOfSrc, context -> JsonPrimitive(ISODateTimeFormat.dateTime().print(json)) })
-        //     .create()
 
     }
 }
