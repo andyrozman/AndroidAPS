@@ -7,24 +7,36 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelUuid
 import androidx.annotation.RequiresPermission
+import androidx.compose.runtime.Stable
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
+import app.aaps.pump.common.events.EventPumpForceDisconnect
 import app.aaps.pump.tandem.common.comm.maint.TandemPairingManager
+import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.events.EventTandemPairingStatus
 import app.aaps.pump.tandem.common.events.PairingError
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
+import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.bluetooth.ServiceUUID
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import kotlinx.coroutines.delay
@@ -35,6 +47,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -44,11 +58,21 @@ import kotlinx.coroutines.cancel
 /**
  * ViewModel for the Tandem Mobi connection wizard
  */
-class TandemMobiConnectionWizardViewModel @Inject constructor(
+
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
+@ViewModelKey
+@Stable
+@Inject
+class TandemMobiConnectionWizardViewModel(
     private val aapsLogger: AAPSLogger,
     private val rxBus: RxBus,
     private val preferences: Preferences,
-    private val tandemPumpUtil: TandemPumpUtil
+    private val tandemPumpUtil: TandemPumpUtil,
+    private val resourceHelper: ResourceHelper,
+    private val tandemPumpStatus: TandemPumpStatus,
+    private val pumpSync: PumpSync,
+    private val pumpX2L: PumpX2L,
+    private val context: Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TandemMobiWizardState())
@@ -395,6 +419,78 @@ class TandemMobiConnectionWizardViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopDeviceScan()
+        pairingManager?.shutdownPairingManager()
+        pairingManager = null
         mainScope.cancel()
     }
+
+    var needsPairingReset = false;
+
+    fun createPairingManager(btAddress: String): TandemPairingManager? {
+        if (btAddress.isEmpty()) {
+            return pairingManager
+        }
+
+        pairingManager?.let {
+            if (it.btAddress == btAddress) {
+                return it
+            }
+            it.shutdownPairingManager()
+        }
+
+        // Create a dummy PumpBLEConfigActivity interface for the pairing manager
+        // val dummyActivity = object : PumpBLEConfigActivity() {}
+
+        pairingManager = TandemPairingManager(
+            context = context,
+            aapsLogger = aapsLogger,
+            preferences = preferences,
+            tandemPumpUtil = tandemPumpUtil,
+            btAddress = btAddress,
+            resourceHelper = resourceHelper,
+            rxBus = rxBus,
+            pumpStatus = tandemPumpStatus,
+            pumpSync = pumpSync,
+            pumpX2L = pumpX2L,
+        ).also { manager ->
+            setPairingManager(manager)
+            // Note: Pairing data already cleared by handleExistingPumpRemoval if needed
+            // No need to clear again here
+        }
+
+        needsPairingReset = false
+
+        return pairingManager
+    }
+
+
+    /**
+     * Full teardown of any previously-paired pump: disconnect the live BLE session,
+     * remove the Android-level BT bond, and clear AAPS / pumpx2 pairing state.
+     * Shared between the "remove existing pump" flow and the EXTRA_IS_RE_PAIRING entry.
+     */
+    fun tearDownExistingPump(onDone: () -> Unit) {
+        aapsLogger.info(LTag.PUMP, "Tearing down existing pump session")
+
+        // Capture the address BEFORE clearAllPairingData wipes it.
+        val oldAddress = preferences.get(TandemStringPreferenceKey.PumpAddress)
+
+        // Ask the service to disconnect first. This routes through
+        // TandemPumpConnector.disconnectFromPump → TandemCommunicationManager.disconnect
+        // → TandemPumpUtil.forceResetBluetoothHandler (neutralize + cancel + stop + null singleton),
+        // and nulls the connector's cached manager/address.
+        rxBus.send(EventPumpForceDisconnect())
+
+        // Let the disconnect propagate through the rx chain, then remove the OS bond
+        // and clear prefs / PumpState / pumpStatus.
+        Handler(Looper.getMainLooper()).postDelayed({
+                                                        tandemPumpUtil.removeAndroidBond(oldAddress)
+                                                        tandemPumpUtil.clearAllPairingData()
+                                                        aapsLogger.info(LTag.PUMP, "Existing pump torn down, ready for new pairing")
+                                                        onDone()
+                                                    }, 1000)
+    }
+
+
+
 }

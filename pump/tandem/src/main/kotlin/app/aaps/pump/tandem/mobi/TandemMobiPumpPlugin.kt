@@ -18,6 +18,7 @@ import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.pump.BlePreCheck
 import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.Pump
@@ -100,7 +101,6 @@ import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.mobi.ui.TandemUiController
 import app.aaps.pump.tandem.mobi.ui.overview.MobiComposeContent
-import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpGlobalsResponse
@@ -140,12 +140,10 @@ class TandemMobiPumpPlugin(
     rh: ResourceHelper,
     val activePlugin: ActivePlugin,
     commandQueue: CommandQueue,
-    fabricPrivacy: FabricPrivacy,
     val tandemPumpUtil: TandemPumpUtil,
     val pumpStatus: TandemPumpStatus,
     val qualifyingEventHandler: QualifyingEventHandler,
     dateUtil: DateUtil,
-    aapsSchedulers: AapsSchedulers,
     pumpSync: PumpSync,
     pumpSyncStorage: PumpSyncStorage,
     val pumpConnectionManager: TandemPumpConnectionManager,
@@ -155,6 +153,7 @@ class TandemMobiPumpPlugin(
     val historyRetriever: HistoryRetriever,
     val tandemUiController: TandemUiController,
     val resourceHelper: ResourceHelper,
+    var blePreCheck: BlePreCheck,
     pumpEnactResultProvider: () -> PumpEnactResult,
     bolusProgressData: BolusProgressData,
     notificationManager: NotificationManager
@@ -167,7 +166,8 @@ class TandemMobiPumpPlugin(
                 tandemPumpStatus = pumpStatus,
                 aapsLogger = aapsLogger,
                 resourceHelper = resourceHelper,
-                tandemUiController = tandemUiController
+                tandemUiController = tandemUiController,
+                blePreCheck = blePreCheck
             )
         }
         .icon(IcPluginTMobi)
@@ -179,17 +179,13 @@ class TandemMobiPumpPlugin(
     aapsLogger = aapsLogger,
     commandQueue = commandQueue,
     rxBus = rxBus,
-    //activePlugin = activePlugin,
     preferences = preferences,
     context = context,
-    //fabricPrivacy = fabricPrivacy,
     dateUtil = dateUtil,
-    //aapsSchedulers = aapsSchedulers,
     pumpSync = pumpSync,
     pumpSyncStorage = pumpSyncStorage,
     pumpDriverConfigurationInternal = tandemPumpDriverConfiguration,
     decimalFormatter = decimalFormatter,
-    //instantiator = instantiator,
     pumpEnactResultProvider = pumpEnactResultProvider,
     bolusProgressData = bolusProgressData,  // TODO dev4 no idea what this is used for or how to integrate
     ownPreferences =  TandemLongNonPreferenceKey.entries + TandemStringPreferenceKey.entries +

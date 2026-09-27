@@ -996,9 +996,8 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
 
         val idpSegments = tandemDataConverter.getIDPSegmentsFromProfile(profile)
 
-        // TODO(jwoglom): make and use PumpX2 const
-        if (idpSegments.size> 16) {
-            aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile - You have more than 16 basal segments. Profile must be adjusted to have only 16 segments. Last valid segment (16) will be extended over remaining time.")
+        if (idpSegments.size> TandemPumpUtil.MAX_BOLUS_SEGMENTS) {
+            aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile - You have more than ${TandemPumpUtil.MAX_BOLUS_SEGMENTS} basal segments. Profile must be adjusted to have only ${TandemPumpUtil.MAX_BOLUS_SEGMENTS} segments. Last valid segment (${TandemPumpUtil.MAX_BOLUS_SEGMENTS}) will be extended over remaining time.")
             tandemPumpUtil.sendNotification(TandemNotificationType.TandemBasalProfileError);
         }
 
@@ -1007,7 +1006,6 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
 
         var responseText : String?
         var success = false
-
 
         if (pumpProfileDto.isNewScenario) {
 
@@ -1050,8 +1048,8 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
 
         var segmentCount = idpSegments.size-1
 
-        if (segmentCount>15) {
-            segmentCount = 15
+        if (segmentCount>(TandemPumpUtil.MAX_BOLUS_SEGMENTS-1)) {
+            segmentCount = (TandemPumpUtil.MAX_BOLUS_SEGMENTS-1)
         }
 
 

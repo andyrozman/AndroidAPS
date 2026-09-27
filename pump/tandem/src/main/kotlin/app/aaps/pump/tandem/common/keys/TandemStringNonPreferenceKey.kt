@@ -10,6 +10,4 @@ enum class TandemStringNonPreferenceKey(
 
     HistorySummaryData("tandem_history_summary", "", true)
 
-
-
 }

@@ -4,7 +4,6 @@ import android.Manifest
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Context
-import android.util.Log
 import androidx.annotation.RequiresPermission
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
@@ -15,10 +14,8 @@ import app.aaps.core.keys.interfaces.BooleanPreferenceKey
 import app.aaps.core.keys.interfaces.IntPreferenceKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.StringPreferenceKey
-import app.aaps.core.utils.pump.ByteUtil
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
-import app.aaps.pump.common.events.EventPumpDriverStateChanged
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import app.aaps.pump.common.utils.PumpUtil
 import app.aaps.pump.tandem.common.data.defs.RefreshData
@@ -30,12 +27,8 @@ import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
-import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.PairingCodeType
 import dev.zacsweers.metro.AppScope
-import java.nio.ByteBuffer
-import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 
@@ -53,6 +46,10 @@ class TandemPumpUtil(
 ): PumpUtil(aapsLogger, rxBus, context, resourceHelper, notificationManager, preferences) {
 
     var pairingCodeType = PairingCodeType.SHORT_6CHAR  // defaults to 6char for Mobi (if we would implement tslim, we could set this differently from main pumpPlugin class
+
+    val TBR_PREFIX: Int = 100000000
+    val BOLUS_PREFIX: Int = 500000000
+
 
 
     fun getTimeFromPumpAsEpochMillis(pumpTime: Long): Long {
@@ -127,19 +124,14 @@ class TandemPumpUtil(
     }
 
 
-    init {
-        driverStatusInternal = PumpDriverState.Connecting
-    }
-
-
     var historyProgress: String? = null
         get() {
             return field
         }
         set(status) {
             field = status
-            rxBus.send(EventPumpDriverStateChanged(if (status==null) PumpDriverState.Connected
-                                                   else PumpDriverState.ExecutingCommand))
+            setPumpCommandExecutionActivity(pumpDriverState = if (status==null) PumpDriverState.Connected
+                                            else PumpDriverState.ExecutingCommand, PumpCommandType.GetHistoryWithParameters)
         }
 
     /**
@@ -215,6 +207,7 @@ class TandemPumpUtil(
         }
     }
 
+
     /**
      * Removes the Android-level BT bond for the given pump address. Uses reflection to
      * reach BluetoothDevice.removeBond() which is @hide but publicly reachable on all
@@ -250,6 +243,7 @@ class TandemPumpUtil(
         }
     }
 
+
     fun clearAllPairingData() {
         aapsLogger.info(LTag.PUMPCOMM, "TandemPumpUtil: Clearing all pairing data for re-pairing")
 
@@ -281,12 +275,6 @@ class TandemPumpUtil(
     }
 
 
-    val TBR_PREFIX: Int = 100000000
-
-    val BOLUS_PREFIX: Int = 500000000
-
-    val MAX_BOLUS_SEGMENTS: Int = 16
-
     // we don't use real pumpId, because each of items would have a lot of entries, but each of boluses or tbr has
     // also uniqueId, which is the one we use, prefixed, so that we differentiate
     fun getPrefixedIdForDb(pumpEventId: Long, isBolus: Boolean): Long {
@@ -295,11 +283,14 @@ class TandemPumpUtil(
     }
 
 
+    init {
+        driverStatusInternal = PumpDriverState.Connecting
+    }
+
 
     companion object {
-
-        const val MAX_RETRY = 2
-
-
+        @JvmStatic val MAX_BOLUS_SEGMENTS: Int = 16
     }
+
+
 }

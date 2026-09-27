@@ -22,6 +22,7 @@ import app.aaps.core.ui.compose.pump.tickerFlow
 
 import android.content.Context
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.mutableStateOf
 import app.aaps.core.interfaces.pump.PumpRate
@@ -68,12 +69,13 @@ import app.aaps.pump.common.R as Rc
 import app.aaps.core.interfaces.R as Rci
 
 
-sealed class MobiOverviewEventv2 {
-    data object StartData : MobiOverviewEventv2()
-    data object StartActions : MobiOverviewEventv2()
-    data object OpenNotification : MobiOverviewEventv2()
-    data object OpenEvents : MobiOverviewEventv2()
-    data object OpenHistory : MobiOverviewEventv2()
+sealed class MobiOverviewEvent {
+    data object StartData : MobiOverviewEvent()
+    data object StartActions : MobiOverviewEvent()
+    data object OpenNotification : MobiOverviewEvent()
+    data object OpenEvents : MobiOverviewEvent()
+    data object OpenHistory : MobiOverviewEvent()
+    data object StartPairing: MobiOverviewEvent()
 }
 
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
@@ -101,8 +103,8 @@ class MobiOverviewViewModel(
 
     private val disposable = CompositeDisposable()
 
-    private val _events = MutableSharedFlow<MobiOverviewEventv2>(extraBufferCapacity = 5)
-    val events: SharedFlow<MobiOverviewEventv2> = _events
+    private val _events = MutableSharedFlow<MobiOverviewEvent>(extraBufferCapacity = 6)
+    val events: SharedFlow<MobiOverviewEvent> = _events
 
     var displayDriver = true
     //var buttonsEnabled = mutableStateOf<Boolean>(true)
@@ -232,11 +234,15 @@ class MobiOverviewViewModel(
     }
 
     fun onDataClick() {
-        _events.tryEmit(MobiOverviewEventv2.StartData)
+        _events.tryEmit(MobiOverviewEvent.StartData)
     }
 
     fun onActionClick() {
-        _events.tryEmit(MobiOverviewEventv2.StartActions)
+        _events.tryEmit(MobiOverviewEvent.StartActions)
+    }
+
+    fun onPairingClick() {
+        _events.tryEmit(MobiOverviewEvent.StartPairing)
     }
 
 
@@ -500,7 +506,7 @@ class MobiOverviewViewModel(
             primaryActions = buildPrimaryActions(pumpRunningState = pumpRunningState,
                                                  buttonsEnabledLocal = buttonsEnabledLocal,
                                                  statusBanner = communicationStatus.statusBanner()),
-            //managementActions = managementActions
+            managementActions = managementActions
         )
     }
 
@@ -564,6 +570,16 @@ class MobiOverviewViewModel(
             else              -> StatusLevel.NORMAL
         }
     }
+
+    val managementActions =
+        listOf(
+            PumpAction(
+                label = "Pair Pump",    //rh.gs(R.string.carelevo_overview_pump_discard_btn_label),
+                icon = Icons.Filled.Delete,
+                category = ActionCategory.MANAGEMENT,
+                onClick = { onPairingClick() }
+            ))
+
 
 
     private fun buildPrimaryActions(pumpRunningState: PumpRunningState, buttonsEnabledLocal: Boolean, statusBanner: StatusBanner?): List<PumpAction> {

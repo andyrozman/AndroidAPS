@@ -47,7 +47,6 @@ class TandemMobiConnectionWizardActivity : MetroAppCompatActivity() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var rxBus: RxBus
-    //@Inject lateinit var aapsSchedulers: AapsSchedulers
     @Inject lateinit var preferences: Preferences
     @Inject lateinit var tandemPumpUtil: TandemPumpUtil
     @Inject lateinit var pumpStatus: TandemPumpStatus

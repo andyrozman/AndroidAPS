@@ -178,7 +178,6 @@ class TandemPumpStatus(val sp: SP,
 
 
     override fun updateLastConnectionInFragment() {
-        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
     }
 
     init {
