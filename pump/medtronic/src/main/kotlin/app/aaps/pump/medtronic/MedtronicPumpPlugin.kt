@@ -575,7 +575,7 @@ class MedtronicPumpPlugin(
     override val baseBasalRate: PumpRate
         get() = PumpRate(medtronicPumpStatus.basalProfileForHour)
 
-    override fun triggerUIChange() {
+    fun triggerUIChange() {
         rxBus.send(EventMedtronicPumpValuesChanged())
     }
 
