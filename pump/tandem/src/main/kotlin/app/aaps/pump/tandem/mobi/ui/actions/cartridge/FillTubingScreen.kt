@@ -3,7 +3,6 @@
 package app.aaps.pump.tandem.mobi.ui.actions.cartridge
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,8 +21,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -52,12 +49,10 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.pump.StepProgressIndicator
 import app.aaps.core.ui.compose.siteRotation.SiteLocationPicker
-import app.aaps.core.ui.compose.siteRotation.SiteLocationWizardStep
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.test.PreviewAAPSLogger
 import app.aaps.pump.common.test.PreviewResourceHelper
 import app.aaps.pump.tandem.R
-import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModelInterface
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModelTest
 import app.aaps.pump.tandem.common.data.defs.RefreshData
@@ -79,6 +74,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * At the moment we still have Site Selection available here, although it is disabled. There was some talk when to do this
+ * site selection, so I will leave it inside for now and this can be easily removed at later time. It is controlled by
+ * displaySiteStep in LaunchedEffect(Unit)
+ */
 @Composable
 fun FillTubingScreen(
     innerPadding: PaddingValues = PaddingValues(),
@@ -92,7 +92,7 @@ fun FillTubingScreen(
     coreCartridgeActionsModel: CoreCartridgeActionsModelInterface
 ) {
     val ds = LocalTandemDataStore.current
-    @Suppress("PropertyName")
+    //@Suppress("PropertyName")
     val TAG = LTag.PUMP
 
     val refreshScope = rememberCoroutineScope()
@@ -104,9 +104,7 @@ fun FillTubingScreen(
     var isCompletingFillTubing by remember { mutableStateOf(false) }
     var showDisconnectConfirmDialog by remember { mutableStateOf(false) }
 
-    // TODO this is for testing only (true, original value false)
     var isInSiteSelectionMode by remember { mutableStateOf(false) }
-
 
     val siteLocation by coreCartridgeActionsModel.siteLocation.collectAsStateWithLifecycle()
     val siteArrow by coreCartridgeActionsModel.siteArrow.collectAsStateWithLifecycle()
@@ -130,7 +128,7 @@ fun FillTubingScreen(
     LaunchedEffect(Unit) {
         aapsLogger.info(TAG, "Initial alert/alarm poll on FillTubingScreen")
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
-        displaySiteStep = false // coreCartridgeActionsModel.showSiteLocationStep  // TODO remove this step
+        displaySiteStep = false // coreCartridgeActionsModel.showSiteLocationStep
     }
 
     LaunchedEffect(intervalOf(10)) {
@@ -215,7 +213,7 @@ fun FillTubingScreen(
     }
 
 
-    val totalSteps = 4
+    val totalSteps = if (displaySiteStep) 5 else 4
     val currentStep = when {
         isInSiteSelectionMode -> 5
         exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED && !isInSiteSelectionMode -> 4
@@ -238,8 +236,7 @@ fun FillTubingScreen(
         stepIndicator = {
             StepProgressIndicator(
                 currentStep = currentStep,
-                totalSteps = totalSteps //,
-                //resourceHelper = resourceHelper,
+                totalSteps = totalSteps
             )
         },
         notifications = notifications,
@@ -264,7 +261,6 @@ fun FillTubingScreen(
                     selectedArrow = siteArrow,
                     onLocationSelected = { coreCartridgeActionsModel.updateSiteLocation(it) },
                     onArrowSelected = { coreCartridgeActionsModel.updateSiteArrow(it) },
-                    showSitesSelector = true, // TODO rrr
                     compactView = true
                 )
 
@@ -518,7 +514,7 @@ fun FillTubingScreen(
                                         (ds.completedCartridgeActions.value ?: emptySet()) +
                                             CompletedCartridgeAction.FILL_TUBING
                                     ds.loadStatus.value = null
-                                    aapsLogger.error(TAG, "To Site Selection Pressed: showSiteSelection: ${displaySiteStep}")
+                                    aapsLogger.error(TAG, "To Site Selection Pressed: showSiteSelection: $displaySiteStep")
                                     if (displaySiteStep) {
                                         isInSiteSelectionMode = true
                                         coreCartridgeActionsModel.hideNotifications()
@@ -614,7 +610,7 @@ val fillTubingScreenCommands = listOf(
 @Preview(showBackground = true)
 @Composable
 private fun FillTubingScreenPreview() {
-    MaterialTheme() {
+    MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,

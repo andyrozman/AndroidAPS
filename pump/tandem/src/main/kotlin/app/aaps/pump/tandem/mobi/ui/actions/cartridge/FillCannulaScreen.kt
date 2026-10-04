@@ -73,6 +73,7 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateS
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 @Composable
 fun FillCannulaScreen(
@@ -86,7 +87,7 @@ fun FillCannulaScreen(
     coreCartridgeActionsModel: CoreCartridgeActionsModelInterface
 ) {
     val ds = LocalTandemDataStore.current
-    @Suppress("PropertyName")
+
     val TAG = LTag.PUMP
 
     val refreshScope = rememberCoroutineScope()
@@ -101,9 +102,6 @@ fun FillCannulaScreen(
     var isResuming by remember { mutableStateOf(false) }
     var weAreInStep5 by remember { mutableStateOf(false) }
     var weAreInStep4 by remember { mutableStateOf(false) }
-
-    // TODO this is for testing only (true, original value false)
-    var isInSiteSelectionMode by remember { mutableStateOf(false) }
 
     val siteLocation by coreCartridgeActionsModel.siteLocation.collectAsStateWithLifecycle()
     val siteArrow by coreCartridgeActionsModel.siteArrow.collectAsStateWithLifecycle()
@@ -355,7 +353,6 @@ fun FillCannulaScreen(
                     selectedArrow = siteArrow,
                     onLocationSelected = { coreCartridgeActionsModel.updateSiteLocation(it) },
                     onArrowSelected = { coreCartridgeActionsModel.updateSiteArrow(it) },
-                    showSitesSelector = true, // TODO rrr
                     compactView = true
                 )
 
@@ -468,7 +465,7 @@ fun FillCannulaScreen(
                     value = (cannulaFillAmount ?: 0.0).toFloat(),
                     onValueChange = { v ->
                         // Round to 0.1 step
-                        val rounded = (Math.round(v * 10).toDouble() / 10.0)
+                        val rounded = ((v * 10).roundToInt().toDouble() / 10.0)
                         cannulaFillAmount = if (allowedCannulaFillAmount(rounded)) rounded else null
                         cannulaFillAmountStr = "%.1f".format(rounded)
                     },
@@ -656,7 +653,7 @@ val fillCannulaScreenCommands = listOf(
 @Preview(showBackground = true)
 @Composable
 private fun FillCannulaScreenPreview() {
-    MaterialTheme() {
+    MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color.White,
