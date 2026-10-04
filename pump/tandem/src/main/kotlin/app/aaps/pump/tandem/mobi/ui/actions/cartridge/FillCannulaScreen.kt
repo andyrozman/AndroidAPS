@@ -99,6 +99,8 @@ fun FillCannulaScreen(
     var showExitWithoutResumeDialog by remember { mutableStateOf(false) }
     var isSuspending by remember { mutableStateOf(false) }
     var isResuming by remember { mutableStateOf(false) }
+    var weAreInStep5 by remember { mutableStateOf(false) }
+    var weAreInStep4 by remember { mutableStateOf(false) }
 
     // TODO this is for testing only (true, original value false)
     var isInSiteSelectionMode by remember { mutableStateOf(false) }
@@ -132,7 +134,7 @@ fun FillCannulaScreen(
     LaunchedEffect(Unit) {
         aapsLogger.info(TAG, "Initial alert/alarm poll on FillCannulaScreen")
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
-        // TODO disabled for now displaySiteStep = coreCartridgeActionsModel.showSiteLocationStep
+        displaySiteStep = coreCartridgeActionsModel.showSiteLocationStep
     }
 
     LaunchedEffect(intervalOf(10)) {
@@ -278,10 +280,11 @@ fun FillCannulaScreen(
         )
     }
 
-    val totalSteps = if (displaySiteStep) 4 else 3
+    val totalSteps = if (displaySiteStep) 5 else 3
     val currentStep = when {
-        isInSiteSelectionMode -> 4
-        fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED -> 3
+        weAreInStep5 -> 5
+        weAreInStep4 -> 4
+        (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) && !weAreInStep4 && !weAreInStep5 -> 3
         fillCannulaState.value != null -> 2
         else -> 1
     }
@@ -297,9 +300,11 @@ fun FillCannulaScreen(
         showBack = (currentStep == 1),
         onStepChanged = onStepChanged,
         currentStep = currentStep,
+        // The site picker sizes itself with Modifier.weight() and needs a bounded height.
+        scrollableBody = !weAreInStep4,
         stepIndicator = {
             StepProgressIndicator(
-                currentStep = currentStep - 1,
+                currentStep = currentStep,
                 totalSteps = totalSteps //,
                 //resourceHelper = resourceHelper,
             )
@@ -310,24 +315,8 @@ fun FillCannulaScreen(
         refreshScope = refreshScope,
         body = {
 
-            if (isInSiteSelectionMode) {
-                aapsLogger.error(TAG, "In Site Location Wizard Step")
+            if (weAreInStep5) {
 
-                coreCartridgeActionsModel.setTime()
-
-                SiteLocationPicker(
-                    siteType = TE.Type.CANNULA_CHANGE,
-                    bodyType = coreCartridgeActionsModel.bodyType(),
-                    entries = coreCartridgeActionsModel.siteRotationEntries(),
-                    selectedLocation = siteLocation,
-                    selectedArrow = siteArrow,
-                    onLocationSelected = { coreCartridgeActionsModel.updateSiteLocation(it) },
-                    onArrowSelected = { coreCartridgeActionsModel.updateSiteArrow(it) },
-                    showSitesSelector = true, // TODO rrr
-                    compactView = true
-                )
-
-            } else if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
                 Spacer(modifier = Modifier.height(24.dp))
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -352,6 +341,81 @@ fun FillCannulaScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+
+            } else if (weAreInStep4) {
+                aapsLogger.error(TAG, "In Site Location Wizard Step")
+
+                coreCartridgeActionsModel.setTime()
+
+                SiteLocationPicker(
+                    siteType = TE.Type.CANNULA_CHANGE,
+                    bodyType = coreCartridgeActionsModel.bodyType(),
+                    entries = coreCartridgeActionsModel.siteRotationEntries(),
+                    selectedLocation = siteLocation,
+                    selectedArrow = siteArrow,
+                    onLocationSelected = { coreCartridgeActionsModel.updateSiteLocation(it) },
+                    onArrowSelected = { coreCartridgeActionsModel.updateSiteArrow(it) },
+                    showSitesSelector = true, // TODO rrr
+                    compactView = true
+                )
+
+            } else if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
+
+                if (displaySiteStep) {
+
+                    // TODO different text a little
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = Color(0xFF2E7D32)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.fc_complete),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.fc_cannula_filled_continue),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = Color(0xFF2E7D32)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.fc_complete),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = resourceHelper.gs(R.string.fc_setup_complete_body),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
             } else if (fillCannulaState.value != null) {
                 Text(
                     text = resourceHelper.gs(R.string.ca_status_heading),
@@ -467,11 +531,14 @@ fun FillCannulaScreen(
                 horizontalArrangement = Arrangement.spacedBy(AapsSpacing.large)
             ) {
 
-                if (isInSiteSelectionMode) {
+                if (weAreInStep5) {
 
                     PrimaryActionButton(
                         text = resourceHelper.gs(R.string.ca_btn_resume_insulin),
-                        onClick = { showResumeDialog = true },
+                        onClick = {
+                            showResumeDialog = true
+                            weAreInStep5 = false
+                        },
                         enabled = pumpRunningState.value == PumpRunningState.Suspended,
                         loading = isResuming,
                         modifier = Modifier.weight(1f)
@@ -483,23 +550,62 @@ fun FillCannulaScreen(
                         modifier = Modifier.weight(1f)
                     )
 
+                } else if (weAreInStep4) {
+
+                    SecondaryActionButton(
+                        text = resourceHelper.gs(R.string.fc_skip_site),
+                        onClick = {
+                            coreCartridgeActionsModel.skipSiteLocation()
+                            weAreInStep4 = false
+                            weAreInStep5 = true
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    PrimaryActionButton(
+                        text = resourceHelper.gs(R.string.fc_accept_site),
+                        onClick = {
+                            coreCartridgeActionsModel.completeSiteLocation()
+                            weAreInStep4 = false
+                            weAreInStep5 = true
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+
                 } else if (fillCannulaState.value != null) {
                     if (fillCannulaState.value?.state == FillCannulaStateStreamResponse.FillCannulaState.CANNULA_FILLED) {
 
                         if (displaySiteStep) {
 
+                            SecondaryActionButton(
+                                text = resourceHelper.gs(R.string.fc_complete_fill),
+                                onClick = {
+                                    weAreInStep5 = true
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            PrimaryActionButton(
+                                text =  resourceHelper.gs(R.string.ft_to_site_selection),
+                                onClick = {
+                                    coreCartridgeActionsModel.hideNotifications()
+                                    weAreInStep4 = true
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+
                         } else {
+
+                            SecondaryActionButton(
+                                text = resourceHelper.gs(R.string.common_done),
+                                onClick = { showExitWithoutResumeDialog = true },
+                                modifier = Modifier.weight(1f)
+                            )
+
                             PrimaryActionButton(
                                 text = resourceHelper.gs(R.string.ca_btn_resume_insulin),
                                 onClick = { showResumeDialog = true },
                                 enabled = pumpRunningState.value == PumpRunningState.Suspended,
                                 loading = isResuming,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            SecondaryActionButton(
-                                text = resourceHelper.gs(R.string.common_done),
-                                onClick = { showExitWithoutResumeDialog = true },
                                 modifier = Modifier.weight(1f)
                             )
                         }

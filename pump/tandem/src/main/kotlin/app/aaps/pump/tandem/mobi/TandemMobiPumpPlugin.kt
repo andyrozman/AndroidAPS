@@ -30,23 +30,16 @@ import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.PumpSync.TemporaryBasalType
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.collectResilient
-import app.aaps.core.interfaces.rx.events.EventAutosensCalculationFinished
-import app.aaps.core.interfaces.rx.events.EventRefreshButtonState
-import app.aaps.core.interfaces.rx.events.EventRefreshOverview
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
-import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import kotlinx.coroutines.runBlocking
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.TextRef
-//import app.aaps.core.keys.interfaces.withActivity
 
 import app.aaps.core.ui.compose.icons.IcPluginTMobi
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
-//import app.aaps.implementation.pump.PumpEnactResultObject
 import app.aaps.pump.tandem.R
 import app.aaps.pump.common.PumpPluginAbstract
 import app.aaps.pump.common.data.PumpStatus
@@ -58,26 +51,19 @@ import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.common.R as Rc
 
 import app.aaps.pump.common.defs.*
-import app.aaps.pump.common.defs.PumpDriverMode
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpRunningState
-import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.driver.connector.commands.response.DataCommandResponse
 import app.aaps.pump.common.driver.history.PumpHistoryPeriod
 import app.aaps.pump.common.driver.refresh.PumpDataRefreshAction
 import app.aaps.pump.common.driver.refresh.PumpDataRefreshCapable
 import app.aaps.pump.common.driver.refresh.PumpDataRefreshType
-import app.aaps.pump.common.events.EventPumpDataRefresh
-//import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.common.events.EventPumpForceDisconnect
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.mobi.driver.TandemMobiPumpDriverConfiguration
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.comm.qe.QualifyingEventHandler
-import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
-import app.aaps.pump.tandem.common.data.defs.QualifyingEventsFilter
-import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
 import app.aaps.pump.tandem.common.data.defs.QuickBolusType
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.data.defs.SiteReminderPreset
@@ -101,6 +87,7 @@ import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.mobi.ui.TandemUiController
 import app.aaps.pump.tandem.mobi.ui.overview.MobiComposeContent
+import app.aaps.pump.tandem.mobi.ui.overview.MobiOverviewEvent
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpGlobalsResponse
@@ -110,16 +97,17 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.IntKey as MetroIntKey
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
-import io.reactivex.rxjava3.kotlin.plusAssign
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
-
-
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.skip
 
 /**
  * Created by andy on 04.02.2025.
@@ -158,8 +146,8 @@ class TandemMobiPumpPlugin(
     bolusProgressData: BolusProgressData,
     notificationManager: NotificationManager
 ) : PumpPluginAbstract(
-    pluginDescription = PluginDescription() //
-        .mainType(PluginType.PUMP) //
+    pluginDescription = PluginDescription()
+        .mainType(PluginType.PUMP)
         .composeContent { _ ->
             MobiComposeContent(
                 pluginName = (activePlugin.activePumpInternal as? PluginBase)?.name ?: "",
@@ -167,7 +155,8 @@ class TandemMobiPumpPlugin(
                 aapsLogger = aapsLogger,
                 resourceHelper = resourceHelper,
                 tandemUiController = tandemUiController,
-                blePreCheck = blePreCheck
+                blePreCheck = blePreCheck,
+                rxBus = rxBus
             )
         }
         .icon(IcPluginTMobi)
@@ -196,13 +185,9 @@ class TandemMobiPumpPlugin(
 ), Pump, PluginConstraints, PumpDataRefreshCapable /*, PumpConstraints */ {
 
     // variables for handling statuses and history
-
     private var tandemService: TandemService? = null
-    private var driverMode = PumpDriverMode.Automatic
-
     private val versionInternal = TandemMobiPluginVersion()
-
-    private var wantedDriverMode = PumpDriverMode.Automatic
+    var newQuickBolusType : QuickBolusType? = null
 
     @Suppress("PropertyName")
     private val TAG = LTag.PUMP
@@ -230,40 +215,13 @@ class TandemMobiPumpPlugin(
     }
 
 
-    // TODO dev4    see MedtronicPump:224
-    // override fun updatePreferenceSummary(pref: Preference) {
-    //     super.updatePreferenceSummary(pref)
-    //     if (pref.key == TandemStringPreferenceKey.PumpAddress.key) {
-    //         val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpAddress, null)
-    //             //sp.getStringOrNull(R.string.key_tandem_address, null)
-    //         pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
-    //         aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that pump address changed (this means bonding/unbonding is happening)")
-    //     } else if (pref.key == TandemStringPreferenceKey.PumpSerial.key) {
-    //         val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpSerial, null)
-    //             //sp.getStringOrNull(R.string.key_tandem_serial, null)
-    //         pref.summary = value ?: rh.gs(app.aaps.core.ui.R.string.not_set_short)
-    //         aapsLogger.info(LTag.PUMP, "TANDEMDBG: Received event that pump serial changed (this means bonding/unbonding is happening)")
-    //     } else if (pref.key == TandemStringPreferenceKey.SharedConnectionData.key) {
-    //         aapsLogger.error(TAG, "TANDEMDBG: updatePreferenceSummary for SharedConnectionData returned. ")
-    //         if (tandemService!!.hasConfigurationChanged()) {
-    //             tandemService!!.reconnectWithDifferentConnectionData()
-    //         }
-    //     } else if (pref.key == TandemStringPreferenceKey.QuickBolusTypePref.key) {
-    //         val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.QuickBolusTypePref, null)
-    //         aapsLogger.error(LTag.PUMP, "Quick Bolus Setting changed: $value")
-    //         if (value!=null && value.isNotEmpty()) {
-    //             newQuickBolusType = QuickBolusType.valueOf(value)
-    //             scheduleNextRefreshAtSameTimeAsOtherType(refreshType = PumpDataRefreshType.Custom_2,
-    //                                                      refreshTypeToCopy = PumpDataRefreshType.PumpStatus)
-    //         }
-    //     }
-    // }
+    init {
+        displayConnectionMessages = false
+    }
 
-    var newQuickBolusType : QuickBolusType? = null
 
-    // PumpAbstract implementations
     override fun initPumpStatusData() {
-        //pumpStatus.lastConnection = sp.getLong(TandemPumpConst.Statistics.LastGoodPumpCommunicationTime, 0L)
+
         if (preferences.getIfExists(TandemLongNonPreferenceKey.LastGoodPumpCommunicationTime) != null) {
             pumpStatus.lastConnection = preferences.get(TandemLongNonPreferenceKey.LastGoodPumpCommunicationTime)
             pumpStatus.previousConnection = pumpStatus.lastConnection
@@ -272,8 +230,6 @@ class TandemMobiPumpPlugin(
 
         pumpType = PumpType.TANDEM_MOBI_BT
 
-        // this is only thing that can change, by being configured
-        // TODO pumpDescription.maxTempAbsolute = (pumpStatus.maxBasal != null) ? pumpStatus.maxBasal : 35.0d;
         aapsLogger.debug(LTag.PUMP, "pumpDescription: " + this.pumpDescription)
 
         pumpStatus.pumpDescription = this.pumpDescription
@@ -295,8 +251,14 @@ class TandemMobiPumpPlugin(
             aapsLogger.debug(TAG, "initPumpStatusData: tandemSiteReminder pumpStatus.tandemSiteReminder: ${pumpStatus.tandemSiteReminder}")
         }
 
+        // this is only thing that can change, by being configured
+        if (preferences.getIfExists(TandemIntPreferenceKey.MaxBasal) != null) {
+            val preference = preferences.get(TandemIntPreferenceKey.MaxBasal)
+            pumpDescription.maxTempAbsolute = preference.toDouble()
+            aapsLogger.debug(TAG, "initPumpStatusData: setPumpDescription maxTempAbsolute with value from settings: ${preference}")
+        }
+
         pumpStatus.pumpType = PumpType.TANDEM_MOBI_BT
-        pumpStatus.pumpDriverMode = this.wantedDriverMode
     }
 
     override fun onStartScheduledPumpActions() {
@@ -321,9 +283,46 @@ class TandemMobiPumpPlugin(
             .collectResilient(coroutineScope, aapsLogger, TAG, start = CoroutineStart.UNDISPATCHED)
             { dbDataHandler.addQualifyingEventRecords(it.eventEntities) }
 
+        preferences.observe(TandemStringPreferenceKey.QuickBolusTypePref).drop(1).onEach {
+            val value: String? = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.QuickBolusTypePref, null)
+            aapsLogger.error(LTag.PUMP, "Quick Bolus Setting changed: $value")
+            if (value!=null && value.isNotEmpty()) {
+                newQuickBolusType = QuickBolusType.valueOf(value)
+                scheduleNextRefreshAtSameTimeAsOtherType(refreshType = PumpDataRefreshType.Custom_2,
+                                                         refreshTypeToCopy = PumpDataRefreshType.PumpStatus)
+            }
+        }.launchIn(coroutineScope)
+
+        preferences.observe(TandemStringPreferenceKey.SharedConnectionData).drop(1).onEach {
+            aapsLogger.error(TAG, "Preference Observe Changed: Shared Connection Data")
+            checkIfConfigurationChanged()
+        }.launchIn(coroutineScope)
+
+        preferences.observe(TandemBooleanPreferenceKey.UseSharedConnection).drop(1).onEach {
+            aapsLogger.error(TAG, "Preference Observe Changed: Use Shared Connection")
+            checkIfConfigurationChanged()
+        }.launchIn(coroutineScope)
+
         // check status every minute (if any status needs refresh we send readStatus command)
         startRefreshOfPumpCommands()
 
+    }
+
+
+    // this method handles changes only when user sets/unsets Shared Connection Enabled/Data, pairing through AAPS
+    // and reconnect there is handled with Events: EventPumpConnectionParametersChanged and EventPumpForceDisconnect
+    private fun checkIfConfigurationChanged() {
+
+        if (tandemService==null)
+            return;
+
+        val newConfig = tandemService!!.prepareConfiguration()
+
+        if (tandemService!!.isMobiConfigurationStillValid(newConfig)) {
+            if (tandemService!!.hasConfigurationChangedAndRequiresReconnect(newConfig)) {
+                tandemService!!.reconnectWithDifferentConnectionData(newConfig)
+            }
+        }
     }
 
 
@@ -340,11 +339,6 @@ class TandemMobiPumpPlugin(
 
 
     private suspend fun refreshAfterUI(refreshEvent: EventRefreshPumpData) {
-        // if (refreshEvent.refreshEvents.contains(RefreshData.SEMAPHORE_EVENTS)) {
-        //     if (pumpStatus.semaphoreNeedsRefresh) {
-        //         //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
-        //     }
-        // }
 
         //PUMP_CANNULA_CHANGED,
         //PUMP_SITE_CHANGED,
@@ -374,8 +368,6 @@ class TandemMobiPumpPlugin(
     }
 
 
-    //val preventQueueExecution: Boolean = true
-
     private fun reconnectAfterDataChange() {
         aapsLogger.info(LTag.PUMP, "DUB Connection data changed... validating parameters and reconnecting if possible.")
         // new pump connected, we need to reset driver
@@ -394,44 +386,16 @@ class TandemMobiPumpPlugin(
         initializePump(false)
     }
 
-    // private fun checkInitializationState() {
-    //     if (driverMode== PumpDriverMode.Demo) {
-    //         this.driverInitialized = true
-    //         return
-    //     }
-    //
-    //     val pumpAddress = sp.getString(TandemPumpConst.Prefs.PumpAddress, "")
-    //
-    //     val pumpBondStatus = sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, -1)
-    //
-    //     aapsLogger.debug(LTag.PUMP, "TANDEMDBG: Mobi [address=$pumpAddress,bondStatus=$pumpBondStatus]")
-    //
-    //     driverInitialized = (!pumpAddress.isEmpty() &&
-    //         pumpBondStatus == 100 &&
-    //         !tandemUtil.preventConnect)
-    //
-    //     aapsLogger.debug(LTag.PUMP, "TANDEMDBG: initialization status: $driverInitialized")
-    //
-    //     if (!driverInitialized) {
-    //         pumpStatus.errorDescription = rh.gs(R.string.tandem_error_not_bonded)
-    //         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Full))
-    //     } else {
-    //         if (!pumpStatus.errorDescription.isNullOrEmpty()) {
-    //             pumpStatus.errorDescription = null
-    //             rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
-    //         }
-    //     }
-    //
-    // }
 
     override val serviceClass: Class<*>?
         get() = TandemService::class.java
 
+
     val version: String = "${versionInternal.tandemModuleVersion} (${versionInternal.pumpX2Version})"
+
 
     override val pumpStatusData: PumpStatus
         get() = pumpStatus
-
 
 
     override fun applyBasalConstraints(absoluteRate: Constraint<Double>, profile: Profile): Constraint<Double> {
@@ -549,23 +513,6 @@ class TandemMobiPumpPlugin(
             aapsLogger.info(LTag.PUMP, "Tandem Service is connected")
             val mLocalBinder = service as TandemService.LocalBinder
             tandemService = mLocalBinder.serviceInstance
-            //isServiceSet = true
-            //tandemPump
-
-            //tandemUtil.driverStatus = PumpDriverState.Connecting
-
-            // var startup = Completable
-            //     .timer(4, TimeUnit.SECONDS)
-            //     .subscribeOn(aapsSchedulers.main) // where the work should be done
-            //     .observeOn(aapsSchedulers.main) // where the data stream should be delivered
-            //     .subscribe({
-            //                    isDriverInitialized = tandemService!!.validateParameters()
-            //                    aapsLogger.info(LTag.PUMP, "Connection parameters valid: ${isDriverInitialized}")
-            //                    if (isDriverInitialized) {
-            //                        aapsLogger.info(LTag.PUMP, "Trying to connect to: ${tandemService!!.pumpAddress}")
-            //                        tandemService!!.connectToPump()
-            //                    }
-            //                }, { fabricPrivacy.logException(it)  })
 
             Thread {
                 var driverInitialized = tandemService!!.validateParameters()
@@ -578,40 +525,6 @@ class TandemMobiPumpPlugin(
 
         }
     }
-
-//     override fun onStart() {
-//         //super.onStart()
-//         initPumpStatusData()
-//
-// //            serviceConnection?.let { serviceConnection ->
-//             val intent = Intent(context, TandemService::class.java)
-//             context.bindService(intent, serviceConnectionTandem, Context.BIND_AUTO_CREATE)
-//             disposable.add(
-//                 rxBus
-//                     .toObservable(EventAppExit::class.java)
-//                     .observeOn(aapsSchedulers.io)
-//                     .subscribe({ context.unbindService(serviceConnectionTandem) }, fabricPrivacy::logException)
-//             )
-//
-//             //          }
-//
-//         this.serviceRunning = true
-//         onStartScheduledPumpActions()
-//     }
-
-
-    // private val dddserviceConnection: ServiceConnection = object : ServiceConnection {
-    //     override fun onServiceDisconnected(name: ComponentName) {
-    //         aapsLogger.debug(LTag.PUMP, "Tandem Service is disconnected")
-    //         tandemService = null
-    //     }
-    //
-    //     override fun onServiceConnected(name: ComponentName, service: IBinder) {
-    //         aapsLogger.debug(LTag.PUMP, "Tandem Service is connected")
-    //         val mLocalBinder = service as TandemService.LocalBinder
-    //         tandemService = mLocalBinder.serviceInstance
-    //     }
-    // }
 
 
     // Pump Interface
@@ -801,8 +714,6 @@ class TandemMobiPumpPlugin(
                             resetDisplay = true
                         }
                         resetTime = true
-                        //refreshTypesNeededToReschedule.add(key)
-                        //resetTime = true
                     }
 
                     PumpDataRefreshType.GetTemporaryBasal -> {
@@ -813,8 +724,6 @@ class TandemMobiPumpPlugin(
                     PumpDataRefreshType.BatteryStatus -> {
                         aapsLogger.error(LTag.PUMP, "Refresh_BatteryStatus")
                         pumpConnectionManager.getBatteryLevel()
-                        //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Battery))
-                        //refreshTypesNeededToReschedule.add(key)
                         resetTime = true
                     }
 
@@ -827,7 +736,6 @@ class TandemMobiPumpPlugin(
                     PumpDataRefreshType.Custom_1 -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_Custom_1 (simple pump status after UI)")
                         pumpConnectionManager.getPumpStatus()
-                        //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
                     }
 
                     PumpDataRefreshType.Custom_2 -> {
@@ -844,9 +752,6 @@ class TandemMobiPumpPlugin(
                     PumpDataRefreshType.RemainingInsulin -> {
                         aapsLogger.info(LTag.PUMP, "Refresh_RemainingInsulin")
                         pumpConnectionManager.getRemainingInsulin()
-                        //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Reservoir))
-
-                        //resetDisplay = true
                         resetTime = true
                     }
 
@@ -1674,11 +1579,6 @@ class TandemMobiPumpPlugin(
     }
 
 
-    init {
-        displayConnectionMessages = false // TODO can be removed in future
-    }
-
-
     override fun getRefreshTime(pumpDataRefreshType: PumpDataRefreshType): Int {
         return (
             when(pumpDataRefreshType) {
@@ -1713,6 +1613,10 @@ class TandemMobiPumpPlugin(
     }
 
 
+    private val _events = MutableSharedFlow<MobiOverviewEvent>(extraBufferCapacity = 1)
+
+    //val events = _events.asSharedFlow()
+
     // TODO Preferences:
     //    - add MIN_RESERVOIR2 confirmation not implemented yet, but might be needed
 
@@ -1724,9 +1628,10 @@ class TandemMobiPumpPlugin(
             items = listOf(
                 TandemBooleanPreferenceKey.UseSharedConnection,
                 TandemStringPreferenceKey.SharedConnectionData,
+                TandemBooleanPreferenceKey.HidePumpPairButton,
                 // TODO Metro
                 //TandemIntentPreferenceKey.PumpPairing.withActivity(TandemMobiConnectionWizardActivity::class.java),
-                TandemIntentPreferenceKey.PumpPairing,
+                //TandemIntentPreferenceKey.PumpPairing.withClick { _events.tryEmit(MobiOverviewEvent.StartPairing) },
                 TandemIntPreferenceKey.MaxBolus,
                 TandemIntPreferenceKey.MaxBasal,
                 TandemStringPreferenceKey.QualifyingEventsFilterPref,

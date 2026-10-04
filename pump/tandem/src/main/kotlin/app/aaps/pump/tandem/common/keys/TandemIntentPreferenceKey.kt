@@ -1,5 +1,6 @@
 package app.aaps.pump.tandem.common.keys
 
+import app.aaps.core.keys.PreferenceType
 import app.aaps.core.keys.interfaces.BooleanPreferenceKey
 import app.aaps.core.keys.interfaces.IntentPreferenceKey
 import app.aaps.core.keys.interfaces.TextRef
@@ -9,6 +10,7 @@ enum class TandemIntentPreferenceKey(
     override val key: String,
     val titleResId: Int = 0,
     val summaryResId: Int? = null,
+    override val preferenceType: PreferenceType = PreferenceType.CLICK,
     override val defaultedBySM: Boolean = false,
     override val showInApsMode: Boolean = true,
     override val showInNsClientMode: Boolean = true,

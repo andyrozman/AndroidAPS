@@ -66,8 +66,8 @@ fun SiteLocationPicker(
     onLocationSelected: (TE.Location) -> Unit,
     onArrowSelected: (TE.Arrow) -> Unit,
     modifier: Modifier = Modifier,
-    showSitesSelector: Boolean = true,
-    compactView: Boolean = false,
+    compactView: Boolean = false, // compact view makes siteSelection visible with button and location table limited (so that body is better visible)
+    compactViewModifierForTable: Modifier = Modifier.height(80.dp), // location table smaller (shows 3 lines)
     selectedLocationString: String? = null
 ) {
     var showPumpSites by rememberSaveable { mutableStateOf(siteType == TE.Type.CANNULA_CHANGE) }
@@ -125,41 +125,41 @@ fun SiteLocationPicker(
         }
 
         if (sitesSelectionsVisible) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AapsSpacing.extraLarge, vertical = AapsSpacing.medium),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            MultiChoiceSegmentedButtonRow(modifier = Modifier.weight(1f)) {
-                SegmentedButton(
-                    checked = effectiveShowPumpSites,
-                    onCheckedChange = { if (!isPumpType) showPumpSites = it },
-                    enabled = !isPumpType,
-                    shape = SegmentedButtonDefaults.itemShape(0, 2),
-                    icon = {}
-                ) {
-                    Icon(
-                        imageVector = IcCannulaChange,
-                        contentDescription = stringResource(CoreUiStrings.careportal_pump_site_management),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                SegmentedButton(
-                    checked = effectiveShowCgmSites,
-                    onCheckedChange = { if (!isCgmType) showCgmSites = it },
-                    enabled = !isCgmType,
-                    shape = SegmentedButtonDefaults.itemShape(1, 2),
-                    icon = {}
-                ) {
-                    Icon(
-                        imageVector = IcCgmInsert,
-                        contentDescription = stringResource(CoreUiStrings.careportal_cgm_site_management),
-                        modifier = Modifier.size(24.dp)
-                    )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AapsSpacing.extraLarge, vertical = AapsSpacing.medium),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                MultiChoiceSegmentedButtonRow(modifier = Modifier.weight(1f)) {
+                    SegmentedButton(
+                        checked = effectiveShowPumpSites,
+                        onCheckedChange = { if (!isPumpType) showPumpSites = it },
+                        enabled = !isPumpType,
+                        shape = SegmentedButtonDefaults.itemShape(0, 2),
+                        icon = {}
+                    ) {
+                        Icon(
+                            imageVector = IcCannulaChange,
+                            contentDescription = stringResource(CoreUiStrings.careportal_pump_site_management),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    SegmentedButton(
+                        checked = effectiveShowCgmSites,
+                        onCheckedChange = { if (!isCgmType) showCgmSites = it },
+                        enabled = !isCgmType,
+                        shape = SegmentedButtonDefaults.itemShape(1, 2),
+                        icon = {}
+                    ) {
+                        Icon(
+                            imageVector = IcCgmInsert,
+                            contentDescription = stringResource(CoreUiStrings.careportal_cgm_site_management),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
-}
 
             val tooltipState = remember { TooltipState() }
             val scope = rememberCoroutineScope()
@@ -238,9 +238,8 @@ fun SiteLocationPicker(
                 showEditButton = false,
                 onEntryClick = { onLocationSelected(it.location) },
                 modifier = if (compactView) {
-                    Modifier
+                    compactViewModifierForTable
                         .fillMaxWidth()
-                        .height(80.dp)
                 } else {
                     Modifier
                         .fillMaxWidth()

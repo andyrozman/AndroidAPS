@@ -16,7 +16,8 @@ enum class PumpErrorType(@StringRes var resourceId: Int, var hasParameter: Boole
     PumpUnreachable(R.string.ble_error_pump_unreachable), //
     PumpPairInvalidPairCode(R.string.ble_error_pump_pair_invalid_pair_code), //
     DeviceIsNotPump(R.string.ble_error_not_correct_pump, true),  //
-    EncryptionFailed(R.string.ble_error_encryption_failed)
+    EncryptionFailed(R.string.ble_error_encryption_failed),
+    CommunicationFailure(R.string.ble_error_communication_failure)
     ;
 
 }

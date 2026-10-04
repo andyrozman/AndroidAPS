@@ -69,45 +69,64 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
             item {
                 PumpInfoRow(
                     label = resourceHelper.gs(R.string.pump_serial_number),
-                    value = "${pumpInfo?.serialNum}",
-                    rowModifier = Modifier.combinedClickable(
-                        onClick = {},
-                        onDoubleClick = { navigateToDebugCommands() },
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() },
-                    )
+                    value = "${pumpInfo?.serialNum}"
                 )
             }
 
             item {
-                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pump_sw), value="${apiVersion?.majorVersion}.${apiVersion?.minorVersion}"    /*pumpInfo.pumpRev*/)
+                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pump_sw),
+                            value="${apiVersion?.majorVersion}.${apiVersion?.minorVersion}")
             }
 
             item {
-                PumpInfoRow(label="ARM S/W " + resourceHelper.gs(R.string.pi_version), value="${pumpInfo?.armSwVer}")
+                PumpInfoRow(label="ARM S/W " + resourceHelper.gs(R.string.pi_version),
+                            value="${pumpInfo?.armSwVer}")
             }
 
             item {
-                PumpInfoRow(label=resourceHelper.gs(R.string.pi_sw_part_num), value="${pumpInfo?.partNum}")
+                PumpInfoRow(label=resourceHelper.gs(R.string.pi_sw_part_num),
+                            value="${pumpInfo?.partNum}")
             }
 
             item {
-                PumpInfoRow("ConfigA Bits", value="0x%08X".format(pumpInfo?.configABits))
+                PumpInfoRow("ConfigA Bits",
+                            value="0x%08X".format(pumpInfo?.configABits))
             }
 
             item {
-                PumpInfoRow("ConfigB Bits", value="0x%08X".format(pumpInfo?.configBBits))
+                PumpInfoRow("ConfigB Bits",
+                            value="0x%08X".format(pumpInfo?.configBBits))
             }
 
             item {
-                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pump_model), value=if (isMobi) "t:Mobi (${pumpInfo?.modelNum})" else "t:Slim X2 (${pumpInfo?.modelNum})")
+                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pump_model),
+                            value=if (isMobi) "t:Mobi (${pumpInfo?.modelNum})" else "t:Slim X2 (${pumpInfo?.modelNum})")
             }
 
             item {
-                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pcba_serial), value="${pumpInfo?.pcbaSN}")
+                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pcba_serial),
+                            value="${pumpInfo?.pcbaSN}")
             }
 
+            item {
+                PumpInfoRow(label= resourceHelper.gs(R.string.pi_pcba_rev),
+                            value="${pumpInfo?.pcbaRev}")
+            }
 
+            item {
+                PumpInfoEmptyRow()
+            }
+
+            item {
+                PumpInfoRow(label= resourceHelper.gs(R.string.debug_commands_title),
+                            value="",
+                            rowModifier = Modifier.combinedClickable(
+                                onClick = {},
+                                onDoubleClick = { navigateToDebugCommands() },
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() },
+                            ))
+            }
         }
 
     )
@@ -127,6 +146,21 @@ fun PumpInfoRow(label: String, value: String, rowModifier: Modifier = Modifier) 
     ) {
         Text(text = label, fontSize = 18.sp)
         Text(text = value, fontSize = 18.sp)
+    }
+    DottedDivider(    dotRadius = 1.dp,
+                      spaceBetween = 6.dp,)
+}
+
+@Composable
+fun PumpInfoEmptyRow() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
     }
     DottedDivider(    dotRadius = 1.dp,
                       spaceBetween = 6.dp,)

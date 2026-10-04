@@ -20,16 +20,15 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.common.events.EventPumpForceDisconnect
 import app.aaps.pump.tandem.common.comm.maint.TandemPairingManager
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.events.EventTandemPairingStatus
 import app.aaps.pump.tandem.common.events.PairingError
+import app.aaps.pump.tandem.common.events.TandemPairingStatus
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import app.aaps.pump.tandem.common.util.PumpX2L
@@ -304,6 +303,7 @@ class TandemMobiConnectionWizardViewModel(
         when (event) {
             is EventTandemPairingStatus.PairingStarted -> {
                 _state.update { it.copy(pairingStatus = 0) }
+                tandemPumpStatus.lastPairingStatus = TandemPairingStatus.PairingInProgress
             }
             is EventTandemPairingStatus.WaitingForCode -> {
                 _state.update { it.copy(pairingStatus = 40) }
@@ -322,6 +322,7 @@ class TandemMobiConnectionWizardViewModel(
                     pairedPumpName = event.pumpName,
                     pairedPumpApiVersion = event.pumpApiVersion,
                 )}
+                tandemPumpStatus.lastPairingStatus = TandemPairingStatus.PairingSuccess
             }
             is EventTandemPairingStatus.PairingFailed -> {
                 aapsLogger.error(LTag.PUMP, "Pairing failed: ${event.error}")
@@ -331,6 +332,7 @@ class TandemMobiConnectionWizardViewModel(
                         retryCount = it.retryCount + 1
                     )
                 }
+                tandemPumpStatus.lastPairingStatus = TandemPairingStatus.PairingFailed
             }
         }
     }

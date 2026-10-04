@@ -22,6 +22,7 @@ import app.aaps.pump.tandem.common.comm.ui.TandemUiStateWriter
 import app.aaps.pump.tandem.common.data.SemaphoreInfoDto
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
+import app.aaps.pump.tandem.common.events.TandemPairingStatus
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
@@ -51,7 +52,6 @@ class TandemPumpStatus(val sp: SP,
 ) : PumpStatus(PumpType.TANDEM_MOBI_BT) {
 
     lateinit var pumpDescription: PumpDescription
-    var errorDescription: String? = null
 
     // tandem pump firmware
     val tandemPumpFirmwareFlow = MutableStateFlow<TandemPumpApiVersion>(TandemPumpApiVersion.Unknown)
@@ -157,7 +157,7 @@ class TandemPumpStatus(val sp: SP,
         basalProfile = null
         basalProfileStatus = BasalProfileStatus.NotInitialized
         serialNumber = 0
-        errorDescription = null
+        //errorDescription = null
         basalsByHour = null
     }
 
@@ -172,9 +172,10 @@ class TandemPumpStatus(val sp: SP,
             return 0.0
         }
 
+    var lastPairingStatus: TandemPairingStatus = TandemPairingStatus.Unknown
 
     override val errorInfo: String
-        get() = if (errorDescription == null) "-" else errorDescription!!
+        get() = "-" //if (errorDescription == null) "-" else errorDescription!!
 
 
     override fun updateLastConnectionInFragment() {

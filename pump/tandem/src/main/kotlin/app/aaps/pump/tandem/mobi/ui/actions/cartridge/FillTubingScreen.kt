@@ -130,7 +130,7 @@ fun FillTubingScreen(
     LaunchedEffect(Unit) {
         aapsLogger.info(TAG, "Initial alert/alarm poll on FillTubingScreen")
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
-        displaySiteStep = coreCartridgeActionsModel.showSiteLocationStep
+        displaySiteStep = false // coreCartridgeActionsModel.showSiteLocationStep  // TODO remove this step
     }
 
     LaunchedEffect(intervalOf(10)) {
@@ -215,7 +215,7 @@ fun FillTubingScreen(
     }
 
 
-    val totalSteps = if (displaySiteStep) 5 else 4
+    val totalSteps = 4
     val currentStep = when {
         isInSiteSelectionMode -> 5
         exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED && !isInSiteSelectionMode -> 4
@@ -237,7 +237,7 @@ fun FillTubingScreen(
         scrollableBody = !isInSiteSelectionMode,
         stepIndicator = {
             StepProgressIndicator(
-                currentStep = currentStep - 1,
+                currentStep = currentStep,
                 totalSteps = totalSteps //,
                 //resourceHelper = resourceHelper,
             )

@@ -43,14 +43,39 @@ open class PumpUtil constructor(
     var currentActivity: String
         get() = currentActivityFlow.value
         set(value) {
-            currentActivityFlow.value = value
+            if (!currentActivityFlow.value.equals(value)) {
+                currentActivityFlow.value = value
+            }
         }
+
+
+    fun setError(errorType: PumpErrorType, details: String?) {
+        if (details!=null) {
+            errorDetails = details
+        }
+
+        this.errorType = errorType
+    }
+
+    fun clearError() {
+        if (!errorDetails.equals("")) {
+            errorDetails = ""
+        }
+
+        if (this.errorType!=null) {
+            this.errorType=null
+        }
+    }
+
+
 
     val errorDetailsFlow = MutableStateFlow<String>("")
     var errorDetails: String
         get() = errorDetailsFlow.value
         set(value) {
-            errorDetailsFlow.value = value
+            if (!errorDetailsFlow.value.equals(value)) {
+                errorDetailsFlow.value = value
+            }
         }
 
     //private var driverStatusInternal: PumpDriverState

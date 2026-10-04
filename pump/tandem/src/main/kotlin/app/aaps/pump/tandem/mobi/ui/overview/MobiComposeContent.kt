@@ -33,10 +33,12 @@ import app.aaps.core.ui.compose.ToolbarConfig
 import app.aaps.core.ui.compose.metroViewModel
 import app.aaps.core.ui.compose.pump.BlePreCheckHost
 import app.aaps.core.ui.compose.pump.KeepScreenOnEffect
+import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.events.TandemPairingStatus
 import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.TandemUiController
@@ -82,6 +84,7 @@ class MobiComposeContent(
     private val pluginName: String,
     private val tandemPumpStatus: TandemPumpStatus,
     private val aapsLogger: AAPSLogger,
+    private val rxBus: RxBus,
     private val resourceHelper: ResourceHelper,
     private val tandemUiController: TandemUiController,
     private val blePreCheck: BlePreCheck,
@@ -480,10 +483,18 @@ class MobiComposeContent(
             }
 
             MobiScreen.PAIR_WIZARD -> {
+                tandemPumpStatus.lastPairingStatus = TandemPairingStatus.Unknown
+                tandemPumpStatus.preventQueueExecution = true
                 KeepScreenOnEffect()
                 TandemPairWizardHost(
                     blePreCheck = blePreCheck,
-                    onFinish = { currentScreen = MobiScreen.OVERVIEW }
+                    onFinish = {
+                        tandemPumpStatus.preventQueueExecution = false
+                        if (tandemPumpStatus.lastPairingStatus==TandemPairingStatus.PairingSuccess) {
+                            rxBus.send(EventPumpConnectionParametersChanged())
+                        }
+                        currentScreen = MobiScreen.OVERVIEW
+                    }
                 )
 
 

@@ -15,10 +15,12 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.workflow.MetroService
+import app.aaps.pump.common.defs.PumpErrorType
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.data.PumpStateX2
+import app.aaps.pump.tandem.common.data.PumpConfigurationDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
@@ -35,8 +37,8 @@ class TandemService : MetroService() {
     @Inject lateinit var aapsLogger: AAPSLogger
     //@Inject lateinit var tandemPumpConnector: TandemPumpConnector
     @Inject lateinit var rh: ResourceHelper
-    @Inject lateinit var sp: SP
-    @Inject lateinit var rxBus: RxBus
+    //@Inject lateinit var sp: SP
+    //@Inject lateinit var rxBus: RxBus
     @Inject lateinit var tandemPumpUtil: TandemPumpUtil
     @Inject lateinit var pumpStatus: TandemPumpStatus
     @Inject lateinit var context: Context
@@ -58,7 +60,7 @@ class TandemService : MetroService() {
     var connected: Boolean = false
     var isInitialized = connected && configurationValid
 
-
+    var currentConfiguration: PumpConfigurationDto? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -77,11 +79,121 @@ class TandemService : MetroService() {
 
 
     fun hasConfigurationChanged(): Boolean {
+
+
+
+
+
         // TODO if parameters haven't changed we don't
         return false;
     }
 
-    fun reconnectWithDifferentConnectionData() {
+    fun hasConfigurationChangedAndRequiresReconnect(config: PumpConfigurationDto): Boolean {
+
+
+
+
+
+        // TODO if parameters haven't changed we don't
+        return false;
+    }
+
+    fun isMobiConfigurationStillValid(config: PumpConfigurationDto): Boolean {
+        if (config.useSharedConnection) {
+          if (config.validSharedConfiguration) {
+              return true
+          } else {
+              return (config.pumpAddress.isNotEmpty() && config.pumpBondStatus==100)
+          }
+        } else {
+            return (config.pumpAddress.isNotEmpty() && config.pumpBondStatus==100)
+        }
+    }
+
+
+    fun prepareConfiguration(): PumpConfigurationDto {
+
+        val useSharedConnection: Boolean = tandemPumpUtil.getBooleanPreferenceOrDefault(
+            booleanPreferenceKey = TandemBooleanPreferenceKey.UseSharedConnection,
+            defaultValue = true)
+
+        var validSharedConfiguration = true
+        var sharedConfigurationAlreadyApplied = false
+        var pumpAddress = ""
+        var pumpSerial = ""
+        var pumpBondStatus = 0
+
+        if (useSharedConnection) {
+            aapsLogger.info(LTag.PUMP, "PumpConfig:prepareConfiguration: Shared Connection Use")
+
+            val sharedConnectionString = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.SharedConnectionData, null)
+            //sp.getStringOrNull(TandemPumpConst.Prefs.SharedConnectionData, null)
+
+            aapsLogger.info(LTag.PUMP, "PumpConfig: Shared Connection: ${sharedConnectionString}")
+
+            if (sharedConnectionString.isNullOrEmpty()) {
+                aapsLogger.warn(LTag.PUMP, "PumpConfig:prepareConfiguration: Shared Connection Use: Data empty")
+                validSharedConfiguration = false
+            } else {
+
+                try {
+                    val sharedConnectionData : PumpStateX2 = tandemPumpUtil.gson.fromJson(sharedConnectionString, PumpStateX2::class.java)
+
+                    if (sharedConnectionData.jpakeDerivedSecret.isEmpty()) {
+                        aapsLogger.warn(LTag.PUMP, "PumpConfig: Shared Connection Use: Data NOT Valid - falling back to regular pairing data")
+                        // Don't set notFound = true here - allow fallback to regular pairing data below
+                        validSharedConfiguration = false
+                    } else {
+
+                        if (isSharedConfigurationAlreadyApplied(sharedConnectionData)) {
+                            aapsLogger.info(LTag.PUMP, "PumpConfig: Shared Connection looks like it is the same. No setting of this information.")
+                            sharedConfigurationAlreadyApplied = true
+
+                            pumpAddress = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpAddress, "")!!
+                            pumpBondStatus = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, 0)
+                        } else {
+                            aapsLogger.info(LTag.PUMP, "PumpConfig: Setting Shared Connection Data. NEW")
+
+                            sharedConfigurationAlreadyApplied = true
+
+                            pumpAddress = sharedConnectionData.savedBluetoothMAC
+
+                            if (!sharedConnectionData.pumpSerialNum.isNullOrEmpty()) {
+                                pumpSerial = sharedConnectionData.pumpSerialNum
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    aapsLogger.error(LTag.PUMP, "PumpConfig: Failed to parse Shared Connection Data: ${e.message} - falling back to regular pairing data", e)
+                    // Don't set notFound = true here - allow fallback to regular pairing data below
+                    validSharedConfiguration = false
+                }
+            } // else
+        }
+
+        if (pumpAddress.isEmpty()) {
+            pumpAddress = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpAddress, "")!!
+            pumpBondStatus = tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, 0)
+        }
+
+        return PumpConfigurationDto(pumpAddress = pumpAddress,
+                                    pumpSerial = pumpSerial,
+                                    validSharedConfiguration = validSharedConfiguration,
+                                    sharedConfigurationAlreadyApplied = sharedConfigurationAlreadyApplied,
+                                    pumpBondStatus = pumpBondStatus,
+                                    useSharedConnection = useSharedConnection)
+    }
+
+
+
+    fun reconnectWithDifferentConnectionData(newConfig: PumpConfigurationDto) {
+
+        if (isConnected()) {
+            this.disconnectFromPump()
+        }
+
+
+
         // TODO reconnectWithDifferentConnectionData - implement
         //  rework this, if data changed we check if connected if yes disconnect, then validate
         //   paramteres and if ok, connect to the pump
@@ -183,13 +295,10 @@ class TandemService : MetroService() {
         aapsLogger.debug(LTag.PUMP, "Service: Validation of parameters - Pump Configured: $pumpConfigured")
 
         if (!pumpConfigured) {
-            pumpStatus.errorDescription = rh.gs(R.string.tandem_error_not_bonded)
-            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+            tandemPumpUtil.setError(PumpErrorType.ConfiguredPumpNotFound,
+                                    rh.gs(R.string.tandem_error_not_bonded))
         } else {
-            if (!pumpStatus.errorDescription.isNullOrEmpty()) {
-                pumpStatus.errorDescription = null
-                rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Configuration))
-            }
+            tandemPumpUtil.clearError();
         }
 
         this.configurationValid = pumpConfigured
@@ -203,10 +312,12 @@ class TandemService : MetroService() {
     fun isSharedConfigurationAlreadyApplied(sharedConnectionData: PumpStateX2): Boolean {
 
         // check our internal stuff
-        val address = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpAddress, null)
-            //sp.getStringOrNull(TandemPumpConst.Prefs.PumpAddress, null)
-        val pairCode = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(TandemStringPreferenceKey.PumpPairCode, null)
-            //sp.getStringOrNull(TandemPumpConst.Prefs.PumpPairCode, null)
+        val address = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(
+            stringPreferenceKey = TandemStringPreferenceKey.PumpAddress,
+            defaultValue = null)
+        val pairCode = tandemPumpUtil.getStringPreferenceOrDefaultOrNull(
+            stringPreferenceKey = TandemStringPreferenceKey.PumpPairCode,
+            defaultValue = null)
 
 
         return (//sp.getInt(TandemPumpConst.Prefs.PumpPairStatus, 0)==100
@@ -245,7 +356,7 @@ class TandemService : MetroService() {
 
 
     fun isConnected(): Boolean  {
-        return this.tandemPumpConnectionManager.isConnected()
+        return this.tandemPumpConnectionManager!=null && this.tandemPumpConnectionManager.isConnected()
     }
 
     override fun onBind(p0: Intent?): IBinder {

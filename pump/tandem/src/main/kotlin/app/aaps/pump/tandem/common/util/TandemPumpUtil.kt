@@ -23,7 +23,6 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.events.EventRefreshPumpData
 import app.aaps.pump.tandem.common.keys.TandemIntPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
-import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
@@ -266,10 +265,8 @@ class TandemPumpUtil(
 
         // Reset pump status
         tandemPumpStatus.serialNumber = 0L
-        tandemPumpStatus.errorDescription = ""
-
-        // Notify UI and service
-        rxBus.send(EventPumpConnectionParametersChanged())
+        //tandemPumpStatus.errorDescription = ""
+        clearError()
 
         aapsLogger.info(LTag.PUMPCOMM, "TandemPumpUtil: All pairing data cleared successfully")
     }

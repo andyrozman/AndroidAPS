@@ -23,3 +23,12 @@ sealed class PairingError {
     object BluetoothError : PairingError()
     object UnknownError : PairingError()
 }
+
+
+enum class TandemPairingStatus {
+    Unknown,
+    PairingInProgress,
+    PairingSuccess,
+    PairingFailed
+
+}

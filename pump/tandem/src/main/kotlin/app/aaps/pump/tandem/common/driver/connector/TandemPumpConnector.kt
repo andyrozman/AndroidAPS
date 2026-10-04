@@ -445,7 +445,7 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
         val bolusCarbs = 0
 
         val bolusRequest = InitiateBolusRequest(volume, permissionResponseMessage.bolusId,
-                                                BolusDeliveryHistoryLog.BolusType.FOOD1.mask(),
+                                                BolusDeliveryHistoryLog.BolusType.NOW.mask(),
                                                 0, 0,
                                                 bolusCarbs, 0, 0)
 
@@ -1678,7 +1678,7 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
         } else {
             val response = decode(responseMessage)
 
-            aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData: decoded Response: ${response}")
+            //aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData: decoded Response: ${response}")
 
             response
         }
