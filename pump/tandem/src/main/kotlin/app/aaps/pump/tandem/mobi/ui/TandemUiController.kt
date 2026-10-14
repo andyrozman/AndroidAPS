@@ -97,8 +97,6 @@ class TandemUiController(
         }
 
         this.tandemUICommunication.tandemPumpCommunicationManager = null
-        tandemPumpUtil.preventConnect = false // TODO remove replaced with preventueueExecution
-
         aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi (exiting Actions/Data)")
         tandemPumpStatus.preventQueueExecution = false
     }
@@ -183,12 +181,10 @@ class TandemUiController(
                 }
             }
             RefreshData.START_ACTIONS       -> {
-                tandemPumpUtil.preventConnect = true
                 tandemPumpStatus.preventQueueExecution = true
                 ds.reminderDateTime.value = tandemPumpStatus.tandemSiteReminder
             }
             RefreshData.START_DATA       -> {
-                tandemPumpUtil.preventConnect = true
                 tandemPumpStatus.preventQueueExecution = true
             }
         }

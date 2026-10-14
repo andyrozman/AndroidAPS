@@ -12,34 +12,24 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.compose.rememberNavController
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.BlePreCheck
-import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.compose.ComposablePluginContent
 import app.aaps.core.ui.compose.ToolbarConfig
 import app.aaps.core.ui.compose.metroViewModel
-import app.aaps.core.ui.compose.pump.BlePreCheckHost
 import app.aaps.core.ui.compose.pump.KeepScreenOnEffect
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
-import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.events.TandemPairingStatus
-import app.aaps.pump.tandem.common.util.PumpX2L
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.TandemUiController
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
@@ -56,10 +46,7 @@ import app.aaps.pump.tandem.mobi.ui.data.Notifications
 import app.aaps.pump.tandem.mobi.ui.data.QualifyingEvents
 import app.aaps.pump.tandem.mobi.ui.wizard.TandemPairWizardHost
 
-import dev.zacsweers.metro.Inject
 import app.aaps.core.ui.R as Rco
-import app.aaps.pump.common.R as Rc
-import app.aaps.core.interfaces.R as Rci
 
 private enum class MobiScreen {
     OVERVIEW,
@@ -87,13 +74,8 @@ class MobiComposeContent(
     private val rxBus: RxBus,
     private val resourceHelper: ResourceHelper,
     private val tandemUiController: TandemUiController,
-    private val blePreCheck: BlePreCheck,
-    // private val rxBus: RxBus,
-    // private val preferences: Preferences,
-    // private val tandemPumpUtil: TandemPumpUtil,
-    // private val pumpStatus: TandemPumpStatus,
-    // private val pumpX2L: PumpX2L,
-    // private val pumpSync: PumpSync
+    private val tandemPumpUtil: TandemPumpUtil,
+    private val blePreCheck: BlePreCheck
 ) : ComposablePluginContent {
 
 
@@ -274,7 +256,7 @@ class MobiComposeContent(
 
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         DisposableEffect(lifecycle) {
-            val observer = LifecycleEventObserver { _, event ->
+            val observer = LifecycleEventObserver { _, _ ->
                 aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi Tab dispose")
                 tandemPumpStatus.preventQueueExecution = false
             }
@@ -490,25 +472,13 @@ class MobiComposeContent(
                     blePreCheck = blePreCheck,
                     onFinish = {
                         tandemPumpStatus.preventQueueExecution = false
+                        tandemPumpUtil.preventReconnect = false
                         if (tandemPumpStatus.lastPairingStatus==TandemPairingStatus.PairingSuccess) {
                             rxBus.send(EventPumpConnectionParametersChanged())
                         }
                         currentScreen = MobiScreen.OVERVIEW
                     }
                 )
-
-
-                // @Inject lateinit var aapsLogger: AAPSLogger
-                // @Inject lateinit var rxBus: RxBus
-                // @Inject lateinit var preferences: Preferences
-                // @Inject lateinit var tandemPumpUtil: TandemPumpUtil
-                // @Inject lateinit var pumpStatus: TandemPumpStatus
-                // @Inject lateinit var resourceHelper: ResourceHelper
-                // @Inject lateinit var pumpX2L: PumpX2L
-                // @Inject lateinit var pumpSync: PumpSync
-
-
-
             }
 
         }

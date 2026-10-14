@@ -37,7 +37,8 @@ open class PumpUtil constructor(
     val preferences: Preferences
 ) {
 
-    var preventConnect: Boolean = false
+    //var preventConnect: Boolean = false
+    var preventReconnect: Boolean = false;
 
     val currentActivityFlow = MutableStateFlow<String>("")
     var currentActivity: String

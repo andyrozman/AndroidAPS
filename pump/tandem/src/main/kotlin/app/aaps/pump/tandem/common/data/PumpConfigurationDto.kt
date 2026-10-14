@@ -6,5 +6,6 @@ data class PumpConfigurationDto(
     var sharedConfigurationAlreadyApplied: Boolean,
     var pumpSerial: String,
     val pumpBondStatus: Int,
-    val useSharedConnection: Boolean
+    val useSharedConnection: Boolean,
+    val sharedConnectionData: String? = null
 )

@@ -148,6 +148,7 @@ class TandemPumpUtil(
      * field — it does not tear down the live BLE state.
      */
     fun forceResetBluetoothHandler(handler: TandemBluetoothHandler?) {
+        preventReconnect = true
         try {
             handler?.let { h ->
                 // 1. Neutralize the handler's internal android.os.Handler BEFORE cancelling
