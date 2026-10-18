@@ -28,13 +28,31 @@ data class HistoryRequestInfo(
     val downloadStatus: HistoryDownloadStatus = HistoryDownloadStatus.Initializing,
     val historyLogMap: MutableMap<Long, HistoryLog> = mutableMapOf()
 ) {
-    fun chunkComplete(): Boolean {
-        return historyLogMap.size == numberOfLogs ||
-            ( historyLogMap.contains(startSequence) && historyLogMap.contains(endSequence) )
+    fun isInRange(sequence: Long): Boolean {
+        return sequence in startSequence..endSequence
     }
 
+    // keeps only records of the requested range, returns how many were ignored
+    fun addLogs(logs: Collection<HistoryLog>): Int {
+        var ignored = 0
+        for (log in logs) {
+            if (isInRange(log.sequenceNum)) {
+                historyLogMap[log.sequenceNum] = log
+            } else {
+                ignored++
+            }
+        }
+        return ignored
+    }
+
+    fun chunkComplete(): Boolean {
+        return chunkHasAllItems() ||
+            ( historyLogMap.containsKey(startSequence) && historyLogMap.containsKey(endSequence) )
+    }
+
+    // every sequence number of the range must be here, a count alone is not enough
     fun chunkHasAllItems(): Boolean {
-        return historyLogMap.size == numberOfLogs
+        return historyLogMap.keys.count { isInRange(it) }.toLong() == (endSequence - startSequence + 1)
     }
 
     override fun toString(): String {

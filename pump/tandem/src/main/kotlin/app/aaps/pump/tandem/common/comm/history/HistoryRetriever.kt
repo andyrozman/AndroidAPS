@@ -574,7 +574,7 @@ class HistoryRetriever(
         var currentEnd = endRange
         val chunksList: MutableList<HistoryRequestInfo> = mutableListOf()
 
-        while (currentEnd > startRange) {
+        while (currentEnd >= startRange) {
             var currentStart = currentEnd - CHUNK_SIZE +1
 
             if (currentStart<startRange) {
@@ -604,7 +604,8 @@ class HistoryRetriever(
     internal fun executeNextLogGet(queue: ArrayDeque<HistoryRequestInfo>) {
         currentRequest = queue.removeFirst()
         aapsLogger.info(TAG, "${historyPrefix}executeNextLogGet (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence}, count=${currentRequest!!.numberOfLogs})")
-        val req = HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs)
+        // startLog is the HIGH end: pump returns numberOfLogs records counting down from it
+        val req = HistoryLogRequest(currentRequest!!.endSequence, currentRequest!!.numberOfLogs)
         //submitHistoryRequest("historyLogChunk[${currentRequest!!.startSequence}-${currentRequest!!.endSequence}]") {
             this.communication.sendCommand(req)
         //}
@@ -615,7 +616,11 @@ class HistoryRetriever(
 
         aapsLogger.debug(TAG, "${historyPrefix}Received from Stream: numberOfHistoryLogs=${message.numberOfHistoryLogs}, streamId=${message.streamId}, historyLogsSize=${message.historyLogs.size} ")
 
-        this.currentRequest!!.historyLogMap.putAll(message.historyLogs.associateBy { it.sequenceNum })
+        val ignored = this.currentRequest!!.addLogs(message.historyLogs)
+
+        if (ignored > 0) {
+            aapsLogger.warn(TAG, "${historyPrefix}Ignored $ignored records outside requested range (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence})")
+        }
 
         this.progressCurrentChunk = currentRequest!!.historyLogMap.size
 
