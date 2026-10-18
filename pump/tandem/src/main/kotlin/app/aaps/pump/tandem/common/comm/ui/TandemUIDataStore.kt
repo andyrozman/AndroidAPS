@@ -67,6 +67,8 @@ class TandemUIDataStore : TandemUiState, TandemUiStateWriter {
 
     // Running State
     override var pumpRunningState = MutableLiveData<PumpRunningState>()
+    // Last answer to a resume request. The UI compares by reference.
+    val resumePumpingResult = MutableLiveData<ResumePumpingResult?>()
 
     // Notifications
     val notificationBundle = MutableLiveData<NotificationBundle>(NotificationBundle())

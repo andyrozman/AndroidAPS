@@ -196,6 +196,11 @@
     <string name="ca_before_stopping_stop_tbr">Before stopping delivery, you need to stop the active Temp Basal Rate.</string>
 
     <string name="ca_resume_insulin">Resume insulin</string>
+    <string name="ca_resume_failed_title">Could not resume insulin delivery</string>
+    <string name="ca_resume_failed_refused">The pump did not accept the request to resume insulin delivery. Insulin delivery is still stopped. Clear all active pump notifications and alarms, then try again. This may be caused by active pump notifications, invalid settings, an empty cartridge, or tubing that was not filled. The pump does not tell us the exact reason.</string>
+    <string name="ca_resume_failed_not_sent">The request could not be sent to the pump. Insulin delivery is still stopped. Check that the pump is connected, then try again.</string>
+    <string name="ca_resume_failed_no_answer">The pump did not confirm that insulin delivery resumed. Insulin delivery may still be stopped. Wait a moment, check the pump status, then try again.</string>
+    <string name="ca_resume_failed_contact_support">If this keeps happening, contact Tandem support or your care team.</string>
     <string name="ca_resume_all_insulin_deliveries">Resume all insulin deliveries?</string>
     <string name="ca_stop_insulin_small">Stop insulin</string>
     <string name="ca_start_insulin_small">Start insulin</string>
