@@ -319,13 +319,13 @@ class TandemPumpCommunicationManager(
 
         operationMode = OperationMode.ExternalListenerOperation
 
-        aapsLogger.warn(LTag.PUMPCOMM, "STM: sendCommandWithListener sendCommand with [request_code=${request.opCode()},request_class=${request.javaClass.simpleName},connected=$connected]")
+        aapsLogger.info(LTag.PUMPCOMM, "sendCommandWithListener sendCommand with [request_code=${request.opCode()},request_class=${request.javaClass.simpleName},connected=$connected]")
 
         if (!initializePump(request)) {
             return false
         }
 
-        aapsLogger.info(LTag.PUMPCOMM, "STM: Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
+        aapsLogger.debug(LTag.PUMPCOMM, "Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
 
         sendCommand(peripheral, request)
 
@@ -391,7 +391,7 @@ class TandemPumpCommunicationManager(
 
     fun receiveMessageInStandardMode(message: Message) {
         if (!this.commandRequestModeRunning) {
-            aapsLogger.error(LTag.PUMPCOMM, "No Command Requested, but received message [code=${message.opCode()}]")
+            aapsLogger.warn(LTag.PUMPCOMM, "No Command Requested, but received message [code=${message.opCode()},class=${message::class.simpleName}]")
         } else {
             val matchingRequest = inFlightRequests.find { it.responseOpCode == message.opCode() }
             if (matchingRequest != null) {

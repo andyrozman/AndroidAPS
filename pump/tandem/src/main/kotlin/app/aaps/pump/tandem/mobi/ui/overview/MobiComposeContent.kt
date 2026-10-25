@@ -257,7 +257,7 @@ class MobiComposeContent(
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         DisposableEffect(lifecycle) {
             val observer = LifecycleEventObserver { _, _ ->
-                aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi Tab dispose")
+                //aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi Tab dispose")
                 tandemPumpStatus.preventQueueExecution = false
             }
             lifecycle.addObserver(observer)

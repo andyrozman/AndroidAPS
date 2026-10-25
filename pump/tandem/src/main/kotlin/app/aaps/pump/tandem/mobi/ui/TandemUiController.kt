@@ -97,7 +97,7 @@ class TandemUiController(
         }
 
         this.tandemUICommunication.tandemPumpCommunicationManager = null
-        aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi (exiting Actions/Data)")
+        //aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi (exiting Actions/Data)")
         tandemPumpStatus.preventQueueExecution = false
     }
 

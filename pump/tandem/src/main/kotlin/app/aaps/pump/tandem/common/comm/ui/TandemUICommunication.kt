@@ -78,9 +78,9 @@ class TandemUICommunication(
 
     fun sendCommand(request: Message): Boolean {
 
-        aapsLogger.warn(TAG, "Send command $request ")
+        aapsLogger.debug(TAG, "Send command $request ")
 
-        aapsLogger.debug(TAG, "Send command ${this.tandemPumpCommunicationManager}")
+        //aapsLogger.debug(TAG, "Send command ${this.tandemPumpCommunicationManager}")
 
         if (this.tandemPumpCommunicationManager==null) {
             aapsLogger.error(TAG, "Command ${request.javaClass.name} couldn't be executed because tandemCommunicationManager is null.")
@@ -92,7 +92,7 @@ class TandemUICommunication(
         }
 
         if (!tandemPumpCommunicationManager!!.isPumpFullyConnected()) {
-            aapsLogger.warn(TAG, "Command ${request::javaClass.name} couldn't be executed because pump is not fully connected yet.")
+            aapsLogger.warn(TAG, "Command ${request::class.simpleName} couldn't be executed because pump is not fully connected yet.")
             return false
         }
 
