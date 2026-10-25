@@ -1,6 +1,7 @@
 package app.aaps.implementation.insulin
 
 import app.aaps.core.data.model.ICfg
+import app.aaps.core.data.model.indexOfInsulin
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ue.ValueWithUnit
@@ -25,7 +26,6 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import kotlin.concurrent.Volatile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
@@ -35,6 +35,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlin.concurrent.Volatile
 
 /**
  * Created by Philoul on 29.12.2024.
@@ -82,6 +83,11 @@ class InsulinImpl(
     // that verbatim, and the master's own adoption must still run afterwards to normalize.
     @Volatile private var lastKnownConfiguration: String = ""
 
+    // True while [insulins] holds the default that [bootstrap] invents when nothing was stored. That is the
+    // state a v3 install starts in, and [seedFromMigration] replaces such a list instead of appending to it.
+    // Set in both bootstrap branches, so a client that later receives the master's real catalogue clears it.
+    @Volatile private var holdsInventedDefault: Boolean = false
+
     init {
         bootstrap()
         // Adopt InsulinConfiguration written by anyone else: on a client the master's push, on the master
@@ -118,6 +124,7 @@ class InsulinImpl(
 
     override fun concentrationList(): List<ConcentrationType> = listOf(
         ConcentrationType.U10,
+        ConcentrationType.U20,
         ConcentrationType.U50,
         ConcentrationType.U100,
         ConcentrationType.U200
@@ -211,27 +218,31 @@ class InsulinImpl(
         return fullName.removePrefix(nickname).trim()
     }
 
-    override fun insulinAlreadyExists(iCfg: ICfg, excludeIndex: Int): Boolean = containsEqual(insulins, iCfg, excludeIndex)
+    override fun insulinWithSameCurveExists(iCfg: ICfg): Boolean = insulins.any { it.hasSameCurve(iCfg) }
 
-    private fun containsEqual(list: List<ICfg>, iCfg: ICfg, excludeIndex: Int): Boolean {
-        list.forEachIndexed { index, insulin ->
-            if (index != excludeIndex) {
-                if (iCfg.isEqual(insulin)) {
-                    return true
-                }
-            }
+    override fun seedFromMigration(iCfg: ICfg): ICfg = lock.withLock {
+        // A copy, because addTo() fills the label and the nickname IN the object it is handed. On the common
+        // path that object is the running profile's own iCfg, handed out by ProfileFunction, and this is a
+        // catalogue - it has no business renaming someone else's insulin.
+        val wanted = iCfg.deepClone()
+        if (holdsInventedDefault) {
+            // Nothing was ever stored, so the list holds a default this class made up to have something to
+            // offer the pickers. The migration knows the real insulin, so that default goes.
+            val updated = ArrayList<ICfg>()
+            val seeded = addTo(updated, wanted, ue = true, keepName = true)
+            insulins = updated
+            holdsInventedDefault = false
+            storeSettings()
+            return@withLock seeded
         }
-        return false
+        // A real catalogue. Match by curve, not by label: this runs at every start for as long as any record
+        // carries the sentinel, the list rebuilds every label, and a migrated record keeps the name v3 gave
+        // it - so a label match failed every time and added one more copy of the same insulin at each start.
+        val existing = insulins.indexOfInsulin(wanted)
+        if (existing >= 0) insulins[existing] else addNewInsulin(wanted, keepName = true)
     }
 
-    override fun insulinIndex(iCfg: ICfg?): Int {
-        insulins.forEachIndexed { index, insulin ->
-            if (insulin.isEqual(iCfg)) {
-                return index
-            }
-        }
-        return -1
-    }
+    override fun insulinIndex(iCfg: ICfg?): Int = insulins.indexOfInsulin(iCfg)
 
     // Verbatim mirror of the persisted config — parse only, NO normalization, NO store. Normalization
     // happens in bootstrap (at init, and on the master when someone else wrote the value) and at edit time
@@ -264,14 +275,15 @@ class InsulinImpl(
             val stored = preferences.get(StringNonKey.InsulinConfiguration)
             parse(stored) // verbatim — master data stays untouched
             lastKnownConfiguration = stored
-            if (insulins.isEmpty()) {
+            holdsInventedDefault = insulins.isEmpty()
+            if (holdsInventedDefault) {
                 insulins = ArrayList<ICfg>().also { addTo(it, InsulinType.OREF_RAPID_ACTING.getICfg(rh), ue = true) }
                 persistBootstrap()
             }
         } else {
             val before = preferences.get(StringNonKey.InsulinConfiguration)
             val jsonObject = runCatching { Json.parseToJsonElement(before) as? JsonObject }.getOrNull()
-            applyConfiguration(jsonObject ?: buildJsonObject {})
+            holdsInventedDefault = applyConfiguration(jsonObject ?: buildJsonObject {})
             if (configuration().toString() != before) persistBootstrap()
             else lastKnownConfiguration = before
         }
@@ -317,7 +329,9 @@ class InsulinImpl(
     }
 
     // Normalizes into a new list and swaps it in (see [insulins]). Does not persist; bootstrap does that.
-    private fun applyConfiguration(configuration: JsonObject): Unit = lock.withLock {
+    // Returns true when nothing could be loaded and the default below was invented, which is what
+    // [holdsInventedDefault] tracks.
+    private fun applyConfiguration(configuration: JsonObject): Boolean = lock.withLock {
         val loaded = ArrayList<ICfg>()
         val insulinArray = configuration["insulin"] as? JsonArray
         insulinArray?.forEach { jsonElement ->
@@ -328,15 +342,20 @@ class InsulinImpl(
                     val template = InsulinType.fromPeak(newICfg.insulinPeakTime)
                     newICfg.insulinNickname = rh.gs(template.label)
                 }
-                if (!containsEqual(loaded, newICfg, excludeIndex = -1)) // No Duplicated Insulin Allowed
-                    addTo(loaded, newICfg, ue = newICfg.insulinLabel.isEmpty())
+                // No duplicates. The same nickname with the same curve is the same insulin, even when the
+                // labels differ: older versions added a copy at every start, numbered "Name (1)", "Name (2)"
+                // and so on, and this removes those copies. A different nickname is kept on purpose.
+                val duplicate = loaded.any { it.insulinNickname == newICfg.insulinNickname && it.hasSameCurve(newICfg) }
+                if (!duplicate) addTo(loaded, newICfg, ue = newICfg.insulinLabel.isEmpty())
             } catch (_: Exception) {
                 //
             }
         }
         // Also when every entry failed to parse, not only for an empty array: the list is never empty.
-        if (loaded.isEmpty()) addTo(loaded, InsulinType.OREF_RAPID_ACTING.getICfg(rh), ue = true)
+        val invented = loaded.isEmpty()
+        if (invented) addTo(loaded, InsulinType.OREF_RAPID_ACTING.getICfg(rh), ue = true)
         insulins = loaded
+        invented
     }
 
     fun deepClone(iCfg: ICfg, withoutName: Boolean = false): ICfg = iCfg.deepClone().also {

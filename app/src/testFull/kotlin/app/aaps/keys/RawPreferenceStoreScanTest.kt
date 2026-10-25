@@ -68,6 +68,20 @@ class RawPreferenceStoreScanTest {
         // bypassing the key system, only the per-key write.
         "implementation/src/commonMain/kotlin/app/aaps/implementation/maintenance/PreferenceImportApplier.kt" to
             "applies an import as one batched write, then republishes through Preferences.reloadFromStore()",
+        // The preference migrations. They rename keys this build no longer registers, so by definition
+        // they cannot go through `Preferences` - an unregistered name is what they exist to deal with.
+        // Taking the store as a parameter is the design: start up hands them the device's store, an
+        // import hands them the file, and one copy of the functions serves both.
+        "implementation/src/commonMain/kotlin/app/aaps/implementation/maintenance/migration/PreferenceMigrations.kt" to
+            "migrates keys this build no longer registers, over whichever store it is handed",
+        // The v3 to v4 insulin migration. Same reason as the line above, and it only READS: the insulin
+        // plugin selection (`ConfigBuilder_Enabled_INSULIN_<X>`), the free peak (`insulin_oref_peak`) and
+        // each profile's DIA (`LocalProfile_<n>_dia`) are all names this build has no key for - the DIA
+        // belongs to the insulin now, and the insulin stopped being a plugin.
+        "implementation/src/commonMain/kotlin/app/aaps/implementation/maintenance/migration/InsulinMigration.kt" to
+            "reads the v3 insulin and DIA names this build no longer registers, to stamp records that predate ICfg",
+        "implementation/src/commonMain/kotlin/app/aaps/implementation/maintenance/migration/FileKeyValueStore.kt" to
+            "an in-memory store over an import file, so the migrations above run on it without touching the device",
         "implementation/src/commonMain/kotlin/app/aaps/implementation/maintenance/cloud/CloudStorageManager.kt" to "moves export files to and from cloud storage",
         "implementation/src/commonMain/kotlin/app/aaps/implementation/maintenance/cloud/GoogleDriveProvider.kt" to "cloud export, shared part",
         "implementation/src/androidMain/kotlin/app/aaps/implementation/maintenance/cloud/AndroidGoogleDriveProvider.kt" to "cloud export, Android part",
@@ -87,7 +101,6 @@ class RawPreferenceStoreScanTest {
         "app/src/main/kotlin/app/aaps/di/metro/SharedImplBindings.kt" to "DI wiring",
         "desktop/shell/src/main/kotlin/app/aaps/desktop/shell/di/DesktopPlatformBindings.kt" to "DI wiring, desktop",
         "ios/shell/src/iosMain/kotlin/app/aaps/ios/shell/di/IosPlatformBindings.kt" to "DI wiring, iOS",
-        "ios/shell/src/iosMain/kotlin/app/aaps/ios/shell/di/IosProbeGraph.kt" to "DI wiring, iOS probe graph",
         "shared/clientbindings/src/commonMain/kotlin/app/aaps/shared/clientbindings/ClientGraphBindings.kt" to "DI wiring, shared client bindings",
     )
 

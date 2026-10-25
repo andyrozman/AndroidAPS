@@ -10,7 +10,6 @@ import app.aaps.core.data.model.PS
 import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.aps.GlucoseStatus
 import app.aaps.core.interfaces.configuration.Config
-import app.aaps.core.keys.interfaces.AppPlatform
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.ProcessedTbrEbData
 import app.aaps.core.interfaces.di.MetroMemberInjector
@@ -27,11 +26,13 @@ import app.aaps.core.interfaces.pump.PumpEnactResult
 import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.HardLimits
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.StringKey
+import app.aaps.core.keys.interfaces.AppPlatform
 import app.aaps.core.keys.interfaces.BooleanNonPreferenceKey
 import app.aaps.core.keys.interfaces.DoubleNonPreferenceKey
 import app.aaps.core.keys.interfaces.IntNonPreferenceKey
@@ -63,7 +64,6 @@ import org.mockito.Mock
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.anyVararg
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.whenever
@@ -73,6 +73,18 @@ open class TestBaseWithProfile : TestBase() {
 
     @Mock lateinit var activePlugin: ActivePlugin
     @Mock lateinit var rh: ResourceHelper
+
+    /**
+     * Real English for the five owners `:shared:tests` can see, for the collaborators this base builds
+     * itself. They take a [app.aaps.core.interfaces.resources.TextResolver], and handing them the mocked
+     * [rh] meant an unstubbed string came back as its own name - that is how `result.comment` read
+     * "alreadyset" instead of "Already set".
+     *
+     * A subclass that needs a sixth owner builds its own with
+     * `generatedTextResolver("<owner>" to <Owner>StringsValues::textOf)`; its property initialiser runs
+     * after this one, so its registration wins.
+     */
+    val baseText: TextResolver = generatedTextResolver()
     @Mock lateinit var iobCobCalculator: IobCobCalculator
     @Mock lateinit var processedTbrEbData: ProcessedTbrEbData
     @Mock lateinit var fabricPrivacy: FabricPrivacy
@@ -148,6 +160,8 @@ open class TestBaseWithProfile : TestBase() {
         whenever(context.obtainStyledAttributes(anyOrNull(), any(), any(), any())).thenReturn(typedArray)
         whenever(dateUtil.now()).thenReturn(now)
         whenever(activePlugin.activePump).thenReturn(testPumpPlugin)
+        // And the driver itself, as in the app. Code that works in pump units asks it (Pump.bolusStepSize).
+        whenever(activePlugin.activePumpInternal).thenReturn(testPumpPlugin)
         // Synchronous mirror of the running profile's insulin. Non-null by default so the many non-suspend
         // readers (concentration conversions) behave as if a profile is running; stub it to a StateFlow of
         // null in a test that needs the "nothing in force" path.
@@ -217,13 +231,12 @@ open class TestBaseWithProfile : TestBase() {
         whenever(ch.fromPump(any<PumpInsulin>(), any<Boolean>())).thenAnswer { it.getArgument<PumpInsulin>(0).cU }
         whenever(ch.fromPump(any<PumpRate>())).thenAnswer { it.getArgument<PumpRate>(0).cU }
         // Default U100 (concentration 1.0): IU<->cU conversions are identity so constraint/pump tests keep their
-        // real-value expectations. ConstraintsChecker folds pump cU caps via toPump/fromPump; SafetyPlugin asks
-        // for the (concentration-adjusted) bolus step via bolusStep (delegated to the active pump's native step).
+        // real-value expectations. ConstraintsChecker folds pump cU caps via toPump/fromPump.
         whenever(ch.concentration).thenReturn(1.0)
         whenever(ch.toPump(any<Double>())).thenAnswer { PumpInsulin(it.getArgument<Double>(0)) }
         whenever(ch.toPumpRate(any<Double>())).thenAnswer { PumpRate(it.getArgument<Double>(0)) }
         // Deliverable IU step: delegate to the active pump's configured bolusStep (U100 identity; tests that
-        // need a specific step set testPumpPlugin.pumpDescription.bolusStep). Real impl is amount-aware (Insight).
+        // need a specific step set testPumpPlugin.pumpDescription.bolusStep). The real one asks the active pump.
         whenever(ch.bolusStep(any<Double>())).thenAnswer { activePlugin.activePump.pumpDescription.bolusStep }
 
         // The TextRef counterpart of the gs(anyInt(), ...) table below. One helper covers both
@@ -327,8 +340,8 @@ open class TestBaseWithProfile : TestBase() {
             val arg3 = invocation.getArgument<String?>(3)
             String.format(rh.gs(string), arg1, arg2, arg3)
         }.whenever(rh).gs(anyInt(), anyString(), anyInt(), anyString())
-        pumpEnactResultProvider = { PumpEnactResultObject(rh) }
-        profileStoreProvider = { ProfileStoreObject(aapsLogger, activePlugin, rh, hardLimits, dateUtil) }
+        pumpEnactResultProvider = { PumpEnactResultObject(baseText) }
+        profileStoreProvider = { ProfileStoreObject(aapsLogger, activePlugin, baseText, hardLimits, dateUtil) }
         glucoseStatusCalculatorSMB = GlucoseStatusCalculatorSMB(aapsLogger, iobCobCalculator, dateUtil, decimalFormatter, DeltaCalculator(aapsLogger))
 
         whenever(ch.bolusProgressString(any<PumpInsulin>(), any<Boolean>())).thenReturn("AnyString")
@@ -346,7 +359,7 @@ open class TestBaseWithProfile : TestBase() {
         store.put(TESTPROFILENAME, JSONObject(validProfileJSON))
         json.put("defaultProfile", TESTPROFILENAME)
         json.put("store", store)
-        return ProfileStoreObject(aapsLogger, activePlugin, rh, hardLimits, dateUtil).with(Json.parseToJsonElement(json.toString()).jsonObject)
+        return ProfileStoreObject(aapsLogger, activePlugin, baseText, hardLimits, dateUtil).with(Json.parseToJsonElement(json.toString()).jsonObject)
     }
 
     fun getInvalidProfileStore1(): ProfileStore {
@@ -355,7 +368,7 @@ open class TestBaseWithProfile : TestBase() {
         store.put(TESTPROFILENAME, JSONObject(invalidProfileJSON))
         json.put("defaultProfile", TESTPROFILENAME)
         json.put("store", store)
-        return ProfileStoreObject(aapsLogger, activePlugin, rh, hardLimits, dateUtil).with(Json.parseToJsonElement(json.toString()).jsonObject)
+        return ProfileStoreObject(aapsLogger, activePlugin, baseText, hardLimits, dateUtil).with(Json.parseToJsonElement(json.toString()).jsonObject)
     }
 
     fun getInvalidProfileStore2(): ProfileStore {
@@ -365,6 +378,6 @@ open class TestBaseWithProfile : TestBase() {
         store.put("invalid", JSONObject(invalidProfileJSON))
         json.put("defaultProfile", TESTPROFILENAME + "invalid")
         json.put("store", store)
-        return ProfileStoreObject(aapsLogger, activePlugin, rh, hardLimits, dateUtil).with(Json.parseToJsonElement(json.toString()).jsonObject)
+        return ProfileStoreObject(aapsLogger, activePlugin, baseText, hardLimits, dateUtil).with(Json.parseToJsonElement(json.toString()).jsonObject)
     }
 }

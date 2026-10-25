@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="eopatch">EOPatch2</string>
-    <string name="eopatch_shortname">EOP2</string>
     <string name="eopatch_pump_description">Интеграция помпы для EOPatch2 / GlucoMen Day</string>
     <string name="low_reservoir">Оповещения о низком уровне инсулина в резервуаре</string>
     <string name="patch_expiration_reminders">Напоминание об истечении срока патча</string>
@@ -62,7 +61,6 @@
     <string name="patch_communication_succeed">Коммуникация завершена успешно</string>
     <string name="patch_communication_succeed_message">Подключено к Patch.</string>
     <string name="patch_cancel_pairing">Отменить сопряжение</string>
-    <string name="all_dose_unit">&#160; ед</string>
     <string name="insulin_suspend_msg1">После приостановки текущий болюс &amp; Временный базал будет отменен. \n\nСкорость базала: %1$s ед/ч\nОсталось времени: %2$s\n&amp; инсулина: %3$.2f U</string>
     <string name="insulin_suspend_msg2">После приостановки текущий болюс будет отменен. \n\n Осталось инсулина: %1$.2f U</string>
     <string name="insulin_suspend_msg3">После приостановки текущий Временный базал будет отменен.\n\n Скорость базала: %1$s ед/ч\n Осталось времени: %2$s</string>
@@ -80,5 +78,4 @@
     <string name="string_resumed_insulin_delivery_message">Подача инсулина возобновлена.</string>
     <string name="string_temp_basal_remained_hhmm">оставшееся время: %1$s:%2$s</string>
     <string name="string_resume_failed">Возобновление не состоялось.</string>
-    <!-- Permission rationales -->
 </resources>

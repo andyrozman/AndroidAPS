@@ -20,17 +20,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextOverflow
 import app.aaps.core.data.model.TT
 import app.aaps.core.interfaces.navigation.ElementType
+import app.aaps.core.keys.interfaces.TextRef
+import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.AapsTheme
+import app.aaps.core.ui.compose.LocalAapsScale
+import app.aaps.core.ui.compose.icons.IcTarget
 import app.aaps.core.ui.compose.icons.IcTtActivity
 import app.aaps.core.ui.compose.icons.IcTtEatingSoon
 import app.aaps.core.ui.compose.icons.IcTtHypo
 import app.aaps.core.ui.compose.icons.IcTtManual
 import app.aaps.core.ui.compose.navigation.label
+import app.aaps.core.ui.compose.stringResource
 import app.aaps.core.ui.compose.stringResourceOrNull
 import app.aaps.core.ui.compose.ttReasonColor
+import app.aaps.ui.UiStrings
 import app.aaps.ui.compose.main.TempTargetChipState
 
 /**
@@ -61,6 +70,16 @@ fun TempTargetChip(
     }
     val haptic = LocalHapticFeedback.current
 
+    // Why a temp target is running was carried only by which of the four icons was drawn, so
+    // "eating soon" and "hypo" - which mean very different things - were announced identically.
+    // Mirrors the wording TranslatorImpl already uses for the same enum, so nothing new to translate.
+    // With no temp target the chip shows the profile target, and a target the loop has adjusted
+    // differs only by colour - both read as "Temp target 5.5", the same as a real temp target.
+    val reasonState = when (state) {
+        TempTargetChipState.Active   -> stringResourceOrNull(reason.toDescription())
+        TempTargetChipState.Adjusted -> stringResource(UiStrings.a11y_tt_adjusted)
+        TempTargetChipState.None     -> stringResource(UiStrings.a11y_tt_none)
+    }
     Surface(
         onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onClick() },
         enabled = enabled,
@@ -68,7 +87,11 @@ fun TempTargetChip(
         color = containerColor,
         modifier = modifier
             .fillMaxWidth()
-            .height(AapsSpacing.chipHeight)
+            .height(AapsSpacing.chipHeight * LocalAapsScale.current)
+            .then(
+                if (reasonState != null) Modifier.semantics { stateDescription = reasonState }
+                else Modifier
+            )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -78,16 +101,23 @@ fun TempTargetChip(
                     .padding(horizontal = AapsSpacing.medium, vertical = AapsSpacing.small)
             ) {
                 Icon(
-                    imageVector = reason.toIcon(),
+                    // With no temp target the chip shows the profile target, which is not a manual
+                    // target, so it gets the plain target and not the one with the pencil (#5336).
+                    imageVector = if (state == TempTargetChipState.Active) reason.toIcon() else IcTarget,
                     contentDescription = stringResourceOrNull(ElementType.TEMP_TARGET_MANAGEMENT.label()),
                     tint = iconColor,
                     modifier = Modifier.size(AapsSpacing.chipIconSize)
                 )
+                // One line, like the profile chip: a second line did not fit the chip's height.
                 Text(
                     text = targetText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = textColor,
-                    modifier = Modifier.padding(start = AapsSpacing.medium)
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .padding(start = AapsSpacing.medium)
                 )
                 if (sceneManaged) {
                     SceneBadge(modifier = Modifier.padding(start = AapsSpacing.small))
@@ -110,6 +140,21 @@ fun TempTargetChip(
 
 @Composable
 private fun TT.Reason?.toIconColor(): Color = ttReasonColor(AapsTheme.generalColors)
+
+/**
+ * Why the temp target is running, in words. Same wording as `TranslatorImpl.translate(TT.Reason?)`,
+ * which cannot be used here because it needs an injected Translator and this is a leaf composable.
+ * Null for no reason at all, so nothing is announced rather than a bare "unknown".
+ */
+private fun TT.Reason?.toDescription(): TextRef? = when (this) {
+    TT.Reason.CUSTOM       -> CoreUiStrings.custom
+    TT.Reason.HYPOGLYCEMIA -> CoreUiStrings.hypo
+    TT.Reason.EATING_SOON  -> CoreUiStrings.eatingsoon
+    TT.Reason.ACTIVITY     -> CoreUiStrings.activity
+    TT.Reason.AUTOMATION   -> CoreUiStrings.automation
+    TT.Reason.WEAR         -> CoreUiStrings.wear
+    null                   -> null
+}
 
 private fun TT.Reason?.toIcon(): ImageVector = when (this) {
     TT.Reason.EATING_SOON  -> IcTtEatingSoon

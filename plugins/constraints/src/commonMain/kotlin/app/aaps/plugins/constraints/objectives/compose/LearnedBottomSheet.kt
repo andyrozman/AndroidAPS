@@ -1,7 +1,5 @@
 package app.aaps.plugins.constraints.objectives.compose
 
-import app.aaps.core.ui.compose.stringResource
-import app.aaps.plugins.constraints.ConstraintsStrings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,7 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.ui.compose.consumeOverscroll
+import app.aaps.core.ui.compose.stringResource
+import app.aaps.plugins.constraints.ConstraintsStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +55,7 @@ fun LearnedBottomSheet(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = stringResource(ConstraintsStrings.nth_objective, state.objectiveNumber) + " — " + state.objectiveTitle,
+                text = stringResource(InterfacesStrings.confirmation_line, stringResource(ConstraintsStrings.nth_objective, state.objectiveNumber), state.objectiveTitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

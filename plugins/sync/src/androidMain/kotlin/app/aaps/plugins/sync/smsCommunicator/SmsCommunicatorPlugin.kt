@@ -1,9 +1,5 @@
 package app.aaps.plugins.sync.smsCommunicator
 
-import app.aaps.core.interfaces.InterfacesStrings
-import app.aaps.core.interfaces.notifications.NotificationManager
-import app.aaps.core.ui.CoreUiStrings
-import app.aaps.plugins.sync.SyncStrings
 import android.Manifest
 import android.content.Context
 import android.os.Bundle
@@ -15,20 +11,23 @@ import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.model.RM
 import app.aaps.core.data.model.TT
 import app.aaps.core.data.plugin.PluginType
+import app.aaps.core.data.pump.defs.PumpDescription
 import app.aaps.core.data.time.T
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
+import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.interfaces.aps.Loop
+import app.aaps.core.interfaces.bolus.MasterActionExecutor
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.configuration.ConfigBuilder
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
-import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
 import app.aaps.core.interfaces.notifications.NotificationId
+import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.plugin.PermissionGroup
 import app.aaps.core.interfaces.plugin.PluginBaseWithPreferences
@@ -39,7 +38,7 @@ import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.PumpStatusProvider
 import app.aaps.core.interfaces.queue.CommandQueue
-import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.smsCommunicator.Sms
 import app.aaps.core.interfaces.smsCommunicator.SmsCommunicator
 import app.aaps.core.interfaces.smsCommunicator.smsFromMessage
@@ -60,30 +59,25 @@ import app.aaps.core.objects.runningMode.PumpCommandGate
 import app.aaps.core.objects.runningMode.RunningModeGuard
 import app.aaps.core.objects.workflow.LoggingWorker
 import app.aaps.core.objects.workflow.WorkerInstanceFactory
+import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.ComposeScreenContent
 import app.aaps.core.ui.compose.icons.IcPluginSms
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.core.ui.extensions.generateCOBString
 import app.aaps.core.utils.receivers.DataInbox
 import app.aaps.core.utils.receivers.Inbox
+import app.aaps.plugins.sync.SyncStrings
 import app.aaps.plugins.sync.smsCommunicator.actions.BasalCancelAction
 import app.aaps.plugins.sync.smsCommunicator.actions.BolusAction
 import app.aaps.plugins.sync.smsCommunicator.actions.CalibrationAction
 import app.aaps.plugins.sync.smsCommunicator.actions.CarbsAction
 import app.aaps.plugins.sync.smsCommunicator.actions.ExtendedCancelAction
 import app.aaps.plugins.sync.smsCommunicator.actions.ExtendedSetAction
-import app.aaps.plugins.sync.smsCommunicator.actions.LoopClosedAction
-import app.aaps.plugins.sync.smsCommunicator.actions.LoopDisableAction
-import app.aaps.plugins.sync.smsCommunicator.actions.LoopLgsAction
-import app.aaps.plugins.sync.smsCommunicator.actions.LoopResumeAction
-import app.aaps.plugins.sync.smsCommunicator.actions.LoopSuspendAction
 import app.aaps.plugins.sync.smsCommunicator.actions.ProfileSwitchAction
-import app.aaps.plugins.sync.smsCommunicator.actions.PumpConnectAction
-import app.aaps.plugins.sync.smsCommunicator.actions.PumpDisconnectAction
 import app.aaps.plugins.sync.smsCommunicator.actions.RestartAction
+import app.aaps.plugins.sync.smsCommunicator.actions.RunningModeAction
 import app.aaps.plugins.sync.smsCommunicator.actions.SmsDisableAction
-import app.aaps.plugins.sync.smsCommunicator.actions.TempBasalAbsoluteAction
-import app.aaps.plugins.sync.smsCommunicator.actions.TempBasalPercentAction
+import app.aaps.plugins.sync.smsCommunicator.actions.TempBasalAction
 import app.aaps.plugins.sync.smsCommunicator.actions.TempTargetCancelAction
 import app.aaps.plugins.sync.smsCommunicator.actions.TempTargetSetAction
 import app.aaps.plugins.sync.smsCommunicator.compose.SmsCommunicatorComposeContent
@@ -99,11 +93,6 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
-import java.text.Normalizer
-import java.util.Locale
-import java.util.regex.Pattern
-import kotlin.math.max
-import kotlin.math.min
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -115,13 +104,18 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
 import org.apache.commons.lang3.Strings
 import org.joda.time.DateTime
+import java.text.Normalizer
+import java.util.Locale
+import java.util.regex.Pattern
+import kotlin.math.max
+import kotlin.math.min
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, binding = binding<SmsCommunicator>())
 @Inject
 class SmsCommunicatorPlugin(
     aapsLogger: AAPSLogger,
-    override val rh: ResourceHelper,
+    override val rh: TextResolver,
     private val smsManager: SmsManager?,
     preferences: Preferences,
     private val constraintChecker: ConstraintsChecker,
@@ -138,13 +132,16 @@ class SmsCommunicatorPlugin(
     private val dateUtil: DateUtil,
     private val uel: UserEntryLogger,
     private val glucoseStatusProvider: GlucoseStatusProvider,
-    private val persistenceLayer: PersistenceLayer,
     private val decimalFormatter: DecimalFormatter,
     private val configBuilder: ConfigBuilder,
     private val pumpStatusProvider: PumpStatusProvider,
     notificationManager: NotificationManager,
     private val runningModeGuard: RunningModeGuard,
     private val bolusProgressData: BolusProgressData,
+    // Deferred on purpose. Metro finds a cycle otherwise: MasterActionExecutorImpl needs Automation, and
+    // automation's ActionFactory needs SmsCommunicator, which is this plugin. Nothing here touches the
+    // executor while the graph is being built - it is only used once a command arrives.
+    private val masterActionExecutorProvider: () -> MasterActionExecutor,
     val repository: SmsCommunicatorRepository
 ) : PluginBaseWithPreferences(
     PluginDescription()
@@ -152,7 +149,6 @@ class SmsCommunicatorPlugin(
         .composeContent { SmsCommunicatorComposeContent() }
         .icon(IcPluginSms)
         .pluginName(SyncStrings.smscommunicator)
-        .shortName(SyncStrings.smscommunicator_shortname)
         .description(SyncStrings.description_sms_communicator),
     ownPreferences = SmsIntentKey.entries,
     aapsLogger, rh, preferences, notificationManager
@@ -400,28 +396,49 @@ class SmsCommunicatorPlugin(
     private suspend fun processBG(receivedSms: Sms) {
         val actualBG = iobCobCalculator.ads.actualBg()
         val lastBG = iobCobCalculator.ads.lastBg()
-        var reply = ""
+        val parts = mutableListOf<String>()
         val units = profileUtil.units
+        // Each part is a translated label and its value, so no text is joined in code
+        fun labelled(label: TextRef, value: String) = rh.gs(CoreUiStrings.value_with_unit, rh.gs(label), value)
         if (actualBG != null) {
-            reply = rh.gs(SyncStrings.sms_actual_bg) + " " + profileUtil.fromMgdlToStringInUnits(actualBG.recalculated) + ", "
+            parts += labelled(SyncStrings.sms_actual_bg, profileUtil.fromMgdlToStringInUnits(actualBG.recalculated))
         } else if (lastBG != null) {
             val agoMilliseconds = dateUtil.now() - lastBG.timestamp
             val agoMin = (agoMilliseconds / 60.0 / 1000.0).toInt()
-            reply = rh.gs(SyncStrings.sms_last_bg) + " " + profileUtil.valueInCurrentUnitsDetect(lastBG.recalculated) + " " + rh.gs(SyncStrings.sms_min_ago, agoMin) + ", "
+            parts += labelled(SyncStrings.sms_last_bg, rh.gs(CoreUiStrings.value_with_unit, profileUtil.valueInCurrentUnitsDetect(lastBG.recalculated), rh.gs(SyncStrings.sms_min_ago, agoMin)))
         }
         val glucoseStatus = glucoseStatusProvider.glucoseStatusData
-        if (glucoseStatus != null) reply += rh.gs(SyncStrings.sms_delta) + " " + profileUtil.fromMgdlToSignedStringInUnits(glucoseStatus.delta) + " " + units + ", "
+        if (glucoseStatus != null) parts += labelled(SyncStrings.sms_delta, rh.gs(CoreUiStrings.value_with_unit, profileUtil.fromMgdlToSignedStringInUnits(glucoseStatus.delta), units))
         val bolusIob = iobCobCalculator.calculateIobFromBolus().round()
         val basalIob = iobCobCalculator.calculateIobFromTempBasalsIncludingConvertedExtended().round()
         val cobInfo = iobCobCalculator.getCobInfo("SMS COB")
-        reply += (rh.gs(SyncStrings.sms_iob) + " " + decimalFormatter.to2Decimal(bolusIob.iob + basalIob.basaliob) + "U, "
-            + rh.gs(CoreUiStrings.cob) + ": " + cobInfo.generateCOBString(decimalFormatter))
+        parts += labelled(SyncStrings.sms_iob, rh.gs(CoreUiStrings.value_with_unit, decimalFormatter.to2Decimal(bolusIob.iob + basalIob.basaliob), rh.gs(SyncStrings.units_short)))
+        parts += rh.gs(InterfacesStrings.confirmation_line, rh.gs(CoreUiStrings.cob), cobInfo.generateCOBString(decimalFormatter))
+        val reply = parts.reduce { joined, part -> rh.gs(InterfacesStrings.values_with_comma, joined, part) }
         sendSMS(Sms(receivedSms.phoneNumber, reply))
         receivedSms.processed = true
     }
 
+    /**
+     * A running mode change to confirm with a pass code. The executor checks the mode again when it is applied;
+     * the check before asking only saves the user a pass code for a change that cannot happen now.
+     */
+    private fun runningModeAction(mode: RM.Mode, successText: String, receivedSms: Sms, durationMinutes: Int = 0, replyToAll: Boolean = true, pumpCommand: Boolean = false) =
+        RunningModeAction(
+            mode = mode,
+            durationMinutes = durationMinutes,
+            successText = successText,
+            replyToAll = replyToAll,
+            pumpCommand = pumpCommand,
+            receivedSms = receivedSms,
+            masterActionExecutor = masterActionExecutorProvider(),
+            rh = rh,
+            smsCommunicator = this,
+            sendSMSToAllNumbers = ::sendSMSToAllNumbers
+        )
+
     private suspend fun processLOOP(divided: Array<String>, receivedSms: Sms) {
-        val profile = profileFunction.getProfile() ?: return
+        profileFunction.getProfile() ?: return
         when (divided[1].uppercase(Locale.getDefault())) {
             "DISABLE", "STOP" -> {
                 if (loop.allowedNextModes().contains(RM.Mode.DISABLED_LOOP)) {
@@ -430,13 +447,7 @@ class SmsCommunicatorPlugin(
                     receivedSms.processed = true
                     messageToConfirm = authRequest(
                         receivedSms, reply, passCode,
-                        LoopDisableAction(
-                            receivedSms = receivedSms,
-                            profile = profile,
-                            loop = loop,
-                            rh = rh,
-                            smsCommunicator = this
-                        )
+                        runningModeAction(RM.Mode.DISABLED_LOOP, rh.gs(SyncStrings.smscommunicator_loop_has_been_disabled), receivedSms, replyToAll = false)
                     )
                 } else
                     sendSMS(Sms(receivedSms.phoneNumber, rh.gs(CoreUiStrings.loopisdisabled)))
@@ -447,9 +458,9 @@ class SmsCommunicatorPlugin(
                 val reply =
                     when (loop.runningMode()) {
                         RM.Mode.DISABLED_LOOP     -> rh.gs(CoreUiStrings.loopisdisabled)
-                        RM.Mode.OPEN_LOOP         -> rh.gs(SyncStrings.smscommunicator_loop_is_enabled) + " - " + rh.gs(CoreUiStrings.openloop)
-                        RM.Mode.CLOSED_LOOP       -> rh.gs(SyncStrings.smscommunicator_loop_is_enabled) + " - " + rh.gs(CoreUiStrings.closedloop)
-                        RM.Mode.CLOSED_LOOP_LGS   -> rh.gs(SyncStrings.smscommunicator_loop_is_enabled) + " - " + rh.gs(CoreUiStrings.lowglucosesuspend)
+                        RM.Mode.OPEN_LOOP         -> rh.gs(InterfacesStrings.values_with_dash, rh.gs(SyncStrings.smscommunicator_loop_is_enabled), rh.gs(CoreUiStrings.openloop))
+                        RM.Mode.CLOSED_LOOP       -> rh.gs(InterfacesStrings.values_with_dash, rh.gs(SyncStrings.smscommunicator_loop_is_enabled), rh.gs(CoreUiStrings.closedloop))
+                        RM.Mode.CLOSED_LOOP_LGS   -> rh.gs(InterfacesStrings.values_with_dash, rh.gs(SyncStrings.smscommunicator_loop_is_enabled), rh.gs(CoreUiStrings.lowglucosesuspend))
                         RM.Mode.SUPER_BOLUS       -> rh.gs(CoreUiStrings.superbolus)
                         RM.Mode.DISCONNECTED_PUMP -> rh.gs(InterfacesStrings.pump_disconnected)
                         RM.Mode.SUSPENDED_BY_PUMP -> rh.gs(InterfacesStrings.pumpsuspended)
@@ -463,19 +474,12 @@ class SmsCommunicatorPlugin(
 
             "RESUME"          -> {
                 if (loop.allowedNextModes().contains(RM.Mode.RESUME)) {
-                    val profile = profileFunction.getProfile() ?: return
                     val passCode = generatePassCode()
                     val reply = rh.gs(SyncStrings.smscommunicator_loop_resume_reply_with_code, passCode)
                     receivedSms.processed = true
                     messageToConfirm = authRequest(
                         receivedSms, reply, passCode,
-                        LoopResumeAction(
-                            receivedSms = receivedSms,
-                            profile = profile,
-                            loop = loop,
-                            rh = rh,
-                            sendSMSToAllNumbers = ::sendSMSToAllNumbers
-                        )
+                        runningModeAction(RM.Mode.RESUME, rh.gs(SyncStrings.smscommunicator_loop_resumed), receivedSms, pumpCommand = true)
                     )
                 } else {
                     sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.smscommunicator_remote_command_not_possible)))
@@ -493,23 +497,12 @@ class SmsCommunicatorPlugin(
                     sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.smscommunicator_wrong_duration)))
                     return
                 } else if (loop.allowedNextModes().contains(RM.Mode.SUSPENDED_BY_USER)) {
-                    val profile = profileFunction.getProfile() ?: return
                     val passCode = generatePassCode()
                     val reply = rh.gs(SyncStrings.smscommunicator_suspend_reply_with_code, duration, passCode)
                     receivedSms.processed = true
                     messageToConfirm = authRequest(
                         receivedSms, reply, passCode,
-                        LoopSuspendAction(
-                            durationMinutes = duration,
-                            receivedSms = receivedSms,
-                            profile = profile,
-                            loop = loop,
-                            commandQueue = commandQueue,
-                            rh = rh,
-                            smsCommunicator = this,
-                            sendSMSToAllNumbers = ::sendSMSToAllNumbers,
-                            shortStatusBlocking = ::shortStatusBlocking
-                        )
+                        runningModeAction(RM.Mode.SUSPENDED_BY_USER, rh.gs(SyncStrings.smscommunicator_loop_suspended), receivedSms, durationMinutes = duration, pumpCommand = true)
                     )
                 } else {
                     sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.smscommunicator_remote_command_not_possible)))
@@ -524,12 +517,10 @@ class SmsCommunicatorPlugin(
                     receivedSms.processed = true
                     messageToConfirm = authRequest(
                         receivedSms, reply, passCode,
-                        LoopLgsAction(
-                            receivedSms = receivedSms,
-                            profile = profile,
-                            loop = loop,
-                            rh = rh,
-                            sendSMSToAllNumbers = ::sendSMSToAllNumbers
+                        runningModeAction(
+                            RM.Mode.CLOSED_LOOP_LGS,
+                            rh.gs(SyncStrings.smscommunicator_current_loop_mode, rh.gs(CoreUiStrings.lowglucosesuspend)),
+                            receivedSms
                         )
                     )
                 } else {
@@ -545,13 +536,7 @@ class SmsCommunicatorPlugin(
                     receivedSms.processed = true
                     messageToConfirm = authRequest(
                         receivedSms, reply, passCode,
-                        LoopClosedAction(
-                            receivedSms = receivedSms,
-                            profile = profile,
-                            loop = loop,
-                            rh = rh,
-                            sendSMSToAllNumbers = ::sendSMSToAllNumbers
-                        )
+                        runningModeAction(RM.Mode.CLOSED_LOOP, rh.gs(SyncStrings.smscommunicator_current_loop_mode, rh.gs(CoreUiStrings.closedloop)), receivedSms)
                     )
                 } else {
                     sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.smscommunicator_remote_command_not_possible)))
@@ -615,13 +600,7 @@ class SmsCommunicatorPlugin(
                 receivedSms.processed = true
                 messageToConfirm = authRequest(
                     receivedSms, reply, passCode,
-                    PumpConnectAction(
-                        receivedSms = receivedSms,
-                        profileFunction = profileFunction,
-                        loop = loop,
-                        rh = rh,
-                        smsCommunicator = this
-                    )
+                    runningModeAction(RM.Mode.RESUME, rh.gs(SyncStrings.smscommunicator_reconnect), receivedSms, replyToAll = false, pumpCommand = true)
                 )
             } else {
                 sendSMS(Sms(receivedSms.phoneNumber, rh.gs(InterfacesStrings.connected)))
@@ -641,13 +620,9 @@ class SmsCommunicatorPlugin(
                 receivedSms.processed = true
                 messageToConfirm = authRequest(
                     receivedSms, reply, passCode,
-                    PumpDisconnectAction(
-                        durationMinutes = duration,
-                        receivedSms = receivedSms,
-                        profileFunction = profileFunction,
-                        loop = loop,
-                        rh = rh,
-                        smsCommunicator = this
+                    runningModeAction(
+                        RM.Mode.DISCONNECTED_PUMP, rh.gs(SyncStrings.smscommunicator_pump_disconnected), receivedSms,
+                        durationMinutes = duration, replyToAll = false, pumpCommand = true
                     )
                 )
             }
@@ -684,7 +659,12 @@ class SmsCommunicatorPlugin(
             var percentage = 100
             if (divided.size > 2) percentage = SafeParse.stringToInt(divided[2])
             if (pIndex > list.size) sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.wrong_format)))
-            else if (percentage == 0) sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.wrong_format)))
+            // Refuse an implausible percentage before asking for a pass code, so a typo ("400" for "40") costs
+            // one reply instead of a confirmed switch. The executor checks the same range again when the switch
+            // is applied and stays the authority; this is the same split the in-app screen uses, where the
+            // number field is bounded by CPP_PERCENTAGE_RANGE and prepareBatch re-checks it.
+            else if (percentage.toDouble() !in Constants.CPP_PERCENTAGE_RANGE)
+                sendSMS(Sms(receivedSms.phoneNumber, rh.gs(CoreUiStrings.valueoutofrange, "Profile-Percentage")))
             else if (pIndex == 0) sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.wrong_format)))
             else {
                 val profile = store.getSpecificProfile(list[pIndex - 1] as String)
@@ -700,9 +680,7 @@ class SmsCommunicatorPlugin(
                             profileName = list[pIndex - 1] as String,
                             percentage = finalPercentage,
                             receivedSms = receivedSms,
-                            store = store,
-                            profileFunction = profileFunction,
-                            dateUtil = dateUtil,
+                            masterActionExecutor = masterActionExecutorProvider(),
                             rh = rh,
                             smsCommunicator = this
                         )
@@ -722,64 +700,35 @@ class SmsCommunicatorPlugin(
                 receivedSms, reply, passCode,
                 BasalCancelAction(
                     receivedSms = receivedSms,
-                    commandQueue = commandQueue,
+                    masterActionExecutor = masterActionExecutorProvider(),
                     rh = rh,
-                    uel = uel,
                     smsCommunicator = this,
                     sendSMSToAllNumbers = ::sendSMSToAllNumbers,
                     shortStatusBlocking = ::shortStatusBlocking
                 )
             )
-        } else if (divided[1].endsWith("%")) {
-            var tempBasalPct = SafeParse.stringToInt(Strings.CS.removeEnd(divided[1], "%"))
-            val durationStep = activePlugin.activePump.model().tbrSettings()?.durationStep ?: 60
-            var duration = 30
-            if (divided.size > 2) duration = SafeParse.stringToInt(divided[2])
-            val profile = profileFunction.getProfile()
-            if (profile == null) sendSMS(Sms(receivedSms.phoneNumber, rh.gs(CoreUiStrings.noprofile)))
-            else if (tempBasalPct == 0 && divided[1] != "0%") sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.wrong_format)))
-            else if (duration <= 0 || duration % durationStep != 0) sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.sms_wrong_tbr_duration, durationStep)))
-            else {
-                tempBasalPct = constraintChecker.applyBasalPercentConstraints(ConstraintObject(tempBasalPct, aapsLogger), profile).value()
-                val gateKind = if (tempBasalPct == 0) PumpCommandGate.CommandKind.TEMP_BASAL_ZERO
-                else PumpCommandGate.CommandKind.TEMP_BASAL_NONZERO
-                val gateReject = runningModeGuard.rejectionMessage(gateKind)
-                if (gateReject != null) {
-                    sendSMS(Sms(receivedSms.phoneNumber, gateReject))
-                    receivedSms.processed = true
-                    return
-                }
-                val passCode = generatePassCode()
-                val reply = rh.gs(SyncStrings.smscommunicator_basal_pct_reply_with_code, tempBasalPct, duration, passCode)
-                receivedSms.processed = true
-                messageToConfirm = authRequest(
-                    receivedSms, reply, passCode,
-                    TempBasalPercentAction(
-                        percent = tempBasalPct,
-                        durationMinutes = duration,
-                        receivedSms = receivedSms,
-                        profile = profile,
-                        commandQueue = commandQueue,
-                        rh = rh,
-                        uel = uel,
-                        smsCommunicator = this,
-                        sendSMSToAllNumbers = ::sendSMSToAllNumbers,
-                        shortStatusBlocking = ::shortStatusBlocking
-                    )
-                )
-            }
         } else {
-            var tempBasal = SafeParse.stringToDouble(divided[1])
-            val durationStep = activePlugin.activePump.model().tbrSettings()?.durationStep ?: 60
+            val isPercent = divided[1].endsWith("%")
+            val typed = if (isPercent) Strings.CS.removeEnd(divided[1], "%") else divided[1]
+            var rate = if (isPercent) SafeParse.stringToInt(typed).toDouble() else SafeParse.stringToDouble(typed)
+            val pump = activePlugin.activePump
+            // The executor takes a temp basal only in the pump's own style, the same rule as for the phone's dialog,
+            // so the other style is refused here, before a pass code is spent on it.
+            val pumpIsPercent = pump.pumpDescription.tempBasalStyle and PumpDescription.PERCENT == PumpDescription.PERCENT
+            val durationStep = pump.pumpDescription.tempDurationStep
             var duration = 30
             if (divided.size > 2) duration = SafeParse.stringToInt(divided[2])
             val profile = profileFunction.getProfile()
             if (profile == null) sendSMS(Sms(receivedSms.phoneNumber, rh.gs(CoreUiStrings.noprofile)))
-            else if (tempBasal == 0.0 && divided[1] != "0") sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.wrong_format)))
+            else if (rate == 0.0 && typed != "0") sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.wrong_format)))
+            else if (isPercent != pumpIsPercent)
+                sendSMS(Sms(receivedSms.phoneNumber, rh.gs(if (pumpIsPercent) SyncStrings.sms_tbr_percent_only else SyncStrings.sms_tbr_absolute_only)))
             else if (duration <= 0 || duration % durationStep != 0) sendSMS(Sms(receivedSms.phoneNumber, rh.gs(SyncStrings.sms_wrong_tbr_duration, durationStep)))
             else {
-                tempBasal = constraintChecker.applyBasalConstraints(ConstraintObject(tempBasal, aapsLogger), profile).value()
-                val gateKind = if (tempBasal == 0.0) PumpCommandGate.CommandKind.TEMP_BASAL_ZERO
+                rate =
+                    if (isPercent) constraintChecker.applyBasalPercentConstraints(ConstraintObject(rate.toInt(), aapsLogger), profile).value().toDouble()
+                    else constraintChecker.applyBasalConstraints(ConstraintObject(rate, aapsLogger), profile).value()
+                val gateKind = if (rate == 0.0) PumpCommandGate.CommandKind.TEMP_BASAL_ZERO
                 else PumpCommandGate.CommandKind.TEMP_BASAL_NONZERO
                 val gateReject = runningModeGuard.rejectionMessage(gateKind)
                 if (gateReject != null) {
@@ -788,18 +737,19 @@ class SmsCommunicatorPlugin(
                     return
                 }
                 val passCode = generatePassCode()
-                val reply = rh.gs(SyncStrings.smscommunicator_basal_reply_with_code, tempBasal, duration, passCode)
+                val reply =
+                    if (isPercent) rh.gs(SyncStrings.smscommunicator_basal_pct_reply_with_code, rate.toInt(), duration, passCode)
+                    else rh.gs(SyncStrings.smscommunicator_basal_reply_with_code, rate, duration, passCode)
                 receivedSms.processed = true
                 messageToConfirm = authRequest(
                     receivedSms, reply, passCode,
-                    TempBasalAbsoluteAction(
-                        rateUnitsPerHour = tempBasal,
+                    TempBasalAction(
+                        rate = rate,
+                        isPercent = isPercent,
                         durationMinutes = duration,
                         receivedSms = receivedSms,
-                        profile = profile,
-                        commandQueue = commandQueue,
+                        masterActionExecutor = masterActionExecutorProvider(),
                         rh = rh,
-                        uel = uel,
                         smsCommunicator = this,
                         sendSMSToAllNumbers = ::sendSMSToAllNumbers,
                         shortStatusBlocking = ::shortStatusBlocking
@@ -818,9 +768,8 @@ class SmsCommunicatorPlugin(
                 receivedSms, reply, passCode,
                 ExtendedCancelAction(
                     receivedSms = receivedSms,
-                    commandQueue = commandQueue,
+                    masterActionExecutor = masterActionExecutorProvider(),
                     rh = rh,
-                    uel = uel,
                     smsCommunicator = this,
                     sendSMSToAllNumbers = ::sendSMSToAllNumbers,
                     shortStatusBlocking = ::shortStatusBlocking
@@ -849,10 +798,9 @@ class SmsCommunicatorPlugin(
                         insulin = extended,
                         durationMinutes = duration,
                         receivedSms = receivedSms,
-                        commandQueue = commandQueue,
+                        masterActionExecutor = masterActionExecutorProvider(),
                         config = config,
                         rh = rh,
-                        uel = uel,
                         smsCommunicator = this,
                         sendSMSToAllNumbers = ::sendSMSToAllNumbers,
                         shortStatusBlocking = ::shortStatusBlocking
@@ -887,13 +835,11 @@ class SmsCommunicatorPlugin(
                     insulin = bolus,
                     isMeal = isMeal,
                     receivedSms = receivedSms,
+                    masterActionExecutor = masterActionExecutorProvider(),
                     commandQueue = commandQueue,
                     rh = rh,
-                    uel = uel,
-                    profileFunction = profileFunction,
                     profileUtil = profileUtil,
                     preferences = preferences,
-                    persistenceLayer = persistenceLayer,
                     dateUtil = dateUtil,
                     decimalFormatter = decimalFormatter,
                     smsCommunicator = this,
@@ -947,9 +893,9 @@ class SmsCommunicatorPlugin(
                     grams = grams,
                     timestamp = time,
                     receivedSms = receivedSms,
-                    commandQueue = commandQueue,
+                    masterActionExecutor = masterActionExecutorProvider(),
+                    dateUtil = dateUtil,
                     rh = rh,
-                    uel = uel,
                     smsCommunicator = this,
                     sendSMSToAllNumbers = ::sendSMSToAllNumbers,
                     shortStatusBlocking = ::shortStatusBlocking
@@ -978,12 +924,12 @@ class SmsCommunicatorPlugin(
                 TempTargetSetAction(
                     reason = reason,
                     receivedSms = receivedSms,
+                    masterActionExecutor = masterActionExecutorProvider(),
                     preferences = preferences,
-                    persistenceLayer = persistenceLayer,
                     profileUtil = profileUtil,
                     decimalFormatter = decimalFormatter,
-                    dateUtil = dateUtil,
                     rh = rh,
+                    smsCommunicator = this,
                     sendSMSToAllNumbers = ::sendSMSToAllNumbers
                 )
             )
@@ -995,10 +941,9 @@ class SmsCommunicatorPlugin(
                 receivedSms, reply, passCode,
                 TempTargetCancelAction(
                     receivedSms = receivedSms,
-                    persistenceLayer = persistenceLayer,
-                    dateUtil = dateUtil,
+                    masterActionExecutor = masterActionExecutorProvider(),
                     rh = rh,
-                    uel = uel,
+                    smsCommunicator = this,
                     sendSMSToAllNumbers = ::sendSMSToAllNumbers
                 )
             )

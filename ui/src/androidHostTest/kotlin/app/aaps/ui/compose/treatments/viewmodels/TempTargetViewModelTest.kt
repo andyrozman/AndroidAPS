@@ -1,38 +1,46 @@
 package app.aaps.ui.compose.treatments.viewmodels
 
+import app.aaps.core.data.model.IDs
 import app.aaps.core.data.model.TT
+import app.aaps.core.data.ue.Sources
+import app.aaps.core.interfaces.bolus.BatchAction
+import app.aaps.core.interfaces.bolus.BatchExecutor
+import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
-import app.aaps.core.interfaces.profile.ProfileUtil
-import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.utils.DateUtil
-import app.aaps.core.ui.CoreUiStrings
-import app.aaps.ui.UiStrings
+import app.aaps.shared.tests.generatedTextResolver
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
+import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class TempTargetViewModelTest {
 
     @Mock private lateinit var persistenceLayer: PersistenceLayer
-    @Mock private lateinit var profileUtil: ProfileUtil
-    @Mock private lateinit var rh: ResourceHelper
     @Mock private lateinit var dateUtil: DateUtil
     @Mock private lateinit var aapsLogger: AAPSLogger
     @Mock private lateinit var rxBus: RxBus
+    @Mock private lateinit var batchExecutor: BatchExecutor
+    @Mock private lateinit var config: Config
 
     private lateinit var sut: TempTargetViewModel
 
@@ -41,7 +49,7 @@ internal class TempTargetViewModelTest {
         MockitoAnnotations.openMocks(this)
         Dispatchers.setMain(UnconfinedTestDispatcher())
         whenever(persistenceLayer.observeChanges(TT::class)).thenReturn(emptyFlow())
-        sut = TempTargetViewModel(persistenceLayer, profileUtil, rh, dateUtil, aapsLogger, rxBus)
+        sut = TempTargetViewModel(persistenceLayer, generatedTextResolver(), dateUtil, aapsLogger, rxBus, batchExecutor, config)
     }
 
     @AfterEach
@@ -96,12 +104,18 @@ internal class TempTargetViewModelTest {
     }
 
     @Test
-    fun `getDeleteConfirmationMessage empty when nothing selected, plural for many`() {
-        assertThat(sut.getDeleteConfirmationMessage()).isEqualTo("")
+    fun `requestDelete asks the master to remove the selected targets by their ids`() = runTest {
+        sut.enterSelectionMode(mock<TT> {
+            on { id } doReturn 5L
+            on { ids } doReturn IDs(nightscoutId = "ns5")
+        })
 
-        whenever(rh.gs(CoreUiStrings.confirm_remove_multiple_items, 2)).thenReturn("Remove 2 items")
-        sut.enterSelectionMode(mock<TT>())
-        sut.toggleSelection(mock<TT>())
-        assertThat(sut.getDeleteConfirmationMessage()).isEqualTo("Remove 2 items")
+        sut.requestDelete()
+
+        val actions = argumentCaptor<List<BatchAction>>()
+        verify(batchExecutor).prepare(actions.capture(), eq(Sources.Treatments), any())
+        assertThat(actions.firstValue).containsExactly(
+            BatchAction.Remove(BatchAction.Remove.Kind.TEMPORARY_TARGET, listOf(BatchAction.Remove.Ref(nsId = "ns5", localId = 5L)))
+        )
     }
 }

@@ -1,7 +1,7 @@
 <resources>
     <string name="eopatch">EOPatch2</string>
-    <string name="eopatch_shortname">EOP2</string>
     <string name="eopatch_pump_description">Pump integration for EOPatch2 / GlucoMen Day</string>
+    <string name="eopatch_bolus_end_not_confirmed" comment="%1$s=insulin the patch reported, with its unit, for example: 1.50 U">The patch did not confirm the end of the bolus. %1$s is recorded, but the patch may have given more. Check the patch before you give more insulin.</string>
 
     <string name="low_reservoir">Low reservoir Alerts</string>
     <string name="patch_expiration_reminders">Patch expiration Reminder</string>
@@ -75,7 +75,6 @@
     <string name="patch_communication_succeed">Communication success</string>
     <string name="patch_communication_succeed_message">Connected with the Patch.</string>
     <string name="patch_cancel_pairing">Cancel pairing</string>
-    <string name="all_dose_unit">&#160;U</string>
     <string name="insulin_suspend_msg1">Upon the suspend, the currently delivering Bolus &amp; Temp basal will be canceled. \n\nRate : %1$s U/hr\nRemaining time  : %2$s\n&amp; Insulin to go : %3$.2f U</string>
     <string name="insulin_suspend_msg2">Upon the suspend, the currently delivering Bolus will be canceled. \n\nInsulin to go : %1$.2f U</string>
     <string name="insulin_suspend_msg3">Upon the suspend, the currently delivering Temp Basal will be canceled. \n\nRate : %1$s U/hr\nRemaining time  : %2$s</string>

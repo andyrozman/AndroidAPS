@@ -108,6 +108,8 @@
     <string name="triggerCannulaAgeDesc">套管使用時間 %1$s %2$.1f 小時</string>
     <string name="triggerPodChangeLabel">幫浦註冊</string>
     <string name="triggerPodChangeDesc">幫浦已註冊</string>
+    <string name="triggerUnknownLabel">未知觸發條件</string>
+    <string name="triggerUnknownDesc" comment="%1$s=stored trigger type name, not translated. Example: Unknown trigger TriggerFromTheFuture - never true">未知觸發條件 %1$s - 永遠不會成立</string>
     <string name="triggerInsulinAgeLabel">胰島素使用時間</string>
     <string name="triggerInsulinAgeDesc">胰島素使用時間 %1$s %2$.1f 小時</string>
     <string name="triggerPumpBatteryAgeLabel">幫浦電池使用時間</string>
@@ -144,6 +146,7 @@
     <string name="triggerStepsCountLabel">步數統計</string>
     <string name="triggerStepsCountDesc">每 %1$s 分鐘的步數統計 %2$s %3$.0f</string>
     <string name="triggerStepsCountDropdownLabel">測量持續時間</string>
+    <string name="automation_log_entry" comment="One line of the automation run log. %1$s=time, %2$s=a symbol for success or failure, %3$s=rule name (bold), %4$s=what the action did, %5$s=its result. Example: 21:15 ☺ Night low: Start temp target: 8.0mmol/L@60 min(Automation): OK">%1$s %2$s %3$s: %4$s: %5$s</string>
     <!--    SMB mode-->
     <string name="changeSmbState">啟用/停用 SMB</string>
     <string name="changeSmbTo">更改 SMB 為 %1$s</string>

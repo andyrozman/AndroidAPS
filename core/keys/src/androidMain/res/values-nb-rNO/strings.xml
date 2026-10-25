@@ -126,7 +126,7 @@
     <string name="pref_title_ns_use_ws">Bruk websockets</string>
     <string name="pref_summary_ns_use_ws">Bruk websockets for sanntidskommunikasjon med Nightscout.</string>
     <string name="pref_title_ns_allow_client_control">Tillat klientstyring</string>
-    <string name="pref_summary_ns_allow_client_control">La tilkoblede klientenheter sende signerte kommandoer (f.eks. starte/stoppe scener) via Nightscout.</string>
+    <string name="pref_summary_ns_allow_client_control">La sammenkoblede klientenheter sende signerte kommandoer (f.eks. starte/stoppe scener) via Nightscout. Dette aktiverer også herdet modus: Endringer som gjøres direkte i Nightscout, blir ikke lenger tatt i bruk.</string>
     <!-- OpenHumans preferences -->
     <string name="pref_title_openhumans_wifi_only">Kun WiFi</string>
     <string name="pref_title_openhumans_charging_only">Kun under lading</string>
@@ -145,6 +145,9 @@
     <string name="pref_title_wear_wizard_cob">Inkluder COB i kalkulatorberegninger</string>
     <string name="pref_title_wear_wizard_iob">Inkluder IOB i kalkulatorberegninger</string>
     <string name="pref_title_wear_custom_watchface_authorization">Autoriser tilpassede urskiver</string>
+    <string name="pref_title_wear_pushed_watchface">Urskive installert på klokken</string>
+    <string name="wear_pushed_watchface_wfs" comment="Entry of a list setting: the built-in watchface made of AAPS complications">Komplikasjons-urskive</string>
+    <string name="wear_pushed_watchface_cwf" comment="Entry of a list setting: the watchface loaded from a custom watchface zip file">Egendefinert urskive</string>
     <string name="pref_title_wear_notify_on_smb">Varsle ved SMB</string>
     <string name="pref_summary_wear_notify_on_smb">Send varsler til klokken når SMB leveres.</string>
     <string name="pref_title_wear_broadcast_data">Send data til klokken</string>
@@ -264,8 +267,8 @@
     <string name="lang_tr">Tykrisk</string>
     <string name="lang_zh_tw">Kinesisk, tradisjonell</string>
     <string name="lang_zh_cn">Kinesisk, forenklet</string>
-    <string name="pref_title_patient_name">Navn</string>
-    <string name="pref_summary_patient_name">Navn for å identifisere denne AAPS-instansen (vist i rapporter og synkronisering)</string>
+    <string name="pref_title_patient_name">Instansnavn</string>
+    <string name="pref_summary_patient_name">Navnet på personen som bruker denne telefonen. Det gjør det mulig å skille denne AAPS-instansen fra andre i rapporter og ved synkronisering.</string>
     <!-- StringKey: Directory preferences -->
     <string name="pref_title_aaps_directory">AAPS-mappe</string>
     <!-- StringKey: Protection preferences -->

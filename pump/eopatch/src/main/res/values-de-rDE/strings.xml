@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="eopatch">EOPatch2</string>
-    <string name="eopatch_shortname">EOP2</string>
     <string name="eopatch_pump_description">Pumpen-Integration für EOPatch2 / GlucoMen Day</string>
     <string name="low_reservoir">Insulin-Reservoir fast leer</string>
     <string name="patch_expiration_reminders">Erinnerung an POD-Ablauf</string>
@@ -62,7 +61,6 @@
     <string name="patch_communication_succeed">Kommunikation erfolgreich</string>
     <string name="patch_communication_succeed_message">Verbunden mit dem Patch.</string>
     <string name="patch_cancel_pairing">Kopplung abbrechen</string>
-    <string name="all_dose_unit">&#160;IE</string>
     <string name="insulin_suspend_msg1">Nach der Suspendierung werden der derzeit ausgelieferte Bolus &amp; Temp-Basal abgebrochen. \n\nRate : %1$s U/hr\nVerbleibende Zeit : %2$s\n&amp; Insulin zu gehen: %3$.2f IE</string>
     <string name="insulin_suspend_msg2">Nach der Suspendierung wird der derzeit lieferbare Bolus abgebrochen. \n\nInsulin zum gehen: %1$.2f IE</string>
     <string name="insulin_suspend_msg3">Nach der Suspendierung wird der derzeit ausgelieferte Temp-Basal abgebrochen. \nRate : %1$s U/hr\nVerbleibende Zeit : %2$s\n Insulin zu gehen:  IE</string>
@@ -80,5 +78,4 @@
     <string name="string_resumed_insulin_delivery_message">Insulinabgabe wieder aufgenommen.</string>
     <string name="string_temp_basal_remained_hhmm">verbleibende Zeit: %1$s:%2$s</string>
     <string name="string_resume_failed">Fortsetzen fehlgeschlagen.</string>
-    <!-- Permission rationales -->
 </resources>

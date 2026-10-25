@@ -2,7 +2,6 @@ package app.aaps.ui.compose.fillDialog
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,7 +29,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -54,13 +52,13 @@ import app.aaps.core.data.format.NumberFormat
 import app.aaps.core.data.model.ICfg
 import app.aaps.core.data.model.TE
 import app.aaps.core.interfaces.navigation.ElementType
-import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.ui.CoreUiStrings
-import app.aaps.core.ui.compose.LocalDecimalFormatter
 import app.aaps.core.ui.compose.AapsTopAppBar
 import app.aaps.core.ui.compose.DateTimeSection
-import app.aaps.core.ui.compose.EventTimeRow
+import app.aaps.core.ui.compose.LabeledSwitch
+import app.aaps.core.ui.compose.LocalDecimalFormatter
 import app.aaps.core.ui.compose.NumberInputRow
+import app.aaps.core.ui.compose.TimeOffsetRow
 import app.aaps.core.ui.compose.bottomBarSafeArea
 import app.aaps.core.ui.compose.clearFocusOnTap
 import app.aaps.core.ui.compose.consumeOverscroll
@@ -74,8 +72,10 @@ import app.aaps.core.ui.compose.siteRotation.SiteLocationSummary
 import app.aaps.core.ui.compose.stringResource
 import app.aaps.core.ui.compose.stringResourceOrNull
 import app.aaps.ui.UiStrings
+import app.aaps.ui.compose.EVENT_TIME_OFFSET_RANGE_MINUTES
 import app.aaps.ui.compose.EventDatePicker
 import app.aaps.ui.compose.EventTimePicker
+import app.aaps.ui.compose.components.SmbBeingDeliveredBanner
 
 /**
  * @see PreviewSiteChange
@@ -207,9 +207,11 @@ fun FillDialogScreen(
         onInsulinChange = viewModel::updateInsulin,
         onInsulinSelect = viewModel::selectInsulin,
         onNotesChange = viewModel::updateNotes,
+        onTimeOffsetChange = viewModel::updateTimeOffset,
         onDateClick = { showDatePicker = true },
         onTimeClick = { showTimePicker = true },
-        onSettingsClick = if (uiState.simpleMode) null else {
+        // The settings edit the prime presets, so they go with the prime.
+        onSettingsClick = if (uiState.simpleMode || !uiState.primeAvailable) null else {
             { showButtonSettings = true }
         },
         onNavigateBack = onNavigateBack,
@@ -229,6 +231,7 @@ internal fun FillDialogContent(
     onInsulinChange: (Double) -> Unit,
     onInsulinSelect: (ICfg) -> Unit,
     onNotesChange: (String) -> Unit,
+    onTimeOffsetChange: (Int) -> Unit,
     onDateClick: () -> Unit,
     onTimeClick: () -> Unit,
     onSettingsClick: (() -> Unit)?,
@@ -240,28 +243,31 @@ internal fun FillDialogContent(
 
     Scaffold(
         topBar = {
-            AapsTopAppBar(
-                title = { Text((stringResourceOrNull(ElementType.FILL.label()) ?: "")) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = stringResource(CoreUiStrings.close)
-                        )
-                    }
-                },
-                actions = {
-                    if (onSettingsClick != null) {
-                        IconButton(onClick = onSettingsClick) {
+            Column {
+                AapsTopAppBar(
+                    title = { Text((stringResourceOrNull(ElementType.FILL.label()) ?: "")) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
                             Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = stringResource(CoreUiStrings.settings),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = stringResource(CoreUiStrings.close)
                             )
                         }
+                    },
+                    actions = {
+                        if (onSettingsClick != null) {
+                            IconButton(onClick = onSettingsClick) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = stringResource(CoreUiStrings.settings),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
-                }
-            )
+                )
+                if (uiState.waitsForSmb) SmbBeingDeliveredBanner()
+            }
         },
         bottomBar = {
             // The button shows only a value, so a screen reader would say just the amount and never
@@ -273,7 +279,7 @@ internal fun FillDialogContent(
                     focusManager.clearFocus()
                     onConfirmClick()
                 },
-                enabled = uiState.hasAction,
+                enabled = uiState.hasAction && !uiState.waitsForSmb,
                 modifier = Modifier
                     .fillMaxWidth()
                     .bottomBarSafeArea()
@@ -316,22 +322,11 @@ internal fun FillDialogContent(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     // Site change
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSiteChangeClick() },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = stringResource(UiStrings.record_pump_site_change),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Switch(
-                            checked = uiState.siteChange,
-                            onCheckedChange = { onSiteChangeClick() }
-                        )
-                    }
+                    LabeledSwitch(
+                        label = stringResource(UiStrings.record_pump_site_change),
+                        checked = uiState.siteChange,
+                        onCheckedChange = { onSiteChangeClick() }
+                    )
 
                     // Site location picker
                     if (uiState.siteChange && uiState.siteRotationEnabled) {
@@ -344,22 +339,11 @@ internal fun FillDialogContent(
                     }
 
                     // Cartridge change
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onCartridgeChangeClick() },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = stringResource(UiStrings.record_insulin_cartridge_change),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Switch(
-                            checked = uiState.insulinCartridgeChange,
-                            onCheckedChange = { onCartridgeChangeClick() }
-                        )
-                    }
+                    LabeledSwitch(
+                        label = stringResource(UiStrings.record_insulin_cartridge_change),
+                        checked = uiState.insulinCartridgeChange,
+                        onCheckedChange = { onCartridgeChangeClick() }
+                    )
 
                     // Insulin selection
                     AnimatedVisibility(visible = uiState.showInsulinChange) {
@@ -384,7 +368,9 @@ internal fun FillDialogContent(
                     // Prime/fill amount + presets. On an AAPSCLIENT the prime can't be delivered remotely (it's a
                     // physical at-the-pump action), so the input is shown but DISABLED (grayed); only the logging
                     // actions (site / cartridge / insulin-type change) work on a client. showBolus = !AAPSCLIENT.
-                    Column(modifier = itemModifier) {
+                    // A patch pump primes in its own activation wizard, and its cannula is already in the body: a
+                    // prime from here would be insulin outside IOB, so the section is not shown at all there.
+                    if (uiState.primeAvailable) Column(modifier = itemModifier) {
                         NumberInputRow(
                             labelRef = UiStrings.fill_prime_amount,
                             value = uiState.insulin,
@@ -417,10 +403,13 @@ internal fun FillDialogContent(
                         }
                     }
 
-                    // Time (collapsible "Now" pattern)
-                    EventTimeRow(
-                        timeChanged = uiState.eventTimeChanged,
-                        displayText = "$dateString $timeString",
+                    // Time: -/+ in 5 minute steps like the other treatment dialogs, the pickers when expanded
+                    TimeOffsetRow(
+                        labelRef = CoreUiStrings.time,
+                        offsetMinutes = uiState.timeOffsetMinutes,
+                        onOffsetChange = onTimeOffsetChange,
+                        resolvedTimeText = if (uiState.timeOffsetMinutes != 0) stringResource(CoreUiStrings.value_with_unit, dateString, timeString) else null,
+                        offsetRange = EVENT_TIME_OFFSET_RANGE_MINUTES,
                         dateTimeContent = {
                             DateTimeSection(
                                 dateString = dateString,

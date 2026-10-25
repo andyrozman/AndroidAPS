@@ -44,7 +44,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.aaps.core.data.format.NumberFormat
-import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.interfaces.calibration.AddEntryResult
 import app.aaps.core.interfaces.navigation.ElementType
 import app.aaps.core.keys.interfaces.TextRef
@@ -67,8 +66,8 @@ fun CalibrationDialogScreen(
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val confirmation by viewModel.confirmation.collectAsStateWithLifecycle()
 
-    var showConfirmation by rememberSaveable { mutableStateOf(false) }
     var showNoAction by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -81,21 +80,14 @@ fun CalibrationDialogScreen(
         }
     }
 
-    if (showConfirmation) {
-        if (!viewModel.hasAction()) {
-            showConfirmation = false
-            showNoAction = true
-        } else {
-            ElementConfirmationDialog(
-                elementType = ElementType.CALIBRATION,
-                lines = viewModel.buildConfirmationSummary(),
-                onConfirm = {
-                    viewModel.confirmAndSave()
-                    showConfirmation = false
-                },
-                onDismiss = { showConfirmation = false }
-            )
-        }
+    // The master's description of the calibration
+    confirmation?.let { pending ->
+        ElementConfirmationDialog(
+            elementType = ElementType.CALIBRATION,
+            lines = pending.lines,
+            onConfirm = { viewModel.confirmCalibration() },
+            onDismiss = { viewModel.dismissCalibration() }
+        )
     }
 
     if (showNoAction) {
@@ -118,7 +110,7 @@ fun CalibrationDialogScreen(
         onMarkSensorChange = viewModel::markSensorChangeNow,
         onBgChange = viewModel::updateBg,
         onNavigateBack = onNavigateBack,
-        onConfirmClick = { showConfirmation = true }
+        onConfirmClick = { if (viewModel.hasAction()) viewModel.requestCalibration() else showNoAction = true }
     )
 }
 
@@ -156,7 +148,7 @@ internal fun CalibrationDialogContent(
             val bgFormat = remember(uiState.isMgdl) { if (uiState.isMgdl) NumberFormat.INTEGER else NumberFormat.DECIMAL_1 }
             // One value for both the visible label and the spoken name, so they can never drift apart.
             val confirmLabel =
-                if (uiState.hasValidBg) "${bgFormat.format(uiState.bg)} ${uiState.unitLabel}"
+                if (uiState.hasValidBg) stringResource(CoreUiStrings.value_with_unit, bgFormat.format(uiState.bg), uiState.unitLabel)
                 else stringResource(CoreUiStrings.ok)
             // A Button merges its children, so a bare name would hide the value. Carry the value in the name.
             val confirmDescription = stringResource(CoreUiStrings.confirm)

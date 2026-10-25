@@ -1,14 +1,11 @@
 package app.aaps.plugins.sync.wear.wearintegration
 
-import org.mockito.kotlin.doAnswer
-import app.aaps.core.keys.interfaces.TextRef
-import app.aaps.plugins.sync.SyncStrings
 import app.aaps.core.data.model.RM
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.automation.Automation
 import app.aaps.core.interfaces.automation.AutomationEvent
 import app.aaps.core.interfaces.bolus.BatchExecutor
-import app.aaps.core.interfaces.bolus.WizardBolusExecutor
+import app.aaps.core.interfaces.bolus.MasterActionExecutor
 import app.aaps.core.interfaces.bolus.WizardExecutor
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.maintenance.ImportExportPrefs
@@ -20,22 +17,25 @@ import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.receivers.ReceiverStatusStore
 import app.aaps.core.interfaces.rx.events.EventMobileToWear
 import app.aaps.core.interfaces.rx.weardata.EventData
+import app.aaps.core.interfaces.ui.UiInteraction
+import app.aaps.core.interfaces.utils.TrendCalculator
+import app.aaps.core.keys.interfaces.TextRef
+import app.aaps.core.objects.runningMode.RunningModeGuard
+import app.aaps.core.objects.wizard.QuickWizard
+import app.aaps.plugins.sync.SyncStrings
+import app.aaps.shared.tests.TestBaseWithProfile
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import app.aaps.core.interfaces.ui.UiInteraction
-import app.aaps.core.interfaces.utils.TrendCalculator
-import app.aaps.core.objects.runningMode.RunningModeGuard
-import app.aaps.core.objects.wizard.QuickWizard
-import app.aaps.shared.tests.TestBaseWithProfile
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyBlocking
@@ -67,7 +67,7 @@ class DataHandlerMobileUserActionTest : TestBaseWithProfile() {
     @Mock private lateinit var importExportPrefs: ImportExportPrefs
     @Mock private lateinit var pumpStatusProvider: PumpStatusProvider
     @Mock private lateinit var runningModeGuard: RunningModeGuard
-    @Mock private lateinit var wizardBolusExecutor: WizardBolusExecutor
+    @Mock private lateinit var masterActionExecutor: MasterActionExecutor
     @Mock private lateinit var batchExecutor: BatchExecutor
     @Mock private lateinit var wizardExecutor: WizardExecutor
     @Mock private lateinit var pump: PumpWithConcentration
@@ -84,7 +84,7 @@ class DataHandlerMobileUserActionTest : TestBaseWithProfile() {
             loop, processedDeviceStatusData, receiverStatusStore, quickWizard, trendCalculator, dateUtil,
             constraintsChecker, activePlugin, commandQueue, fabricPrivacy, uiInteraction,
             persistenceLayer, importExportPrefs, decimalFormatter, pumpStatusProvider,
-            ch, runningModeGuard, wizardBolusExecutor, batchExecutor, wizardExecutor
+            ch, runningModeGuard, masterActionExecutor, batchExecutor, wizardExecutor
         )
         sut.automation = automation
         // Happy-path gating preconditions. Suspend mocks wrapped in runBlocking — matches the

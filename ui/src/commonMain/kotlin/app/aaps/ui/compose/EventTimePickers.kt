@@ -3,12 +3,20 @@ package app.aaps.ui.compose
 import androidx.compose.runtime.Composable
 import app.aaps.core.ui.compose.dialogs.DatePickerModal
 import app.aaps.core.ui.compose.dialogs.TimePickerModal
-import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
+
+/**
+ * How far the -/+ buttons of a careportal or fill entry can move its time, in minutes from now.
+ *
+ * A week back, for an entry that is logged late, and half a day ahead. The date and time pickers
+ * are not limited by this. Shared, so a dialog and its view model cannot disagree.
+ */
+val EVENT_TIME_OFFSET_RANGE_MINUTES: IntRange = -7 * 24 * 60..12 * 60
 
 /**
  * Date picker that merges the selected date with the existing time from [eventTimeMillis],

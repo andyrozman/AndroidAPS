@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="eopatch">EOPatch2</string>
-    <string name="eopatch_shortname">EOP2</string>
     <string name="eopatch_pump_description">Pumpintegration för EOPatch2 / GlucoMen Day</string>
     <string name="low_reservoir">Varningar för låg reservoar</string>
     <string name="patch_expiration_reminders">Påminnelse om att byta patch</string>
@@ -62,7 +61,6 @@
     <string name="patch_communication_succeed">Kommunikation lyckades</string>
     <string name="patch_communication_succeed_message">Ansluten till podden.</string>
     <string name="patch_cancel_pairing">Avbryt parkoppling</string>
-    <string name="all_dose_unit">&#160;U</string>
     <string name="insulin_suspend_msg1">Vid avstängningen kommer den nuvarande leveransen av Bolus &amp; tillfällig basaldos att avbrytas. \n\nDos : %1$s U/hr\nÅterstående tid : %2$s\n&amp; Kvarvarande insulin att leverera: %3$.2f U</string>
     <string name="insulin_suspend_msg2">Vid avstängning kommer den nuvarande leveransen av bolus att avbrytas. \n\nInsulin kvar att leverera : %1$.2f U</string>
     <string name="insulin_suspend_msg3">Vid avstängningen kommer den nuvarande leveransen av tillfällig basaldos att avbrytas. \n\nDos : %1$s U/hr\nÅterstående tid : %2$s</string>
@@ -80,5 +78,4 @@
     <string name="string_resumed_insulin_delivery_message">Insulinleveransen har återupptagits.</string>
     <string name="string_temp_basal_remained_hhmm">återstående tid: %1$s:%2$s</string>
     <string name="string_resume_failed">Återupptagande misslyckades.</string>
-    <!-- Permission rationales -->
 </resources>

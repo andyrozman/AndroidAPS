@@ -14,15 +14,14 @@ import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.profiling.Profiler
 import app.aaps.core.interfaces.protection.PasswordCheck
 import app.aaps.core.interfaces.pump.Pump
+import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.StringKey
-import app.aaps.core.ui.CoreUiStrings
 import app.aaps.implementation.pump.PumpWithConcentrationImpl
-import app.aaps.plugins.aps.ApsStrings
 import app.aaps.plugins.aps.openAPSAMA.DetermineBasalAMA
 import app.aaps.plugins.aps.openAPSAMA.OpenAPSAMAPlugin
 import app.aaps.plugins.aps.openAPSSMB.DetermineBasalSMB
@@ -30,7 +29,6 @@ import app.aaps.plugins.aps.openAPSSMB.GlucoseStatusCalculatorSMB
 import app.aaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
 import app.aaps.plugins.constraints.objectives.ObjectivesPlugin
 import app.aaps.plugins.constraints.objectives.objectives.Objective0
-import app.aaps.plugins.constraints.objectives.objectives.PlainDurationText
 import app.aaps.plugins.constraints.objectives.objectives.Objective1
 import app.aaps.plugins.constraints.objectives.objectives.Objective2
 import app.aaps.plugins.constraints.objectives.objectives.Objective3
@@ -40,9 +38,11 @@ import app.aaps.plugins.constraints.objectives.objectives.Objective6
 import app.aaps.plugins.constraints.objectives.objectives.Objective7
 import app.aaps.plugins.constraints.objectives.objectives.Objective8
 import app.aaps.plugins.constraints.objectives.objectives.Objective9
+import app.aaps.plugins.constraints.objectives.objectives.PlainDurationText
 import app.aaps.plugins.constraints.safety.SafetyPlugin
 import app.aaps.pump.virtual.VirtualPumpPlugin
 import app.aaps.shared.tests.TestBaseWithProfile
+import app.aaps.shared.tests.generatedTextResolver
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -66,6 +66,17 @@ private class CappedPumpPlugin(private val maxBasal: Double) : Pump by mock(), P
 }
 
 /**
+ * A pump with bolus limits of its own, in its units, like Insight: a max, and a min below which it gives
+ * nothing. Its step is 0.05.
+ */
+private class LimitedBolusPump(private val min: Double, private val max: Double) : Pump by mock(), PumpPluginConstraints {
+
+    override fun bolusStepSize(amount: Double): Double = 0.05
+    override fun applyBolusConstraints(insulin: PumpInsulin): PumpInsulin =
+        PumpInsulin(insulin.cU.coerceAtMost(max).let { if (it < min) 0.0 else it })
+}
+
+/**
  * Created by mike on 18.03.2018.
  */
 class ConstraintsCheckerImplTest : TestBaseWithProfile() {
@@ -81,6 +92,12 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
     @Mock lateinit var passwordCheck: PasswordCheck
     @Mock lateinit var pumpWithConcentration: PumpWithConcentrationImpl
 
+    /**
+     * Real English for every reason the checker builds, so the sentences asserted below are the ones the
+     * user reads. `:shared:tests` cannot see this module, so the generated map is handed over here.
+     */
+    private val text = generatedTextResolver("constraints" to ConstraintsStringsValues::textOf)
+
     private lateinit var constraintChecker: ConstraintsCheckerImpl
     private lateinit var safetyPlugin: SafetyPlugin
     private lateinit var objectivesPlugin: ObjectivesPlugin
@@ -94,74 +111,48 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
             whenever(persistenceLayer.getApsResults(any(), any())).thenReturn(emptyList())
         }
 
-        whenever(rh.gs(ConstraintsStrings.closed_loop_disabled_on_dev_branch)).thenReturn("Running dev version. Closed loop is disabled.")
-        whenever(rh.gs(CoreUiStrings.no_valid_basal_rate)).thenReturn("No valid basal rate read from pump")
-        // :plugins:aps resolves its own strings through TextRef, so these need the ApsStrings key, not ConstraintsStrings.
-        whenever(rh.gs(ApsStrings.hardlimit)).thenReturn("hard limit")
-        whenever(rh.gs(CoreUiStrings.limitingbasalratio)).thenReturn("Limiting max basal rate to %1\$.2f U/h because of %2\$s")
-        whenever(rh.gs(ApsStrings.maxvalueinpreferences)).thenReturn("max value in preferences")
-        whenever(rh.gs(ApsStrings.autosens_disabled_in_preferences)).thenReturn("Autosens disabled in preferences")
-        whenever(rh.gs(ApsStrings.smb_disabled_in_preferences)).thenReturn("SMB disabled in preferences")
-        whenever(rh.gs(CoreUiStrings.pumplimit)).thenReturn("pump limit")
-        whenever(rh.gs(CoreUiStrings.itmustbepositivevalue)).thenReturn("it must be positive value")
-        whenever(rh.gs(ConstraintsStrings.maxvalueinpreferences)).thenReturn("max value in preferences")
-        whenever(rh.gs(ApsStrings.max_basal_multiplier)).thenReturn("max basal multiplier")
-        whenever(rh.gs(ApsStrings.max_daily_basal_multiplier)).thenReturn("max daily basal multiplier")
-        whenever(rh.gs(CoreUiStrings.pumplimit)).thenReturn("pump limit")
-        whenever(rh.gs(CoreUiStrings.limitingbolus)).thenReturn("Limiting bolus to %.1f U because of %s")
-        whenever(rh.gs(ConstraintsStrings.hardlimit)).thenReturn("hard limit")
-        whenever(rh.gs(ConstraintsStrings.limitingcarbs)).thenReturn("Limiting carbs to %d g because of %s")
-        whenever(rh.gs(ApsStrings.limiting_iob)).thenReturn("Limiting IOB to %.1f U because of %s")
-        whenever(rh.gs(CoreUiStrings.limitingbasalratio)).thenReturn("Limiting max basal rate to %1\$.2f U/h because of %2\$s")
-        whenever(rh.gs(CoreUiStrings.limitingpercentrate)).thenReturn("Limiting max percent rate to %1\$d%% because of %2\$s")
-        whenever(rh.gs(CoreUiStrings.itmustbepositivevalue)).thenReturn("it must be positive value")
-        whenever(rh.gs(ConstraintsStrings.smbnotallowedinopenloopmode)).thenReturn("SMB not allowed in open loop mode")
-        whenever(rh.gs(CoreUiStrings.pumplimit)).thenReturn("pump limit")
-        whenever(rh.gs(ConstraintsStrings.smbalwaysdisabled)).thenReturn("SMB always and after carbs disabled because active BG source doesn\\'t support advanced filtering")
-        whenever(rh.gs(CoreUiStrings.limitingpercentrate)).thenReturn("Limiting max percent rate to %1\$d%% because of %2\$s")
-        whenever(rh.gs(CoreUiStrings.limitingbolus)).thenReturn("Limiting bolus to %1\$.1f U because of %2\$s")
-        whenever(rh.gs(CoreUiStrings.limitingbasalratio)).thenReturn("Limiting max basal rate to %1\$.2f U/h because of %2\$s")
-        whenever(rh.gs(ConstraintsStrings.objectivenotstarted)).thenReturn("Objective %1\$d not started")
-
         whenever(activePlugin.activePump).thenReturn(pumpWithConcentration)
         whenever(pumpWithConcentration.pumpDescription).thenReturn(PumpDescription())
+        // SafetyPlugin floors a bolus to this step (insulin units). The step of an unfilled description; a plain
+        // mock would answer 0.0.
+        whenever(pumpWithConcentration.bolusStepSize(any())).thenReturn(0.1)
 
         //SafetyPlugin
-        constraintChecker = ConstraintsCheckerImpl(activePlugin, aapsLogger, ch, rh)
+        constraintChecker = ConstraintsCheckerImpl(activePlugin, aapsLogger, ch, text)
 
         // The real formatter rather than a mock: it is pure arithmetic over a duration, and the
         // objectives only read it for display.
         val durationText = PlainDurationText()
         val objectives = listOf(
-            Objective0(preferences, rh, durationText, dateUtil, activePlugin, virtualPumpPlugin, persistenceLayer, loop, iobCobCalculator, passwordCheck),
-            Objective1(preferences, rh, durationText, dateUtil),
-            Objective2(preferences, rh, durationText, dateUtil),
-            Objective3(preferences, rh, durationText, dateUtil),
-            Objective4(preferences, rh, durationText, dateUtil, profileFunction),
-            Objective5(preferences, rh, durationText, dateUtil),
-            Objective6(preferences, rh, durationText, dateUtil, constraintsChecker, loop),
-            Objective7(preferences, rh, durationText, dateUtil),
-            Objective8(preferences, rh, durationText, dateUtil),
-            Objective9(preferences, rh, durationText, dateUtil)
+            Objective0(preferences, text, durationText, dateUtil, activePlugin, virtualPumpPlugin, persistenceLayer, loop, iobCobCalculator, passwordCheck),
+            Objective1(preferences, text, durationText, dateUtil),
+            Objective2(preferences, text, durationText, dateUtil),
+            Objective3(preferences, text, durationText, dateUtil),
+            Objective4(preferences, text, durationText, dateUtil, profileFunction),
+            Objective5(preferences, text, durationText, dateUtil),
+            Objective6(preferences, text, durationText, dateUtil, constraintsChecker, loop),
+            Objective7(preferences, text, durationText, dateUtil),
+            Objective8(preferences, text, durationText, dateUtil),
+            Objective9(preferences, text, durationText, dateUtil)
         )
-        objectivesPlugin = ObjectivesPlugin(aapsLogger, rh, preferences, config, objectives, mock())
+        objectivesPlugin = ObjectivesPlugin(aapsLogger, text, preferences, config, objectives, mock())
         runBlocking { objectivesPlugin.onStart() }
         openAPSSMBPlugin =
             OpenAPSSMBPlugin(
-                aapsLogger, rxBus, constraintChecker, rh, profileFunction, profileUtil, config, activePlugin, iobCobCalculator,
+                aapsLogger, rxBus, constraintChecker, text, profileFunction, profileUtil, config, activePlugin, iobCobCalculator,
                 hardLimits, preferences, dateUtil, processedTbrEbData, persistenceLayer, smbGlucoseStatusProvider, tddCalculator, bgQualityCheck,
                 notificationManager, determineBasalSMB, profiler, GlucoseStatusCalculatorSMB(aapsLogger, iobCobCalculator, dateUtil, decimalFormatter, deltaCalculator), { apsResultProvider() }, ch,
                 fabricPrivacy
             )
         openAPSAMAPlugin =
             OpenAPSAMAPlugin(
-                aapsLogger, rxBus, constraintChecker, rh, config, profileFunction, activePlugin, iobCobCalculator, processedTbrEbData,
+                aapsLogger, rxBus, constraintChecker, text, config, profileFunction, activePlugin, iobCobCalculator, processedTbrEbData,
                 hardLimits, dateUtil, persistenceLayer, smbGlucoseStatusProvider, preferences, determineBasalAMA,
                 GlucoseStatusCalculatorSMB(aapsLogger, iobCobCalculator, dateUtil, decimalFormatter, deltaCalculator), { apsResultProvider() }, ch, fabricPrivacy, mock()
             )
         safetyPlugin =
             SafetyPlugin(
-                aapsLogger, rh, preferences, constraintChecker, activePlugin, hardLimits,
+                aapsLogger, text, preferences, constraintChecker, activePlugin, hardLimits,
                 config, persistenceLayer, dateUtil, notificationManager, decimalFormatter
             )
         val constraintsPluginsList = ArrayList<PluginBase>()
@@ -276,8 +267,9 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
         val i = constraintChecker.getMaxBasalPercentAllowed(validProfile)
         assertThat(i.value()).isEqualTo(200)
         // Pump plugins no longer contribute percent reasons — their percent cap was redundant with SafetyPlugin,
-        // which still caps to the same value (tbrSettings.maxDose); remaining reasons are all from SafetyPlugin.
-        assertThat(i.reasonList).hasSize(4)
+        // which caps to maxTempPercent of the pump description; remaining reasons are all from SafetyPlugin.
+        // The pump's percent cap equals the value here, so it adds no second reason of its own.
+        assertThat(i.reasonList).hasSize(3)
         assertThat(i.getMostLimitedReasons()).isEqualTo("Safety: Limiting max percent rate to 200% because of pump limit")
     }
 
@@ -298,6 +290,41 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
         // pump here is the virtual pump, which has none.
         assertThat(d.reasonList).hasSize(2)
         assertThat(d.getMostLimitedReasons()).isEqualTo("Safety: Limiting bolus to 3.0 U because of max value in preferences")
+    }
+
+    // applyPrimingConstraints tests
+
+    /**
+     * A prime is in pump units. The max bolus is used as a plain number of pump units, as before
+     * concentrations: at U200 it is not halved. The amount is floored to the step of the pump itself, not to
+     * the step of the concentration wrapper.
+     */
+    @Test
+    fun primingIsLimitedByTheMaxBolusAsAPlainNumber() {
+        whenever(preferences.get(DoubleKey.SafetyMaxBolus)).thenReturn(3.0)
+        whenever(preferences.get(StringKey.SafetyAge)).thenReturn("child")
+        // U200. A prime must not be converted with it.
+        whenever(ch.toPump(any<Double>())).thenAnswer { PumpInsulin(it.getArgument<Double>(0) / 2.0) }
+        // The pump itself (activePumpInternal) steps by 0.05, the wrapper (stubbed in prepare) by 0.1.
+        testPumpPlugin.pumpDescription.bolusStep = 0.05
+
+        assertThat(constraintChecker.applyPrimingConstraints(PumpInsulin(5.0)).cU).isWithin(1e-9).of(3.0)
+        assertThat(constraintChecker.applyPrimingConstraints(PumpInsulin(1.27)).cU).isWithin(1e-9).of(1.25)
+        assertThat(constraintChecker.applyPrimingConstraints(PumpInsulin(-1.0)).cU).isEqualTo(0.0)
+    }
+
+    /** The pump's own limits are in its units, so they apply to a prime as they are: a max, and a min. */
+    @Test
+    fun primingKeepsTheLimitsOfThePump() {
+        whenever(preferences.get(DoubleKey.SafetyMaxBolus)).thenReturn(3.0)
+        whenever(preferences.get(StringKey.SafetyAge)).thenReturn("child")
+        whenever(activePlugin.activePumpInternal).thenReturn(LimitedBolusPump(min = 0.5, max = 2.0))
+
+        assertThat(constraintChecker.applyPrimingConstraints(PumpInsulin(5.0)).cU).isWithin(1e-9).of(2.0)
+        assertThat(constraintChecker.applyPrimingConstraints(PumpInsulin(1.27)).cU).isWithin(1e-9).of(1.25)
+        assertThat(constraintChecker.applyPrimingConstraints(PumpInsulin(0.3)).cU).isEqualTo(0.0)
+        // The max the fill dialog asks for.
+        assertThat(constraintChecker.applyPrimingConstraints(PumpInsulin(Double.MAX_VALUE)).cU).isWithin(1e-9).of(2.0)
     }
 
     // applyCarbsConstraints tests

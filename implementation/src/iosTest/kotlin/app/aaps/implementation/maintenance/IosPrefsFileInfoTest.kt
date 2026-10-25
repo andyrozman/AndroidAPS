@@ -10,11 +10,11 @@ import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.objects.crypto.platformCryptoPrimitives
 import app.aaps.implementation.maintenance.data.PrefsStatusImpl
 import app.aaps.implementation.maintenance.formats.PrefsFormatCodec
+import platform.Foundation.NSTemporaryDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import platform.Foundation.NSTemporaryDirectory
 
 /**
  * The two answers the maintenance and import screens read.
@@ -61,7 +61,6 @@ class IosPrefsFileInfoTest {
         override fun gs(ref: TextRef): String = "t"
         override fun gs(ref: TextRef, vararg args: Any?): String = "t"
         override fun gsNotLocalised(ref: TextRef): String = "t"
-        override fun shortTextMode(): Boolean = false
     }
 
     private val plainKeychain = object : SecureEncrypt {

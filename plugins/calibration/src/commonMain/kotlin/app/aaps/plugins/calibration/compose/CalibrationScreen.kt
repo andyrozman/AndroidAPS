@@ -19,22 +19,19 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,6 +44,7 @@ import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.AapsCard
 import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.ToolbarConfig
+import app.aaps.core.ui.compose.dialogs.RecordRemovalDialog
 import app.aaps.core.ui.compose.navigation.LocalPluginNavigationRequest
 import app.aaps.core.ui.compose.navigation.NavigationRequest
 import app.aaps.core.ui.compose.stringResource
@@ -86,8 +84,10 @@ internal fun CalibrationScreen(
         onMarkSensorChange = { navigationRequest(NavigationRequest.Element(ElementType.SENSOR_INSERT)) },
         onAddCalibration = { navigationRequest(NavigationRequest.Element(ElementType.CALIBRATION)) },
         onSelectEntry = viewModel::selectEntry,
-        onDeleteEntry = viewModel::deleteEntry
+        onDeleteEntry = viewModel::requestDelete
     )
+    // Removal confirmation, written by the master
+    RecordRemovalDialog(removal = viewModel.removal, onApplied = {})
 }
 
 /**
@@ -104,7 +104,6 @@ internal fun CalibrationScreenContent(
     onSelectEntry: (Long) -> Unit,
     onDeleteEntry: (Long) -> Unit
 ) {
-    var pendingDeleteId by remember { mutableStateOf<Long?>(null) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(state.selectedEntryId, state.entries) {
@@ -162,28 +161,10 @@ internal fun CalibrationScreenContent(
                 contentPadding = PaddingValues(bottom = AapsSpacing.large),
                 formatTime = formatDateTime,
                 onSelect = onSelectEntry,
-                onDelete = { pendingDeleteId = it }
+                // The master describes the removal and asks; see CalibrationScreen.
+                onDelete = onDeleteEntry
             )
         }
-    }
-
-    pendingDeleteId?.let { id ->
-        AlertDialog(
-            onDismissRequest = { pendingDeleteId = null },
-            title = { Text(stringResource(CalibrationStrings.cal_remove_entry_title)) },
-            text = { Text(stringResource(CalibrationStrings.cal_remove_entry_message)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    onDeleteEntry(id)
-                    pendingDeleteId = null
-                }) { Text(stringResource(CoreUiStrings.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDeleteId = null }) {
-                    Text(stringResource(CoreUiStrings.cancel))
-                }
-            }
-        )
     }
 }
 
@@ -264,7 +245,7 @@ private fun ChartCard(
             if (state.entries.size >= 2) {
                 Spacer(Modifier.height(AapsSpacing.small))
                 EntrySliderReadout(state = state, formatDateTime = formatDateTime)
-                EntrySlider(state = state, onSelectEntry = onSelectEntry)
+                EntrySlider(state = state, formatDateTime = formatDateTime, onSelectEntry = onSelectEntry)
             } else if (state.entries.size == 1) {
                 Spacer(Modifier.height(AapsSpacing.small))
                 EntrySliderReadout(state = state, formatDateTime = formatDateTime)
@@ -278,20 +259,27 @@ private fun EntrySliderReadout(
     state: CalibrationUiState,
     formatDateTime: (Long) -> String
 ) {
-    val selectedIndex = state.entries.indexOfFirst { it.id == state.selectedEntryId }
-    if (selectedIndex < 0) return
-    val entry = state.entries[selectedIndex]
+    val readout = entryReadout(state, formatDateTime) ?: return
     Text(
-        text = stringResource(
-            CalibrationStrings.cal_chart_entry_readout,
-            selectedIndex + 1,
-            state.entries.size,
-            formatDateTime(entry.timestamp),
-            entry.sensorMgdlAtPairing.formatBgDisplay(state.glucoseUnit),
-            entry.fingerstickMgdl.formatBgDisplay(state.glucoseUnit)
-        ),
+        text = readout,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+/** "Entry 3 of 7, <time>, sensor …, fingerstick …" for the selected entry, or null with none selected. */
+@Composable
+private fun entryReadout(state: CalibrationUiState, formatDateTime: (Long) -> String): String? {
+    val selectedIndex = state.entries.indexOfFirst { it.id == state.selectedEntryId }
+    if (selectedIndex < 0) return null
+    val entry = state.entries[selectedIndex]
+    return stringResource(
+        CalibrationStrings.cal_chart_entry_readout,
+        selectedIndex + 1,
+        state.entries.size,
+        formatDateTime(entry.timestamp),
+        entry.sensorMgdlAtPairing.formatBgDisplay(state.glucoseUnit),
+        entry.fingerstickMgdl.formatBgDisplay(state.glucoseUnit)
     )
 }
 
@@ -308,8 +296,12 @@ private fun Double.formatBgDisplay(unit: GlucoseUnit, signed: Boolean = false): 
 @Composable
 private fun EntrySlider(
     state: CalibrationUiState,
+    formatDateTime: (Long) -> String,
     onSelectEntry: (Long) -> Unit
 ) {
+    // On its own the slider read as a percentage. It says which entry is picked, the same text as
+    // the readout above it.
+    val readout = entryReadout(state, formatDateTime)
     val selectedIndex = state.entries.indexOfFirst { it.id == state.selectedEntryId }
         .coerceAtLeast(0)
     val lastIndex = state.entries.lastIndex
@@ -322,7 +314,9 @@ private fun EntrySlider(
             val id = state.entries[newIndex].id
             if (id != state.selectedEntryId) onSelectEntry(id)
         },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (readout != null) Modifier.semantics { stateDescription = readout } else Modifier)
     )
 }
 

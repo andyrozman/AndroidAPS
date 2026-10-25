@@ -7,7 +7,6 @@ import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.SafeParse
 import app.aaps.core.interfaces.utils.TimeDiff
-import app.aaps.core.keys.interfaces.TextRef
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -121,9 +120,9 @@ class DateUtilImpl(
         val startOfTodayMillis = beginOfDay(nowMillis)
         return if (mills < nowMillis) { // Past
             when {
-                mills > startOfTodayMillis                             -> "${rh.gs(InterfacesStrings.today)} - ${dateString(mills)}"
-                mills > startOfTodayMillis - 1.days.inWholeMilliseconds -> "${rh.gs(InterfacesStrings.yesterday)} - ${dateString(mills)}"
-                mills > startOfTodayMillis - 7.days.inWholeMilliseconds -> "${dayAgo(mills, rh, true)} - ${dateString(mills)}"
+                mills > startOfTodayMillis                             -> rh.gs(InterfacesStrings.values_with_dash, rh.gs(InterfacesStrings.today), dateString(mills))
+                mills > startOfTodayMillis - 1.days.inWholeMilliseconds -> rh.gs(InterfacesStrings.values_with_dash, rh.gs(InterfacesStrings.yesterday), dateString(mills))
+                mills > startOfTodayMillis - 7.days.inWholeMilliseconds -> rh.gs(InterfacesStrings.values_with_dash, dayAgo(mills, rh, true), dateString(mills))
                 else                                                   -> dateString(mills)
             }
         } else { // Future
@@ -226,17 +225,18 @@ class DateUtilImpl(
     }
 
     override fun hourAgo(time: Long, rh: TextResolver): String =
-        rh.gs(InterfacesStrings.hoursago, (now() - time).milliseconds.inWholeHours)
+        rh.gs(InterfacesStrings.hoursago, (now() - time).milliseconds.toDouble(DurationUnit.HOURS))
 
     override fun dayAgo(time: Long, rh: TextResolver, round: Boolean): String {
         val duration = (now() - time).milliseconds
+        // The strings take a floating point number (%1$.1f, %1$.0f), so pass a Double, never a Long
+        val days = duration.toDouble(DurationUnit.DAYS)
         if (round) {
-            val daysAsDouble = duration.toDouble(DurationUnit.DAYS)
-            return if (duration.isPositive()) rh.gs(InterfacesStrings.days_ago_round, ceil(daysAsDouble))
-            else rh.gs(InterfacesStrings.in_days_round, floor(daysAsDouble))
+            return if (duration.isPositive()) rh.gs(InterfacesStrings.days_ago_round, ceil(days))
+            else rh.gs(InterfacesStrings.in_days_round, floor(days))
         }
-        return if (duration.isPositive()) rh.gs(InterfacesStrings.days_ago, duration.inWholeDays)
-        else rh.gs(InterfacesStrings.in_days, abs(duration.inWholeDays))
+        return if (duration.isPositive()) rh.gs(InterfacesStrings.days_ago, days)
+        else rh.gs(InterfacesStrings.in_days, abs(days))
     }
 
     override fun beginOfDay(mills: Long): Long =
@@ -247,11 +247,15 @@ class DateUtilImpl(
 
     override fun timeFrameString(timeInMillis: Long, rh: TextResolver, withParentheses: Boolean): String {
         val duration = timeInMillis.milliseconds
-        val totalHours = duration.inWholeHours
-        val remainingMinutes = (duration - totalHours.hours).inWholeMinutes
-        val hoursPart = if (totalHours > 0) "$totalHours${rh.gs(InterfacesStrings.shorthour)} " else ""
-        val body = "$hoursPart$remainingMinutes'"
-        return if (withParentheses) "($body)" else body
+        // A time frame over about 146 million years, like the one to the end of a target without an end, is an
+        // infinite Duration. Infinite minus infinite throws, so it gets its own text.
+        val body = if (duration.isInfinite()) "∞" else {
+            val totalHours = duration.inWholeHours
+            val remainingMinutes = (duration - totalHours.hours).inWholeMinutes
+            if (totalHours > 0) rh.gs(InterfacesStrings.time_frame_hours_minutes, totalHours, remainingMinutes)
+            else rh.gs(InterfacesStrings.time_frame_minutes, remainingMinutes)
+        }
+        return if (withParentheses) rh.gs(InterfacesStrings.time_frame_in_parentheses, body) else body
     }
 
     override fun sinceString(timestamp: Long, rh: TextResolver): String =
@@ -313,22 +317,6 @@ class DateUtilImpl(
         }
     }
 
-    override fun age(milliseconds: Long, useShortText: Boolean, rh: TextResolver): String {
-        val duration = milliseconds.milliseconds
-        if (duration.inWholeDays > 1000) return rh.gs(InterfacesStrings.forever)
-        val daysUnit = if (useShortText) rh.gs(InterfacesStrings.shortday) else rh.gs(InterfacesStrings.days)
-        val hoursUnit = if (useShortText) rh.gs(InterfacesStrings.shorthour) else rh.gs(InterfacesStrings.hours)
-        val minutesUnit = if (useShortText) rh.gs(InterfacesStrings.shortminute) else rh.gs(InterfacesStrings.unit_minutes)
-        val days = duration.inWholeDays
-        val hours = (duration - days.days).inWholeHours
-        val minutes = (duration - days.days - hours.hours).inWholeMinutes
-        return when {
-            days > 0  -> "$days $daysUnit $hours $hoursUnit "
-            hours > 0 -> "$hours $hoursUnit $minutes $minutesUnit "
-            else      -> "${duration.inWholeMinutes} $minutesUnit"
-        }
-    }
-
     override fun niceTimeScalar(time: Long, rh: TextResolver): String {
         val duration = time.milliseconds
         val (value, unit) = when {
@@ -353,7 +341,7 @@ class DateUtilImpl(
                 seconds to if (seconds == 1L) InterfacesStrings.unit_second else InterfacesStrings.unit_seconds
             }
         }
-        return "${qs(value.toDouble(), 0)} ${rh.gs(unit)}"
+        return rh.gs(InterfacesStrings.time_value_with_unit, qs(value.toDouble(), 0), rh.gs(unit))
     }
 
     override fun qs(x: Double, numDigits: Int): String {

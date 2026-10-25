@@ -2,6 +2,7 @@ package app.aaps.database
 
 import androidx.room.Transactor.SQLiteTransactionType
 import androidx.room.useWriterConnection
+import app.aaps.database.daos.ApsResultVariableSens
 import app.aaps.database.entities.APSResult
 import app.aaps.database.entities.Bolus
 import app.aaps.database.entities.BolusCalculatorResult
@@ -26,7 +27,6 @@ import app.aaps.database.entities.embedments.InterfaceIDs
 import app.aaps.database.entities.interfaces.DBEntry
 import app.aaps.database.transactions.Transaction
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -39,8 +39,41 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+
+/** Module-local result of [AppRepository.vacuumDatabase]; mapped to `VacuumResult`, which explains each value. */
+enum class VacuumOutcome { DONE, DONE_AFTER_TRIM, OUT_OF_MEMORY }
+
+/**
+ * The decision in [AppRepository.vacuumDatabase]: [vacuum], and if that runs out of memory, [trim] and
+ * [vacuum] once more. Any other failure is thrown, and then nothing is trimmed.
+ *
+ * Kept apart from the database so a test can drive it. SQLite cannot be made to run out of memory on
+ * purpose there: the bundled build has `DEFAULT_MEMSTATUS=0`, so `PRAGMA hard_heap_limit` is accepted
+ * but never enforced.
+ */
+internal suspend fun vacuumOrTrim(vacuum: suspend () -> Unit, trim: suspend () -> Unit): VacuumOutcome {
+    try {
+        vacuum()
+        return VacuumOutcome.DONE
+    } catch (e: Exception) {
+        if (!e.isOutOfMemory()) throw e
+    }
+    trim()
+    return try {
+        vacuum()
+        VacuumOutcome.DONE_AFTER_TRIM
+    } catch (e: Exception) {
+        if (e.isOutOfMemory()) VacuumOutcome.OUT_OF_MEMORY else throw e
+    }
+}
+
+/**
+ * SQLITE_NOMEM. The bundled driver gives the code only in the text, as in the Crashlytics report this
+ * was written for: "Error code: 7, message: out of memory". The comma keeps codes like 70 out.
+ */
+internal fun Exception.isOutOfMemory(): Boolean = message?.startsWith("Error code: 7,") == true
 
 /** Module-local carrier for [AppRepository.databaseMaintenanceInfo]; mapped to `DatabaseMaintenanceInfo`. */
 data class DatabaseMaintenanceRaw(
@@ -159,9 +192,13 @@ class AppRepository internal constructor(
 
     suspend fun clearApsResults() = database.apsResultDao.deleteAllEntries()
 
-    suspend fun cleanupDatabase(keepDays: Long, deleteTrackedChanges: Boolean): String {
+    /**
+     * Delete records with a timestamp before [than] (epoch ms).
+     *
+     * Device statuses have their own, much shorter limit: [DEVICE_STATUS_KEEP_DAYS] days before now.
+     */
+    suspend fun cleanupDatabase(than: Long, deleteTrackedChanges: Boolean): String {
         database.useWriterConnection { connection -> connection.usePrepared("PRAGMA optimize") { it.step() } }
-        val than = Clock.System.now().toEpochMilliseconds() - keepDays.days.inWholeMilliseconds
         val removed = mutableListOf<Pair<String, Int>>()
         removed.add(Pair("APSResult", database.apsResultDao.deleteOlderThan(than)))
         removed.add(Pair("GlucoseValue", database.glucoseValueDao.deleteOlderThan(than)))
@@ -184,7 +221,12 @@ class AppRepository internal constructor(
         removed.add(Pair("UserEntry", database.userEntryDao.deleteOlderThan(than)))
         removed.add(Pair("PreferenceChange", database.preferenceChangeDao.deleteOlderThan(than)))
         // keep foods database.foodDao.deleteOlderThan(than)
-        removed.add(Pair("DeviceStatus", database.deviceStatusDao.deleteOlderThan(than)))
+        // A device status is only queued for the Nightscout upload. Nothing reads it again after that, and
+        // Nightscout shows only the newest one. At about 4 kB a row, six months of them were some 300 MB
+        // and helped a database grow too big for its VACUUM. Taken from the real clock, not from [than]:
+        // the clock-jump limit on [than] protects treatments, and losing old statuses costs nothing.
+        val deviceStatusThan = maxOf(than, Clock.System.now().toEpochMilliseconds() - DEVICE_STATUS_KEEP_DAYS.days.inWholeMilliseconds)
+        removed.add(Pair("DeviceStatus", database.deviceStatusDao.deleteOlderThan(deviceStatusThan)))
         // keep at least one permanent RM (don't delete if only expired temporaries exist within window)
         if (database.runningModeDao.getRunningModeDataFromTime(than + 1).any { it.duration == 0L })
             removed.add(Pair("RunningMode", database.runningModeDao.deleteOlderThan(than)))
@@ -227,12 +269,31 @@ class AppRepository internal constructor(
      * plugins/loop/sync start). [cleanupDatabase] only deletes; this reclaims and defragments.
      * May throw if the DB is busy/locked; callers must handle that and treat only a clean return
      * as success.
+     *
+     * ## When it does not fit in memory
+     *
+     * The bundled SQLite is built with `SQLITE_TEMP_STORE=3`, so VACUUM always builds its copy of the
+     * database in memory, and `PRAGMA temp_store` cannot change that. A long-time user's database did
+     * not fit: 1.6 GB, nearly all of it APS results (about 20 kB a row, kept six months) and device
+     * statuses. So when VACUUM runs out of memory, APS results older than [VACUUM_TRIM_KEEP_DAYS] days
+     * and device statuses older than [DEVICE_STATUS_KEEP_DAYS] days are deleted, and it is tried once
+     * more. The last days of APS results stay because the loop reads the last 24 hours of them for the
+     * dynamic ISF average.
      */
-    suspend fun vacuumDatabase() {
+    suspend fun vacuumDatabase(): VacuumOutcome = vacuumOrTrim(vacuum = ::vacuum, trim = ::trimForVacuum)
+
+    private suspend fun vacuum() {
         database.useWriterConnection { connection ->
             connection.usePrepared("PRAGMA wal_checkpoint(TRUNCATE)") { it.step() }
             connection.usePrepared("VACUUM") { it.step() }
         }
+    }
+
+    /** What [vacuumDatabase] deletes to make the database fit: the old part of its two biggest tables. */
+    internal suspend fun trimForVacuum() {
+        val now = Clock.System.now().toEpochMilliseconds()
+        database.apsResultDao.deleteOlderThan(now - VACUUM_TRIM_KEEP_DAYS.days.inWholeMilliseconds)
+        database.deviceStatusDao.deleteOlderThan(now - DEVICE_STATUS_KEEP_DAYS.days.inWholeMilliseconds)
     }
 
     /**
@@ -296,6 +357,9 @@ class AppRepository internal constructor(
     suspend fun findBgReadingByNSId(nsId: String): GlucoseValue? =
         database.glucoseValueDao.findByNSId(nsId)
 
+    suspend fun findBgReadingById(id: Long): GlucoseValue? =
+        database.glucoseValueDao.findById(id)
+
     suspend fun getLastGlucoseValueId(): Long? =
         database.glucoseValueDao.getLastId()
 
@@ -333,6 +397,9 @@ class AppRepository internal constructor(
     suspend fun findCalibrationEntryByNSId(nsId: String): CalibrationEntry? =
         database.calibrationEntryDao.findByNSId(nsId)
 
+    suspend fun findCalibrationEntryById(id: Long): CalibrationEntry? =
+        database.calibrationEntryDao.findById(id)
+
     suspend fun getNextSyncElementCalibrationEntry(id: Long): Pair<CalibrationEntry, CalibrationEntry>? {
         val nextIdElement = database.calibrationEntryDao.getNextModifiedOrNewAfter(id) ?: return null
         val nextIdElemReferenceId = nextIdElement.referenceId
@@ -347,6 +414,9 @@ class AppRepository internal constructor(
     // TEMP TARGETS
     suspend fun findTemporaryTargetByNSId(nsId: String): TemporaryTarget? =
         database.temporaryTargetDao.findByNSId(nsId)
+
+    suspend fun findTemporaryTargetById(id: Long): TemporaryTarget? =
+        database.temporaryTargetDao.findById(id)
 
     /*
        * returns a Pair of the next entity to sync and the ID of the "update".
@@ -375,6 +445,9 @@ class AppRepository internal constructor(
     suspend fun getTemporaryTargetActiveAt(timestamp: Long): TemporaryTarget? =
         database.temporaryTargetDao.getTemporaryTargetActiveAt(timestamp)
 
+    suspend fun getTemporaryTargetsActiveAt(timestamp: Long): List<TemporaryTarget> =
+        database.temporaryTargetDao.getTemporaryTargetsActiveAt(timestamp)
+
     suspend fun getLastTempTargetId(): Long? =
         database.temporaryTargetDao.getLastId()
 
@@ -393,6 +466,9 @@ class AppRepository internal constructor(
 
     suspend fun findProfileSwitchByNSId(nsId: String): ProfileSwitch? =
         database.profileSwitchDao.findByNSId(nsId)
+
+    suspend fun findProfileSwitchById(id: Long): ProfileSwitch? =
+        database.profileSwitchDao.findById(id)
 
     suspend fun getNextSyncElementProfileSwitch(id: Long): Pair<ProfileSwitch, ProfileSwitch>? {
         val nextIdElement = database.profileSwitchDao.getNextModifiedOrNewAfter(id) ?: return null
@@ -436,6 +512,9 @@ class AppRepository internal constructor(
 
     suspend fun findRunningModeByNSId(nsId: String): RunningMode? =
         database.runningModeDao.findByNSId(nsId)
+
+    suspend fun findRunningModeById(id: Long): RunningMode? =
+        database.runningModeDao.findById(id)
 
     suspend fun getNextSyncElementRunningMode(id: Long): Pair<RunningMode, RunningMode>? {
         val nextIdElement = database.runningModeDao.getNextModifiedOrNewAfter(id) ?: return null
@@ -532,6 +611,9 @@ class AppRepository internal constructor(
     suspend fun findTherapyEventByNSId(nsId: String): TherapyEvent? =
         database.therapyEventDao.findByNSId(nsId)
 
+    suspend fun findTherapyEventById(id: Long): TherapyEvent? =
+        database.therapyEventDao.findById(id)
+
     suspend fun getNextSyncElementTherapyEvent(id: Long): Pair<TherapyEvent, TherapyEvent>? {
         val nextIdElement = database.therapyEventDao.getNextModifiedOrNewAfter(id) ?: return null
         val nextIdElemReferenceId = nextIdElement.referenceId
@@ -591,6 +673,9 @@ class AppRepository internal constructor(
     suspend fun getBolusByNSId(nsId: String): Bolus? =
         database.bolusDao.getByNSId(nsId)
 
+    suspend fun findBolusById(id: Long): Bolus? =
+        database.bolusDao.findById(id)
+
     /*
       * returns a Pair of the next entity to sync and the ID of the "update".
       * The update id might either be the entry id itself if it is a new entry - or the id
@@ -639,6 +724,9 @@ class AppRepository internal constructor(
 
     suspend fun getCarbsByNSId(nsId: String): Carbs? =
         database.carbsDao.getByNSId(nsId)
+
+    suspend fun findCarbsById(id: Long): Carbs? =
+        database.carbsDao.findById(id)
 
     private fun expandCarbs(carbs: Carbs): List<Carbs> =
         if (carbs.duration == 0L) {
@@ -709,6 +797,9 @@ class AppRepository internal constructor(
     suspend fun findBolusCalculatorResultByNSId(nsId: String): BolusCalculatorResult? =
         database.bolusCalculatorResultDao.findByNSId(nsId)
 
+    suspend fun findBolusCalculatorResultById(id: Long): BolusCalculatorResult? =
+        database.bolusCalculatorResultDao.findById(id)
+
     /*
       * returns a Pair of the next entity to sync and the ID of the "update".
       * The update id might either be the entry id itself if it is a new entry - or the id
@@ -761,6 +852,9 @@ class AppRepository internal constructor(
     suspend fun findTemporaryBasalByNSId(nsId: String): TemporaryBasal? =
         database.temporaryBasalDao.findByNSId(nsId)
 
+    suspend fun findTemporaryBasalById(id: Long): TemporaryBasal? =
+        database.temporaryBasalDao.findById(id)
+
     /*
         * returns a Pair of the next entity to sync and the ID of the "update".
         * The update id might either be the entry id itself if it is a new entry - or the id
@@ -783,8 +877,8 @@ class AppRepository internal constructor(
     suspend fun getTemporaryBasalActiveAt(timestamp: Long): TemporaryBasal? =
         database.temporaryBasalDao.getTemporaryBasalActiveAt(timestamp)
 
-    suspend fun getTemporaryBasalsActiveBetweenTimeAndTime(from: Long, to: Long): List<TemporaryBasal> =
-        database.temporaryBasalDao.getTemporaryBasalActiveBetweenTimeAndTime(from, to)
+    suspend fun getTemporaryBasalsActiveAt(timestamp: Long): List<TemporaryBasal> =
+        database.temporaryBasalDao.getTemporaryBasalsActiveAt(timestamp)
 
     suspend fun getTemporaryBasalsStartingFromTime(timestamp: Long, ascending: Boolean): List<TemporaryBasal> =
         database.temporaryBasalDao.getTemporaryBasalDataFromTime(timestamp).reversedIf(!ascending)
@@ -804,6 +898,9 @@ class AppRepository internal constructor(
     // EXTENDED BOLUS
     suspend fun findExtendedBolusByNSId(nsId: String): ExtendedBolus? =
         database.extendedBolusDao.findByNSId(nsId)
+
+    suspend fun findExtendedBolusById(id: Long): ExtendedBolus? =
+        database.extendedBolusDao.findById(id)
 
     /*
        * returns a Pair of the next entity to sync and the ID of the "update".
@@ -826,6 +923,9 @@ class AppRepository internal constructor(
 
     suspend fun getExtendedBolusActiveAt(timestamp: Long): ExtendedBolus? =
         database.extendedBolusDao.getExtendedBolusActiveAt(timestamp)
+
+    suspend fun getExtendedBolusesActiveAt(timestamp: Long): List<ExtendedBolus> =
+        database.extendedBolusDao.getExtendedBolusesActiveAt(timestamp)
 
     suspend fun getExtendedBolusesStartingFromTime(timestamp: Long, ascending: Boolean): List<ExtendedBolus> =
         database.extendedBolusDao.getExtendedBolusesStartingFromTime(timestamp).reversedIf(!ascending)
@@ -892,6 +992,9 @@ class AppRepository internal constructor(
     suspend fun getApsResults(start: Long, end: Long): List<APSResult> =
         database.apsResultDao.getApsResults(start, end)
 
+    suspend fun getApsResultVariableSens(start: Long, end: Long): List<ApsResultVariableSens> =
+        database.apsResultDao.getVariableSens(start, end)
+
     suspend fun getGlucoseValueByPumpIdAndSource(source: String, pumpId: Long): GlucoseValue? =
         database.glucoseValueDao.getGlucoseValueByPumpIdAndSource(source, pumpId)
 
@@ -919,4 +1022,13 @@ class AppRepository internal constructor(
     }
 
     fun <T> Iterable<T>.reversedIf(reverse: Boolean): List<T> = if (reverse) this.reversed() else this.toList()
+
+    companion object {
+
+        /** How many days of device statuses [cleanupDatabase] keeps, whatever cutoff it is given. */
+        const val DEVICE_STATUS_KEEP_DAYS = 2L
+
+        /** How many days of APS results [vacuumDatabase] keeps when it has to make room. */
+        const val VACUUM_TRIM_KEEP_DAYS = 2L
+    }
 }

@@ -25,17 +25,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import app.aaps.core.ui.CoreUiStrings
-import app.aaps.plugins.source.SourceStrings
-import app.aaps.core.ui.compose.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,14 +41,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.aaps.core.data.model.GV
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.AapsSpacing
 import app.aaps.core.ui.compose.AapsTheme
 import app.aaps.core.ui.compose.SelectableListToolbar
 import app.aaps.core.ui.compose.ToolbarConfig
-import app.aaps.core.ui.compose.dialogs.OkCancelDialog
+import app.aaps.core.ui.compose.dialogs.RecordRemovalDialog
 import app.aaps.core.ui.compose.icons.Ns
+import app.aaps.core.ui.compose.stringResource
 import app.aaps.core.ui.extensions.directionToDescription
 import app.aaps.core.ui.extensions.directionToIcon
+import app.aaps.plugins.source.SourceStrings
 import app.aaps.ui.compose.components.ContentContainer
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -65,10 +66,6 @@ internal fun BgSourceScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Dialog state
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var deleteDialogMessage by remember { mutableStateOf("") }
-
     // Update toolbar configuration whenever state changes
     LaunchedEffect(uiState.isRemovingMode, uiState.selectedItems.size) {
         setToolbarConfig(
@@ -77,12 +74,7 @@ internal fun BgSourceScreen(
                 selectedCount = uiState.selectedItems.size,
                 onExitRemovingMode = { viewModel.exitSelectionMode() },
                 onNavigateBack = onNavigateBack,
-                onDelete = {
-                    if (uiState.selectedItems.isNotEmpty()) {
-                        deleteDialogMessage = viewModel.getDeleteConfirmationMessage()
-                        showDeleteDialog = true
-                    }
-                },
+                onDelete = { if (uiState.selectedItems.isNotEmpty()) viewModel.requestDelete() },
                 rh = viewModel.rh,
                 title = title,
                 onSettings = onSettings
@@ -90,19 +82,8 @@ internal fun BgSourceScreen(
         )
     }
 
-    // Delete confirmation dialog
-    val removeRecordTitle = stringResource(CoreUiStrings.removerecord)
-    if (showDeleteDialog) {
-        OkCancelDialog(
-            title = removeRecordTitle,
-            message = deleteDialogMessage,
-            onConfirm = {
-                viewModel.deleteSelected()
-                showDeleteDialog = false
-            },
-            onDismiss = { showDeleteDialog = false }
-        )
-    }
+    // Delete confirmation, written by the master
+    RecordRemovalDialog(removal = viewModel.removal, onApplied = { viewModel.onRemoved() })
 
     AapsTheme {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -241,14 +222,22 @@ private fun GlucoseValueItem(
         else -> MaterialTheme.colorScheme.surface
     }
 
+    // A duplicate and a selected reading were only a background colour; both are said. The long
+    // press is the only way into remove mode, so it is named too.
+    val duplicateState = if (isDuplicate) stringResource(SourceStrings.a11y_bg_duplicate) else null
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = AapsSpacing.extraSmall)
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = onLongPress
-            ),
+                onLongClick = onLongPress,
+                onLongClickLabel = stringResource(CoreUiStrings.remove)
+            )
+            .semantics {
+                if (isSelected) selected = true
+                duplicateState?.let { stateDescription = it }
+            },
         colors = CardDefaults.cardColors(
             containerColor = backgroundColor
         )

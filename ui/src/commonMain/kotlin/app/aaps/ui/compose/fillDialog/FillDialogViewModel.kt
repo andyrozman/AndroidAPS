@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import app.aaps.core.data.format.NumberFormat
 import app.aaps.core.data.model.ICfg
 import app.aaps.core.data.model.TE
+import app.aaps.core.data.model.labelOfInsulin
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ui.ConfirmationLine
 import app.aaps.core.data.ui.ConfirmationRole
@@ -16,7 +17,7 @@ import app.aaps.core.data.ui.confirmationLines
 import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.interfaces.bolus.BatchAction
 import app.aaps.core.interfaces.bolus.BatchExecutor
-import app.aaps.core.interfaces.bolus.WizardBolusExecutor
+import app.aaps.core.interfaces.bolus.MasterActionExecutor
 import app.aaps.core.interfaces.clientcontrol.ActionProgress
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
@@ -27,6 +28,8 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.pump.PumpInsulin
+import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventShowDialog
@@ -37,11 +40,11 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.TextRef
-import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.extensions.observeChange
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.clientcontrol.failText
 import app.aaps.ui.UiStrings
+import app.aaps.ui.compose.EVENT_TIME_OFFSET_RANGE_MINUTES
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
@@ -50,7 +53,6 @@ import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactory
 import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
-import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -63,6 +65,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 @Stable
 @AssistedInject
@@ -81,12 +84,13 @@ class FillDialogViewModel(
     private val ch: ConcentrationHelper,
     insulinManager: InsulinManager,
     private val profileFunction: ProfileFunction,
-    private val wizardBolusExecutor: WizardBolusExecutor,
+    private val masterActionExecutor: MasterActionExecutor,
     private val batchExecutor: BatchExecutor,
     private val rxBus: RxBus,
     // Unqualified: @ApplicationScope is a javax qualifier and cannot appear in commonMain. The graph
     // binds the same instance under both names.
-    private val appScope: CoroutineScope
+    private val appScope: CoroutineScope,
+    commandQueue: CommandQueue
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FillDialogUiState())
@@ -117,10 +121,12 @@ class FillDialogViewModel(
 
     init {
         val preselect = FillPreselect.entries[savedStateHandle.get<Int>("preselect") ?: 0]
-        val maxInsulin = constraintChecker.getMaxBolusAllowed().value()
-        val bolusStep = activePlugin.activePump.pumpDescription.bolusStep
+        // A prime is in pump units, so its max and its step are those of the pump itself.
+        val maxInsulin = constraintChecker.applyPrimingConstraints(PumpInsulin(Double.MAX_VALUE)).cU
+        val bolusStep = activePlugin.activePumpInternal.pumpDescription.bolusStep
 
         val availableInsulins = insulinManager.insulins.map { it.deepClone() }
+        val now = dateUtil.now()
 
         _uiState.update {
             FillDialogUiState(
@@ -128,8 +134,9 @@ class FillDialogViewModel(
                 siteChange = preselect == FillPreselect.SITE_CHANGE,
                 insulinCartridgeChange = preselect == FillPreselect.CARTRIDGE_CHANGE,
                 notes = "",
-                eventTime = dateUtil.now(),
-                eventTimeChanged = false,
+                eventTime = now,
+                eventTimeOriginal = now,
+                timeOffsetMinutes = 0,
                 maxInsulin = maxInsulin,
                 bolusStep = bolusStep,
                 presetButton1 = preferences.get(DoubleKey.ActionsFillButton1),
@@ -142,6 +149,7 @@ class FillDialogViewModel(
                 activeInsulinLabel = null,
                 pumpUnitsWarning = pumpUnitsWarningFor(availableInsulins.firstOrNull()),
                 showBolus = !config.AAPSCLIENT,
+                primeAvailable = activePlugin.activePump.pumpDescription.isRefillingCapable,
                 siteRotationEnabled = preferences.get(BooleanKey.SiteRotationManagePump),
                 showNotesFromPreferences = preferences.get(BooleanKey.OverviewShowNotesInDialogs),
                 simpleMode = preferences.get(BooleanKey.GeneralSimpleMode),
@@ -149,7 +157,7 @@ class FillDialogViewModel(
             )
         }
         viewModelScope.launch {
-            val activeLabel = profileFunction.getProfile()?.iCfg?.insulinLabel
+            val activeLabel = availableInsulins.labelOfInsulin(profileFunction.getProfile()?.iCfg)
             val currentInsulin = availableInsulins.find { it.insulinLabel == activeLabel } ?: availableInsulins.firstOrNull()
             _uiState.update {
                 it.copy(
@@ -161,6 +169,9 @@ class FillDialogViewModel(
         }
         loadLastSiteLocation()
         observeConcentrationEnabled()
+        commandQueue.smbBeingDelivered
+            .onEach { delivering -> _uiState.update { it.copy(smbBeingDelivered = delivering) } }
+            .launchIn(viewModelScope)
     }
 
     // The concentration-support flag is a synced preference (it can change from another device while
@@ -204,9 +215,7 @@ class FillDialogViewModel(
     }
 
     fun updateInsulin(value: Double) {
-        val constrained = constraintChecker.applyBolusConstraints(
-            ConstraintObject(value, aapsLogger)
-        ).value()
+        val constrained = constraintChecker.applyPrimingConstraints(PumpInsulin(value)).cU
         _uiState.update {
             it.copy(
                 insulin = value,
@@ -232,8 +241,25 @@ class FillDialogViewModel(
         _uiState.update { it.copy(notes = value) }
     }
 
+    /** The -/+ buttons: the time in minutes from when the dialog opened. */
+    fun updateTimeOffset(minutes: Int) {
+        val clamped = minutes.coerceIn(EVENT_TIME_OFFSET_RANGE_MINUTES)
+        _uiState.update {
+            it.copy(
+                timeOffsetMinutes = clamped,
+                eventTime = it.eventTimeOriginal + clamped.toLong() * 60 * 1000
+            )
+        }
+    }
+
+    /** The date and time pickers. The offset follows, so the -/+ buttons go on from the picked time. */
     fun updateEventTime(timeMillis: Long) {
-        _uiState.update { it.copy(eventTime = timeMillis, eventTimeChanged = true) }
+        _uiState.update {
+            it.copy(
+                eventTime = timeMillis,
+                timeOffsetMinutes = ((timeMillis - it.eventTimeOriginal) / (1000 * 60)).toInt()
+            )
+        }
     }
 
     private fun pumpUnitsWarningFor(iCfg: ICfg?): String? {
@@ -263,7 +289,7 @@ class FillDialogViewModel(
         val bolusStep = state.bolusStep
 
         return confirmationLines {
-            if (state.insulinAfterConstraints > 0) {
+            if (state.hasPrime) {
                 line(ConfirmationRole.WARNING, rh.gs(UiStrings.fill_warning))
                 line(ConfirmationRole.NORMAL, "")
                 val bolusValue =
@@ -327,7 +353,7 @@ class FillDialogViewModel(
         }
 
         val doProfileSwitch = state.insulinChanged
-        val hasPrimeBolus = state.insulinAfterConstraints > 0
+        val hasPrimeBolus = state.hasPrime
 
         // All work runs on appScope, not viewModelScope: the dialog navigates back the moment
         // confirm is tapped, which cancels viewModelScope. The prime bolus is also launched
@@ -337,7 +363,7 @@ class FillDialogViewModel(
             // Prime now rides the shared executor (one audited path): it logs the user entry, sets the
             // PRIMING treatment + notes, and the profile switch is sequenced on prime success.
             appScope.launch {
-                wizardBolusExecutor.deliverFillBolus(
+                masterActionExecutor.deliverFillBolus(
                     amount = state.insulinAfterConstraints,
                     notes = notes,
                     source = Sources.FillDialog,

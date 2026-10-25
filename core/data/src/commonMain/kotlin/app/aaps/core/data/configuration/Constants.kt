@@ -1,5 +1,7 @@
 package app.aaps.core.data.configuration
 
+import kotlin.math.round
+
 /**
  * Created by mike on 07.06.2016.
  */
@@ -13,6 +15,24 @@ object Constants {
     // OpenAPS algorithm
     const val NORMAL_TARGET_MGDL = 99 // 5.5 mmol/l = 99.1 mg/dL; use 99 to ensure consistent behavior across mg/dL and mmol/l units
 
+    /**
+     * True when [targetMgdl] is a high target: above 5.5 mmol/L or 99 mg/dL.
+     *
+     * The target is rounded to whole mg/dL first. A 5.5 mmol/L target is stored as 99.09 mg/dL
+     * with the current unit factor, and it must stay a normal target, as it was when the factor
+     * was 18.0 and the same target was stored as 99.0. Rows stored by either factor land on 99.
+     */
+    fun isAboveNormalTarget(targetMgdl: Double): Boolean = round(targetMgdl) > NORMAL_TARGET_MGDL
+
+    /** True when [targetMgdl] is a low target: below 5.5 mmol/L or 99 mg/dL. See [isAboveNormalTarget]. */
+    fun isBelowNormalTarget(targetMgdl: Double): Boolean = round(targetMgdl) < NORMAL_TARGET_MGDL
+
+    /**
+     * A BG older than this is not actual: the overview strikes it through and the loop does not use it.
+     * An open loop suggestion older than this is refused too - it was calculated from such a BG.
+     */
+    const val OLD_BG_MINUTES = 9L
+
     // SMS COMMUNICATOR
     const val REMOTE_BOLUS_MIN_DISTANCE = 15 * 60 * 1000L
 
@@ -23,6 +43,26 @@ object Constants {
 
     /** Duration the user can set for a timed action (profile switch, temp target, ...). [min] up to ~ 7 days */
     val ACTION_DURATION = 0.0..(7 * 24 * 60).toDouble()
+
+    /**
+     * How far from now a profile switch may be stamped, as an offset in [ms]. A negative offset
+     * back-dates a switch the user forgot to enter, a positive one starts it later.
+     *
+     * The check runs on the MASTER, against the master's own clock. A paired client sends its own
+     * time, so without this bound a client with a wrong clock could place a switch days away, where
+     * it would either never run or silently rewrite history.
+     */
+    val PROFILE_SWITCH_TIME_OFFSET = (-24L * 60 * 60 * 1000)..(24L * 60 * 60 * 1000)
+
+    /**
+     * How far from now a temp target may start, as an offset in [ms]. Same reasoning and the same window as
+     * [PROFILE_SWITCH_TIME_OFFSET], kept as its own value because the two are separate choices: a therapy
+     * setting that is wrong by a day is useless, but what counts as "too far" can differ per entity.
+     *
+     * A bound matters most here because a temp target outside its window is not visibly wrong: it is stored,
+     * never becomes active, and nothing tells the user. The target simply does not happen.
+     */
+    val TEMP_TARGET_TIME_OFFSET = (-24L * 60 * 60 * 1000)..(24L * 60 * 60 * 1000)
 
     // Bolus wizard: how much of the calculated bolus may be delivered
     val WIZARD_PERCENTAGE_RANGE = 10.0..200.0

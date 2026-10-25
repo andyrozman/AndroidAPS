@@ -5,7 +5,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.MarqueeDefaults
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
@@ -36,7 +36,6 @@ import app.aaps.core.ui.compose.stringResource
  * @see CobChipZeroPreview
  * @see CobChipBlinkingPreview
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun CobChip(
     state: CobUiState,
@@ -45,6 +44,10 @@ internal fun CobChip(
 ) {
     // When carbs are required, flash only the icon (attention cue) and let the text scroll
     // (basicMarquee) instead of wrapping — so the numbers stay crisp/readable while the icon blinks.
+    // The scroll repeats for as long as carbs are required. With the default 3 runs it stops at the
+    // start of the text, and the required amount at the end stays cut off (#5322). Without carbs
+    // required the default stays, so a normal COB text that does not fit does not scroll forever.
+    val marqueeIterations = if (state.carbsReq > 0) Int.MAX_VALUE else MarqueeDefaults.Iterations
     val iconAlphaModifier = if (state.carbsReq > 0) {
         val infiniteTransition = rememberInfiniteTransition(label = "cobBlink")
         val alphaState = infiniteTransition.animateFloat(
@@ -64,7 +67,7 @@ internal fun CobChip(
     val hasValue = state.cobValue != 0.0
     // Name the whole chip, not the icon. state.text is only a bare value like "45 g", which says
     // nothing about what it measures. It goes on the Surface because the icon is dropped when the
-    // row is too narrow (see IobCobChips) and the label would go with it.
+    // row is too narrow and no carbs are required (see IobCobChips) and the label would go with it.
     //
     // Only the noun belongs here, never the value - a description on a merging node is added
     // beside the children rather than replacing them, so repeating the value says it twice.
@@ -100,7 +103,7 @@ internal fun CobChip(
                 maxLines = 1,
                 modifier = Modifier
                     .padding(start = if (showIcon) AapsSpacing.medium else 0.dp)
-                    .basicMarquee()
+                    .basicMarquee(iterations = marqueeIterations)
             )
         }
     }

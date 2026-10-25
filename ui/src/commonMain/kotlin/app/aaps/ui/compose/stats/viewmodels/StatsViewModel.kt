@@ -15,7 +15,6 @@ import app.aaps.core.data.model.TDD
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.concurrent.aapsIoDispatcher
-import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.UserEntryLogger
 import app.aaps.core.interfaces.profile.ProfileUtil
@@ -25,21 +24,23 @@ import app.aaps.core.interfaces.stats.DexcomTirCalculator
 import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.stats.TirCalculator
 import app.aaps.core.interfaces.utils.DateUtil
-import app.aaps.core.keys.BooleanNonKey
 import app.aaps.core.keys.IntNonKey
-import app.aaps.core.keys.interfaces.AppPlatform
+import app.aaps.core.keys.StringNonKey
+import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.ui.activityMonitor.ActivityStatsProvider
-import app.aaps.ui.activityMonitor.ActivityStats
+import app.aaps.ui.compose.stats.AgpStatsData
+import app.aaps.ui.compose.stats.AgpStatsRange
 import app.aaps.ui.compose.stats.CycleSeries
 import app.aaps.ui.compose.stats.TddCyclePatternData
 import app.aaps.ui.compose.stats.TddStatsData
 import app.aaps.ui.compose.stats.TirStatsData
+import app.aaps.ui.compose.stats.calculateAgpStatsData
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -78,31 +79,19 @@ class StatsViewModel(
     private val tddCalculator: TddCalculator,
     private val tirCalculator: TirCalculator,
     private val dexcomTirCalculator: DexcomTirCalculator,
-    private val activityMonitor: ActivityStatsProvider,
     private val persistenceLayer: PersistenceLayer,
     val rh: TextResolver,
     private val uel: UserEntryLogger,
     val dateUtil: DateUtil,
     val profileUtil: ProfileUtil,
-    private val preferences: Preferences,
-    private val config: Config
+    private val preferences: Preferences
 ) : ViewModel() {
-
-    /**
-     * Whether the activity monitor card is worth drawing.
-     *
-     * Android only. It counts time spent on each screen from an `ActivityLifecycleCallbacks`, which
-     * has no counterpart elsewhere: both `IosActivityStatsProvider` and the desktop one return an
-     * empty list and log "not on this platform", and their KDocs call that an answer rather than a
-     * gap. The card was drawn anyway - no empty check - so those users got a headed card with
-     * nothing in it and a Reset button that reset nothing.
-     */
-    val showActivityStats: Boolean get() = config.platform == AppPlatform.Android
 
     private val _uiState = MutableStateFlow(StatsUiState())
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
     private var cycleLoadJob: Job? = null
+    private var agpLoadJob: Job? = null
 
     /**
      * Held so a reload can replace the one before it instead of racing it.
@@ -112,29 +101,60 @@ class StatsViewModel(
      */
     private var tddLoadJob: Job? = null
 
+    /**
+     * Tabs whose numbers were calculated since the screen was last started. Only the tab on screen is
+     * calculated: the screen used to compute everything on open, 90 days of AGP included.
+     */
+    private val loadedTabs = mutableSetOf<StatsTab>()
+
     init {
-        val savedOffset = preferences.get(IntNonKey.TddCycleOffset)
-        val tddExpanded = preferences.get(BooleanNonKey.StatsTddExpanded)
-        val tirExpanded = preferences.get(BooleanNonKey.StatsTirExpanded)
-        val dexcomTirExpanded = preferences.get(BooleanNonKey.StatsDexcomTirExpanded)
-        val activityExpanded = preferences.get(BooleanNonKey.StatsActivityExpanded)
-        val tddCycleExpanded = preferences.get(BooleanNonKey.StatsTddCycleExpanded)
+        val savedTab = StatsTab.entries.firstOrNull { it.name == preferences.get(StringNonKey.StatsTab) } ?: StatsTab.entries.first()
         _uiState.update {
             it.copy(
-                tddCycleOffset = savedOffset,
-                tddExpanded = tddExpanded,
-                tirExpanded = tirExpanded,
-                dexcomTirExpanded = dexcomTirExpanded,
-                activityExpanded = activityExpanded,
-                tddCycleExpanded = tddCycleExpanded
+                selectedTab = savedTab,
+                tddCycleOffset = preferences.get(IntNonKey.TddCycleOffset)
             )
         }
-        loadAllStats()
         observeTddInputs()
-        // Cycle pattern data is loaded lazily; if the section was left expanded, load it now
-        if (tddCycleExpanded) {
-            _uiState.update { it.copy(tddCycleLoading = true, tddCycleProgress = 0f) }
-            loadCyclePatternData()
+    }
+
+    /** The screen is shown again: recalculate the tab on screen, and the others when they are opened. */
+    fun onStart() {
+        loadedTabs.clear()
+        loadTab(uiState.value.selectedTab)
+    }
+
+    /** The user opened [tab]. It is remembered, so the screen opens on it next time. */
+    fun selectTab(tab: StatsTab) {
+        if (tab != uiState.value.selectedTab) {
+            preferences.put(StringNonKey.StatsTab, tab.name)
+            _uiState.update { it.copy(selectedTab = tab) }
+        }
+        if (tab !in loadedTabs) loadTab(tab)
+    }
+
+    private fun loadTab(tab: StatsTab) {
+        loadedTabs += tab
+        when (tab) {
+            StatsTab.INSULIN       -> loadTddStats()
+
+            // 168 days of TDD: calculated once, the first time the tab is opened, and kept after that
+            StatsTab.CYCLE         ->
+                if (uiState.value.tddCycleEntries.isEmpty() && cycleLoadJob?.isActive != true) {
+                    _uiState.update { it.copy(tddCycleLoading = true, tddCycleProgress = 0f) }
+                    loadCyclePatternData()
+                }
+
+            StatsTab.TIME_IN_RANGE -> {
+                loadTirStats()
+                loadDexcomTirStats()
+            }
+
+            // The glucose pentagon is drawn from the Dexcom TIR numbers
+            StatsTab.GLUCOSE       -> {
+                loadAgpStats(uiState.value.agpRange)
+                loadDexcomTirStats()
+            }
         }
     }
 
@@ -163,16 +183,35 @@ class StatsViewModel(
             persistenceLayer.observeChanges(EPS::class).map {}
         )
             .debounce(TDD_RELOAD_DEBOUNCE_MS)
-            .onEach { loadTddStats() }
+            .onEach {
+                // Recalculated now only when on screen; otherwise when the Insulin tab is opened next time
+                if (uiState.value.selectedTab == StatsTab.INSULIN) loadTddStats()
+                else loadedTabs -= StatsTab.INSULIN
+            }
             .launchIn(viewModelScope)
     }
 
-    fun loadAllStats() {
-        loadTddStats()
-        loadTirStats()
-        loadDexcomTirStats()
-        // Skipped where the card is not drawn - the provider would only log that it has nothing.
-        if (showActivityStats) loadActivityStats()
+    fun loadAgpStats(range: AgpStatsRange) {
+        agpLoadJob?.cancel()
+        _uiState.update { it.copy(agpRange = range, agpLoading = true, agpError = false) }
+        agpLoadJob = viewModelScope.launch {
+            try {
+                val data = withContext(aapsIoDispatcher) {
+                    val endTime = dateUtil.now()
+                    val readings = persistenceLayer.getBgReadingsDataFromTimeToTime(range.startTime(endTime), endTime, true)
+                    calculateAgpStatsData(
+                        readings = readings,
+                        lowMgdl = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.OverviewLowMark)),
+                        highMgdl = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.OverviewHighMark))
+                    )
+                }
+                _uiState.update { it.copy(agpStatsData = data, agpLoading = false) }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Exception) {
+                _uiState.update { it.copy(agpLoading = false, agpError = true) }
+            }
+        }
     }
 
     private fun loadTddStats() {
@@ -226,52 +265,6 @@ class StatsViewModel(
                 dexcomTirCalculator.calculate()
             }
             _uiState.update { it.copy(dexcomTirData = data, dexcomTirLoading = false) }
-        }
-    }
-
-    private fun loadActivityStats() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(activityLoading = true) }
-            val data = withContext(aapsIoDispatcher) {
-                activityMonitor.getActivityStats()
-            }
-            _uiState.update { it.copy(activityStatsData = data, activityLoading = false) }
-        }
-    }
-
-    fun toggleTddExpanded() {
-        val expanded = !uiState.value.tddExpanded
-        preferences.put(BooleanNonKey.StatsTddExpanded, expanded)
-        _uiState.update { it.copy(tddExpanded = expanded) }
-    }
-
-    fun toggleTirExpanded() {
-        val expanded = !uiState.value.tirExpanded
-        preferences.put(BooleanNonKey.StatsTirExpanded, expanded)
-        _uiState.update { it.copy(tirExpanded = expanded) }
-    }
-
-    fun toggleDexcomTirExpanded() {
-        val expanded = !uiState.value.dexcomTirExpanded
-        preferences.put(BooleanNonKey.StatsDexcomTirExpanded, expanded)
-        _uiState.update { it.copy(dexcomTirExpanded = expanded) }
-    }
-
-    fun toggleActivityExpanded() {
-        val expanded = !uiState.value.activityExpanded
-        preferences.put(BooleanNonKey.StatsActivityExpanded, expanded)
-        _uiState.update { it.copy(activityExpanded = expanded) }
-    }
-
-    fun toggleTddCycleExpanded() {
-        val wasExpanded = uiState.value.tddCycleExpanded
-        preferences.put(BooleanNonKey.StatsTddCycleExpanded, !wasExpanded)
-        if (!wasExpanded && uiState.value.tddCycleEntries.isEmpty()) {
-            // Atomic: set expanded + loading in single update so AnimatedVisibility sees loading immediately
-            _uiState.update { it.copy(tddCycleExpanded = true, tddCycleLoading = true, tddCycleProgress = 0f) }
-            loadCyclePatternData()
-        } else {
-            _uiState.update { it.copy(tddCycleExpanded = !wasExpanded) }
         }
     }
 
@@ -400,23 +393,17 @@ class StatsViewModel(
             loadTddStats()
         }
     }
+}
 
-    fun showResetActivityDialog() {
-        _uiState.update { it.copy(showResetActivityDialog = true) }
-    }
+/**
+ * The tabs of the Statistics screen. Each one groups the sections about one subject.
+ */
+enum class StatsTab {
 
-    fun dismissResetActivityDialog() {
-        _uiState.update { it.copy(showResetActivityDialog = false) }
-    }
-
-    fun confirmResetActivityStats() {
-        _uiState.update { it.copy(showResetActivityDialog = false) }
-        uel.log(Action.STAT_RESET, Sources.Stats)
-        viewModelScope.launch(aapsIoDispatcher) {
-            activityMonitor.reset()
-            loadActivityStats()
-        }
-    }
+    INSULIN,
+    TIME_IN_RANGE,
+    GLUCOSE,
+    CYCLE
 }
 
 /**
@@ -424,24 +411,21 @@ class StatsViewModel(
  */
 @Immutable
 data class StatsUiState(
+    val selectedTab: StatsTab = StatsTab.INSULIN,
     val tddStatsData: TddStatsData? = null,
+    val agpStatsData: AgpStatsData? = null,
+    val agpRange: AgpStatsRange = AgpStatsRange.TODAY,
+    val agpLoading: Boolean = true,
+    val agpError: Boolean = false,
     val tirStatsData: TirStatsData? = null,
     val dexcomTirData: DexcomTIR? = null,
-    val activityStatsData: List<ActivityStats>? = null,
     val tddCycleEntries: List<TDD> = emptyList(),
     val tddCyclePatternData: TddCyclePatternData? = null,
     val tddLoading: Boolean = true,
     val tirLoading: Boolean = true,
     val dexcomTirLoading: Boolean = true,
-    val activityLoading: Boolean = true,
     val tddCycleLoading: Boolean = true,
     val tddCycleProgress: Float = 0f,
-    val tddExpanded: Boolean = true,
-    val tirExpanded: Boolean = true,
-    val dexcomTirExpanded: Boolean = true,
-    val activityExpanded: Boolean = true,
-    val tddCycleExpanded: Boolean = false,
     val tddCycleOffset: Int = 0,
-    val showRecalculateDialog: Boolean = false,
-    val showResetActivityDialog: Boolean = false
+    val showRecalculateDialog: Boolean = false
 )

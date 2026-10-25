@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
@@ -35,7 +36,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -129,6 +133,7 @@ fun MainScreen(
     // Objectives progress
     objectivesSetupPlugin: PluginBase? = null,
     objectivesProgressText: String? = null,
+    objectivesProgressDescription: String? = null,
     // Permissions
     permissionsMissing: Boolean = false,
     onPermissionsClick: () -> Unit = {},
@@ -176,11 +181,17 @@ fun MainScreen(
         drawerState = drawerState,
         drawerContent = {
             MainDrawer(
+                drawerState = drawerState,
                 versionName = mainViewModel.versionName,
                 onNavigate = { request ->
-                    scope.launch { drawerState.close() }
-                    onDrawerClosed()
-                    onNavigate(request)
+                    // Close the drawer first, then open the screen. Opened while the drawer was still
+                    // sliding in (a fast tap, as the e2e test makes), one Back from that screen left
+                    // the app instead of coming back to the overview.
+                    scope.launch {
+                        drawerState.close()
+                        onDrawerClosed()
+                        onNavigate(request)
+                    }
                 },
                 isTreatmentsEnabled = uiState.isProfileLoaded,
                 showExit = mainViewModel.showExit
@@ -195,6 +206,7 @@ fun MainScreen(
             var chromeVisible by remember { mutableStateOf(false) }
             val showChrome = !previewMode || chromeVisible
             val interactionSource = remember { MutableInteractionSource() }
+            val accessibilityManager = LocalAccessibilityManager.current
 
             // Measure actual bar heights for content padding in non-preview mode
             var topBarHeightPx by remember { mutableIntStateOf(0) }
@@ -207,7 +219,9 @@ fun MainScreen(
                     return@LaunchedEffect
                 }
                 if (chromeVisible) {
-                    delay(AUTO_HIDE_DELAY_MS)
+                    // Honours the system "Time to take action" setting: a screen reader user moving
+                    // through the bars needs longer than 3 s before they hide again.
+                    delay(accessibilityManager?.calculateRecommendedTimeoutMillis(AUTO_HIDE_DELAY_MS, containsIcons = true, containsControls = true) ?: AUTO_HIDE_DELAY_MS)
                     chromeVisible = false
                 }
             }
@@ -235,6 +249,7 @@ fun MainScreen(
 
                 val activeSceneState by mainViewModel.activeSceneState.collectAsStateWithLifecycle()
                 val sceneExpired by mainViewModel.sceneExpired.collectAsStateWithLifecycle()
+                val activeSceneChainTargetName by mainViewModel.activeSceneChainTargetName.collectAsStateWithLifecycle()
                 val masterReachable by mainViewModel.masterReachable.collectAsStateWithLifecycle()
                 // Stable pairing signal — hides the mutating nav buttons on an unpaired client.
                 val masterOrPairedClient by mainViewModel.masterOrPairedClient.collectAsStateWithLifecycle()
@@ -276,6 +291,7 @@ fun MainScreen(
                         onAutoShowConsumed = onAutoShowConsumed,
                         activeSceneState = activeSceneState,
                         sceneExpired = sceneExpired,
+                        activeSceneChainTargetName = activeSceneChainTargetName,
                         onEndScene = { mainViewModel.requestSceneDeactivation() },
                         onDismissScene = { mainViewModel.dismissExpiredScene() },
                         endSceneEnabled = masterReachable,
@@ -283,6 +299,10 @@ fun MainScreen(
                         formatDuration = mainViewModel::formatDuration,
                         paddingValues = contentPadding,
                         fabBottomOffset = if (hasToolbar && showChrome) 56.dp else 0.dp,
+                        // In preview mode the bottom bar lies over the content instead of above it, so the end of each
+                        // column needs its height too. The height is kept once measured, so the columns do not move each
+                        // time the bars show and hide.
+                        overlaidBarsHeight = if (previewMode) with(density) { bottomBarHeightPx.toDp() } else 0.dp,
                         bolusState = bolusState,
                         pumpStatusText = pumpStatusText,
                         queueStatusText = queueStatusText,
@@ -329,11 +349,15 @@ fun MainScreen(
                         )
                     }
 
-                    // Version overlay
+                    // Version overlay. Fixed to the screen, not to the scrolling content. With the top
+                    // bar shown it is lifted into the bar's empty band under the search bar, so it sits
+                    // above the profile chip instead of level with the chip's text. In preview mode the
+                    // content starts right under the status bar, so there it stays at the content's edge.
                     VersionOverlay(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(contentPadding)
+                            .offset(y = if (showChrome) -VERSION_LABEL_LIFT else 0.dp)
                     )
 
                     // Status bar protection scrim — keeps system icons legible
@@ -421,6 +445,7 @@ fun MainScreen(
                             bgQualityBadgeDescription = bgQualityBadgeDescription,
                             objectivesSetupPlugin = objectivesSetupPlugin,
                             objectivesProgressText = objectivesProgressText,
+                            objectivesProgressDescription = objectivesProgressDescription,
                             onNavigate = onNavigate,
                             permissionsMissing = permissionsMissing,
                             onPermissionsClick = onPermissionsClick,
@@ -452,6 +477,9 @@ fun MainScreen(
 
                     // Tap overlay to restore chrome in preview mode (only when hidden)
                     if (previewMode && !chromeVisible) {
+                        // Named: the top bar, menu and toolbar come back only through this, and a
+                        // screen reader announced it as a nameless control.
+                        val showControls = stringResource(UiStrings.a11y_show_controls)
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -459,6 +487,7 @@ fun MainScreen(
                                     interactionSource = interactionSource,
                                     indication = null
                                 ) { chromeVisible = true }
+                                .semantics { contentDescription = showControls }
                         )
                     }
                 }
@@ -492,7 +521,8 @@ fun MainScreen(
             automationItems = automationState.items,
             onItemClick = { item -> mainViewModel.requestAutomationConfirmation(item.eventId) },
             sceneItems = automationState.sceneItems,
-            onSceneClick = { sceneId -> mainViewModel.requestSceneConfirmation(sceneId) }
+            onSceneClick = { sceneId -> mainViewModel.requestSceneConfirmation(sceneId) },
+            onEditScenesClick = { onNavigate(NavigationRequest.Element(ElementType.SCENE_MANAGEMENT)) }
         )
     }
 
@@ -560,3 +590,10 @@ fun MainScreen(
 
 private val PREVIEW_MODE_MIN_HEIGHT: Dp = 500.dp
 private const val AUTO_HIDE_DELAY_MS = 3000L
+
+/**
+ * How far the version label is lifted above the content's top edge while the top bar is shown. The
+ * bar has 8 dp of nothing under its search bar and the first chip starts a few dp into the content;
+ * this centers the 12 dp label between the two.
+ */
+private val VERSION_LABEL_LIFT: Dp = 6.dp

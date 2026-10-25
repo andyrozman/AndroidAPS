@@ -13,8 +13,6 @@
     <string name="widget_compact_bg_description">AAPS Glicemie + IOB + COB (compact)</string>
     <string name="widget_small_description">AAPS mic</string>
     <!--     Activities-->
-    <string name="activity_monitor">Monitor activitate</string>
-    <string name="time_range">Interval de timp</string>
     <string name="dexcom_tir">Dexcom TIR</string>
     <string name="cgp_title">Pentagon glicemie (CGP) - 14 zile</string>
     <string name="cgp_tor" comment="Glucose Pentagon axis: Time out of Range">ToR</string>
@@ -30,7 +28,6 @@
     <string name="cgp_pgr_moderate">Risc moderat</string>
     <string name="cgp_pgr_high">Risc ridicat</string>
     <string name="cgp_pgr_extremely_high">Risc extrem de ridicat</string>
-    <string name="do_you_want_reset_stats">Doriți să resetați statisticile de activitate?</string>
     <string name="do_you_want_recalculate_tdd_stats">Doriți să recalculați statisticile DZT?</string>
     <string name="calculation_in_progress">Calcul în desfășurare</string>
     <string name="age">Vechime</string>
@@ -163,7 +160,6 @@
     <!-- WizardDialog -->
     <string name="missing_carbs">Lipsă %1$d g</string>
     <string name="wizard_carbs_type_bread_desc">100% carbohidrați imediați, fără carbohidrați extinși</string>
-    <string name="wizard_carbs_type_desc">Carbohidrați reduși cu %1$d%%, adăugați carbohidrați extinși %2$d%% întârziere %3$dmin pentru %4$dh</string>
     <string name="wizard_include_info">Atingeți pentru a include/exclude din calcul:\n• BG - glicemie (inclusă la început)\n• TT - țintă temporară (inclusă la început)\n• Tendința Glicemiei (ultima stare amintită)\n• IOB - insulină la bord (inclusă la început)\n• COB - carbohidrați de la bord (ultima stare amintită)</string>
     <!-- Treatments -->
     <string name="no_records_available">Nicio înregistrare disponibilă</string>
@@ -293,11 +289,6 @@
     <string name="widget_rm_disabled">Dezactivat</string>
     <string name="widget_rm_suspended">Suspendat</string>
     <string name="widget_rm_resume">Reluați</string>
-    <!-- Calibration entry rejection reasons -->
-    <string name="cal_reject_delta_too_high">Calibrarea nu a fost salvată: Glicemia se modifică prea repede (£ %1$s %3$s per 5 min, limita %2$s). Încercați din nou când glicemia este stabilă.</string>
-    <string name="cal_reject_no_pair">Calibrarea nu a fost salvată: Nu a fost găsită nicio citire a senzorului în ultimele 10 minute.</string>
-    <string name="cal_reject_warmup">Calibrarea nu a fost salvată: senzorul se află încă în fereastra de încălzire de 2 ore.</string>
-    <string name="cal_reject_no_session">Calibrarea nu a fost salvată: nicio sesiune de senzor nu este activă. Înregistrați o schimbare de senzor mai întâi.</string>
     <!-- Calibration preflight messages shown in the dialog before submit -->
     <string name="cal_precheck_warmup">Senzorul este încă în perioada de încălzire. Calibrarea va fi disponibilă la %1$s.</string>
     <string name="cal_precheck_no_session">Nu este activă nicio sesiune de senzor.</string>

@@ -19,10 +19,9 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.ui.compose.ScreenAction
 import app.aaps.core.ui.compose.StatusLevel
 import app.aaps.core.ui.compose.icons.IcLoopPaused
-import app.aaps.core.ui.compose.pump.ActionCategory
-import app.aaps.core.ui.compose.pump.PumpAction
 import app.aaps.core.ui.compose.pump.PumpCommunicationStatus
 import app.aaps.core.ui.compose.pump.PumpInfoRow
 import app.aaps.core.ui.compose.pump.PumpOverviewStateBuilder
@@ -40,6 +39,11 @@ import app.aaps.pump.eopatch.extension.takeOne
 import app.aaps.pump.eopatch.vo.NormalBasalManager
 import app.aaps.pump.eopatch.vo.PatchConfig
 import app.aaps.pump.eopatch.vo.TempBasalManager
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,11 +57,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import dev.zacsweers.metro.AppScope
-import dev.zacsweers.metro.ContributesIntoMap
-import dev.zacsweers.metro.binding
-import dev.zacsweers.metrox.viewmodel.ViewModelKey
-import dev.zacsweers.metro.Inject
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
@@ -249,7 +248,7 @@ class EopatchOverviewViewModel(
         val isBolusActive = preferenceManager.patchState.isBolusActive
         val tempBasal = tempBasalManager.startedBasal
         val isTempBasalActive = preferenceManager.patchState.isTempBasalActive && tempBasal != null
-        val tempRate = tempBasal?.doseUnitText ?: ""
+        val tempRate = tempBasal?.doseText ?: ""
         val tempRemainTime = tempBasal?.remainTimeText ?: ""
         var remainBolus = preferenceManager.patchState.isNowBolusActive.takeOne(preferenceManager.bolusCurrent.remain(BolusType.NOW), 0f)
         remainBolus += preferenceManager.patchState.isExtBolusActive.takeOne(preferenceManager.bolusCurrent.remain(BolusType.EXT), 0f)
@@ -299,7 +298,7 @@ class EopatchOverviewViewModel(
 
                 // Basal rate
                 if (preferenceManager.patchState.isNormalBasalRunning) {
-                    val basalRate = ch.basalRateString(PumpRate(normalBasalManager.normalBasal.currentSegmentDoseUnitPerHour.toDouble()), true)
+                    val basalRate = ch.basalRateString(PumpRate(normalBasalManager.normalBasal.currentDeliveredDoseUnitPerHour), true)
                     add(PumpInfoRow(label = rh.gs(R.string.eopatch_base_basal_rate), value = basalRate))
                 }
 
@@ -337,20 +336,18 @@ class EopatchOverviewViewModel(
         val primaryActions = buildList {
             if (!isActivated) {
                 add(
-                    PumpAction(
+                    ScreenAction(
                         label = rh.gs(R.string.string_activate_patch),
                         icon = Icons.Filled.SwapHoriz,
-                        category = ActionCategory.PRIMARY,
                         onClick = { onClickActivation() }
                     )
                 )
             }
             if (isActivated) {
                 add(
-                    PumpAction(
+                    ScreenAction(
                         label = if (isPaused) rh.gs(CoreUiR.string.pump_resume) else rh.gs(CoreUiR.string.pump_suspend),
                         icon = if (isPaused) Icons.Filled.PlayArrow else IcLoopPaused,
-                        category = ActionCategory.PRIMARY,
                         onClick = { } // Click handled in screen composable (needs dialog)
                     )
                 )
@@ -360,10 +357,9 @@ class EopatchOverviewViewModel(
         val managementActions = buildList {
             if (isActivated) {
                 add(
-                    PumpAction(
+                    ScreenAction(
                         label = rh.gs(R.string.string_discard_patch),
                         icon = Icons.Filled.SwapHoriz,
-                        category = ActionCategory.MANAGEMENT,
                         onClick = { onClickDeactivation() }
                     )
                 )

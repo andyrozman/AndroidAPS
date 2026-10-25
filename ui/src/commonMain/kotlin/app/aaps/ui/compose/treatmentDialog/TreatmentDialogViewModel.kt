@@ -17,6 +17,8 @@ import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.insulin.ConcentrationHelper
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.queue.CommandQueue
+import app.aaps.core.interfaces.queue.SmbPause
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventShowDialog
@@ -30,7 +32,6 @@ import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
-import kotlin.concurrent.Volatile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -39,8 +40,13 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.concurrent.Volatile
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 // Registers itself: @ViewModelKey infers the key from the class. No graph entry, and deliberately
 // unscoped so each screen gets its own.
@@ -62,7 +68,8 @@ class TreatmentDialogViewModel(
     private val rxBus: RxBus,
     // Unqualified: @ApplicationScope is a javax qualifier and cannot appear in commonMain. The graph
     // binds the same instance under both names.
-    private val appScope: CoroutineScope
+    private val appScope: CoroutineScope,
+    commandQueue: CommandQueue
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TreatmentDialogUiState())
@@ -72,8 +79,11 @@ class TreatmentDialogViewModel(
         data class ShowDeliveryError(val comment: String) : SideEffect()
         data object ShowNoActionDialog : SideEffect()
 
-        /** The MASTER prepared the treatment and returned its merged confirmation [lines]; show them, then [commit] [bolusId]. */
-        data class ShowConfirmation(val bolusId: Long, val lines: List<ConfirmationLine>) : SideEffect()
+        /**
+         * The MASTER prepared the treatment and returned its merged confirmation [lines]; show them, then [commit]
+         * [bolusId], or [discard] it on Cancel. Close it at [closeAt]: the master's SMB pause for the dose has run out by then.
+         */
+        data class ShowConfirmation(val bolusId: Long, val lines: List<ConfirmationLine>, val closeAt: TimeMark) : SideEffect()
     }
 
     private val _sideEffect = MutableSharedFlow<SideEffect>(
@@ -115,6 +125,9 @@ class TreatmentDialogViewModel(
             val forcedRecordOnly = if (isAapsClient) false else (cantDeliverBolus || !pumpInitialized)
             _uiState.update { it.copy(forcedRecordOnly = forcedRecordOnly) }
         }
+        commandQueue.smbBeingDelivered
+            .onEach { delivering -> _uiState.update { it.copy(smbBeingDelivered = delivering) } }
+            .launchIn(viewModelScope)
     }
 
     fun updateInsulin(value: Double) {
@@ -133,6 +146,8 @@ class TreatmentDialogViewModel(
      * own numbers) and [commit] delivers. A forced record-only (master can't deliver) records insulin + carbs as given.
      */
     fun prepareAndConfirm() {
+        // Counted from before the prepare, so on a client the confirmation closes before the master's pause ends.
+        val closeAt = TimeSource.Monotonic.markNow() + SmbPause.MAX_DURATION
         appScope.launch {
             val state = uiState.value
             confirmedState = state
@@ -142,15 +157,15 @@ class TreatmentDialogViewModel(
                 return@launch
             }
             when (val prepared = batchExecutor.prepare(actions, Sources.TreatmentDialog, rh.gs(InterfacesStrings.bolus))) {
-                is ActionProgress.Prepared -> _sideEffect.tryEmit(SideEffect.ShowConfirmation(prepared.id, prepared.lines))
+                is ActionProgress.Prepared -> _sideEffect.tryEmit(SideEffect.ShowConfirmation(prepared.id, prepared.lines, closeAt))
                 is ActionProgress.Rejected -> when {
                     // No-op after caps (e.g. the bolus was constraint-capped to 0): neutral message, NOT the bolus-error alarm.
                     prepared.reason == FailureReason.NoAction -> _sideEffect.tryEmit(SideEffect.ShowNoActionDialog)
                     prepared.reason.isNotDeliveryError()      -> rxBus.send(EventShowDialog.Ok(title = rh.gs(InterfacesStrings.bolus), message = rh.gs(prepared.reason.failText())))
-                    else                                      -> prepared.detail?.let { detail ->
-                        if (config.AAPSCLIENT) rxBus.send(EventShowDialog.Ok(title = rh.gs(InterfacesStrings.bolus), message = detail))
-                        else _sideEffect.tryEmit(SideEffect.ShowDeliveryError(detail))
-                    }
+                    // A client's app-level modal has shown the master's own text already.
+                    config.AAPSCLIENT                         -> Unit
+                    // Nothing was sent to the pump and the dialog keeps its values: a plain message, not the bolus-error alarm.
+                    else                                      -> rxBus.send(EventShowDialog.Ok(title = rh.gs(InterfacesStrings.bolus), message = prepared.detail ?: rh.gs(prepared.reason.failText())))
                 }
 
                 else                       -> Unit // Unconfirmed → app-level modal
@@ -158,19 +173,20 @@ class TreatmentDialogViewModel(
         }
     }
 
+    /** The confirmation was cancelled or closed itself: drop the prepared treatment, so the loop can give SMBs again. */
+    fun discard(bolusId: Long) = batchExecutor.discard(bolusId)
+
     /** Confirm the master's prepared treatment: deliver/record the parked bundle exactly once. */
     fun commit(bolusId: Long) {
         appScope.launch {
             val result = batchExecutor.commit(bolusId, Sources.TreatmentDialog, rh.gs(InterfacesStrings.bolus))
             // Surface a failed commit. NotReachable → the offline message; any other Rejected (ExecutionFailed,
-            // NoPendingBolus, …) → the master's detail. Unconfirmed (state unknown) rides the round-trip's app-level modal.
+            // NoPendingBolus, …) → the master's detail, which a client's app-level modal has shown already.
+            // Unconfirmed (state unknown) rides the round-trip's app-level modal.
             if (result is ActionProgress.Rejected) {
                 if (result.reason.isNotDeliveryError())
                     rxBus.send(EventShowDialog.Ok(title = rh.gs(InterfacesStrings.bolus), message = rh.gs(result.reason.failText())))
-                else result.detail?.let { detail ->
-                    if (config.AAPSCLIENT) rxBus.send(EventShowDialog.Ok(title = rh.gs(InterfacesStrings.bolus), message = detail))
-                    else _sideEffect.tryEmit(SideEffect.ShowDeliveryError(detail))
-                }
+                else if (!config.AAPSCLIENT) result.detail?.let { _sideEffect.tryEmit(SideEffect.ShowDeliveryError(it)) }
             }
         }
     }
@@ -183,10 +199,12 @@ class TreatmentDialogViewModel(
      */
     private suspend fun buildActions(state: TreatmentDialogUiState): List<BatchAction> {
         val iCfg = if (state.forcedRecordOnly) profileFunction.getRunningOrRequestedICfg() else null
-        // Floor to the deliverable bolus step so the confirmed amount equals what the pump delivers (the
-        // concentration boundary floors the converted cU to the native pulse grid). ch.bolusStep is
-        // amount-aware (Insight) + concentration-adjusted.
-        val deliverableInsulin = Round.floorTo(state.insulin, ch.bolusStep(state.insulin))
+        // A record-only dose is not given by this pump, so it is kept as typed (a pen can give 1.33 U). Otherwise
+        // floor to the bolus step so the confirmed amount equals what the pump gives. ch.bolusStep is the step of
+        // the pump, converted by the concentration.
+        val deliverableInsulin =
+            if (state.forcedRecordOnly) state.insulin
+            else Round.floorTo(state.insulin, ch.bolusStep(state.insulin))
         return buildList {
             if (deliverableInsulin > 0.0 || state.carbs > 0)
                 add(

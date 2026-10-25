@@ -5,9 +5,7 @@ import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
-import app.aaps.core.interfaces.pump.PumpEnactResult
 import app.aaps.core.interfaces.pump.PumpWithConcentration
-import app.aaps.core.interfaces.queue.Callback
 import app.aaps.core.interfaces.queue.Command
 import app.aaps.core.interfaces.queue.cancel
 import app.aaps.core.keys.IntKey
@@ -27,10 +25,10 @@ class CommandSMBBolusTest : TestBaseWithProfile() {
     @Mock lateinit var persistenceLayer: PersistenceLayer
     @Mock lateinit var bolusProgressData: BolusProgressData
 
-    private fun newCommand(info: DetailedBolusInfo, callback: Callback? = null) =
+    private fun newCommand(info: DetailedBolusInfo) =
         CommandSMBBolus(
             aapsLogger, rh, dateUtil, activePlugin, persistenceLayer, preferences, bolusProgressData,
-            pumpEnactResultProvider::invoke, info, callback, BOLUS_GENERATION
+            pumpEnactResultProvider::invoke, info, BOLUS_GENERATION
         )
 
     private fun smbInfo(deliverAtTheLatest: Long = System.currentTimeMillis()) =
@@ -51,6 +49,36 @@ class CommandSMBBolusTest : TestBaseWithProfile() {
         assertThat(result.success).isFalse()
         assertThat(result.enacted).isFalse()
         verify(bolusProgressData).clear(BOLUS_GENERATION)
+    }
+
+    // #5362: the APS allows an SMB 6 s before the full interval. The queue runs later, so it must allow it too.
+    @Test
+    fun `execute calls pump when the last bolus is 5 s short of the interval`() = runTest {
+        whenever(preferences.get(IntKey.ApsMaxSmbFrequency)).thenReturn(3)
+        val lastBolus = BS(timestamp = dateUtil.now() - T.mins(3).msecs() + T.secs(5).msecs(), type = BS.Type.SMB, amount = 0.3, iCfg = someICfg)
+        whenever(persistenceLayer.getNewestBolus()).thenReturn(lastBolus)
+        val info = smbInfo()
+        val pumpResult = PumpEnactResultObject(rh).success(true).enacted(true)
+        val pump = mock<PumpWithConcentration> {
+            on { deliverTreatment(info) } doReturn pumpResult
+        }
+        whenever(activePlugin.activePump).thenReturn(pump)
+
+        val result = newCommand(info).execute()
+
+        assertThat(result).isSameInstanceAs(pumpResult)
+    }
+
+    @Test
+    fun `execute rejects when the last bolus is 7 s short of the interval`() = runTest {
+        whenever(preferences.get(IntKey.ApsMaxSmbFrequency)).thenReturn(3)
+        val lastBolus = BS(timestamp = dateUtil.now() - T.mins(3).msecs() + T.secs(7).msecs(), type = BS.Type.SMB, amount = 0.3, iCfg = someICfg)
+        whenever(persistenceLayer.getNewestBolus()).thenReturn(lastBolus)
+
+        val result = newCommand(smbInfo()).execute()
+
+        assertThat(result.success).isFalse()
+        assertThat(result.enacted).isFalse()
     }
 
     @Test
@@ -96,7 +124,7 @@ class CommandSMBBolusTest : TestBaseWithProfile() {
     }
 
     @Test
-    fun `executeWithCallback forwards execute result to callback`() = runTest {
+    fun `executeAndComplete completes with execute result`() = runTest {
         whenever(preferences.get(IntKey.ApsMaxSmbFrequency)).thenReturn(3)
         whenever(persistenceLayer.getNewestBolus()).thenReturn(null)
         val info = smbInfo()
@@ -105,49 +133,35 @@ class CommandSMBBolusTest : TestBaseWithProfile() {
             on { deliverTreatment(info) } doReturn pumpResult
         }
         whenever(activePlugin.activePump).thenReturn(pump)
-        var received: PumpEnactResult? = null
-        val callback = object : Callback() {
-            override fun run() {
-                received = result
-            }
-        }
+        val command = newCommand(info)
 
-        newCommand(info, callback).executeWithCallback()
+        command.executeAndComplete()
 
+        val received = command.completion.await()
         assertThat(received).isSameInstanceAs(pumpResult)
     }
 
     @Test
-    fun `cancel clears progress data and invokes callback with success by default`() {
+    fun `cancel clears progress data and completes with success by default`() = runTest {
         whenever(rh.gs(app.aaps.core.ui.R.string.command_replaced)).thenReturn("replaced")
-        var received: PumpEnactResult? = null
-        val callback = object : Callback() {
-            override fun run() {
-                received = result
-            }
-        }
+        val command = newCommand(smbInfo())
 
-        newCommand(smbInfo(), callback).cancel(app.aaps.core.ui.R.string.command_replaced)
+        command.cancel(app.aaps.core.ui.R.string.command_replaced)
 
-        assertThat(received).isNotNull()
-        assertThat(received!!.success).isTrue()
+        val received = command.completion.await()
+        assertThat(received.success).isTrue()
         verify(bolusProgressData).clear(BOLUS_GENERATION)
     }
 
     @Test
-    fun `cancel clears progress data and invokes callback with failure when success=false`() {
+    fun `cancel clears progress data and completes with failure when success=false`() = runTest {
         whenever(rh.gs(app.aaps.core.ui.R.string.command_replaced)).thenReturn("replaced")
-        var received: PumpEnactResult? = null
-        val callback = object : Callback() {
-            override fun run() {
-                received = result
-            }
-        }
+        val command = newCommand(smbInfo())
 
-        newCommand(smbInfo(), callback).cancel(app.aaps.core.ui.R.string.command_replaced, success = false)
+        command.cancel(app.aaps.core.ui.R.string.command_replaced, success = false)
 
-        assertThat(received).isNotNull()
-        assertThat(received!!.success).isFalse()
+        val received = command.completion.await()
+        assertThat(received.success).isFalse()
         verify(bolusProgressData).clear(BOLUS_GENERATION)
     }
 

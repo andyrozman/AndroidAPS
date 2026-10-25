@@ -20,6 +20,10 @@ enum class PumpCapability {
     CarelevoCapabilities(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, BasalRate30min),
     TandemSlimCapabilities(Refill, ReplaceBattery),
     TandemMobiCapabilities(Bolus, TempBasal, BasalProfileSet, Refill, BasalRate30min);
+    // Diaconn set without Refill and ReplaceBattery: the Equil wizard fills the reservoir and fits the charged battery
+    EquilCapabilities(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, TDD, ManualTDDLoad))
+    ;
+
 
     var children: ArrayList<Capability> = ArrayList()
 

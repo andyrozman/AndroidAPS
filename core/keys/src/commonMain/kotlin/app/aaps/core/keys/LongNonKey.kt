@@ -21,6 +21,12 @@ enum class LongNonKey(
      */
     ActivePumpChangeTimestamp("active_pump_change_timestamp", 0L, exportable = false),
     LastCleanupRun("last_cleanup_run", 0L),
+    /**
+     * The time before which the last automatic cleanup deleted records. `PeriodicMaintenance` lets
+     * it move forward only a little per pass, so a forward clock jump cannot delete the whole
+     * history at once (#5210).
+     */
+    LastCleanupCutoff("last_cleanup_cutoff", 0L),
 
     // NSCv3 client-control pairing (excluded from export — replay protection regresses if restored)
     NsClientControlCounterSent("nsclient_control_counter_sent", 0L, exportable = false),
@@ -29,6 +35,14 @@ enum class LongNonKey(
     // orphan signals on settings/aaps docs whose srvModified predates the pairing (master
     // hasn't republished the roster yet). Not exported — re-pair regenerates this.
     NsClientControlPairedAt("nsclient_control_paired_at", 0L, exportable = false),
+    // When the client sent the hello of its last key exchange. No new one is started for a while after it, so the
+    // master's answer is not overtaken by a second exchange (see ClientPairingRepository.needsKeyExchange).
+    NsClientControlKeyExchangeAt("nsclient_control_key_exchange_at", 0L, exportable = false),
+    // Master: the "signed at" of its last signed settings doc; the next is always later, also after the clock went back.
+    NsClientControlSignedAt("nsclient_control_signed_at", 0L, exportable = false),
+    // Client: the "signed at" of the last cold and hot doc it took. An older one is a replay and is refused.
+    NsClientControlColdSignedAt("nsclient_control_cold_signed_at", 0L, exportable = false),
+    NsClientControlHotSignedAt("nsclient_control_hot_signed_at", 0L, exportable = false),
     LastVacuumRun("last_vacuum_run", 0L),
 }
 

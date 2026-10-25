@@ -5,6 +5,7 @@ import android.text.TextUtils
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
@@ -20,9 +21,8 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.ui.compose.ScreenAction
 import app.aaps.core.ui.compose.StatusLevel
-import app.aaps.core.ui.compose.pump.ActionCategory
-import app.aaps.core.ui.compose.pump.PumpAction
 import app.aaps.core.ui.compose.pump.PumpCommunicationStatus
 import app.aaps.core.ui.compose.pump.PumpInfoRow
 import app.aaps.core.ui.compose.pump.PumpOverviewUiState
@@ -37,6 +37,7 @@ import app.aaps.pump.equil.manager.EquilManager
 import app.aaps.pump.equil.manager.command.CmdModelSet
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -49,7 +50,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import dev.zacsweers.metro.Inject
 import app.aaps.core.ui.R as CoreUiR
 
 sealed class EquilOverviewEvent {
@@ -171,7 +171,7 @@ class EquilOverviewViewModel(
             )
         )
         add(PumpInfoRow(label = rh.gs(CoreUiR.string.last_connection_label), value = dateUtil.dateAndTimeAndSecondsString(state.lastDataTime)))
-        add(PumpInfoRow(label = rh.gs(CoreUiR.string.battery_label), value = "${state.battery}%"))
+        add(PumpInfoRow(label = rh.gs(CoreUiR.string.battery_label), value = state.battery?.let { rh.gs(CoreUiR.string.units_format_percent, it) } ?: "-"))
         add(PumpInfoRow(label = rh.gs(R.string.equil_insulin_reservoir), value = ch.insulinAmountString(PumpInsulin(state.currentInsulin.toDouble()))))
         add(
             PumpInfoRow(
@@ -205,61 +205,67 @@ class EquilOverviewViewModel(
         }
     }
 
-    private fun buildPrimaryActions(isPaired: Boolean): List<PumpAction> = buildList {
+    private fun buildPrimaryActions(isPaired: Boolean): List<ScreenAction> = buildList {
         if (isPaired && equilManager.isActivationCompleted()) {
+            // Reads the run mode and the pump history now, so a pump alarm shows without waiting for
+            // the next loop run.
+            add(
+                ScreenAction(
+                    label = rh.gs(CoreUiR.string.refresh),
+                    icon = Icons.Filled.Refresh,
+                    onClick = { onRefreshClick() }
+                ))
             val runMode = equilManager.equilState?.runMode
             if (runMode == RunMode.RUN) {
                 add(
-                    PumpAction(
+                    ScreenAction(
                     label = rh.gs(R.string.equil_common_overview_button_suspend_delivery),
                     icon = IcEquilSuspendDelivery,
-                    category = ActionCategory.PRIMARY,
                     onClick = { toggleMode() }
                 ))
             } else if (runMode == RunMode.SUSPEND) {
                 add(
-                    PumpAction(
+                    ScreenAction(
                     label = rh.gs(R.string.equil_common_overview_button_resume_delivery),
                     icon = IcEquilResumeDelivery,
-                    category = ActionCategory.PRIMARY,
                     onClick = { toggleMode() }
                 ))
             }
         }
     }
 
-    private fun buildManagementActions(isPaired: Boolean): List<PumpAction> = buildList {
+    private fun buildManagementActions(isPaired: Boolean): List<ScreenAction> = buildList {
         if (!isPaired) {
             add(
-                PumpAction(
+                ScreenAction(
                 label = rh.gs(R.string.equil_pair),
                 icon = Icons.Filled.Bluetooth,
-                category = ActionCategory.MANAGEMENT,
                 onClick = { _events.tryEmit(EquilOverviewEvent.StartWizard(EquilWorkflow.PAIR)) }
             ))
         } else {
             add(
-                PumpAction(
+                ScreenAction(
                 label = rh.gs(R.string.equil_dressing),
                 icon = Icons.Filled.SwapHoriz,
-                category = ActionCategory.MANAGEMENT,
                 onClick = { _events.tryEmit(EquilOverviewEvent.StartWizard(EquilWorkflow.CHANGE_INSULIN)) }
             ))
             add(
-                PumpAction(
+                ScreenAction(
                 label = rh.gs(CoreUiR.string.history),
                 icon = Icons.Filled.History,
-                category = ActionCategory.MANAGEMENT,
                 onClick = { _events.tryEmit(EquilOverviewEvent.StartHistory) }
             ))
             add(
-                PumpAction(
+                ScreenAction(
                 label = rh.gs(R.string.equil_unbind),
                 icon = Icons.Filled.Bluetooth,
-                category = ActionCategory.MANAGEMENT,
                 onClick = { _events.tryEmit(EquilOverviewEvent.StartWizard(EquilWorkflow.UNPAIR)) }
             ))
         }
+    }
+
+    private fun onRefreshClick() {
+        viewModelScope.launch { commandQueue.readStatus(rh.gs(CoreUiR.string.user_request)) }
     }
 
     private fun toggleMode() {
@@ -271,7 +277,7 @@ class EquilOverviewViewModel(
             _isModeChanging.value = false
             aapsLogger.debug(LTag.PUMPCOMM, "toggleMode result: ${r.success}")
             if (r.success) {
-                equilManager.equilState?.runMode = targetMode
+                equilManager.setRunMode(targetMode)
                 _refreshTrigger.value = System.currentTimeMillis()
             }
         }

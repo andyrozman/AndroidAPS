@@ -15,6 +15,7 @@ import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.keys.interfaces.VisibilityContext
 import app.aaps.core.objects.extensions.profileNames
 import app.aaps.core.objects.wizard.QuickWizard
+import app.aaps.core.objects.wizard.QuickWizardEntry
 import app.aaps.core.ui.compose.pluginCategoryTitle
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
@@ -77,14 +78,18 @@ class QuickLaunchConfigViewModel(
 
         // Available static items (not already selected, visible in current mode). isVisibleInMode applies the
         // same ElementVisibility gate as search/Manage — e.g. MASTER_OR_PAIRED_CLIENT hides bolus/carbs/fill on
-        // an unpaired client, so they can't be pinned to the toolbar there.
+        // an unpaired client, so they can't be pinned to the toolbar there. isValid drops what the setup does
+        // not support (fill on a patch pump, xDrip CGM without xDrip): the toolbar would remove it on save.
         val availableStatic = QuickLaunchAction.staticActions
             .filter { actionKey(it) !in selectedSet }
             .filter { it.isVisibleInMode() }
+            .filter { resolver.isValid(it) }
             .map { resolver.resolveItem(it) }
 
-        // Available QuickWizard items (not already selected)
+        // Available QuickWizard items (not already selected). Watch-only entries are left out: the
+        // toolbar is on the phone, so it would never show them.
         val availableQw = quickWizard.list()
+            .filter { it.forDevice(QuickWizardEntry.DEVICE_PHONE) }
             .map { QuickLaunchAction.QuickWizardAction(it.guid()) }
             .filter { actionKey(it) !in selectedSet }
             .filter { it.isVisibleInMode() }
@@ -214,9 +219,9 @@ class QuickLaunchConfigViewModel(
 
     /**
      * Mode-based visibility for an action's backing element — the same [ElementVisibility] gate search and the
-     * Manage sheet use (e.g. MASTER_OR_PAIRED_CLIENT hides command actions on an unpaired client). Actions with no
-     * element (plugins) are visible; those are gated by showInList in [buildPluginGroups] instead.
+     * Manage sheet use (e.g. MASTER_OR_PAIRED_CLIENT hides command actions on an unpaired client), plus the client's
+     * role. Actions with no element (plugins) are visible; those are gated by showInList in [buildPluginGroups] instead.
      */
     private fun QuickLaunchAction.isVisibleInMode(): Boolean =
-        elementType?.visibility?.isVisible(visibilityContext) ?: true
+        elementType?.isAvailable(visibilityContext) ?: true
 }

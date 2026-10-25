@@ -2,9 +2,7 @@ package app.aaps.plugins.automation
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import app.aaps.core.data.format.NumberFormat
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.pump.defs.PumpType
@@ -41,6 +39,8 @@ import app.aaps.core.keys.StringNonKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.ComposablePluginContent
+import app.aaps.core.ui.compose.StyledArg
+import app.aaps.core.ui.compose.styledString
 import app.aaps.plugins.automation.actions.Action
 import app.aaps.plugins.automation.actions.ActionFactory
 import app.aaps.plugins.automation.compose.AutomationComposeContent
@@ -468,24 +468,37 @@ class AutomationRuntime(
     // Id-backfill + the EMPTY_EVENT starter happen once in [bootstrap] (master); a master push is already
     // canonical, so applying it is a pure reparse → no store → no echo. @VisibleForTesting + internal:
     // production reaches this only via start()/self-observe; tests drive it to assert the load behavior.
-    internal fun loadFromSP() {
+    // Returns false if anything stored could not be read: the whole list, or one event. One bad event is
+    // skipped, so the events after it still load. [bootstrap] must not write back after such a load (#5214).
+    internal fun loadFromSP(): Boolean {
         eventsLock.withLock {
             // Carry run-timers across the reparse: lastRun isn't serialized, so a naive reload would reset
             // every event's timer and (on a master that executes) risk re-firing automations right after a
             // remote push. Preserve it by id for events that still exist; new/changed ids start fresh.
             val previousLastRun = automationEvents.associate { it.id to it.lastRun }
             automationEvents.clear()
+            var clean = true
             val data = preferences.get(StringNonKey.AutomationEvents)
-            if (data != "")
-                runCatching {
-                    val array = Json.parseToJsonElement(data).jsonArray
-                    for (element in array) {
+            if (data != "") {
+                val array = runCatching { Json.parseToJsonElement(data).jsonArray }
+                    .onFailure {
+                        aapsLogger.error(LTag.AUTOMATION, "Cannot parse stored automation list", it)
+                        clean = false
+                    }
+                    .getOrNull()
+                for (element in array ?: emptyList()) {
+                    runCatching {
                         val event = automationEventFactory.fromJSON(element.toString())
                         previousLastRun[event.id]?.let { event.lastRun = it }
                         automationEvents.add(event)
+                    }.onFailure {
+                        aapsLogger.error(LTag.AUTOMATION, "Cannot parse stored automation event: $element", it)
+                        clean = false
                     }
-                }.onFailure { aapsLogger.error(LTag.AUTOMATION, "Cannot parse stored automation list", it) }
+                }
+            }
             notifyChanged() // fan out to UI/wear collectors; does NOT persist
+            return clean
         }
     }
 
@@ -495,6 +508,9 @@ class AutomationRuntime(
     // MASTER: id-backfill legacy id-less events (fromJSON assigns ids in-memory) and seed the EMPTY_EVENT
     // starter on a fresh install (pref never initialized = ""), then persist once via putRemote if the
     // canonical form changed. Idempotent for already-canonical data.
+    // Nothing is written if the stored data could not be fully read. The list in memory then misses what
+    // failed, and writing it back would delete that from disk at every start - all rules, if the whole
+    // list failed (#5214). Neither the id-backfill nor the starter is worth that.
     private fun bootstrap() {
         eventsLock.withLock {
             if (config.AAPSCLIENT) {
@@ -502,7 +518,7 @@ class AutomationRuntime(
                 return
             }
             val before = preferences.get(StringNonKey.AutomationEvents)
-            loadFromSP()
+            if (!loadFromSP()) return
             if (before == "") automationEvents.add(automationEventFactory.fromJSON(EMPTY_EVENT))
             notifyChanged()
             val after = eventsToJson()
@@ -564,11 +580,16 @@ class AutomationRuntime(
         val iterator = eventsLock.withLock { automationEvents.toMutableList().iterator() }
         while (iterator.hasNext()) {
             val event = iterator.next()
-            if (event.isEnabled && !event.userAction && event.shouldRun())
-                if (event.systemAction || commonEventsEnabled) {
-                    processEvent(event)
-                    if (event.hasStopProcessing()) break
-                }
+            if (!event.isEnabled || event.userAction) continue
+            if (!event.systemAction && !commonEventsEnabled) continue
+            val ran = event.shouldRun() && runEvent(event)
+            // "Stop processing" stops the rules below for as long as this rule's conditions are true.
+            // It used to stop them after every check of the rule, so the rules below never ran while
+            // the conditions were false, and they did run in the 5 minutes after the rule ran, because
+            // shouldRun() skips the rule then. The 5 minute limit is for the actions, not for the stop.
+            // A rule that ran stops the rest without a second check: its own actions can have changed
+            // its conditions. A rule switched off by runEvent (an action that cannot run) stops nothing.
+            if (event.isEnabled && event.hasStopProcessing() && (ran || event.canRun() && event.preconditionCanRun())) break
         }
 
         /*
@@ -589,8 +610,12 @@ class AutomationRuntime(
     }
 
     override suspend fun processEvent(someEvent: AutomationEvent) {
-        if (!config.APS) return // execution is master-only — guards every UI entry point (wear, quick launch, scenes, run-now)
-        val event = someEvent as AutomationEventObject
+        runEvent(someEvent as AutomationEventObject)
+    }
+
+    /** Runs the actions of [event] when its conditions are true. Returns true when they ran. */
+    private suspend fun runEvent(event: AutomationEventObject): Boolean {
+        if (!config.APS) return false // execution is master-only — guards every UI entry point (wear, quick launch, scenes, run-now)
 
         // A rule with an action that cannot run is switched off here, before any of it runs, rather
         // than half-executed. This decision used to live in `areActionsValid()`, which the Compose
@@ -601,12 +626,12 @@ class AutomationRuntime(
         if (!event.areActionsValid()) {
             event.isEnabled = false
             for (action in event.actions.filterNot { it.isValid() }) {
-                executionLog.add(AnnotatedString("Invalid action: ${action.shortDescription()}"))
+                executionLog.add(AnnotatedString(rh.gs(InterfacesStrings.confirmation_line, rh.gs(CoreUiStrings.invalid), action.shortDescription())))
                 aapsLogger.debug(LTag.AUTOMATION, "Invalid action: ${action.shortDescription()}")
             }
             markEdited() // the rule is now disabled - store that and refresh the list
             rxBus.send(EventAutomationUpdateGui())
-            return
+            return false
         }
 
         if (event.canRun() && event.preconditionCanRun()) {
@@ -614,24 +639,23 @@ class AutomationRuntime(
             for (action in actions) {
                 action.title = event.title
                 val result = action.doAction()
-                val entry = buildAnnotatedString {
-                    append(dateUtil.timeString(dateUtil.now()))
-                    append(" ")
-                    append(if (result.success) "☺" else "▼")
-                    append(" ")
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("${event.title}:") }
-                    append(" ")
-                    append(action.shortDescription())
-                    append(": ")
-                    append(result.comment)
-                }
+                val entry = rh.styledString(
+                    AutomationStrings.automation_log_entry,
+                    StyledArg(dateUtil.timeString(dateUtil.now())),
+                    StyledArg(if (result.success) "☺" else "▼"),
+                    StyledArg(event.title, SpanStyle(fontWeight = FontWeight.Bold)),
+                    StyledArg(action.shortDescription()),
+                    StyledArg(result.comment)
+                )
                 executionLog.add(entry)
                 aapsLogger.debug(LTag.AUTOMATION, "Executed: ${entry.text}")
                 rxBus.send(EventAutomationUpdateGui())
             }
             event.lastRun = dateUtil.now()
             if (event.autoRemove) remove(event)
+            return true
         }
+        return false
     }
 
     fun add(event: AutomationEventObject) {

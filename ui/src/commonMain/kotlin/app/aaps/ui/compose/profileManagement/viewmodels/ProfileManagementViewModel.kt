@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.aaps.core.data.model.EPS
 import app.aaps.core.data.model.ICfg
+import app.aaps.core.data.model.PS
 import app.aaps.core.data.model.TT
 import app.aaps.core.data.time.T
 import app.aaps.core.data.ue.Sources
@@ -38,6 +39,7 @@ import app.aaps.core.interfaces.tempTargets.ttTargetMgdl
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.keys.BooleanNonKey
+import app.aaps.core.keys.interfaces.ClientRole
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.extensions.toPureProfile
 import app.aaps.core.objects.profile.ProfileSealed
@@ -134,13 +136,19 @@ class ProfileManagementViewModel(
      *
      * Fail closed until the flows settle, and read it where the state is built rather than where the
      * mode is requested, so a change while the screen is open takes effect at once.
+     *
+     * The client's role splits it in two: activating a profile is a caregiver's, editing profiles (presets)
+     * is an admin's. A master is always both.
      */
-    private val editingAllowed: Boolean get() = editingAllowedFlow.value
+    private val access: ProfileAccess get() = accessFlow.value
 
-    private val editingAllowedFlow: StateFlow<Boolean> =
-        combine(nsClient.masterOrPairedClientFlow, nsClient.masterReachable) { paired, reachable ->
-            !config.AAPSCLIENT || (paired && reachable)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), !config.AAPSCLIENT)
+    private data class ProfileAccess(val activate: Boolean, val edit: Boolean)
+
+    private val accessFlow: StateFlow<ProfileAccess> =
+        combine(nsClient.masterOrPairedClientFlow, nsClient.masterReachable, nsClient.clientRole) { paired, reachable, role ->
+            val canSend = !config.AAPSCLIENT || (paired && reachable)
+            ProfileAccess(activate = canSend && role.allows(ClientRole.Caregiver), edit = canSend && role.allows(ClientRole.Admin))
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileAccess(!config.AAPSCLIENT, !config.AAPSCLIENT))
 
     fun setScreenMode(mode: ScreenMode) {
         _screenMode.value = mode
@@ -200,9 +208,9 @@ class ProfileManagementViewModel(
         _selectedIndex,
         persistenceLayer.observeChanges(EPS::class).compensateForClockSkew(config, dateUtil).onStart { emit(emptyList()) },
         _screenMode,
-        // An input, not a snapshot: pairing/unpairing or the master going away while this screen is
-        // open has to move it between editable and read-only right away.
-        editingAllowedFlow
+        // An input, not a snapshot: pairing/unpairing, a new role or the master going away while this
+        // screen is open has to move it between editable and read-only right away.
+        accessFlow
     ) { profiles, requestedIdx, _, screenMode, _ ->
         UiInputs(profiles, requestedIdx, screenMode)
     }.mapLatest { inputs ->
@@ -210,8 +218,9 @@ class ProfileManagementViewModel(
             aapsLogger.error(LTag.UI, "Failed to compute uiState", e)
             ProfileManagementUiState(
                 isLoading = false,
-                screenMode = if (editingAllowed) inputs.screenMode else ScreenMode.PLAY,
-                commandsAllowed = editingAllowed
+                screenMode = if (access.edit) inputs.screenMode else ScreenMode.PLAY,
+                commandsAllowed = access.activate,
+                editAllowed = access.edit
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileManagementUiState())
@@ -266,8 +275,10 @@ class ProfileManagementViewModel(
         // surfaced as an amber "won't run on this pump" hint on the card, distinct from red errors.
         val pumpWarnings = profiles.map { profileRepository.validatePumpCompatibility(it).isNotEmpty() }
 
+        val activatedPs = activeEps?.let { activatedPs(it) }
+
         val (selectedProfile, compareData) = computeSelectedProfileAndCompareData(
-            profiles, currentIndex, activeEps, activeProfileName
+            profiles, currentIndex, activeEps, activeProfileName, activatedPs
         )
 
         return ProfileManagementUiState(
@@ -282,9 +293,10 @@ class ProfileManagementViewModel(
             pumpWarnings = pumpWarnings,
             selectedProfile = selectedProfile,
             compareData = compareData,
-            // An unpaired client cannot leave PLAY, whatever mode was requested.
-            screenMode = if (editingAllowed) screenMode else ScreenMode.PLAY,
-            commandsAllowed = editingAllowed,
+            // An unpaired client, or one whose role may not edit profiles, cannot leave PLAY, whatever mode was requested.
+            screenMode = if (access.edit) screenMode else ScreenMode.PLAY,
+            commandsAllowed = access.activate,
+            editAllowed = access.edit,
             isLoading = false
         )
     }
@@ -299,11 +311,22 @@ class ProfileManagementViewModel(
                 .filter { it.type != ProfileErrorType.NAME || it.message != rh.gs(CoreUiStrings.profile_name_contains_dot) }
         }
 
-    private fun computeSelectedProfileAndCompareData(
+    /**
+     * The PS [eps] was made from. The pump can round the basal (#2454), so the EPS alone cannot tell whether the
+     * local profile was edited since it was activated. Found by time, the PS that was active when the EPS was
+     * written, not by `originalPsId`: on AAPSClient that is the id in the master's database.
+     */
+    internal suspend fun activatedPs(eps: EPS): PS? =
+        persistenceLayer.getProfileSwitchActiveAt(eps.timestamp)
+            ?.takeIf { it.profileName == eps.originalProfileName && it.percentage == eps.originalPercentage && it.timeshift == eps.originalTimeshift }
+
+    /** `internal` so it can be unit-tested: what the carousel shows for the active profile. */
+    internal fun computeSelectedProfileAndCompareData(
         profiles: List<SingleProfile>,
         currentIndex: Int,
         activeEps: EPS?,
-        activeProfileName: String?
+        activeProfileName: String?,
+        activatedPs: PS?
     ): Pair<Profile?, ProfileCompareData?> {
         if (currentIndex !in profiles.indices) return null to null
 
@@ -321,10 +344,15 @@ class ProfileManagementViewModel(
         val baseProfile = profiles[currentIndex].toPureProfile(dateUtil)
             ?.let { ProfileSealed.Pure(it, activePlugin) }
             ?.also { it.iCfg = effectiveProfile.iCfg }
+        // What was activated: the PS behind the EPS. Without it (older records) the EPS itself.
+        val activated: Profile = activatedPs?.let { ProfileSealed.PS(it, activePlugin) } ?: effectiveProfile
+        // The pump gives the basal rounded to its own step, so the running profile differs from what was activated.
+        val roundedByPump = activated !== effectiveProfile && !activated.isEqual(effectiveProfile, ignoreName = true)
 
         // Detect if underlying local profile was edited since activation. Cannot use isEqual()
         // here because Pure.profileName is always "" which causes a false mismatch with
-        // EPS.originalProfileName — so we ignore name in the comparison.
+        // EPS.originalProfileName — so we ignore name in the comparison. Compared with what was
+        // activated, not with the EPS: a basal rounded by the pump is not an edit.
         val baseChanged = baseProfile?.let {
             val compareLocal = profiles[currentIndex].toPureProfile(dateUtil)?.let { pure ->
                 ProfileSealed.Pure(pure, activePlugin).apply {
@@ -332,22 +360,15 @@ class ProfileManagementViewModel(
                     this.ts = T.msecs(tsMs).hours().toInt()
                 }
             }
-            compareLocal != null && !compareLocal.isEqual(effectiveProfile, ignoreName = true)
+            compareLocal != null && !compareLocal.isEqual(activated, ignoreName = true)
         } ?: false
 
         return when {
             baseChanged                             -> {
                 val profileName = profiles[currentIndex].name
-                val runningLabel = buildString {
-                    append(rh.gs(CoreUiStrings.running))
-                    if (hasModifications) {
-                        val tsHours = (tsMs / 3600000).toInt()
-                        append(" (")
-                        append("$pct%")
-                        if (tsHours != 0) append(", ${if (tsHours > 0) "+" else ""}${tsHours}h")
-                        append(")")
-                    }
-                }
+                val runningLabel =
+                    if (hasModifications) labelWithModifications(rh.gs(CoreUiStrings.running), pct, (tsMs / 3600000).toInt())
+                    else rh.gs(CoreUiStrings.running)
                 val compareData = buildProfileCompareData(
                     profile1 = effectiveProfile,
                     profile2 = baseProfile,
@@ -361,16 +382,12 @@ class ProfileManagementViewModel(
                 effectiveProfile to compareData
             }
 
-            hasModifications && baseProfile != null -> {
+            // Rounded by the pump only: the profile next to the rates the pump really gives.
+            (hasModifications || roundedByPump) && baseProfile != null -> {
                 val profileName = profiles[currentIndex].name
-                val tsHours = (tsMs / 3600000).toInt()
-                val effectiveLabel = buildString {
-                    append(profileName)
-                    append(" (")
-                    append("$pct%")
-                    if (tsHours != 0) append(", ${if (tsHours > 0) "+" else ""}${tsHours}h")
-                    append(")")
-                }
+                val effectiveLabel =
+                    if (!hasModifications) rh.gs(CoreUiStrings.running)
+                    else labelWithModifications(profileName, pct, (tsMs / 3600000).toInt())
                 val compareData = buildProfileCompareData(
                     profile1 = baseProfile,
                     profile2 = effectiveProfile,
@@ -529,6 +546,17 @@ class ProfileManagementViewModel(
         )
     }
 
+    /** "Weekend (110%)", or "Weekend (110%, +2 h)" when the profile is also shifted in time. */
+    private fun labelWithModifications(name: String, percentage: Int, timeshiftHours: Int): String {
+        val percentageText = rh.gs(CoreUiStrings.units_format_percent, percentage)
+        val details =
+            if (timeshiftHours != 0) {
+                val timeshift = rh.gs(CoreUiStrings.value_with_unit, if (timeshiftHours > 0) "+$timeshiftHours" else "$timeshiftHours", rh.gs(InterfacesStrings.shorthour))
+                rh.gs(InterfacesStrings.values_with_comma, percentageText, timeshift)
+            } else percentageText
+        return rh.gs(InterfacesStrings.value_with_detail, name, details)
+    }
+
     private fun failReorder(): Int? {
         _snackbarEvent.tryEmit(rh.gs(UiStrings.profile_no_longer_exists))
         _reorderOrder.value = null
@@ -608,9 +636,10 @@ class ProfileManagementViewModel(
      * [iCfg] is the insulin the user picked when nothing was in force (see [insulinChoice]); null lets the master
      * resolve the in-force one, or refuse when there is none.
      *
-     * Note: back-dating ([timestamp]/[timeChanged]) isn't carried through the batch path — the master stamps now().
+     * [timestamp] is only sent when [timeChanged] says the user actually picked a time; otherwise the master stamps
+     * now(). A past time back-dates the switch, a future one starts it later. The master bounds the value against
+     * its own clock, so a client clock cannot place a switch days away.
      */
-    @Suppress("UNUSED_PARAMETER")
     suspend fun activateProfile(
         profileIndex: Int,
         durationMinutes: Int,
@@ -641,14 +670,7 @@ class ProfileManagementViewModel(
             return false
         }
 
-        val actions = buildList {
-            add(BatchAction.ProfileSwitch(percentage, timeshiftHours, durationMinutes, profileName = profileName, notes = notes.ifBlank { null }, iCfg = iCfg))
-            // An activity temp-target rides the same batch (raising → applied first, atomically with the switch).
-            if (withTT && durationMinutes > 0 && percentage < 100) {
-                val targetMgdl = preferences.ttTargetMgdl(TT.Reason.ACTIVITY)
-                add(BatchAction.TempTarget(TT.Reason.ACTIVITY.text, targetMgdl, targetMgdl, durationMinutes, 0))
-            }
-        }
+        val actions = buildActivationActions(profileName, durationMinutes, percentage, timeshiftHours, withTT, notes, timestamp, timeChanged, iCfg)
         val label = rh.gs(CoreUiStrings.careportal_profileswitch)
         return when (val prepared = batchExecutor.prepare(actions, Sources.ProfileSwitchDialog, label)) {
             is ActionProgress.Prepared -> {
@@ -663,10 +685,11 @@ class ProfileManagementViewModel(
                                         withContext(Dispatchers.Main) { onSuccess() }
                                     }
 
+                                    // A client's app-level modal has shown the master's own text already.
                                     is ActionProgress.Rejected ->
                                         if (result.reason.isNotDeliveryError())
                                             rxBus.send(EventShowDialog.Ok(title = label, message = rh.gs(result.reason.failText())))
-                                        else result.detail?.let { detail ->
+                                        else if (!config.AAPSCLIENT) result.detail?.let { detail ->
                                             rxBus.send(EventShowDialog.Ok(title = label, message = detail))
                                         }
 
@@ -679,17 +702,52 @@ class ProfileManagementViewModel(
                 true
             }
 
-            // Master-local pre-check failure, or a client offline; a client round-trip failure already showed on the app modal.
+            // Master-local pre-check failure, or a client offline; a client round-trip failure already showed on the app modal,
+            // with the master's own text.
             is ActionProgress.Rejected -> {
                 if (prepared.reason.isNotDeliveryError())
                     rxBus.send(EventShowDialog.Ok(title = label, message = rh.gs(prepared.reason.failText())))
-                else prepared.detail?.let { detail ->
+                else if (!config.AAPSCLIENT) prepared.detail?.let { detail ->
                     rxBus.send(EventShowDialog.Ok(title = label, message = detail))
                 }
                 false
             }
 
             else                       -> false // Unconfirmed → handled by the app-level pending modal
+        }
+    }
+
+    /**
+     * The batch an activation submits: the switch itself, plus the optional activity temp target that has to
+     * be applied in the same transaction. Separate from [activateProfile] so the shape of the batch — above
+     * all the time the user picked, which was silently dropped here before — can be asserted on its own.
+     */
+    internal fun buildActivationActions(
+        profileName: String,
+        durationMinutes: Int,
+        percentage: Int,
+        timeshiftHours: Int,
+        withTT: Boolean,
+        notes: String,
+        timestamp: Long,
+        timeChanged: Boolean,
+        iCfg: ICfg?
+    ): List<BatchAction> = buildList {
+        add(
+            BatchAction.ProfileSwitch(
+                percentage, timeshiftHours, durationMinutes, profileName = profileName, notes = notes.ifBlank { null }, iCfg = iCfg,
+                // 0 = now. Only an explicit pick travels, so an untouched screen keeps the master's clock.
+                timestamp = if (timeChanged) timestamp else 0L
+            )
+        )
+        // An activity temp-target rides the same batch (raising → applied first, atomically with the switch).
+        if (withTT && durationMinutes > 0 && percentage < 100) {
+            val targetMgdl = preferences.ttTargetMgdl(TT.Reason.ACTIVITY)
+            // A switch the user put in the future takes its temp target with it, so both cover the same
+            // activity. A back-dated switch keeps the target at now (there is no point in a past target),
+            // which is also how a back-dated bolus treats its temp target.
+            val startOffsetMinutes = if (timeChanged) ((timestamp - dateUtil.now()) / 60_000L).coerceAtLeast(0L).toInt() else 0
+            add(BatchAction.TempTarget(TT.Reason.ACTIVITY.text, targetMgdl, targetMgdl, durationMinutes, startOffsetMinutes))
         }
     }
 
@@ -723,10 +781,12 @@ data class ProfileManagementUiState(
     val compareData: ProfileCompareData? = null,
     val screenMode: ScreenMode = ScreenMode.EDIT,
     /**
-     * False on an unpaired client: editing and activating are both commands for the master, and there
-     * is no master to send them to. The profile list itself stays visible — only the affordances go
-     * away. Same axis as `commandsAllowed` on the overview chips.
+     * Whether a profile may be activated. False on an unpaired client: activating is a command for the master,
+     * and there is no master to send it to; false too below a caregiver's role. The profile list itself stays
+     * visible — only the affordance goes away. Same axis as `commandsAllowed` on the overview chips.
      */
     val commandsAllowed: Boolean = true,
+    /** Whether profiles may be edited: like [commandsAllowed], but only for an admin role (profiles are presets). */
+    val editAllowed: Boolean = true,
     val isLoading: Boolean = true
 )

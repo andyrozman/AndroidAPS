@@ -18,11 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,7 +45,7 @@ import app.aaps.core.ui.compose.AapsCard
 import app.aaps.core.ui.compose.AapsTheme
 import app.aaps.core.ui.compose.LocalDateUtil
 import app.aaps.core.ui.compose.ToolbarConfig
-import app.aaps.core.ui.compose.dialogs.OkCancelDialog
+import app.aaps.core.ui.compose.dialogs.RecordRemovalDialog
 import app.aaps.core.ui.compose.icons.Ns
 import app.aaps.core.ui.compose.icons.Pump
 import app.aaps.core.ui.compose.navigation.color
@@ -57,7 +53,6 @@ import app.aaps.core.ui.compose.stringResource
 import app.aaps.ui.UiStrings
 import app.aaps.ui.compose.components.ContentContainer
 import app.aaps.ui.compose.treatments.viewmodels.TempBasalViewModel
-import kotlinx.coroutines.launch
 
 /**
  * Composable screen displaying temporary basals and extended boluses with delete and show hidden functionality.
@@ -78,41 +73,19 @@ fun TempBasalScreen(
     onNavigateBack: () -> Unit = { }
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
-
-    // Dialog state
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var deleteDialogMessage by remember { mutableStateOf("") }
 
     // Update toolbar configuration whenever state changes
     LaunchedEffect(uiState.isRemovingMode, uiState.selectedItems.size, uiState.showInvalidated) {
         setToolbarConfig(
             viewModel.getToolbarConfig(
                 onNavigateBack = onNavigateBack,
-                onDeleteClick = {
-                    if (uiState.selectedItems.isNotEmpty()) {
-                        scope.launch {
-                            deleteDialogMessage = viewModel.getDeleteConfirmationMessage()
-                            showDeleteDialog = true
-                        }
-                    }
-                }
+                onDeleteClick = { viewModel.requestDelete() }
             )
         )
     }
 
-    // Delete confirmation dialog
-    if (showDeleteDialog) {
-        OkCancelDialog(
-            title = stringResource(CoreUiStrings.removerecord),
-            message = deleteDialogMessage,
-            onConfirm = {
-                viewModel.deleteSelected()
-                showDeleteDialog = false
-            },
-            onDismiss = { showDeleteDialog = false }
-        )
-    }
+    // Delete confirmation, written by the master
+    RecordRemovalDialog(removal = viewModel.removal, onApplied = { viewModel.onRemoved() })
 
     AapsTheme {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -125,7 +98,9 @@ fun TempBasalScreen(
                 TreatmentLazyColumn(
                     items = uiState.tempBasals,
                     getTimestamp = { it.timestamp },
-                    getItemKey = { it.id },
+                    // A converted extended bolus carries the extended bolus id, which can be the same
+                    // number as the id of a real temp basal. The prefix keeps the two kinds apart.
+                    getItemKey = { if (it.type == TB.Type.FAKE_EXTENDED) "eb_${it.id}" else "tb_${it.id}" },
                     rh = viewModel.rh,
                     itemContent = { tb ->
                         TempBasalItem(
@@ -188,7 +163,9 @@ private fun TempBasalItem(
             .padding(horizontal = 2.dp)
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = onLongPress
+                onLongClick = onLongPress,
+                // Long press is the only way into remove mode; TalkBack says "double-tap and hold to Remove".
+                onLongClickLabel = stringResource(CoreUiStrings.remove)
             ),
         selected = isSelected
     ) {
@@ -209,7 +186,7 @@ private fun TempBasalItem(
                     if (tempBasal.isAbsolute) {
                         append(stringResource(CoreUiStrings.pump_base_basal_rate, tempBasal.rate))
                     } else {
-                        append(stringResource(CoreUiStrings.format_percent, tempBasal.rate.toInt()))
+                        append(stringResource(CoreUiStrings.units_format_percent, tempBasal.rate.toInt()))
                     }
                     // IOB in color
                     if (iob.basaliob != 0.0) {

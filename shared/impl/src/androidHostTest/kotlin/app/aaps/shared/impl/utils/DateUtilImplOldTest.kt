@@ -2,10 +2,6 @@ package app.aaps.shared.impl.utils
 
 import android.content.Context
 import app.aaps.core.data.time.T
-import app.aaps.core.interfaces.R
-import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.InterfacesStrings
-import app.aaps.core.keys.interfaces.TextRef
 import com.google.common.truth.Truth
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
@@ -13,7 +9,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.whenever
 import java.util.Date
 import java.util.SimpleTimeZone
 import java.util.TimeZone
@@ -22,7 +17,6 @@ import java.util.TimeZone
 class DateUtilImplOldTest() {
 
     @Mock lateinit var context: Context
-    @Mock lateinit var rh: ResourceHelper
 
     companion object {
 
@@ -92,7 +86,7 @@ class DateUtilImplOldTest() {
     }
     */
     @Test fun timeFrameStringTest() {
-        whenever(rh.gs(InterfacesStrings.shorthour)).thenReturn("h")
+        val rh = DateUtilImplTest.FakeResourceHelper()
         Truth.assertThat(DateUtilImpl(context).timeFrameString(T.Companion.hours(1).msecs() + T.Companion.mins(1).msecs(), rh)).isEqualTo("(1h 1')")
     }
 }

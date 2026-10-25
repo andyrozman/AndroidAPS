@@ -46,6 +46,7 @@ import app.aaps.pump.danars.comm.DanaRSPacketOptionSetPumpUTCAndTimeZone
 import app.aaps.pump.danars.comm.DanaRSPacketOptionSetUserOption
 import app.aaps.pump.danars.encryption.BleEncryption
 import app.aaps.pump.danars.services.BLEComm
+import app.aaps.pump.danars.services.DanaRSAlarmReporter
 import app.aaps.shared.tests.TestBase
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
@@ -56,6 +57,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyVararg
 import org.mockito.kotlin.whenever
 
 /**
@@ -97,7 +99,7 @@ class BLECommIntegrationTest : TestBase() {
     fun setup() {
         // Mock basics
         whenever(rh.gs(anyInt())).thenReturn("test")
-        whenever(rh.gs(anyInt(), any())).thenReturn("test")
+        whenever(rh.gs(anyInt(), anyVararg())).thenReturn("test")
         whenever(preferences.get(any<DanaStringNonKey>())).thenReturn("")
         whenever(preferences.get(any<StringComposedNonPreferenceKey>(), any())).thenReturn("")
         // Pump password "0000" matches emulator default
@@ -124,12 +126,12 @@ class BLECommIntegrationTest : TestBase() {
             danaPump,
             danaRSPlugin,
             bleEncryption,
-            pumpSync,
             dateUtil,
             preferences,
             configBuilder,
             notificationManager,
-            emulatorTransport
+            emulatorTransport,
+            DanaRSAlarmReporter(rh, notificationManager, pumpSync, danaPump)
         ).apply {
             messageTimeoutMs = 5000
         }
@@ -378,7 +380,7 @@ class BLECommIntegrationTest : TestBase() {
         connectAndHandshake()
 
         val packet = DanaRSPacketBolusSetStepBolusStart(aapsLogger, danaPump)
-            .with(amount = 2.5, speed = 0)
+            .with(amount = 2.5, speed = 0, algorithm = false)
         bleComm.sendMessage(packet)
 
         assertThat(packet.isReceived).isTrue()
@@ -392,7 +394,7 @@ class BLECommIntegrationTest : TestBase() {
 
         // Start a bolus first
         val startPacket = DanaRSPacketBolusSetStepBolusStart(aapsLogger, danaPump)
-            .with(amount = 1.0, speed = 0)
+            .with(amount = 1.0, speed = 0, algorithm = false)
         bleComm.sendMessage(startPacket)
 
         // Stop the bolus

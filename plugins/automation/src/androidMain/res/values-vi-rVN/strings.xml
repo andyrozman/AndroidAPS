@@ -108,6 +108,8 @@
     <string name="triggerCannulaAgeDesc">Kim luồn đã dùng %1$s %2$.1f giờ</string>
     <string name="triggerPodChangeLabel">Kích hoạt Pod</string>
     <string name="triggerPodChangeDesc">Pod đã kích hoạt</string>
+    <string name="triggerUnknownLabel">Điều kiện kích hoạt không xác định</string>
+    <string name="triggerUnknownDesc" comment="%1$s=stored trigger type name, not translated. Example: Unknown trigger TriggerFromTheFuture - never true">Điều kiện kích hoạt không xác định %1$s - không bao giờ đúng</string>
     <string name="triggerInsulinAgeLabel">Thời gian insulin</string>
     <string name="triggerInsulinAgeDesc">Insulin đã dùng %1$s được %2$.1f giờ</string>
     <string name="triggerPumpBatteryAgeLabel">Pin của Bơm</string>
@@ -144,6 +146,7 @@
     <string name="triggerStepsCountLabel">Số bước</string>
     <string name="triggerStepsCountDesc">Số bước trong mỗi %1$s phút: %2$s %3$.0f</string>
     <string name="triggerStepsCountDropdownLabel">Thời gian đo</string>
+    <string name="automation_log_entry" comment="One line of the automation run log. %1$s=time, %2$s=a symbol for success or failure, %3$s=rule name (bold), %4$s=what the action did, %5$s=its result. Example: 21:15 ☺ Night low: Start temp target: 8.0mmol/L@60 min(Automation): OK">%1$s %2$s %3$s: %4$s: %5$s</string>
     <!--    SMB mode-->
     <string name="changeSmbState">Bật/tắt SMB</string>
     <string name="changeSmbTo">Thay đổi SMB thành %1$s</string>

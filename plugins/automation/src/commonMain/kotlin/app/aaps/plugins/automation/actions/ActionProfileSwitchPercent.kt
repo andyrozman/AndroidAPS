@@ -1,19 +1,20 @@
 package app.aaps.plugins.automation.actions
 
-import app.aaps.core.ui.CoreUiStrings
-import app.aaps.core.keys.interfaces.TextRef
-import app.aaps.plugins.automation.AutomationStrings
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ue.ValueWithUnit
+import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.navigation.ElementType
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.pump.PumpEnactResult
 import app.aaps.core.interfaces.resources.TextResolver
+import app.aaps.core.keys.interfaces.TextRef
+import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.icons.IcProfile
 import app.aaps.core.utils.lenientDouble
 import app.aaps.core.utils.lenientInt
+import app.aaps.plugins.automation.AutomationStrings
 import app.aaps.plugins.automation.elements.Comparator
 import app.aaps.plugins.automation.elements.InputDuration
 import app.aaps.plugins.automation.elements.InputPercent
@@ -53,7 +54,7 @@ class ActionProfileSwitchPercent(
             timeShiftInHours = 0,
             action = app.aaps.core.data.ue.Action.PROFILE_SWITCH,
             source = Sources.Automation,
-            note = title + ": " + rh.gs(CoreUiStrings.startprofile, pct.value.toInt(), duration.value),
+            note = rh.gs(InterfacesStrings.confirmation_line, title, rh.gs(CoreUiStrings.startprofile, pct.value.toInt(), duration.value)),
             listValues = listOf(
                 ValueWithUnit.Percent(pct.value.toInt()),
                 ValueWithUnit.Minute(duration.value)
@@ -62,8 +63,10 @@ class ActionProfileSwitchPercent(
         return if (switched) {
             pumpEnactResultProvider().success(true).comment(CoreUiStrings.ok)
         } else {
-            aapsLogger.error(LTag.AUTOMATION, "Final profile not valid")
-            pumpEnactResultProvider().success(false).comment(CoreUiStrings.ok)
+            // Say why in the automation log, not "OK" next to a failure.
+            val reason = profileFunction.profileSwitchRefusal(duration.value, pct.value.toInt(), 0) ?: rh.gs(CoreUiStrings.invalid_profile)
+            aapsLogger.error(LTag.AUTOMATION, "Final profile not valid: $reason")
+            pumpEnactResultProvider().success(false).comment(reason)
         }
     }
 

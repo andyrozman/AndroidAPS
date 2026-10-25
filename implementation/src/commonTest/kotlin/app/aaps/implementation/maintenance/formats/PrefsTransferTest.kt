@@ -3,7 +3,6 @@ package app.aaps.implementation.maintenance.formats
 import app.aaps.core.interfaces.maintenance.ImportDecryptResult
 import app.aaps.core.interfaces.maintenance.PrefMetadata
 import app.aaps.core.interfaces.maintenance.PrefsMetadataKey
-import app.aaps.core.interfaces.maintenance.Prefs
 import app.aaps.core.interfaces.protection.SecureEncrypt
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.sharedPreferences.KeyValueStore
@@ -34,7 +33,6 @@ class PrefsTransferTest {
             override fun gs(ref: TextRef): String = "t"
             override fun gs(ref: TextRef, vararg args: Any?): String = "t"
             override fun gsNotLocalised(ref: TextRef): String = "t"
-            override fun shortTextMode(): Boolean = false
         },
         object : SecureEncrypt {
             override fun encrypt(plaintextSecret: String, keystoreAlias: String): String = plaintextSecret

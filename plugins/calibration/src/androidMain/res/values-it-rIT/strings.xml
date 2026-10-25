@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="calibration_shortname">CAL</string>
     <string name="no_calibration_name">Nessuna calibrazione</string>
     <string name="description_no_calibration">"Nessun superamento della calibrazione applicato. I valori dei sensori sono usati così com'è. Usalo quando il sensore è già calibrato in fabbrica e accurato."</string>
     <string name="linear_calibration_name">Calibrazione lineare</string>
@@ -22,7 +21,5 @@
     <string name="cal_entries_header">Voci di capillare (%1$d)</string>
     <string name="cal_no_entries">Ancora nessuna voce di capillare.</string>
     <string name="cal_entry_pair">Capillare %1$s → sensore %2$s (Δ %3$s)</string>
-    <string name="cal_remove_entry_title">Rimuovi elemento?</string>
-    <string name="cal_remove_entry_message">Questo annullerà la voce. La misura verrà ricalcolata.</string>
     <string name="cal_chart_entry_readout">Voce %1$d/%2$d · %3$s · sensore %4$s → BG %5$s</string>
 </resources>

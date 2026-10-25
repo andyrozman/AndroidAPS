@@ -1,7 +1,5 @@
 package app.aaps.plugins.sync.nsclientV3.clientcontrol
 
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.nsclient.NSClientRepository
@@ -12,13 +10,15 @@ import app.aaps.plugins.sync.nsclientV3.NSClientV3Plugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import kotlinx.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Master-side publisher for PIN-wrapped pairing offers.
@@ -88,9 +88,17 @@ class PairingOfferPublisher(
      * behind in a soft-delete tombstone (which would keep the brute-force window open). Safe here:
      * the offer identifier embeds a fresh per-pairing clientId, so it is never re-PUT after deletion.
      */
-    suspend fun deleteOffer(clientId: String) {
+    suspend fun deleteOffer(clientId: String) = deletePermanently("${ClientControlPublisher.IDENTIFIER_OFFER_PREFIX}$clientId")
+
+    /**
+     * Deletes the master's answer to a key exchange (`aaps_clientcontrol_key_<clientId>`), which holds the client's
+     * Nightscout token, encrypted. Permanent like the offer, so it is really gone; the next exchange of the same client
+     * writes the identifier again, which a permanent delete allows. Never throws, like [deleteOffer].
+     */
+    suspend fun deleteKeyExchange(clientId: String) = deletePermanently("${ClientControlPublisher.IDENTIFIER_KEY_PREFIX}$clientId")
+
+    private suspend fun deletePermanently(identifier: String) {
         val client = nsClientV3Plugin().nsAndroidClient ?: return
-        val identifier = "${ClientControlPublisher.IDENTIFIER_OFFER_PREFIX}$clientId"
         try {
             client.deleteSettingsPermanent(identifier)
         } catch (e: IOException) {

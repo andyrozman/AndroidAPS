@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="eopatch">EOPatch2</string>
-    <string name="eopatch_shortname">EOP2</string>
     <string name="eopatch_pump_description">Ολοκλήρωση αντλίας για EOPatch2 / GlucoMen Day</string>
     <string name="low_reservoir">Ειδοποιήσεις χαμηλής δεξαμενής</string>
     <string name="patch_expiration_reminders">Υπενθύμιση λήξης Patch</string>
@@ -62,7 +61,6 @@
     <string name="patch_communication_succeed">Επιτυχής επικοινωνία</string>
     <string name="patch_communication_succeed_message">Συνδεδεμένο με το Patch.</string>
     <string name="patch_cancel_pairing">Ακύρωση σύζευξης</string>
-    <string name="all_dose_unit">&#160;U</string>
     <string name="insulin_suspend_msg1">Μετά την αναστολή, το τρέχων Bolus &amp; Προσωρινός Ρυθμός θα ακυρωθεί. \n\nΡυθμός : %1$s U/hr\nΧρόνος που απομένει : %2$s\n&amp; Ινσουλίνη για χορήγηση: %3$.2f U</string>
     <string name="insulin_suspend_msg2">Μετά την αναστολή, το τρέχον Bolus θα ακυρωθεί. \n\nΙνσουλίνη για χορήγηση: %1$.2f U</string>
     <string name="insulin_suspend_msg3">Μετά την αναστολή, ο ΠροσωρινόςΒασικός Ρυθμός θα ακυρωθεί. \n\nΡυθμός : %1$s U/hr\nΥπολοιπόμενος Χρόνος : %2$s</string>
@@ -80,5 +78,4 @@
     <string name="string_resumed_insulin_delivery_message">Η χορήγηση ινσουλίνης συνεχίζεται.</string>
     <string name="string_temp_basal_remained_hhmm">υπολειπόμενος χρόνος: %1$s:%2$s</string>
     <string name="string_resume_failed">Η συνέχιση απέτυχε.</string>
-    <!-- Permission rationales -->
 </resources>

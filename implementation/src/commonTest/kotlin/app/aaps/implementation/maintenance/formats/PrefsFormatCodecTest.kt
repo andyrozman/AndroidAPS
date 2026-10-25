@@ -8,6 +8,7 @@ import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.objects.crypto.platformCryptoPrimitives
 import app.aaps.implementation.maintenance.PrefsMetadataKeyImpl
 import app.aaps.implementation.maintenance.data.PrefsStatusImpl
+import app.aaps.implementation.maintenance.formats.PrefsFormatCodecTest.Companion.FROZEN_ENCRYPTED
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -31,7 +32,6 @@ class PrefsFormatCodecTest {
         override fun gs(ref: TextRef): String = "translation"
         override fun gs(ref: TextRef, vararg args: Any?): String = "translation"
         override fun gsNotLocalised(ref: TextRef): String = "translation"
-        override fun shortTextMode(): Boolean = false
     }
 
     /**

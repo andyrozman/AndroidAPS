@@ -15,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.aaps.core.data.model.ActiveSceneState
@@ -45,7 +46,7 @@ fun OverviewScreenStacked(
     tempTargetProgress: Float,
     tempTargetReason: TT.Reason?,
     tempTargetSceneManaged: Boolean = false,
-    runningMode: RM.Mode,
+    runningMode: RM.Mode?,
     runningModeText: String,
     runningModeRemaining: String,
     runningModeProgress: Float,
@@ -64,11 +65,14 @@ fun OverviewScreenStacked(
     paddingValues: PaddingValues,
     activeSceneState: ActiveSceneState? = null,
     sceneExpired: Boolean = false,
+    activeSceneChainTargetName: String? = null,
     onEndScene: () -> Unit = {},
     onDismissScene: () -> Unit = {},
     endSceneEnabled: Boolean = true,
     commandsAllowed: Boolean = true,
     formatDuration: (Long) -> String = { ms -> "${(ms / 60000L).toInt()}m" },
+    /** Height of the bars drawn over the content in preview mode (a short window, e.g. split screen); added to the end space. */
+    overlaidBarsHeight: Dp = 0.dp,
     modifier: Modifier = Modifier
 ) {
     val config = LocalConfig.current
@@ -89,6 +93,7 @@ fun OverviewScreenStacked(
         ActiveSceneBanner(
             activeState = activeSceneState,
             expired = sceneExpired,
+            chainTargetName = activeSceneChainTargetName,
             onEndClick = onEndScene,
             onDismiss = onDismissScene,
             endEnabled = endSceneEnabled,
@@ -166,6 +171,9 @@ fun OverviewScreenStacked(
             )
         }
 
-        GraphsSection(graphViewModel = graphViewModel, isSimpleMode = isSimpleMode)
+        GraphsSection(
+            graphViewModel = graphViewModel, isSimpleMode = isSimpleMode, iobText = iobUiState.text, cobText = cobUiState.text,
+            overlaidBarsHeight = overlaidBarsHeight
+        )
     }
 }

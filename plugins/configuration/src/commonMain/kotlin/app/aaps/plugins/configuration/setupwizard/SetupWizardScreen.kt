@@ -1,11 +1,5 @@
 package app.aaps.plugins.configuration.setupwizard
 
-import app.aaps.core.ui.compose.stringResource
-import app.aaps.core.ui.CoreUiStrings
-import app.aaps.plugins.configuration.ConfigurationStrings
-import androidx.navigationevent.NavigationEventInfo
-import androidx.navigationevent.compose.NavigationBackHandler
-import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -32,17 +26,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
 import app.aaps.core.interfaces.rx.events.EventSWRLStatus
 import app.aaps.core.interfaces.rx.events.EventSWSyncStatus
 import app.aaps.core.interfaces.rx.events.EventSWUpdate
+import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.AapsTopAppBar
 import app.aaps.core.ui.compose.dialogs.OkCancelDialog
 import app.aaps.core.ui.compose.preference.ProvidePreferenceTheme
 import app.aaps.core.ui.compose.pump.StepProgressIndicator
 import app.aaps.core.ui.compose.pump.WizardButton
 import app.aaps.core.ui.compose.pump.WizardStepLayout
+import app.aaps.core.ui.compose.stringResource
+import app.aaps.plugins.configuration.ConfigurationStrings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.withContext
@@ -61,6 +61,7 @@ fun SetupWizardScreen(
     onProfileSwitch: () -> Unit,
     onOpenAuthorizedClients: () -> Unit,
     onPairWithMaster: () -> Unit,
+    onScanMasterQr: () -> Unit,
     onOpenNsReceiveSettings: () -> Unit,
     onRunObjectives: () -> Unit,
     onRequestDirectoryAccess: () -> Unit,
@@ -80,6 +81,7 @@ fun SetupWizardScreen(
         swDefinition.onProfileSwitch = onProfileSwitch
         swDefinition.onOpenAuthorizedClients = onOpenAuthorizedClients
         swDefinition.onPairWithMaster = onPairWithMaster
+        swDefinition.onScanMasterQr = onScanMasterQr
         swDefinition.onOpenNsReceiveSettings = onOpenNsReceiveSettings
         swDefinition.onRunObjectives = onRunObjectives
         swDefinition.onRequestDirectoryAccess = onRequestDirectoryAccess
@@ -96,6 +98,7 @@ fun SetupWizardScreen(
             swDefinition.onProfileSwitch = null
             swDefinition.onOpenAuthorizedClients = null
             swDefinition.onPairWithMaster = null
+            swDefinition.onScanMasterQr = null
             swDefinition.onOpenNsReceiveSettings = null
             swDefinition.onRunObjectives = null
             swDefinition.onRequestDirectoryAccess = null

@@ -13,27 +13,27 @@ import app.aaps.core.interfaces.overview.OverviewData
 import app.aaps.core.interfaces.overview.graph.OverviewDataCache
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.pump.PumpSync
-import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.sync.DataSyncSelectorXdrip
 import app.aaps.core.interfaces.sync.NsClient
+import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
-import app.aaps.core.ui.CoreUiStrings
+import app.aaps.shared.tests.generatedTextResolver
 import com.google.common.truth.Truth.assertThat
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -48,7 +48,6 @@ import org.mockito.kotlin.whenever
 internal class MaintenanceViewModelTest {
 
     @Mock private lateinit var aapsLogger: AAPSLogger
-    @Mock private lateinit var rh: ResourceHelper
     @Mock private lateinit var l: L
     @Mock private lateinit var maintenance: Maintenance
     @Mock private lateinit var importExportPrefs: ImportExportPrefs
@@ -64,6 +63,7 @@ internal class MaintenanceViewModelTest {
     @Mock private lateinit var overviewData: OverviewData
     @Mock private lateinit var overviewDataCache: OverviewDataCache
     @Mock private lateinit var nsClient: NsClient
+    @Mock private lateinit var dateUtil: DateUtil
 
     private lateinit var sut: MaintenanceViewModel
     private lateinit var testDispatcher: TestDispatcher
@@ -77,9 +77,9 @@ internal class MaintenanceViewModelTest {
         testDispatcher = StandardTestDispatcher()
         Dispatchers.setMain(testDispatcher)
         sut = MaintenanceViewModel(
-            aapsLogger, rh, l, maintenance, importExportPrefs, fileListProvider, cloudDirectoryManager,
+            aapsLogger, generatedTextResolver(), l, maintenance, importExportPrefs, fileListProvider, cloudDirectoryManager,
             activePlugin, persistenceLayer, fabricPrivacy, uel, dataSyncSelectorXdrip, pumpSync,
-            iobCobCalculator, overviewData, overviewDataCache, nsClient
+            iobCobCalculator, overviewData, overviewDataCache, nsClient, dateUtil
         )
     }
 
@@ -91,6 +91,21 @@ internal class MaintenanceViewModelTest {
         assertThat(sut.exportState.value).isEqualTo(MaintenanceViewModel.ExportState.Idle)
         assertThat(sut.cloudDirectoryState.value).isEqualTo(MaintenanceViewModel.CloudDirectoryState.Hidden)
         assertThat(sut.exportConfig.value).isNull()
+        assertThat(sut.isDirectoryAccessGranted.value).isFalse()
+        assertThat(sut.directoryPath.value).isNull()
+    }
+
+    @Test
+    fun `refreshExportConfig shows the chosen directory even when access is lost`() = runBlocking {
+        whenever(fileListProvider.isDirectoryAccessGranted()).thenReturn(false)
+        whenever(fileListProvider.directoryPath()).thenReturn("Documents/AAPS")
+        runEagerly()
+
+        sut.refreshExportConfig()
+
+        // The read runs on the IO dispatcher, so wait for it rather than assume it is done.
+        val path = withTimeout(10_000) { sut.directoryPath.first { it != null } }
+        assertThat(path).isEqualTo("Documents/AAPS")
         assertThat(sut.isDirectoryAccessGranted.value).isFalse()
     }
 
@@ -147,38 +162,35 @@ internal class MaintenanceViewModelTest {
         // NotImplementedError is an Error rather than an Exception, so before the shared handler it
         // walked straight past `catch (e: Exception)` and took the app down.
         runEagerly()
-        whenever(rh.gs(CoreUiStrings.not_implemented_yet)).thenReturn("not ready here")
         whenever(maintenance.executeSendLogs()).thenAnswer { throw NotImplementedError("no mail composer") }
         val event = expectEvent()
 
         sut.sendLogs()
 
-        assertThat(event.await()).isEqualTo(MaintenanceEvent.Error("not ready here"))
+        assertThat(event.await()).isEqualTo(MaintenanceEvent.Error("This function is not ready on this platform yet"))
     }
 
     @Test
     fun `resetDatabases says so on screen when the platform cannot clear them`() = runBlocking {
         // Desktop still answers this way, and iOS did until the tables were cleared with SQL.
         runEagerly()
-        whenever(rh.gs(CoreUiStrings.not_implemented_yet)).thenReturn("not ready here")
         whenever(persistenceLayer.clearDatabases()).thenAnswer { throw UnsupportedOperationException("no clearAllTables") }
         val event = expectEvent()
 
         sut.resetDatabases()
 
-        assertThat(event.await()).isEqualTo(MaintenanceEvent.Error("not ready here"))
+        assertThat(event.await()).isEqualTo(MaintenanceEvent.Error("This function is not ready on this platform yet"))
     }
 
     @Test
     fun `a real failure gets the plain error message, not the not-ready one`() = runBlocking {
         runEagerly()
-        whenever(rh.gs(CoreUiStrings.error)).thenReturn("error")
         whenever(persistenceLayer.cleanupDatabase(any(), any())).thenAnswer { throw IllegalStateException("database is locked") }
         val event = expectEvent()
 
         sut.cleanupDatabases()
 
-        assertThat(event.await()).isEqualTo(MaintenanceEvent.Error("error"))
+        assertThat(event.await()).isEqualTo(MaintenanceEvent.Error("Error"))
     }
 
     @Test

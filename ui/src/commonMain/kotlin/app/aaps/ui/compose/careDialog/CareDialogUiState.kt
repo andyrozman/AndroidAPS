@@ -18,9 +18,10 @@ data class CareDialogUiState(
     // Notes section
     val notes: String = "",
 
-    // Date/Time (always visible)
+    // Date/Time (always visible). The time the dialog opened, and the offset from it in minutes.
     val eventTime: Long = 0L,
-    val eventTimeChanged: Boolean = false,
+    val eventTimeOriginal: Long = 0L,
+    val timeOffsetMinutes: Int = 0,
 
     // Config values
     val glucoseUnits: GlucoseUnit = GlucoseUnit.MGDL,
@@ -35,6 +36,9 @@ data class CareDialogUiState(
     val siteRotationEntries: List<TE> = emptyList()
 )
 
+val CareDialogUiState.eventTimeChanged: Boolean
+    get() = eventTime != eventTimeOriginal
+
 /** BG section visible for BGCHECK, QUESTION, ANNOUNCEMENT */
 val CareDialogUiState.showBgSection: Boolean
     get() = eventType in setOf(
@@ -42,6 +46,10 @@ val CareDialogUiState.showBgSection: Boolean
         CareportalEventType.QUESTION,
         CareportalEventType.ANNOUNCEMENT
     )
+
+/** A BG check is about the BG. With a question or an announcement the BG only comes along. */
+val CareDialogUiState.bgIsPrimary: Boolean
+    get() = eventType == CareportalEventType.BGCHECK
 
 /** Duration section visible for NOTE, EXERCISE */
 val CareDialogUiState.showDurationSection: Boolean

@@ -11,17 +11,16 @@ import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.aps.GlucoseStatusSMB
 import app.aaps.core.interfaces.calibration.AddEntryResult
 import app.aaps.core.interfaces.calibration.CalibrationContext
+import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.notifications.NotificationAction
 import app.aaps.core.interfaces.notifications.NotificationId
 import app.aaps.core.interfaces.notifications.NotificationLevel
 import app.aaps.core.interfaces.notifications.NotificationManager
-import app.aaps.core.interfaces.profile.ProfileUtil
-import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.utils.DateUtil
-import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.shared.tests.TestBase
+import app.aaps.shared.tests.generatedTextResolver
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -37,12 +36,12 @@ import org.mockito.kotlin.whenever
 
 class LinearCalibrationPluginTest : TestBase() {
 
-    @Mock lateinit var rh: ResourceHelper
+    private val rh = generatedTextResolver("calibration" to CalibrationStringsValues::textOf)
     @Mock lateinit var dateUtil: DateUtil
     @Mock lateinit var persistenceLayer: PersistenceLayer
     @Mock lateinit var notificationManager: NotificationManager
     @Mock lateinit var glucoseStatusProvider: GlucoseStatusProvider
-    @Mock lateinit var profileUtil: ProfileUtil
+    @Mock lateinit var config: Config
 
     private lateinit var plugin: LinearCalibrationPlugin
 
@@ -59,7 +58,7 @@ class LinearCalibrationPluginTest : TestBase() {
         whenever(persistenceLayer.getTherapyEventDataFromToTime(any(), any())).thenReturn(emptyList())
         whenever(persistenceLayer.getValidCalibrationEntriesSince(any())).thenReturn(emptyList())
         plugin = LinearCalibrationPlugin(
-            aapsLogger, rh, dateUtil, persistenceLayer, notificationManager, glucoseStatusProvider, rxBus, profileUtil
+            aapsLogger, rh, dateUtil, persistenceLayer, notificationManager, glucoseStatusProvider, rxBus, config
         )
     }
 
@@ -197,7 +196,6 @@ class LinearCalibrationPluginTest : TestBase() {
 
     @Test
     fun calibrate_gapDetected_postsNotification() = runTest {
-        whenever(rh.gs(any<TextRef>(), any())).thenReturn("Possible sensor change")
         // Gap of 60min between data[0] and data[1]; default sessionStart is 12h ago so gap is within session
         val data = mutableListOf(
             value(now, 150.0),
@@ -207,6 +205,27 @@ class LinearCalibrationPluginTest : TestBase() {
         plugin.calibrate(data, CalibrationContext.NONE)
         verify(notificationManager).post(
             eq(NotificationId.SENSOR_CHANGE_DETECTED),
+            any<String>(),
+            any<NotificationLevel>(),
+            any<Int>(),
+            anyOrNull(),
+            any<List<NotificationAction>>(),
+            anyOrNull()
+        )
+    }
+
+    // The notice's button writes a sensor change. On a client it would stay there, so only the master asks.
+    @Test
+    fun calibrate_gapOnClient_postsNoNotification() = runTest {
+        whenever(config.AAPSCLIENT).thenReturn(true)
+        val data = mutableListOf(
+            value(now, 150.0),
+            value(now - T.mins(60).msecs(), 150.0),
+            value(now - T.mins(65).msecs(), 150.0)
+        )
+        plugin.calibrate(data, CalibrationContext.NONE)
+        verify(notificationManager, never()).post(
+            any<NotificationId>(),
             any<String>(),
             any<NotificationLevel>(),
             any<Int>(),
@@ -240,7 +259,6 @@ class LinearCalibrationPluginTest : TestBase() {
 
     @Test
     fun calibrate_notificationAction_insertsSensorChange() = runTest {
-        whenever(rh.gs(any<TextRef>(), any())).thenReturn("Possible sensor change")
         whenever(persistenceLayer.insertPumpTherapyEventIfNewByTimestamp(any(), any(), any(), any(), any(), any()))
             .thenReturn(PersistenceLayer.TransactionResult())
         val data = mutableListOf(

@@ -1,27 +1,26 @@
 package app.aaps.pump.carelevo.compose
 
+// Aliased: the simple name collides with Robolectric's @Config annotation used below.
 import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-// Aliased: the simple name collides with Robolectric's @Config annotation used below.
-import app.aaps.core.interfaces.configuration.Config as AapsConfig
+import androidx.compose.ui.text.AnnotatedString
 import app.aaps.core.interfaces.configuration.ExternalOptions
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.protection.ProtectionCheck
 import app.aaps.core.interfaces.pump.BlePreCheck
 import app.aaps.core.interfaces.ui.IconsProvider
 import app.aaps.core.ui.compose.ComposablePluginContent
+import app.aaps.core.ui.compose.ScreenAction
 import app.aaps.core.ui.compose.StatusLevel
-import app.aaps.core.ui.compose.pump.PumpAction
 import app.aaps.core.ui.compose.pump.PumpInfoRow
 import app.aaps.core.ui.compose.pump.PumpOverviewUiState
 import app.aaps.core.ui.compose.pump.StatusBanner
@@ -55,6 +54,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import app.aaps.core.interfaces.configuration.Config as AapsConfig
 import app.aaps.core.ui.R as CoreUiR
 
 /**
@@ -179,8 +179,8 @@ class CarelevoComposeContentTest {
                 PumpInfoRow(label = "Reservoir", value = "298.0 U", level = StatusLevel.WARNING),
                 PumpInfoRow(label = "Hidden row", value = "hidden value", visible = false)
             ),
-            primaryActions = listOf(PumpAction(label = "Connect", onClick = {})),
-            managementActions = listOf(PumpAction(label = "Discard", onClick = {}))
+            primaryActions = listOf(ScreenAction(label = "Connect", onClick = {})),
+            managementActions = listOf(ScreenAction(label = "Discard", onClick = {}))
         )
 
         renderOverviewRoute()

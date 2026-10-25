@@ -15,7 +15,7 @@ import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ue.ValueWithUnit
 import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.interfaces.aps.Loop
-import app.aaps.core.interfaces.bolus.WizardBolusExecutor
+import app.aaps.core.interfaces.bolus.MasterActionExecutor
 import app.aaps.core.interfaces.constraints.Constraint
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
@@ -66,7 +66,7 @@ class LoopHubTest : TestBase() {
     @Mock lateinit var persistenceLayer: PersistenceLayer
     @Mock lateinit var preferences: Preferences
     @Mock lateinit var processedTbrEbData: ProcessedTbrEbData
-    @Mock lateinit var wizardBolusExecutor: WizardBolusExecutor
+    @Mock lateinit var masterActionExecutor: MasterActionExecutor
 
     private lateinit var loopHub: LoopHubImpl
     private val clock = Clock.fixed(Instant.ofEpochMilli(10_000), ZoneId.of("UTC"))
@@ -82,7 +82,7 @@ class LoopHubTest : TestBase() {
         loopHub = LoopHubImpl(
             aapsLogger, commandQueue, constraints, iobCobCalculator, loop,
             profileFunction, profileUtil, persistenceLayer, preferences, processedTbrEbData,
-            wizardBolusExecutor, testScope
+            masterActionExecutor, testScope
         )
         loopHub.clock = clock
     }
@@ -270,7 +270,7 @@ class LoopHubTest : TestBase() {
             GV(
                 timestamp = 1_000_000L, raw = 90.0, value = 93.0,
                 trendArrow = TrendArrow.FLAT, noise = null,
-                sourceSensor = SourceSensor.DEXCOM_G6_NATIVE_XDRIP
+                sourceSensor = SourceSensor.DEXCOM_G6
             )
         )
         whenever(persistenceLayer.getBgReadingsDataFromTime(1001_000, false))
@@ -292,7 +292,7 @@ class LoopHubTest : TestBase() {
         verify(constraints).getMaxCarbsAllowed()
         runBlocking {
             // Carbs delivery now rides the shared executor (one audited path).
-            verify(wizardBolusExecutor).deliverCarbs(eq(99), isNull(), eq(Sources.Garmin), any(), any())
+            verify(masterActionExecutor).deliverCarbs(eq(99), isNull(), eq(Sources.Garmin), any(), any())
         }
     }
 

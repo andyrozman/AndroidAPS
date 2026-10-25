@@ -12,21 +12,23 @@ import android.media.AudioAttributes
 import android.net.Uri
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
-import androidx.core.app.TaskStackBuilder
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.AlarmIntent
 import app.aaps.core.interfaces.notifications.AlarmSound
 import app.aaps.core.interfaces.notifications.AlarmSoundPlayer
+import app.aaps.core.interfaces.notifications.NotificationHolder
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.ui.IconsProvider
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.rawRes
-import app.aaps.implementation.androidNotification.AlarmNotificationManager.Companion.CHANNEL_FULL_SCREEN_SILENT
-import dev.zacsweers.metro.Inject
+import app.aaps.implementation.R
+import app.aaps.implementation.androidNotification.AlarmNotificationManager.Companion.CHANNEL_SILENT
+import app.aaps.implementation.androidNotification.AlarmNotificationManager.Companion.CHANNEL_SILENT_URGENT
 import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 
 /**
@@ -51,6 +53,7 @@ class AlarmNotificationManager(
     private val preferences: Preferences,
     private val iconsProvider: IconsProvider,
     private val uiInteractionProvider: () -> UiInteraction,
+    private val notificationHolderProvider: () -> NotificationHolder,
     private val alarmSoundPlayer: AlarmSoundPlayer,
     private val rh: ResourceHelper
 ) {
@@ -60,13 +63,28 @@ class AlarmNotificationManager(
         const val GROUP_ID = "aaps_alarm_group"
 
         /**
-         * Sound-suppressed channel used by [postSilentAlarmNotification], where audio is owned
+         * Sound-suppressed channels used by [postSilentAlarmNotification], where audio is owned
          * externally by [app.aaps.core.interfaces.notifications.AlarmSoundPlayer]. Heads-up popup still
-         * shows (IMPORTANCE_HIGH) and vibration still fires, but the channel itself plays no sound.
-         * (No longer used by [postFullScreenAlarm], which always posts on a sound-bearing channel so
+         * shows (IMPORTANCE_HIGH) and the channel vibrates, but it plays no sound. One for urgent alerts
+         * and one for the others, because the vibration pattern belongs to the channel.
+         * (Not used by [postFullScreenAlarm], which always posts on a sound-bearing channel so
          * the alarm is audible even when its full-screen activity can't launch.)
          */
-        const val CHANNEL_FULL_SCREEN_SILENT = "aaps_alarm_fullscreen_silent"
+        const val CHANNEL_SILENT_URGENT = "aaps_alarm_v2_silent_urgent"
+        const val CHANNEL_SILENT = "aaps_alarm_v2_silent"
+
+        /**
+         * Since Android 8 a notification vibrates only as its channel says: `setVibrate` on the
+         * notification is ignored. And an app cannot change the vibration of a channel that exists, only
+         * the user can. The old channels had no vibration, so alarms did not vibrate at all, and the
+         * channels that must vibrate got new ids (#5217). The old ones are deleted.
+         */
+        private val OLD_CHANNEL_IDS = listOf("aaps_alarm_fullscreen", "aaps_alarm_fullscreen_silent") +
+            listOf("alarm", "boluserror", "error", "urgentalarm").flatMap { listOf("aaps_alarm_${it}_alarm", "aaps_alarm_${it}_notify") }
+
+        /** Delay, vibrate, pause, vibrate... in ms */
+        private val VIBRATION_URGENT = longArrayOf(1000, 1000, 1000, 1000)
+        private val VIBRATION_NORMAL = longArrayOf(0, 100, 50, 100, 50)
 
         /** Stable id for runAlarm notification (single active full-screen alarm at a time). */
         const val NOTIFICATION_ID_FULL_SCREEN = 4712
@@ -76,6 +94,9 @@ class AlarmNotificationManager(
 
         /** Request code for the notification Mute action PendingIntent. */
         private const val MUTE_REQUEST_CODE = 4714
+
+        /** Request code for the PendingIntent sent when the user swipes the notification away. */
+        private const val SWIPE_REQUEST_CODE = 4715
 
         /**
          * Delay before the screen-wake / activity-launch alarms fire. Small buffer so both
@@ -100,11 +121,11 @@ class AlarmNotificationManager(
             AlarmSound.URGENT_ALARM to "urgentalarm"
         )
 
-        private val DISPLAY_NAMES: Map<AlarmSound, String> = mapOf(
-            AlarmSound.ALARM to "Standard alarm",
-            AlarmSound.BOLUS_ERROR to "Bolus error",
-            AlarmSound.ERROR to "General error",
-            AlarmSound.URGENT_ALARM to "Urgent alarm"
+        private val DISPLAY_NAMES: Map<AlarmSound, Int> = mapOf(
+            AlarmSound.ALARM to R.string.alarm_channel_standard,
+            AlarmSound.BOLUS_ERROR to R.string.alarm_channel_bolus_error,
+            AlarmSound.ERROR to R.string.alarm_channel_error,
+            AlarmSound.URGENT_ALARM to R.string.alarm_channel_urgent
         )
     }
 
@@ -131,6 +152,16 @@ class AlarmNotificationManager(
     private val activeSoundKeys: MutableSet<Int> = mutableSetOf()
 
     /**
+     * The alarm screen intent of the background alarm the user has not answered yet, or null. Set by
+     * [postFullScreenAlarm] and cleared by [cancelAlarm], where every way of answering the alarm ends.
+     * Read through [unansweredAlarmIntent].
+     * Guarded by [fullScreenLock], together with the paired `mgr.notify`/`mgr.cancel` of
+     * [NOTIFICATION_ID_FULL_SCREEN], for the same reason as [activeSoundKeys].
+     */
+    private var unansweredAlarm: Intent? = null
+    private val fullScreenLock = Any()
+
+    /**
      * The channels, created once on first use rather than in an `init` block.
      * Android requires a channel to exist before anything posts to it, and **every** post goes through
      * [postFullScreenAlarm] or [postSilentAlarmNotification], both of which touch this first. So the
@@ -141,27 +172,29 @@ class AlarmNotificationManager(
     private val channels: Unit by lazy { createChannels() }
 
     private fun createChannels() {
-        mgr.createNotificationChannelGroup(NotificationChannelGroup(GROUP_ID, "AAPS Alarms"))
+        mgr.createNotificationChannelGroup(NotificationChannelGroup(GROUP_ID, context.getString(R.string.alarm_channel_group)))
 
-        // Clean up an even-older silent FSI channel id from before the rampEnabled split.
         // Harmless if absent.
-        mgr.deleteNotificationChannel("aaps_alarm_fullscreen")
+        OLD_CHANNEL_IDS.forEach { mgr.deleteNotificationChannel(it) }
 
-        // Silent FSI channel for the ramp-enabled case. IMPORTANCE_HIGH keeps the heads-up
+        // Silent channels for the ramp-enabled case. IMPORTANCE_HIGH keeps the heads-up
         // popup visible; vibration enabled because the user opted into ramp, not into a
         // completely-silent alert.
-        mgr.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_FULL_SCREEN_SILENT,
-                "Urgent alarm (volume-ramp mode)",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                setSound(null, null)
-                enableVibration(true)
-                group = GROUP_ID
-                description = "Used when 'Gradually increase notification volume' is on — the activity's MediaPlayer owns the audio experience."
-            }
-        )
+        for (urgent in listOf(true, false)) {
+            mgr.createNotificationChannel(
+                NotificationChannel(
+                    if (urgent) CHANNEL_SILENT_URGENT else CHANNEL_SILENT,
+                    context.getString(if (urgent) R.string.alarm_channel_silent_urgent else R.string.alarm_channel_silent),
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    setSound(null, null)
+                    enableVibration(true)
+                    vibrationPattern = if (urgent) VIBRATION_URGENT else VIBRATION_NORMAL
+                    group = GROUP_ID
+                    description = context.getString(R.string.alarm_channel_silent_description)
+                }
+            )
+        }
 
         // Two sound-bearing channels per R.raw sound: one routed to STREAM_ALARM (overrides DND),
         // one routed to STREAM_NOTIFICATION (respects DND/silent). Picked at post time based on
@@ -172,7 +205,9 @@ class AlarmNotificationManager(
         // screen wake has brought up ErrorActivity - or when it cannot (no exact alarms, another app
         // on top). When ErrorActivity does come up, its looping ramped audio takes over — its volume
         // ramp starts at 0 so the overlap with the channel one-shot is inaudible.
-        for ((sound, displayName) in DISPLAY_NAMES) {
+        // These are only used by postFullScreenAlarm, so all of them vibrate with the urgent pattern.
+        for ((sound, nameRes) in DISPLAY_NAMES) {
+            val displayName = context.getString(nameRes)
             val uri: Uri = Uri.parse("android.resource://${context.packageName}/${sound.rawRes}")
 
             val alarmAttrs = AudioAttributes.Builder()
@@ -182,10 +217,12 @@ class AlarmNotificationManager(
             mgr.createNotificationChannel(
                 NotificationChannel(
                     channelIdForSound(sound, overrideDnd = true),
-                    "$displayName (override DND)",
+                    context.getString(R.string.alarm_channel_override_dnd, displayName),
                     NotificationManager.IMPORTANCE_HIGH
                 ).apply {
                     setSound(uri, alarmAttrs)
+                    enableVibration(true)
+                    vibrationPattern = VIBRATION_URGENT
                     group = GROUP_ID
                 }
             )
@@ -200,29 +237,22 @@ class AlarmNotificationManager(
             mgr.createNotificationChannel(
                 NotificationChannel(
                     channelIdForSound(sound, overrideDnd = false),
-                    "$displayName (respects DND)",
+                    context.getString(R.string.alarm_channel_respects_dnd, displayName),
                     NotificationManager.IMPORTANCE_HIGH
                 ).apply {
                     setSound(uri, notifyAttrs)
+                    enableVibration(true)
+                    vibrationPattern = VIBRATION_URGENT
                     group = GROUP_ID
                 }
             )
         }
     }
 
-    private fun openAppPendingIntent(): PendingIntent? {
-        val mainActivity = uiInteractionProvider().mainActivity
-        return TaskStackBuilder.create(context).run {
-            addParentStack(mainActivity.java)
-            addNextIntent(Intent(context, mainActivity.java))
-            getPendingIntent(0, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        }
-    }
-
     private fun channelIdForSound(sound: AlarmSound, overrideDnd: Boolean): String {
         val name = SOUND_NAMES[sound] ?: "error"
         val suffix = if (overrideDnd) "alarm" else "notify"
-        return "aaps_alarm_${name}_$suffix"
+        return "aaps_alarm_v2_${name}_$suffix"
     }
 
     /**
@@ -278,6 +308,14 @@ class AlarmNotificationManager(
             Intent(context, AlarmMuteReceiver::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+        // Since Android 14 the user can swipe away even an ongoing notification (not on the lock
+        // screen). A swipe works like Mute. Before, the looping sound went on with nothing left on
+        // screen to stop it, and only a force stop of AAPS ended it (#5338).
+        val swipePendingIntent = PendingIntent.getBroadcast(
+            context, SWIPE_REQUEST_CODE,
+            Intent(context, AlarmMuteReceiver::class.java).putExtra(AlarmMuteReceiver.EXTRA_SWIPED, true),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(iconsProvider.getNotificationIcon())
@@ -289,21 +327,28 @@ class AlarmNotificationManager(
             .setOngoing(true)
             .setAutoCancel(false)
             .setContentIntent(pendingIntent)
+            .setDeleteIntent(swipePendingIntent)
             .addAction(0, rh.gs(app.aaps.core.ui.R.string.mute), mutePendingIntent)
             .build()
 
-        try {
-            mgr.notify(NOTIFICATION_ID_FULL_SCREEN, notification)
-            aapsLogger.debug(LTag.NOTIFICATION, "Posted full-screen alarm: $title - $status")
-        } catch (ex: SecurityException) {
-            // POST_NOTIFICATIONS revoked at runtime (Android 13+). The user's next return to
-            // ComposeMainActivity refreshes the global PermissionsSheet (onResume → refresh),
-            // which will surface the missing-permission state and offer to open Android settings.
-            aapsLogger.error(
-                LTag.NOTIFICATION,
-                "Failed to post full-screen alarm \"$title\" — POST_NOTIFICATIONS likely revoked",
-                ex
-            )
+        // notify + set must be atomic relative to cancelAlarm - see unansweredAlarm.
+        synchronized(fullScreenLock) {
+            // Set even when the notification cannot be posted. The sound below still plays, and
+            // opening AAPS is then the only way left to reach the alarm screen.
+            unansweredAlarm = intent
+            try {
+                mgr.notify(NOTIFICATION_ID_FULL_SCREEN, notification)
+                aapsLogger.debug(LTag.NOTIFICATION, "Posted full-screen alarm: $title - $status")
+            } catch (ex: SecurityException) {
+                // POST_NOTIFICATIONS revoked at runtime (Android 13+). The user's next return to
+                // ComposeMainActivity refreshes the global PermissionsSheet (onResume → refresh),
+                // which will surface the missing-permission state and offer to open Android settings.
+                aapsLogger.error(
+                    LTag.NOTIFICATION,
+                    "Failed to post full-screen alarm \"$title\" — POST_NOTIFICATIONS likely revoked",
+                    ex
+                )
+            }
         }
 
         // Continuous looping/ramping audio so the alarm keeps sounding even if ErrorActivity never
@@ -365,7 +410,7 @@ class AlarmNotificationManager(
     }
 
     /**
-     * Post a **silent** alarm notification on the [CHANNEL_FULL_SCREEN_SILENT] channel
+     * Post a **silent** alarm notification on [CHANNEL_SILENT_URGENT] or [CHANNEL_SILENT]
      * (heads-up + vibration, no channel sound). The audio is owned by [AlarmSoundPlayer]; this
      * notification provides shade/lock-screen visibility and a tap target to open the app.
      * Tracked in [activeSoundKeys] exactly like [postSoundAlarmNotification], so
@@ -380,7 +425,7 @@ class AlarmNotificationManager(
         urgent: Boolean
     ) {
         channels // created on first post, see the field
-        val builder = NotificationCompat.Builder(context, CHANNEL_FULL_SCREEN_SILENT)
+        val builder = NotificationCompat.Builder(context, if (urgent) CHANNEL_SILENT_URGENT else CHANNEL_SILENT)
             .setSmallIcon(iconsProvider.getNotificationIcon())
             .setLargeIcon(BitmapFactory.decodeResource(context.resources, iconsProvider.getIcon()))
             .setContentTitle(title)
@@ -390,12 +435,7 @@ class AlarmNotificationManager(
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setContentIntent(openAppPendingIntent())
-        if (urgent) {
-            builder.setVibrate(longArrayOf(1000, 1000, 1000, 1000))
-        } else {
-            builder.setVibrate(longArrayOf(0, 100, 50, 100, 50))
-        }
+            .setContentIntent(notificationHolderProvider().openAppIntent())
 
         val systemId = SOUND_ID_OFFSET + notificationKey
         try {
@@ -432,12 +472,26 @@ class AlarmNotificationManager(
     }
 
     /**
+     * An intent that opens the alarm screen for the background alarm the user has not answered yet,
+     * or null when there is none.
+     *
+     * Android lets [postFullScreenAlarm] bring up that screen only in some cases, for example not
+     * while another app is on top. Then the notification is the only way to reach the alarm, and
+     * nothing in the main screen can stop it. `ComposeMainActivity` starts this intent when it comes
+     * to the foreground, so opening AAPS also shows the alarm (#5338).
+     */
+    fun unansweredAlarmIntent(): Intent? = synchronized(fullScreenLock) { unansweredAlarm?.let { Intent(it) } }
+
+    /**
      * Cancel all active AAPS alarm notifications (full-screen + every tracked sound alarm).
-     * Used by the global stop paths: user-acknowledge from ErrorActivity, app onTerminate,
-     * Wear "mute all" gesture.
+     * Used by the global stop paths: user-acknowledge from ErrorActivity, Mute on the notification
+     * or a swipe of it (both through AlarmMuteReceiver), app onTerminate, Wear "mute all" gesture.
      */
     fun cancelAlarm() {
-        mgr.cancel(NOTIFICATION_ID_FULL_SCREEN)
+        synchronized(fullScreenLock) {
+            mgr.cancel(NOTIFICATION_ID_FULL_SCREEN)
+            unansweredAlarm = null
+        }
         synchronized(activeSoundKeys) {
             activeSoundKeys.forEach { mgr.cancel(SOUND_ID_OFFSET + it) }
             activeSoundKeys.clear()

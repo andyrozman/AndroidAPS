@@ -31,15 +31,12 @@ import app.aaps.wear.data.ComplicationData
 import app.aaps.wear.data.ComplicationDataRepository
 import app.aaps.wear.data.bgDataArray
 import app.aaps.wear.data.statusDataArray
-import app.aaps.wear.di.WearMetroService
 import app.aaps.wear.events.EventWearPreferenceChange
 import app.aaps.wear.interaction.menus.MainMenuActivity
 import app.aaps.wear.utils.toVisibility
 import app.aaps.wear.utils.toVisibilityKeepSpace
 import dev.zacsweers.metro.HasMemberInjections
 import dev.zacsweers.metro.Inject
-import io.reactivex.rxjava3.disposables.CompositeDisposable
-import kotlin.math.floor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +45,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlin.math.floor
 
 @SuppressLint("Deprecated")
 @HasMemberInjections
@@ -609,7 +607,7 @@ abstract class BaseWatchFace : WatchFace() {
         binding.timestamp.visibility = sp.getBoolean(R.string.key_show_ago, true).toVisibility()
         binding.timestamp.text = readingAge()
         binding.uploaderBattery?.visibility = sp.getBoolean(R.string.key_show_uploader_battery, true).toVisibility()
-        binding.uploaderBattery?.text = status[0].battery + "%"
+        binding.uploaderBattery?.text = status[0].battery.toIntOrNull()?.let { getString(R.string.loop_status_profile_percentage_value, it) } ?: status[0].battery
         binding.rigBattery?.visibility = sp.getBoolean(R.string.key_show_rig_battery, false).toVisibility()
         binding.rigBattery?.text = status[0].rigBattery
         binding.basalRate?.visibility = sp.getBoolean(R.string.key_show_temp_basal, true).toVisibility()

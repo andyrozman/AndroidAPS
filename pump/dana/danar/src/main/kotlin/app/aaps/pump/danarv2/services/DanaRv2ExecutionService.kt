@@ -3,7 +3,6 @@ package app.aaps.pump.danarv2.services
 import android.os.Binder
 import android.os.SystemClock
 import app.aaps.core.data.configuration.Constants
-import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.time.T.Companion.mins
 import app.aaps.core.data.time.T.Companion.secs
 import app.aaps.core.interfaces.logging.LTag
@@ -49,20 +48,18 @@ import app.aaps.pump.danar.comm.MsgStatusBasic
 import app.aaps.pump.danar.comm.MsgStatusBolusExtended
 import app.aaps.pump.danar.comm.MsgStatusTempBasal
 import app.aaps.pump.danar.services.AbstractDanaRExecutionService
-import app.aaps.pump.danarkorean.DanaRKoreanPlugin
 import app.aaps.pump.danarv2.DanaRv2Plugin
 import app.aaps.pump.danarv2.comm.MessageHashTableRv2
 import app.aaps.pump.danarv2.comm.MsgCheckValueV2
 import app.aaps.pump.danarv2.comm.MsgHistoryEventsV2
 import app.aaps.pump.danarv2.comm.MsgSetAPSTempBasalStartV2
-import kotlinx.coroutines.launch
 import dev.zacsweers.metro.Inject
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 class DanaRv2ExecutionService : AbstractDanaRExecutionService() {
 
     @Inject lateinit var uiInteraction: UiInteraction
-    @Inject lateinit var danaRKoreanPlugin: DanaRKoreanPlugin
     @Inject lateinit var danaRv2Plugin: DanaRv2Plugin
     @Inject lateinit var commandQueue: CommandQueue
     @Inject lateinit var messageHashTableRv2: MessageHashTableRv2
@@ -161,10 +158,10 @@ class DanaRv2ExecutionService : AbstractDanaRExecutionService() {
                 if (System.currentTimeMillis() > lastApproachingDailyLimit + 30 * 60 * 1000) {
                     notificationManager.post(NotificationId.APPROACHING_DAILY_LIMIT, TextRef.AndroidRes(R.string.approachingdailylimit))
                     pumpSync.insertAnnouncement(
-                        rh.gs(R.string.approachingdailylimit) + ": " + danaPump.dailyTotalUnits + "/" + danaPump.maxDailyTotalUnits + "U",
+                        rh.gs(app.aaps.core.interfaces.R.string.confirmation_line, rh.gs(R.string.approachingdailylimit), rh.gs(app.aaps.core.interfaces.R.string.values_with_slash, danaPump.dailyTotalUnits.toString(), rh.gs(app.aaps.core.ui.R.string.units_format_insulin_int, danaPump.maxDailyTotalUnits))),
                         null,
-                        PumpType.DANA_R_KOREAN,
-                        danaRKoreanPlugin.serialNumber()
+                        danaRv2Plugin.model(),
+                        danaRv2Plugin.serialNumber()
                     )
                     lastApproachingDailyLimit = System.currentTimeMillis()
                 }
@@ -321,13 +318,11 @@ class DanaRv2ExecutionService : AbstractDanaRExecutionService() {
         val msg = MsgHistoryEventsV2(injector, danaPump.readHistoryFrom)
         aapsLogger.debug(LTag.PUMP, "Loading event history from: " + dateUtil.dateAndTimeString(danaPump.readHistoryFrom))
         mSerialIOThread?.sendMessage(msg)
-        while (!danaPump.historyDoneReceived && mRfcommSocket?.isConnected == true) {
-            SystemClock.sleep(100)
-        }
+        val completed = waitForHistoryDone()
         SystemClock.sleep(200)
         if (danaPump.lastEventTimeLoaded != 0L) danaPump.readHistoryFrom = danaPump.lastEventTimeLoaded - mins(1).msecs() else danaPump.readHistoryFrom = 0
         danaPump.lastConnection = System.currentTimeMillis()
-        return pumpEnactResultProvider().success(true)
+        return pumpEnactResultProvider().success(completed)
     }
 
     override suspend fun updateBasalsInPump(profile: Profile): Boolean {

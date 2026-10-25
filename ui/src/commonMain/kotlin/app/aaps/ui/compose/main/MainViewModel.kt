@@ -21,6 +21,7 @@ import app.aaps.core.interfaces.bolus.WizardExecutor
 import app.aaps.core.interfaces.clientcontrol.ActionProgress
 import app.aaps.core.interfaces.clientcontrol.isNotDeliveryError
 import app.aaps.core.interfaces.configuration.Config
+import app.aaps.core.interfaces.configuration.appInitializedFlow
 import app.aaps.core.interfaces.configuration.ExternalOptions
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
@@ -40,17 +41,19 @@ import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.protection.ProtectionCheck
 import app.aaps.core.interfaces.protection.ProtectionResult
 import app.aaps.core.interfaces.pump.Pump
-import app.aaps.core.interfaces.pump.defs.determineCorrectBolusStepSize
+import app.aaps.core.interfaces.queue.SmbPause
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventShowDialog
+import app.aaps.core.interfaces.navigation.ElementType
 import app.aaps.core.interfaces.scenes.ActiveSceneSync
 import app.aaps.core.interfaces.scenes.SceneActions
 import app.aaps.core.interfaces.scenes.SceneChainResolver
+import app.aaps.core.interfaces.scenes.SceneStore
 import app.aaps.core.interfaces.sync.NsClient
 import app.aaps.core.interfaces.ui.UrlOpener
-import app.aaps.core.interfaces.ui.IconsProvider
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.StringNonKey
@@ -63,7 +66,6 @@ import app.aaps.core.objects.wizard.QuickWizardEntry
 import app.aaps.core.objects.wizard.QuickWizardMode
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.clientcontrol.failText
-import app.aaps.core.ui.compose.icons.IcAction
 import app.aaps.core.ui.compose.icons.IcAutomation
 import app.aaps.core.ui.compose.icons.IcBolus
 import app.aaps.core.ui.compose.icons.IcCarbs
@@ -73,6 +75,7 @@ import app.aaps.core.ui.compose.icons.IcTtActivity
 import app.aaps.core.ui.compose.icons.IcTtEatingSoon
 import app.aaps.core.ui.compose.icons.IcTtHypo
 import app.aaps.core.ui.compose.icons.IcTtManual
+import app.aaps.core.ui.compose.navigation.icon
 import app.aaps.core.ui.extensions.toStringFull
 import app.aaps.ui.UiStrings
 import app.aaps.ui.compose.aboutDialog.AboutDialogData
@@ -80,6 +83,7 @@ import app.aaps.ui.compose.quickLaunch.QuickLaunchAction
 import app.aaps.ui.compose.quickLaunch.QuickLaunchResolver
 import app.aaps.ui.compose.quickLaunch.QuickLaunchSerializer
 import app.aaps.ui.compose.quickLaunch.ResolvedQuickLaunchItem
+import app.aaps.ui.compose.scenes.SceneIcons
 import app.aaps.ui.compose.tempTarget.toTTPresetsWithDisplayName
 import app.aaps.ui.compose.wizardDialog.showWizardBolusConfirmation
 import dev.zacsweers.metro.AppScope
@@ -87,7 +91,6 @@ import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
-import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -103,6 +106,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.TimeSource
 
 // Registers itself: @ViewModelKey infers the key from the class. No graph entry, and deliberately
 // unscoped so each screen gets its own.
@@ -134,6 +138,7 @@ class MainViewModel(
     private val protectionCheck: ProtectionCheck,
     private val sceneActions: SceneActions,
     private val sceneChainTargetResolver: SceneChainResolver,
+    private val sceneStore: SceneStore,
     private val activeSceneManager: ActiveSceneSync,
     private val rxBus: RxBus,
     private val nsClient: NsClient,
@@ -164,23 +169,42 @@ class MainViewModel(
      */
     val masterOrPairedClient: StateFlow<Boolean> = nsClient.masterOrPairedClientFlow
 
+    // Ticker for time-based progress updates (every 30 seconds). Cold flow — only runs while the
+    // toolbar items or the chipStateFlow it feeds have subscribers (both are WhileSubscribed below).
+    // Declared before its first use: property initializers run in order.
+    private val progressTicker = flow {
+        while (true) {
+            emit(dateUtil.now())
+            delay(30_000L)
+        }
+    }
+
     /** Toolbar items as a separate StateFlow to avoid unnecessary recompositions of the main UI */
     private val _quickLaunchItems = MutableStateFlow<List<ResolvedQuickLaunchItem>>(emptyList())
 
     /**
-     * Public toolbar items. Two layered gates: (1) mode VISIBILITY — actions whose backing element isn't visible
+     * Public toolbar items. Three layered gates: (1) mode VISIBILITY — actions whose backing element isn't visible
      * now (e.g. MASTER_OR_PAIRED_CLIENT on an unpaired client) are HIDDEN, the same ElementVisibility gate the
      * QuickLaunch config + search use, so a pre-pinned bolus/carbs/scene drops off an unpaired client's toolbar;
-     * (2) reachability — scene-action items DISABLE (not hide) while WS is down on AAPSCLIENT. The resolver only
-     * sees local catalog state, so both checks layer on here.
+     * (2) time — a QuickWizard entry outside its time window or in its cool-down is HIDDEN, like its overview
+     * button; (3) reachability — scene-action items DISABLE (not hide) while WS is down on AAPSCLIENT. The resolver
+     * only sees local catalog state, so these checks layer on here.
      */
     val quickLaunchItems: StateFlow<List<ResolvedQuickLaunchItem>> =
-        combine(_quickLaunchItems, masterReachable, masterOrPairedClient) { items, reachable, _ ->
+        combine(
+            _quickLaunchItems, masterReachable, combine(masterOrPairedClient, nsClient.clientRole) { paired, role -> paired to role },
+            // Re-check the QuickWizard time window every tick, and at once when an entry is used or edited
+            // (its cool-down starts on use).
+            progressTicker, quickWizard.changes
+        ) { items, reachable, _, _, _ ->
             items
-                // (1) Hide mode-gated actions. masterOrPairedClient is combined in only to re-emit on a pairing
-                // flip; the predicate reads the current state through visibilityContext.
-                .filter { it.action.elementType?.visibility?.isVisible(visibilityContext) ?: true }
-                // (2) Scene actions disable while the master is transiently unreachable.
+                // (1) Hide mode-gated actions and those the client's role cannot use. masterOrPairedClient and the
+                // role are combined in only to re-emit on a change; the predicate reads the current state through
+                // visibilityContext.
+                .filter { it.action.elementType?.isAvailable(visibilityContext) ?: true }
+                // (2) Hide QuickWizard entries that are not active now.
+                .filter { quickLaunchResolver.isShownNow(it.action) }
+                // (3) Scene actions disable while the master is transiently unreachable.
                 .map { item ->
                     if (!reachable && item.action is QuickLaunchAction.SceneAction) item.copy(enabled = false) else item
                 }
@@ -193,15 +217,6 @@ class MainViewModel(
     val versionName: String get() = config.VERSION_NAME
     val calcProgressFlow: StateFlow<Int> = overviewDataCache.calcProgressFlow
 
-    // Ticker for time-based progress updates (every 30 seconds). Cold flow — only runs while
-    // the chipStateFlow it feeds has subscribers (via uiState's WhileSubscribed below).
-    private val progressTicker = flow {
-        while (true) {
-            emit(dateUtil.now())
-            delay(30_000L)
-        }
-    }
-
     // Flow-derived chip state: ticker + cache flows + expiry detection. Cold.
     private val chipStateFlow: Flow<ChipState> = combine(
         overviewDataCache.tempTargetFlow,
@@ -210,7 +225,9 @@ class MainViewModel(
         overviewDataCache.tbrFlow,
         // Re-emit the latest tick whenever QuickWizard entries change (local edit or synced from the
         // main phone) so the carousel rebuilds. changes is a StateFlow (initial 0) → never blocks.
-        combine(progressTicker, quickWizard.changes) { now, _ -> now }
+        // Also when app init completes: the QuickWizard items are built only after that, and must not
+        // wait for the next tick to appear.
+        combine(progressTicker, quickWizard.changes, config.appInitializedFlow) { now, _, _ -> now }
     ) { ttData, profileData, rmData, tbrData, now ->
         buildChipState(ttData, profileData, rmData, tbrData, now)
     }
@@ -299,7 +316,7 @@ class MainViewModel(
 
         val ttText = if (ttData != null && !ttExpired) {
             if (ttIsFinite) {
-                "${ttData.targetRangeText} ${dateUtil.untilString(ttData.timestamp + ttData.duration, rh)}"
+                rh.gs(InterfacesStrings.value_with_detail, ttData.targetRangeText, dateUtil.untilString(ttData.timestamp + ttData.duration, rh, withParentheses = false))
             } else {
                 ttData.targetRangeText
             }
@@ -313,7 +330,7 @@ class MainViewModel(
 
         val profileText = if (profileData != null && profileData.profileName.isNotEmpty()) {
             if (profileData.duration > 0 && !profileExpired) {
-                "${profileData.profileName} ${dateUtil.untilString(profileData.timestamp + profileData.duration, rh)}"
+                rh.gs(InterfacesStrings.value_with_detail, profileData.profileName, dateUtil.untilString(profileData.timestamp + profileData.duration, rh, withParentheses = false))
             } else {
                 profileData.profileName
             }
@@ -335,11 +352,11 @@ class MainViewModel(
             val modeName = getModeNameString(rmData.mode)
             // Full text kept for the icon's content description (accessibility).
             if (rmIsTemporaryFinite) {
-                "$modeName ${dateUtil.untilString(rmData.timestamp + rmData.duration, rh)}"
+                rh.gs(InterfacesStrings.value_with_detail, modeName, rmRemaining)
             } else {
                 modeName
             }
-        } else ""
+        } else rh.gs(CoreUiStrings.unknown)
 
         return ChipState(
             isProfileLoaded = profileData?.isLoaded ?: false,
@@ -353,7 +370,7 @@ class MainViewModel(
             tempTargetProgress = ttProgress,
             tempTargetReason = if (ttExpired) null else ttData?.reason,
             tempTargetRecordId = if (ttExpired) 0 else ttData?.recordId ?: 0,
-            runningMode = rmData?.mode ?: RM.Mode.DISABLED_LOOP,
+            runningMode = rmData?.mode,
             runningModeText = rmText,
             runningModeRemaining = rmRemaining,
             runningModeProgress = rmProgress,
@@ -366,6 +383,11 @@ class MainViewModel(
     private suspend fun computeQuickWizardItems(runningMode: RM.Mode?): List<QuickWizardItem> {
         val activeEntries = quickWizard.list().filter { it.isActive() }
         if (activeEntries.isEmpty()) return emptyList()
+        // Read and calculate nothing before app init completes; chipStateFlow rebuilds as soon as it has.
+        // Until then activePlugin.activeAPS is null, and a profile read now keeps that null: ProfileSealed
+        // takes the APS when it is built. Checking just before doCalc() was not enough, because the profile
+        // was read before that check, and it reached ProfileSealed's "APS not defined" guard (crash at start).
+        if (!config.appInitialized) return emptyList()
 
         val lastBG = iobCobCalculator.ads.lastBg()
         val profile = profileFunction.getProfile()
@@ -396,8 +418,7 @@ class MainViewModel(
             return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = disabledReason)
 
         val insulinAfterConstraints = constraintChecker.applyBolusConstraints(ConstraintObject(entry.insulin(), aapsLogger)).value()
-        val minStep = pump.pumpDescription.pumpType.determineCorrectBolusStepSize(insulinAfterConstraints)
-        if (abs(insulinAfterConstraints - entry.insulin()) >= minStep)
+        if (Round.isMoreThanRounding(entry.insulin(), insulinAfterConstraints, pump.bolusStepSize(insulinAfterConstraints)))
             return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = rh.gs(UiStrings.insulin_constraint_violation))
 
         return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, isEnabled = true)
@@ -410,6 +431,10 @@ class MainViewModel(
 
         val carbsAfterConstraints = constraintChecker.applyCarbsConstraints(ConstraintObject(entry.carbs(), aapsLogger)).value()
         if (carbsAfterConstraints != entry.carbs())
+            return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = rh.gs(UiStrings.carbs_constraint_violation))
+        // The eCarbs amount is stored in the preset, so the limit may have been lowered since it was entered.
+        val eCarbs = entry.eCarbsGrams()
+        if (constraintChecker.applyCarbsConstraints(ConstraintObject(eCarbs, aapsLogger)).value() != eCarbs)
             return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = rh.gs(UiStrings.carbs_constraint_violation))
 
         return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, isEnabled = true)
@@ -427,10 +452,7 @@ class MainViewModel(
         val guid = entry.guid()
 
         val globalReason = when {
-            // Before app init completes, activePlugin.activeAPS is still null, so the profile's `aps` is
-            // null and doCalc() would hit ProfileSealed's "APS not defined" guard (early-boot crash).
-            // Mirror the appInitialized gate the bolus path already has (WizardBolusExecutorImpl).
-            !config.appInitialized                   -> rh.gs(CoreUiStrings.initializing)
+            // App init is checked in computeQuickWizardItems, before the profile is read.
             lastBG == null                           -> rh.gs(CoreUiStrings.wizard_no_actual_bg)
             profile == null                          -> rh.gs(CoreUiStrings.noprofile)
             !pump.isInitialized()                    -> rh.gs(CoreUiStrings.pump_not_initialized_profile_not_set)
@@ -445,14 +467,20 @@ class MainViewModel(
         if (wizard.calculatedTotalInsulin <= 0.0)
             return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, disabledReason = rh.gs(UiStrings.wizard_no_insulin_required))
 
-        val detail = rh.gs(InterfacesStrings.format_carbs, entry.carbs()) +
-            " " + rh.gs(InterfacesStrings.format_insulin_units, wizard.calculatedTotalInsulin)
+        val detail = rh.gs(
+            CoreUiStrings.value_with_unit,
+            rh.gs(InterfacesStrings.format_carbs, entry.carbs()),
+            rh.gs(InterfacesStrings.format_insulin_units, wizard.calculatedTotalInsulin)
+        )
 
         val carbsAfterConstraints = constraintChecker.applyCarbsConstraints(ConstraintObject(entry.carbs(), aapsLogger)).value()
         if (carbsAfterConstraints != entry.carbs())
             return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = rh.gs(UiStrings.carbs_constraint_violation))
-        val minStep = pump.pumpDescription.pumpType.determineCorrectBolusStepSize(wizard.insulinAfterConstraints)
-        if (abs(wizard.insulinAfterConstraints - wizard.calculatedTotalInsulin) >= minStep)
+        // The eCarbs amount is stored in the preset, so the limit may have been lowered since it was entered.
+        val eCarbs = entry.eCarbsGrams()
+        if (constraintChecker.applyCarbsConstraints(ConstraintObject(eCarbs, aapsLogger)).value() != eCarbs)
+            return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = rh.gs(UiStrings.carbs_constraint_violation))
+        if (Round.isMoreThanRounding(wizard.calculatedTotalInsulin, wizard.insulinAfterConstraints, pump.bolusStepSize(wizard.insulinAfterConstraints)))
             return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, disabledReason = rh.gs(UiStrings.insulin_constraint_violation))
 
         return QuickWizardItem(guid = guid, buttonText = buttonText, mode = entry.mode().value, detail = detail, isEnabled = true)
@@ -482,9 +510,15 @@ class MainViewModel(
      */
     private suspend fun executeWizardQuickWizard(entry: QuickWizardEntry, guid: String) {
         val label = rh.gs(CoreUiStrings.clientcontrol_action_deliver_bolus)
+        // Counted from before the prepare, so on a client the confirmation closes before the master's SMB pause ends.
+        val closeAt = TimeSource.Monotonic.markNow() + SmbPause.MAX_DURATION
         when (val prepared = wizardExecutor.prepare(WizardExecutor.WizardSource.QuickWizard(guid), label)) {
             is ActionProgress.Prepared ->
-                showWizardBolusConfirmation(rxBus, rh, entry.buttonText(), IcQuickwizard, prepared.advisorApplies, prepared.lines, prepared.advisorLines) { asAdvisor ->
+                showWizardBolusConfirmation(
+                    rxBus, rh, entry.buttonText(), IcQuickwizard, prepared.advisorApplies, prepared.lines, prepared.advisorLines,
+                    closeAt = closeAt,
+                    onCancel = { wizardExecutor.discard(prepared.id) }
+                ) { asAdvisor ->
                     // The async delivery failure is alarmed once, centrally, from the executor — no local alarm here (it would double).
                     appScope.launch { wizardExecutor.commit(prepared.id, asAdvisor, Sources.QuickWizard, label) }
                 }
@@ -508,6 +542,8 @@ class MainViewModel(
         // markAsUsed itself: that writes the Bidirectional QuickWizard pref, which a paired client would push back over
         // the signed round-trip and collide with this commit → "Update settings … Another action is already in progress".
         val tagged = actions.map { if (it is BatchAction.Bolus) it.copy(quickWizardGuid = entry.guid()) else it }
+        // Counted from before the prepare, so on a client the confirmation closes before the master's SMB pause ends.
+        val closeAt = TimeSource.Monotonic.markNow() + SmbPause.MAX_DURATION
         when (val prepared = batchExecutor.prepare(tagged, Sources.QuickWizard, label)) {
             is ActionProgress.Prepared ->
                 rxBus.send(
@@ -515,7 +551,9 @@ class MainViewModel(
                         title = entry.buttonText(), message = "", confirmationLines = prepared.lines, icon = icon,
                         onOk = {
                             appScope.launch { batchExecutor.commit(prepared.id, Sources.QuickWizard, label) }
-                        }
+                        },
+                        onCancel = { batchExecutor.discard(prepared.id) },
+                        closeAt = closeAt
                     )
                 )
             // A master-local failure (no modal) or a client offline pre-check surfaces here; a client round-trip failure already showed on the app modal.
@@ -548,7 +586,7 @@ class MainViewModel(
             listOf(BatchAction.Bolus(
                 insulin = 0.0, carbs = carbs, carbsTimeOffsetMinutes = 0, carbsDurationHours = 0,
                 recordOnly = false, notes = entry.buttonText(), timestamp = 0L, iCfg = null,
-                eCarbsGrams = if (hasEcarbs) entry.carbs2() else 0,
+                eCarbsGrams = entry.eCarbsGrams(),
                 eCarbsDelayMinutes = if (hasEcarbs) entry.time() else 0,
                 eCarbsDurationHours = if (hasEcarbs) entry.duration() else 0
             )),
@@ -647,7 +685,7 @@ class MainViewModel(
         // predates the property, such as a test double, which then omits the line rather than
         // claiming a platform.
         if (config.PLATFORM.isNotEmpty()) message += "Platform: ${config.PLATFORM}\n"
-        message += "${rh.gs(CoreUiStrings.configbuilder_nightscoutversion_label)} ${nsClient.detectedNsVersion() ?: rh.gs(CoreUiStrings.not_available_full)}"
+        message += rh.gs(CoreUiStrings.value_with_unit, rh.gs(CoreUiStrings.configbuilder_nightscoutversion_label), nsClient.detectedNsVersion() ?: rh.gs(CoreUiStrings.not_available_full))
         if (!fabricPrivacy.fabricEnabled()) message += "\n${rh.gs(CoreUiStrings.fabric_upload_disabled)}"
         val enabledOptions = ExternalOptions.entries.filter { config.isEnabled(it) }
         message += rh.gs(CoreUiStrings.about_link_urls)
@@ -720,7 +758,7 @@ class MainViewModel(
                             message = "",
                             confirmationLines = prepared.lines,
                             icon = icon,
-                            onOk = { appScope.launch { batchExecutor.commit(prepared.id, Sources.TTDialog, label) } })
+                            onOk = { commitAndReport(prepared.id, Sources.TTDialog, label, title = rh.gs(CoreUiStrings.temporary_target)) })
                     )
 
                 is ActionProgress.Rejected ->
@@ -739,13 +777,36 @@ class MainViewModel(
         viewModelScope.launch {
             when (val prepared = batchExecutor.prepare(actions, Sources.ProfileSwitchDialog, label)) {
                 is ActionProgress.Prepared ->
-                    rxBus.send(EventShowDialog.OkCancel(title = label, message = "", confirmationLines = prepared.lines, icon = IcProfile, onOk = { appScope.launch { batchExecutor.commit(prepared.id, Sources.ProfileSwitchDialog, label) } }))
+                    rxBus.send(
+                        EventShowDialog.OkCancel(
+                            title = label, message = "", confirmationLines = prepared.lines, icon = IcProfile,
+                            onOk = { commitAndReport(prepared.id, Sources.ProfileSwitchDialog, label, title = label) })
+                    )
 
                 is ActionProgress.Rejected ->
                     if (!config.AAPSCLIENT || prepared.reason.isNotDeliveryError())
                         rxBus.send(EventShowDialog.Ok(title = label, message = prepared.detail ?: rh.gs(prepared.reason.failText())))
 
                 else                       -> Unit
+            }
+        }
+    }
+
+    /**
+     * Commits a prepared action, and says why when it was refused: a switch the pump cannot take passed the
+     * prepare, but the commit refused it, and the dialog had closed as if it was done. The same as
+     * `ProfileManagementViewModel.activateProfile`. Unconfirmed is shown by the app-level modal.
+     */
+    private fun commitAndReport(id: Long, source: Sources, label: String, title: String) {
+        appScope.launch {
+            val result = batchExecutor.commit(id, source, label)
+            if (result is ActionProgress.Rejected) {
+                if (result.reason.isNotDeliveryError())
+                    rxBus.send(EventShowDialog.Ok(title = title, message = rh.gs(result.reason.failText())))
+                // A client's app-level modal has shown the master's own text already.
+                else if (!config.AAPSCLIENT) result.detail?.let { detail ->
+                    rxBus.send(EventShowDialog.Ok(title = title, message = detail))
+                }
             }
         }
     }
@@ -788,6 +849,20 @@ class MainViewModel(
     /** Expose active scene state for UI (banner, etc.) */
     val activeSceneState: StateFlow<ActiveSceneState?> = activeSceneManager.activeSceneState
 
+    /**
+     * Name of the scene that starts when the active one ends, for the banner. A catalog lookup only:
+     * whether the follow-up can run is decided when this scene ends, not now.
+     *
+     * Recomputed on every catalog change as well, not only when the active scene changes: the edit
+     * lock covers the running scene but not its follow-up, so that one can be renamed, disabled or
+     * deleted while the banner is on screen (and on a client the catalog arrives by sync). A banner
+     * naming a follow-up that no longer exists would promise something that will not start.
+     */
+    val activeSceneChainTargetName: StateFlow<String?> =
+        combine(activeSceneManager.activeSceneState, sceneStore.scenesFlow) { state, _ ->
+            state?.let { sceneChainTargetResolver.resolveCatalogChainTarget(it.scene)?.name }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     /** Whether the active scene has expired (duration ran out, non-duration actions reverted).
      *  Derived from the lifecycle field that lives inside [ActiveSceneState] and rides NS sync. */
     val sceneExpired: StateFlow<Boolean> = activeSceneManager.activeSceneState
@@ -812,6 +887,10 @@ class MainViewModel(
     fun formatDuration(ms: Long): String = dateUtil.timeRemainingString(ms, rh)
 
     /** QuickLaunch scene → ask the MASTER to PREPARE it, render the master's authored confirmation lines, commit on OK (role-transparent). */
+    /** The icon the user picked for the scene, or the generic scene icon when the scene is not known. */
+    private fun sceneIcon(iconKey: String?): ImageVector =
+        iconKey?.let { SceneIcons.fromKey(it).icon } ?: ElementType.SCENE.icon()
+
     fun requestSceneConfirmation(sceneId: String) {
         val title = rh.gs(CoreUiStrings.scene)
         viewModelScope.launch {
@@ -822,7 +901,7 @@ class MainViewModel(
                             // commitStart uses the executor's consume-once prepared.id token, so a double
                             // onOk (fast double-tap) is idempotent — the second commit hits an already-
                             // consumed id and is discarded.
-                            title = title, message = "", confirmationLines = prepared.lines, icon = IcAction,
+                            title = title, message = "", confirmationLines = prepared.lines, icon = sceneIcon(sceneStore.getScene(sceneId)?.icon),
                             onOk = { appScope.launch { sceneActions.commitStart(prepared.id) } })
                     )
 
@@ -850,7 +929,7 @@ class MainViewModel(
             if (target != null) ActionConfirmation(
                 title = rh.gs(CoreUiStrings.scene_deactivate),
                 message = message,
-                icon = IcAction,
+                icon = sceneIcon(activeState.scene.icon),
                 onConfirmAction = ConfirmableAction.DeactivateAndChainScene(target.id),
                 confirmLabel = rh.gs(CoreUiStrings.scene_skip_to_format, target.name),
                 secondaryAction = ConfirmableAction.DeactivateScene,
@@ -859,7 +938,7 @@ class MainViewModel(
             else ActionConfirmation(
                 title = rh.gs(CoreUiStrings.scene_deactivate),
                 message = message,
-                icon = IcAction,
+                icon = sceneIcon(activeState.scene.icon),
                 onConfirmAction = ConfirmableAction.DeactivateScene
             )
         }
@@ -919,7 +998,7 @@ private data class ChipState(
     val tempTargetProgress: Float = 0f,
     val tempTargetReason: TT.Reason? = null,
     val tempTargetRecordId: Long = 0,
-    val runningMode: RM.Mode = RM.Mode.DISABLED_LOOP,
+    val runningMode: RM.Mode? = null,
     val runningModeText: String = "",
     val runningModeRemaining: String = "",
     val runningModeProgress: Float = 0f,

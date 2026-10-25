@@ -15,9 +15,8 @@ import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.ui.compose.ScreenAction
 import app.aaps.core.ui.compose.StatusLevel
-import app.aaps.core.ui.compose.pump.ActionCategory
-import app.aaps.core.ui.compose.pump.PumpAction
 import app.aaps.core.ui.compose.pump.PumpCommunicationStatus
 import app.aaps.core.ui.compose.pump.PumpInfoRow
 import app.aaps.core.ui.compose.pump.PumpOverviewUiState
@@ -25,6 +24,7 @@ import app.aaps.core.ui.compose.pump.StatusBanner
 import app.aaps.core.ui.compose.pump.tickerFlow
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import info.nightscout.comboctl.base.DisplayFrame
@@ -44,7 +44,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Locale
-import dev.zacsweers.metro.Inject
 import kotlin.math.max
 import kotlin.time.ExperimentalTime
 import app.aaps.core.ui.R as CoreUiR
@@ -163,19 +162,17 @@ class ComboV2OverviewViewModel(
         combov2Plugin.unpair()
     }
 
-    private fun managementActions(isPaired: Boolean): List<PumpAction> = listOf(
+    private fun managementActions(isPaired: Boolean): List<ScreenAction> = listOf(
         if (isPaired) {
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(CoreUiR.string.pump_unpair),
                 icon = Icons.Filled.BluetoothDisabled,
-                category = ActionCategory.MANAGEMENT,
                 onClick = { onUnpairClick() }
             )
         } else {
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(CoreUiR.string.pairing),
                 icon = Icons.Filled.Bluetooth,
-                category = ActionCategory.MANAGEMENT,
                 onClick = { onPairClick() }
             )
         }
@@ -253,10 +250,9 @@ class ComboV2OverviewViewModel(
         }
 
         val primaryActions = listOf(
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(CoreUiR.string.refresh),
                 icon = Icons.Filled.Refresh,
-                category = ActionCategory.PRIMARY,
                 enabled = refreshEnabled,
                 onClick = { onRefreshClick() }
             )

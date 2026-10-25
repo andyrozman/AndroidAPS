@@ -16,8 +16,13 @@ import app.aaps.core.keys.BooleanNonKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.ui.CoreUiStrings
 import app.aaps.implementation.maintenance.cloud.CloudConstants
 import app.aaps.implementation.maintenance.cloud.CloudStorageManager
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
@@ -27,10 +32,6 @@ import java.io.IOException
 import java.util.Arrays
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-import dev.zacsweers.metro.AppScope
-import dev.zacsweers.metro.ContributesBinding
-import dev.zacsweers.metro.Inject
-import dev.zacsweers.metro.SingleIn
 
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
@@ -197,8 +198,8 @@ class MaintenanceImpl(
         builder.append("Build: " + config.BUILD_VERSION + System.lineSeparator())
         builder.append("Remote: " + config.REMOTE + System.lineSeparator())
         builder.append("Flavor: " + config.FLAVOR + config.BUILD_TYPE + System.lineSeparator())
-        builder.append(rh.gs(app.aaps.core.ui.R.string.configbuilder_nightscoutversion_label) + " " + (nsClient.detectedNsVersion() ?: "UNKNOWN") + System.lineSeparator())
-        if (config.isEngineeringMode()) builder.append(rh.gs(app.aaps.core.ui.R.string.engineering_mode_enabled))
+        builder.append(rh.gs(CoreUiStrings.value_with_unit, rh.gs(CoreUiStrings.configbuilder_nightscoutversion_label), nsClient.detectedNsVersion() ?: "UNKNOWN") + System.lineSeparator())
+        if (config.isEngineeringMode()) builder.append(rh.gs(CoreUiStrings.engineering_mode_enabled))
         val body = builder.toString()
         aapsLogger.debug("sending email to $recipient with subject $subject")
         val emailIntent = Intent(Intent.ACTION_SEND)

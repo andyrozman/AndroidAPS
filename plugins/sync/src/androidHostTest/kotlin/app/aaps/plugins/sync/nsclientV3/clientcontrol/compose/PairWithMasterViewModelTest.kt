@@ -1,26 +1,35 @@
 package app.aaps.plugins.sync.nsclientV3.clientcontrol.compose
 
+import app.aaps.core.interfaces.sync.NsClient
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.StringKey
+import app.aaps.core.keys.StringNonKey
+import app.aaps.core.keys.interfaces.ClientRole
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.nssdk.localmodel.clientcontrol.MasterPairing
+import app.aaps.core.nssdk.localmodel.clientcontrol.PairingPayload
 import app.aaps.plugins.sync.nsclientV3.clientcontrol.ClientControlPublisher
 import app.aaps.plugins.sync.nsclientV3.clientcontrol.ClientPairingRepository
 import app.aaps.plugins.sync.nsclientV3.clientcontrol.PairingOfferFetcher
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
@@ -40,10 +49,17 @@ internal class PairWithMasterViewModelTest {
     @Mock private lateinit var publisher: ClientControlPublisher
     @Mock private lateinit var fetcher: PairingOfferFetcher
     @Mock private lateinit var dateUtil: DateUtil
+    @Mock private lateinit var preferences: Preferences
+    @Mock private lateinit var nsClient: NsClient
 
     @BeforeEach
     fun setUp() {
         MockitoAnnotations.openMocks(this)
+        // The hardened-mode flow is built at construction from these.
+        whenever(preferences.observe(BooleanKey.HardenedMode)).thenReturn(MutableStateFlow(false))
+        whenever(preferences.observe(BooleanKey.GeneralSimpleMode)).thenReturn(MutableStateFlow(false))
+        whenever(preferences.observe(StringNonKey.NsClientControlClientId)).thenReturn(MutableStateFlow(""))
+        whenever(nsClient.clientRole).thenReturn(MutableStateFlow(ClientRole.Admin))
         // StandardTestDispatcher does NOT auto-run viewModelScope.launch bodies (no advanceUntilIdle),
         // so onPinEntered/confirmPair only apply their synchronous prelude.
         Dispatchers.setMain(StandardTestDispatcher())
@@ -65,7 +81,7 @@ internal class PairWithMasterViewModelTest {
      * until the queue is drained, hence the advanceUntilIdle here rather than in every test.
      */
     private fun TestScope.createViewModel() =
-        PairWithMasterViewModel(repository, publisher, fetcher, dateUtil).also { advanceUntilIdle() }
+        PairWithMasterViewModel(repository, publisher, fetcher, dateUtil, preferences, nsClient).also { advanceUntilIdle() }
 
     @Test
     fun `default state is PinEntry when not paired`() = runTest {
@@ -139,5 +155,69 @@ internal class PairWithMasterViewModelTest {
 
         verify(repository).unpair()
         assertThat(sut.state.value).isEqualTo(PairWithMasterViewModel.UiState.PinEntry)
+    }
+
+    /**
+     * Drives the screen to [PairWithMasterViewModel.UiState.Confirming], which is the only state
+     * `confirmPair` acts from.
+     */
+    private suspend fun offerIsWaiting(): PairingPayload {
+        val payload = PairingPayload(masterInstallId = "m1", clientId = "c1", secretHex = "00".repeat(32), expiresAt = 99_000L)
+        whenever(fetcher.findOfferForPin(any())).thenReturn(PairingOfferFetcher.Result.Success(payload))
+        return payload
+    }
+
+    @Test
+    fun `confirmPair says hello and reports Success when the pairing was stored`() = runTest {
+        offerIsWaiting()
+        whenever(repository.pair(any(), any())).thenReturn(true)
+        val sut = createViewModel()
+        sut.onPinEntered("1234")
+        advanceUntilIdle()
+
+        sut.confirmPair()
+        advanceUntilIdle()
+
+        // The hello with a key exchange: the PIN-offer secret is replaced right after pairing.
+        verify(publisher).publishHello()
+        assertThat(sut.state.value).isEqualTo(PairWithMasterViewModel.UiState.Success)
+    }
+
+    /** The name the phone was added with on the master travels in the PIN offer and becomes the instance name. */
+    @Test
+    fun `confirmPair takes the name from the master as the instance name`() = runTest {
+        val payload = PairingPayload(masterInstallId = "m1", clientId = "c1", secretHex = "00".repeat(32), expiresAt = 99_000L, name = "Babička")
+        whenever(fetcher.findOfferForPin(any())).thenReturn(PairingOfferFetcher.Result.Success(payload))
+        whenever(repository.pair(any(), any())).thenReturn(true)
+        whenever(preferences.get(StringKey.GeneralInstanceName)).thenReturn("")
+        val sut = createViewModel()
+        sut.onPinEntered("1234")
+        advanceUntilIdle()
+
+        sut.confirmPair()
+        advanceUntilIdle()
+
+        verify(preferences).put(StringKey.GeneralInstanceName, "Babicka")
+    }
+
+    /**
+     * The repository refused to store the pairing (its key store would not keep the secret). The
+     * screen must say so rather than show Success for a client the master will never hear from, and
+     * no hello may go out.
+     */
+    @Test
+    fun `confirmPair reports an error and sends no hello when the pairing was refused`() = runTest {
+        offerIsWaiting()
+        whenever(repository.pair(any(), any())).thenReturn(false)
+        val sut = createViewModel()
+        sut.onPinEntered("1234")
+        advanceUntilIdle()
+
+        sut.confirmPair()
+        advanceUntilIdle()
+
+        verify(publisher, never()).publishHello()
+        verify(publisher, never()).publish(any())
+        assertThat(sut.state.value).isEqualTo(PairWithMasterViewModel.UiState.Error(PairWithMasterViewModel.ErrorReason.SecretStoreFailed))
     }
 }

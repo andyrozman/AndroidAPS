@@ -3,11 +3,14 @@ package app.aaps.plugins.sync.nsclientV3
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.L
 import app.aaps.core.interfaces.nsclient.NSClientRepository
+import app.aaps.core.keys.BooleanKey
+import app.aaps.plugins.sync.SyncStringsValues
 import app.aaps.plugins.sync.nsclientV3.keys.NsclientBooleanKey
 import app.aaps.plugins.sync.nsclientV3.ws.NsConnection
 import app.aaps.plugins.sync.nsclientV3.ws.NsLoadExecutor
 import app.aaps.plugins.sync.nsclientV3.ws.NsLoadStep
 import app.aaps.shared.tests.TestBaseWithProfile
+import app.aaps.shared.tests.generatedTextResolver
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -32,6 +35,9 @@ import org.mockito.kotlin.whenever
  */
 class NSClientV3PluginSchedulingTest : TestBaseWithProfile() {
 
+    /** Real English; the sync owner is not one of the five :shared:tests can see. */
+    private val text = generatedTextResolver("sync" to SyncStringsValues::textOf)
+
     @Mock lateinit var nsLoadExecutor: NsLoadExecutor
     @Mock lateinit var nsConnection: NsConnection
     @Mock lateinit var receiverDelegate: ReceiverDelegate
@@ -42,17 +48,20 @@ class NSClientV3PluginSchedulingTest : TestBaseWithProfile() {
 
     private lateinit var sut: NSClientV3Plugin
 
+    /** Backs nsConnection.connected, so a test can take the websocket up and down. */
+    private val socketConnected = MutableStateFlow(false)
+
     @BeforeEach
     fun prepare() {
         whenever(nsLoadExecutor.idle).thenReturn(emptyFlow())
-        whenever(nsConnection.connected).thenReturn(MutableStateFlow(false))
+        whenever(nsConnection.connected).thenReturn(socketConnected)
         whenever(receiverDelegate.connectivityStatusFlow)
-            .thenReturn(MutableStateFlow(ReceiverDelegate.ConnectivityStatus("", allowed = true, connected = true)))
+            .thenReturn(MutableStateFlow(ConnectivityGate.ConnectivityStatus("", allowed = true, connected = true)))
         whenever(receiverDelegate.allowed).thenReturn(true)
         whenever(persistenceLayer.observeChanges(any<kotlin.reflect.KClass<*>>())).thenReturn(emptyFlow())
         whenever(persistenceLayer.observeAnyChange()).thenReturn(emptyFlow())
         sut = NSClientV3Plugin(
-            aapsLogger, rh, preferences, rxBus,
+            aapsLogger, text, preferences, rxBus,
             receiverDelegate, config, dateUtil, dataSyncSelectorV3, persistenceLayer,
             mock(), mock(), decimalFormatter, l, nsClientRepository, mock(),
             mock(), mock(), mock(), mock(), mock(), mock(), mock(), nsConnection, nsLoadExecutor, mock()
@@ -123,6 +132,27 @@ class NSClientV3PluginSchedulingTest : TestBaseWithProfile() {
 
         verify(nsLoadExecutor, never()).runChain(any())
         verify(nsLoadExecutor, never()).runReplacing(any())
+    }
+
+    /**
+     * After the first load, data comes over the websocket while it is up. While it is down (a host whose
+     * websocket does not work, or a reconnect), the round polls instead. The setting alone cannot decide:
+     * simple mode and hardened mode keep it on.
+     */
+    @Test
+    fun `after the first load a round runs only while the websocket is down`() = runTest {
+        whenever(nsLoadExecutor.isRunning).thenReturn(false)
+        whenever(preferences.get(BooleanKey.NsClient3UseWs)).thenReturn(true)
+        whenever(nsConnection.supportsWebsocket).thenReturn(true)
+        sut.initialLoadFinished = true
+
+        socketConnected.value = true
+        sut.executeLoop("TEST")
+        verify(nsLoadExecutor, never()).runChain(any())
+
+        socketConnected.value = false
+        sut.executeLoop("TEST")
+        verify(nsLoadExecutor).runChain(any())
     }
 
     @Test

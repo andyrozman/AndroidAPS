@@ -11,14 +11,12 @@
     <string name="unsupported_ns_version">Unsupported version of Nightscout</string>
 
     <!-- AAPSClient -->
-    <string name="ns_client_v3_short_name">NSv3</string>
 
     <!-- Authorized clients (paired devices that can issue signed commands) -->
     <string name="authorized_clients_title">Authorized clients</string>
     <string name="authorized_clients_add">Add client</string>
     <string name="authorized_clients_comm_switch_title">Allow client control</string>
     <string name="authorized_clients_comm_switch_summary">Let paired clients send signed commands over Nightscout. Turn off to stop communication without removing them.</string>
-    <string name="authorized_clients_needs_websocket">Websockets are turned off, so commands from clients cannot be received. Clients see this master as not accepting commands until you turn websockets on.</string>
     <string name="authorized_clients_state_active">Active</string>
     <string name="authorized_clients_state_pending">Pending</string>
     <string name="authorized_clients_last_seen">Last seen %1$s</string>
@@ -38,6 +36,33 @@
     <string name="authorized_clients_pin_published">Pairing offer ready on Nightscout.</string>
     <string name="authorized_clients_pin_publish_failed">Could not upload pairing offer to Nightscout.</string>
     <string name="authorized_clients_pin_retry">Retry</string>
+    <string name="authorized_clients_method_title">How is the phone set up?</string>
+    <string name="authorized_clients_method_qr_pair">QR code: Nightscout and pairing</string>
+    <string name="authorized_clients_method_qr_pair_summary">Scan once on the new phone. It gets its own Nightscout token and is paired.</string>
+    <string name="authorized_clients_method_qr_ns">QR code: Nightscout only</string>
+    <string name="authorized_clients_method_qr_ns_summary">The phone gets its own Nightscout token and can read the data. It is not paired and cannot send commands.</string>
+    <string name="authorized_clients_method_pin">PIN</string>
+    <string name="authorized_clients_method_pin_summary">For a phone without a camera. It must be connected to Nightscout already.</string>
+    <string name="authorized_clients_qr_working">Making the Nightscout token…</string>
+    <string name="authorized_clients_qr_title" comment="%1$s = the name of the new client, for example Tablet">Set up %1$s</string>
+    <string name="authorized_clients_qr_pair_instructions">Scan this code on the new phone, in the setup wizard or in Pair with master. It sets up Nightscout and pairs the phone.</string>
+    <string name="authorized_clients_qr_ns_instructions">Scan this code on the new phone, in the setup wizard or in Pair with master. It sets up Nightscout. The phone is not paired.</string>
+    <string name="authorized_clients_qr_keep_private">Anyone who sees this code can read your Nightscout. Show it only to the new phone.</string>
+    <string name="authorized_clients_token_problem_title">No QR code</string>
+    <string name="authorized_clients_token_problem_not_connected">This phone is not connected to Nightscout, so it cannot make a token for the client.</string>
+    <string name="authorized_clients_token_problem_not_allowed">The Nightscout token of this phone is not an admin token, so it cannot make a token for the client. Use an admin token here, or add the client with the PIN.</string>
+    <string name="authorized_clients_token_problem_name_taken">Nightscout has a token with this name and other rights. Choose another name.</string>
+    <string name="authorized_clients_token_problem_name_in_use">A client with this name is in the list already. Choose another name, or remove that client first.</string>
+    <string name="authorized_clients_token_problem_failed">Nightscout did not make the token. Check the connection and try again.</string>
+    <string name="authorized_clients_tokens_header">Read Nightscout only</string>
+    <string name="authorized_clients_token_unpaired">Own Nightscout token, not paired</string>
+    <string name="authorized_clients_token_show_qr">Show QR code</string>
+    <string name="authorized_clients_token_delete_title">Delete the token?</string>
+    <string name="authorized_clients_token_delete_message" comment="%1$s = the name of the client, for example Tablet">%1$s can no longer read Nightscout.</string>
+    <string name="authorized_clients_delete_dialog_token">Its Nightscout token is deleted too, so it can no longer read Nightscout.</string>
+    <string name="authorized_clients_uses_client_token">Own Nightscout token</string>
+    <string name="authorized_clients_uses_other_token" comment="%1$s = the name of a Nightscout token (subject), for example aaps-Tablet">Uses the Nightscout token %1$s, which has more rights than a client needs</string>
+    <string name="authorized_clients_uses_not_own_token" comment="%1$s = the name of a Nightscout token (subject), for example mytoken">Uses the Nightscout token %1$s, not its own: its commands are refused. Remove it and add it again.</string>
 
     <!-- Pair with master (client side PIN entry) -->
     <string name="pair_with_master_title">Pair with master</string>
@@ -55,11 +80,34 @@
     <string name="pair_with_master_error_ambiguous_pin">Multiple pairings matched that PIN. Ask the master to generate a new one and retry.</string>
     <string name="pair_with_master_error_expired">This pairing has expired. Generate a new PIN on the master.</string>
     <string name="pair_with_master_error_network">Cannot reach Nightscout. Check the connection and try again.</string>
+    <string name="pair_with_master_error_secret_store">The pairing secret could not be stored, so pairing was cancelled. Nothing was changed. Try again, and if it keeps failing, restart the app.</string>
     <string name="pair_with_master_retry">Try again</string>
     <string name="pair_with_master_already_paired_title">Already paired</string>
     <string name="pair_with_master_already_paired_master">Currently paired with master %1$s. Unpair first to enter a new PIN.</string>
     <string name="pair_with_master_unpair">Unpair</string>
     <string name="pair_with_master_sending">Sending pairing message…</string>
+
+    <!-- Client set-up from the master's QR code -->
+    <string name="client_setup_scan_button">Scan QR code</string>
+    <string name="client_setup_scan_title">Scan the master\'s QR code</string>
+    <string name="client_setup_scan_instructions">On the master, open Authorized clients and add this phone with a QR code. Point the camera at the code.</string>
+    <string name="client_setup_scan_camera_refused">The camera is needed to read the QR code. Allow it, or pair with the PIN.</string>
+    <string name="client_setup_scan_camera_denied">Camera access is turned off for AAPS. Turn it on in the system settings, or pair with the PIN.</string>
+    <string name="client_setup_scan_camera_blocked">Camera access is not allowed on this device. Pair with the PIN instead.</string>
+    <string name="client_setup_scan_camera_unavailable">The camera cannot be used on this device. Pair with the PIN instead.</string>
+    <string name="client_setup_scan_open_settings">Open settings</string>
+    <string name="client_setup_scan_not_a_code">This is not a QR code from AAPS.</string>
+    <string name="client_setup_scan_other_version">This code is from another AAPS version. The master and this phone must run the same version.</string>
+    <string name="client_setup_scan_expired">This code has expired. Make a new one on the master.</string>
+    <string name="client_setup_scan_already_paired">This phone is paired already. Unpair it first to use a code that pairs.</string>
+    <string name="client_setup_confirm_title">Use this code?</string>
+    <string name="client_setup_confirm_nightscout" comment="%1$s = the Nightscout address, for example https://my.nightscout.host">Nightscout: %1$s</string>
+    <string name="client_setup_confirm_pairs" comment="%1$s = the id of the master phone">It also pairs this phone with master %1$s.</string>
+    <string name="client_setup_confirm_replaces">It replaces the Nightscout address and token of this phone.</string>
+    <string name="client_setup_confirm_apply">Use</string>
+    <string name="client_setup_done_title">Done</string>
+    <string name="client_setup_done_paired">Nightscout is set up and the phone is paired. The master shows it as active when it has connected.</string>
+    <string name="client_setup_done_ns_only">Nightscout is set up. To control the master from this phone, pair it too.</string>
 
     <!-- Client-control orphan notification (master no longer recognises this client) -->
     <string name="clientcontrol_orphan_notification">Master AAPS no longer recognises this device. Open Manage sheet → Pair with master to re-pair.</string>
@@ -79,19 +127,25 @@
     <!-- Tidepool -->
     <string name="summary_tidepool_dev_servers">If enabled, uploads will go to test servers instead of the regular</string>
     <string name="title_tidepool_dev_servers">Use Integration (test) servers</string>
+    <string name="title_tidepool_use_ns_connection">Use Nightscout connection settings</string>
+    <string name="summary_tidepool_use_ns_connection">Turn off to set separate connection settings for Tidepool</string>
     <string name="tidepool">Tidepool</string>
-    <string name="tidepool_shortname">TDP</string>
     <string name="description_tidepool">Uploads data to Tidepool</string>
     <string name="upload_now">Upload now</string>
     <string name="tidepool_purge_data">Purge all data</string>
     <string name="tidepool_purge_data_confirm">Delete ALL data AAPS has uploaded to Tidepool? This cannot be undone. Use it to remove data corrupted by an older version, then run \"Full synchronization\" to re-upload.</string>
+    <string name="tidepool_full_sync_comment">Full synchronization? AAPS will upload all data to Tidepool again. It may take a while.</string>
+    <string name="tidepool_logout_confirm">Log out of Tidepool? Uploads stop until you log in again.</string>
+    <string name="tidepool_status_not_logged_in">Not logged in</string>
+    <string name="tidepool_status_no_session">Logged in, not connected yet</string>
+    <string name="tidepool_status_blocked">Blocked by connection settings</string>
+    <string name="tidepool_status_failed">Failed. See the log below.</string>
     <string name="not_connected">Not connected</string>
     <string name="read_only">Read only</string>
     <string name="working">Working</string>
 
     <!-- Xdrip StatusLine -->
     <string name="xdrip">xDrip+</string>
-    <string name="xdrip_shortname">XD</string>
     <string name="description_xdrip">Send data to xDrip+</string>
     <string name="xdrip_status_settings">xDrip+ Status Line Advanced</string>
     <string name="xdrip_not_installed">xDrip+ not installed</string>
@@ -101,7 +155,6 @@
 
     <!--    DataBroadcast-->
     <string name="tizen">External Companion Apps</string>
-    <string name="tizen_short">CAB</string>
     <string name="tizen_description">Enables data broadcasting to various external companion apps</string>
 
     <!-- GarminPlugin -->
@@ -109,9 +162,10 @@
     <string name="garmin_description">Connection to Garmin device (Fenix, Edge, …)</string>
     <string name="garmin_local_http_server_port">Local HTTP server port</string>
     <string name="garmin_local_http_server">Local HTTP server</string>
+    <string name="garmin_carbs_not_on_client" comment="%1$s=carbs with unit, example: 20 g. A client is a phone that follows and controls the main AAPS phone (the master).">The Garmin watch sent %1$s of carbs. This phone is a client, so they were not entered. Enter them in AAPS.</string>
+    <string name="garmin_pump_not_on_client" comment="A client is a phone that follows and controls the main AAPS phone (the master).">The Garmin watch asked to connect or disconnect the pump. This phone is a client, so nothing was changed. Do it in AAPS.</string>
 
     <!--    Wear-->
-    <string name="wear_shortname">WEAR</string>
     <string name="description_wear">Monitor and control AAPS using your WearOS watch.</string>
     <string name="no_watch_connected">(No Watch Connected)</string>
     <string name="pump_status">Pump status</string>
@@ -120,6 +174,7 @@
     <string name="scene_not_available">Scene %1$s is no longer available, please refresh your tile</string>
     <string name="wear_remote_insulin_not_allowed_in_client">Remote insulin commands are disabled in client mode</string>
     <string name="wear_phone_not_ready">The phone is still starting up or applying settings. Try again in a moment.</string>
+    <string name="wear_control_disabled">Wear control is turned off in the Wear settings on the phone.</string>
     <string name="wear_action_tempt_unit_error">Different units used on watch and phone!</string>
     <string name="wear_action_tempt_min_bg_error">Min-BG out of range!</string>
     <string name="wear_action_tempt_max_bg_error">Max-BG out of range!</string>
@@ -168,7 +223,7 @@
     <string name="aps">APS</string>
     <string name="last_run">Last run</string>
     <string name="last_enact">Last Enact</string>
-    <string name="tdd_line">%1$.2fU %1$.0f%%</string>
+    <string name="tdd_line" comment="%1$.2f=total daily dose in units, %2$.0f=that dose as percent of the reference dose. Example: 32.50U 108%">%1$.2fU %2$.0f%%</string>
     <string name="today">Today</string>
     <string name="weighted">weighted</string>
     <string name="full_xdrip_sync_comment">Full synchronization? It may take a while and until it is finished you\'ll not see new data in xDrip+.</string>
@@ -183,7 +238,6 @@
     <!-- SMS Communicator & OTP Authenticator -->
 
     <string name="smscommunicator">SMS Communicator</string>
-    <string name="smscommunicator_shortname">SMS</string>
     <string name="description_sms_communicator">Remote control AAPS using SMS commands.</string>
     <string name="smscommunicator_code_from_authenticator_for" comment="This is continuation of sentence: To [ACTION] reply with code">from Authenticator app for: %1$s followed by PIN</string>
     <string name="smscommunicator_tab_otp_label">Authenticator setup</string>
@@ -275,6 +329,8 @@
     <string name="sms_read_status_failed">Read status failed</string>
     <string name="sms_profile_switch_created">Profile switch created</string>
     <string name="sms_wrong_tbr_duration">TBR duration must be a multiple of %1$d minutes and greater than 0.</string>
+    <string name="sms_tbr_percent_only">This pump takes a temp basal only in percent, not in U/h.</string>
+    <string name="sms_tbr_absolute_only">This pump takes a temp basal only in U/h, not in percent.</string>
     <string name="a11y_otp_qr_code">QR Code for setup one time password</string>
     <string name="permission_sms_title">SMS</string>
     <string name="permission_sms_description">Application needs SMS permission for remote control via text messages</string>

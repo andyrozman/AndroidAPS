@@ -10,17 +10,18 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.interfaces.sync.NsClient
+import app.aaps.core.keys.interfaces.ClientRole
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.VisibilityContext
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import kotlin.concurrent.Volatile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import kotlin.concurrent.Volatile
 
 /**
  * Implementation of [VisibilityContext] that provides runtime context
@@ -50,6 +51,10 @@ class VisibilityContextImpl(
     // isVisible() evaluation so CLIENT_PAIRED-gated elements appear/disappear the moment pairing flips.
     override val masterOrPairedClient: Boolean
         get() = nsClient.masterOrPairedClientFlow.value
+
+    // Read per evaluation too, so a role changed on the master shows on the next recomposition.
+    override val clientRole: ClientRole
+        get() = nsClient.clientRole.value
 
     // Cached off-main: advancedFilteringSupported is read from Compose preference-screen visibility
     // predicates on the main thread, so it must not hit the DB synchronously. Seeded in init and
@@ -81,6 +86,9 @@ class VisibilityContextImpl(
 
     override val isBatteryChangeLoggingEnabled: Boolean
         get() = activePlugin.activePump.isBatteryChangeLoggingEnabled()
+
+    override val isRefillingCapable: Boolean
+        get() = activePlugin.activePump.pumpDescription.isRefillingCapable
 
     override val advancedFilteringSupported: Boolean
         get() = cachedAdvancedFiltering

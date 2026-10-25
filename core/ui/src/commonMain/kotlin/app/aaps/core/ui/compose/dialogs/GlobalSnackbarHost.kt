@@ -36,6 +36,8 @@ import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.AapsTheme
 import app.aaps.core.ui.compose.SnackbarColors
 import app.aaps.core.ui.compose.stringResource
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * Root-level snackbar host that subscribes to [EventShowSnackbar] on [rxBus]
@@ -74,13 +76,28 @@ fun GlobalSnackbarHost(
     // The presence handle is held for exactly as long as this collector runs,
     // which is what tells the fallback to stay out of the way. It is released
     // on cancellation too, so the hand-off cannot be missed.
+    //
+    // A message that is on screen or waiting to be shown is not queued again. A pump driver that
+    // retries every second sent the same error each time, and the queue grew faster than the
+    // snackbars went away, so they covered the bottom of the screen for minutes.
     LaunchedEffect(rxBus, snackbarHostPresence, lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             snackbarHostPresence.acquire().use {
-                rxBus.toFlow(EventShowSnackbar::class).collect { event ->
-                    hostState.showSnackbar(
-                        BusSnackbarVisuals(message = event.message, type = event.type)
-                    )
+                val queued = mutableSetOf<Pair<String, EventShowSnackbar.Type>>()
+                coroutineScope {
+                    rxBus.toFlow(EventShowSnackbar::class).collect { event ->
+                        val key = event.message to event.type
+                        if (!queued.add(key)) return@collect
+                        // showSnackbar waits until the snackbar is gone, and the host shows one at a
+                        // time in the order they were asked for. So each one waits in its own coroutine.
+                        launch {
+                            try {
+                                hostState.showSnackbar(BusSnackbarVisuals(message = event.message, type = event.type))
+                            } finally {
+                                queued.remove(key)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -93,6 +110,7 @@ fun GlobalSnackbarHost(
         val visuals = snackbarData.visuals
         val type = (visuals as? BusSnackbarVisuals)?.type
         val (containerColor, contentColor, icon) = resolveBusStyle(type, colors)
+        val severity = severityDescription(type)
 
         Snackbar(
             containerColor = containerColor,
@@ -106,10 +124,18 @@ fun GlobalSnackbarHost(
                 }
             }
         ) {
+            // No liveRegion or paneTitle is added here on purpose. Material3's SnackbarHost
+            // already wraps this content in a node that carries `liveRegion = Polite` and a
+            // `paneTitle`, so the snackbar is announced when it appears. A second paneTitle on
+            // a node inside it would send a second "pane appeared" event and the user would
+            // hear the snackbar twice.
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // The icon is the only carrier of severity for a screen reader, because the
+                // severity is otherwise shown by colour alone. It is a leaf node, so this
+                // description is read next to the message, not instead of it.
                 Icon(
                     imageVector = icon,
-                    contentDescription = null,
+                    contentDescription = severity,
                     modifier = Modifier.size(20.dp),
                     tint = contentColor
                 )
@@ -127,9 +153,34 @@ private class BusSnackbarVisuals(
     override val message: String,
     val type: EventShowSnackbar.Type,
     override val withDismissAction: Boolean = true,
-    override val actionLabel: String? = null,
-    override val duration: SnackbarDuration = SnackbarDuration.Short
-) : SnackbarVisuals
+    override val actionLabel: String? = null
+) : SnackbarVisuals {
+
+    /**
+     * Error and Warning stay on screen longer. They are the messages the user must not miss,
+     * and a screen reader needs time to read them out before the snackbar disappears.
+     * Info and Success keep the short default.
+     */
+    override val duration: SnackbarDuration =
+        when (type) {
+            EventShowSnackbar.Type.Error,
+            EventShowSnackbar.Type.Warning -> SnackbarDuration.Long
+
+            EventShowSnackbar.Type.Info,
+            EventShowSnackbar.Type.Success -> SnackbarDuration.Short
+        }
+}
+
+/** Short word naming how serious the message is, so it is not carried by colour alone. */
+@Composable
+private fun severityDescription(type: EventShowSnackbar.Type?): String =
+    when (type) {
+        EventShowSnackbar.Type.Error   -> stringResource(CoreUiStrings.error)
+        EventShowSnackbar.Type.Warning -> stringResource(CoreUiStrings.warning)
+        EventShowSnackbar.Type.Success -> stringResource(CoreUiStrings.success)
+        EventShowSnackbar.Type.Info,
+        null                           -> stringResource(CoreUiStrings.info)
+    }
 
 @Composable
 private fun resolveBusStyle(

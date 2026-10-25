@@ -4,29 +4,28 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlin.time.Clock
 import app.aaps.core.data.model.GV
-import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.data.time.T
-import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
-import app.aaps.core.data.ue.ValueWithUnit
+import app.aaps.core.interfaces.bolus.BatchAction
+import app.aaps.core.interfaces.bolus.BatchExecutor
+import app.aaps.core.interfaces.concurrent.aapsIoDispatcher
+import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.db.observeChanges
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.resources.TextResolver
-import app.aaps.plugins.source.SourceStrings
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventShowSnackbar
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.ui.clientcontrol.RecordRemoval
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
-import app.aaps.core.interfaces.concurrent.aapsIoDispatcher
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +35,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 /**
  * ViewModel for BgSourceScreen managing blood glucose readings state and business logic.
@@ -52,7 +52,9 @@ class BgSourceViewModel(
     internal val dateUtil: DateUtil,
     private val profileUtil: ProfileUtil,
     private val aapsLogger: AAPSLogger,
-    private val rxBus: RxBus
+    private val rxBus: RxBus,
+    batchExecutor: BatchExecutor,
+    config: Config
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BgSourceUiState())
@@ -170,45 +172,20 @@ class BgSourceViewModel(
     }
 
     /**
-     * Prepare delete confirmation message
+     * Removing the selected readings. The master removes its own copies: a BG reading removed only on a client
+     * would still be used by the loop on the master.
      */
-    fun getDeleteConfirmationMessage(): String {
-        val selected = uiState.value.selectedItems
-        if (selected.isEmpty()) return ""
+    val removal = RecordRemoval(batchExecutor, rh, rxBus, config, viewModelScope, Sources.BgFragment)
 
-        return if (selected.size == 1) {
-            val gv = selected.first()
-            "${dateUtil.dateAndTimeString(gv.timestamp)}\n${profileUtil.fromMgdlToUnits(gv.value)}"
-        } else {
-            rh.gs(CoreUiStrings.confirm_remove_multiple_items, selected.size)
-        }
+    /** Ask the master to describe removing the selected readings; the screen then shows its confirmation. */
+    fun requestDelete() {
+        removal.request(listOfNotNull(BatchAction.Remove.of(BatchAction.Remove.Kind.GLUCOSE_VALUE, uiState.value.selectedItems)))
     }
 
-    /**
-     * Delete selected items
-     */
-    fun deleteSelected() {
-        val selected = uiState.value.selectedItems
-        if (selected.isEmpty()) return
-
-        viewModelScope.launch(aapsIoDispatcher) {
-            try {
-                selected.forEach { gv ->
-                    persistenceLayer.invalidateGlucoseValue(
-                        gv.id,
-                        action = Action.BG_REMOVED,
-                        source = Sources.BgFragment,
-                        note = null,
-                        listValues = listOf(ValueWithUnit.Timestamp(gv.timestamp))
-                    )
-                }
-                exitSelectionMode()
-                loadData()
-            } catch (e: Exception) {
-                aapsLogger.error(LTag.UI, "Failed to delete BG readings", e)
-                rxBus.send(EventShowSnackbar(e.message ?: "Unknown error deleting BG readings", EventShowSnackbar.Type.Error))
-            }
-        }
+    /** The master removed them. */
+    fun onRemoved() {
+        exitSelectionMode()
+        loadData()
     }
 }
 

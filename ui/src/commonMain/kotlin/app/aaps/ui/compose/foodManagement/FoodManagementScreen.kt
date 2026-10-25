@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,9 +48,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.aaps.core.data.model.FD
+import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.AapsSearchField
 import app.aaps.core.ui.compose.AapsSpacing
@@ -170,6 +174,7 @@ fun FoodManagementScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = AapsSpacing.fabClearance),
                     verticalArrangement = Arrangement.spacedBy(AapsSpacing.small)
                 ) {
                     items(filteredFoods, key = { it.id }) { food ->
@@ -242,7 +247,7 @@ private fun FoodItem(
                     style = MaterialTheme.typography.titleSmall
                 )
                 val details = buildString {
-                    if (food.portion > 0) append("${food.portion} ${food.unit}")
+                    if (food.portion > 0) append(stringResource(CoreUiStrings.value_with_unit, food.portion.toString(), food.unit))
                     if (food.category != null) {
                         if (isNotEmpty()) append(" · ")
                         append(food.category)
@@ -259,14 +264,16 @@ private fun FoodItem(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${food.carbs}g",
+                    text = stringResource(InterfacesStrings.format_carbs, food.carbs),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 val extras = buildList {
-                    food.fat?.let { if (it > 0) add("F:${it}g") }
-                    food.protein?.let { if (it > 0) add("P:${it}g") }
-                    food.energy?.let { if (it > 0) add("${it}kJ") }
+                    // F and P were never translated; only the separator and the unit are.
+                    val grams = stringResource(CoreUiStrings.units_grams)
+                    food.fat?.let { if (it > 0) add(stringResource(InterfacesStrings.confirmation_line, "F", stringResource(CoreUiStrings.value_with_unit, it.toString(), grams))) }
+                    food.protein?.let { if (it > 0) add(stringResource(InterfacesStrings.confirmation_line, "P", stringResource(CoreUiStrings.value_with_unit, it.toString(), grams))) }
+                    food.energy?.let { if (it > 0) add(stringResource(CoreUiStrings.value_with_unit, it.toString(), "kJ")) }
                 }
                 if (extras.isNotEmpty()) {
                     Text(
@@ -276,7 +283,17 @@ private fun FoodItem(
                     )
                 }
             }
-            IconButton(onClick = onCalculate) {
+            // Name the food, because every row has this same button. Without it a screen reader
+            // says "Bolus wizard" once per row with nothing to tell them apart, and picking the
+            // wrong one opens the calculator already filled with the wrong carbs.
+            //
+            // The food name goes on the IconButton and the verb stays on the Icon: a
+            // contentDescription on a merging node is inserted BEFORE its children rather than
+            // replacing them, so this reads "Chicken salad, Bolus wizard".
+            IconButton(
+                onClick = onCalculate,
+                modifier = Modifier.semantics { contentDescription = food.name }
+            ) {
                 Icon(
                     imageVector = IcCalculator,
                     contentDescription = stringResource(CoreUiStrings.boluswizard),

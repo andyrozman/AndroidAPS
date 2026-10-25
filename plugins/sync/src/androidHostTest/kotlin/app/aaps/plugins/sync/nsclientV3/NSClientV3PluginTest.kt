@@ -34,21 +34,24 @@ import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.StringNonKey
 import app.aaps.core.nssdk.interfaces.NSAndroidClient
+import app.aaps.core.nssdk.localmodel.clientcontrol.AuthorizedClient
+import app.aaps.core.nssdk.localmodel.clientcontrol.ClientState
 import app.aaps.core.nssdk.localmodel.treatment.CreateUpdateResponse
 import app.aaps.core.nssdk.remotemodel.LastModified
+import app.aaps.plugins.sync.SyncStringsValues
+import app.aaps.plugins.sync.nsclientV3.clientcontrol.AuthorizedClientsRepository
 import app.aaps.plugins.sync.nsclientV3.clientcontrol.OrphanDetector
 import app.aaps.plugins.sync.nsclientV3.keys.NsclientStringKey
 import app.aaps.plugins.sync.nsclientV3.ws.NsConnection
 import app.aaps.plugins.sync.nsclientV3.ws.NsLoadExecutor
 import app.aaps.shared.tests.TestBaseWithProfile
+import app.aaps.shared.tests.generatedTextResolver
 import com.google.common.truth.Truth.assertThat
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -63,15 +66,20 @@ import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.reflect.KClass
 
 @Suppress("SpellCheckingInspection")
 @OptIn(ExperimentalAtomicApi::class)
 internal class NSClientV3PluginTest : TestBaseWithProfile() {
+
+    /** Real English; the sync owner is not one of the five :shared:tests can see. */
+    private val text = generatedTextResolver("sync" to SyncStringsValues::textOf)
 
     @Mock lateinit var receiverDelegate: ReceiverDelegate
     @Mock lateinit var dataSyncSelectorV3: DataSyncSelectorV3
@@ -113,11 +121,11 @@ internal class NSClientV3PluginTest : TestBaseWithProfile() {
     fun prepare() {
         whenever(persistenceLayer.observeChanges(anyOrNull<KClass<*>>())).thenReturn(emptyFlow())
         whenever(persistenceLayer.observeAnyChange()).thenReturn(emptyFlow())
-        whenever(receiverDelegate.connectivityStatusFlow).thenReturn(MutableStateFlow(ReceiverDelegate.ConnectivityStatus("", allowed = false, connected = false)))
+        whenever(receiverDelegate.connectivityStatusFlow).thenReturn(MutableStateFlow(ConnectivityGate.ConnectivityStatus("", allowed = false, connected = false)))
         storeDataForDb = StoreDataForDbImpl(aapsLogger, persistenceLayer, preferences, config, nsClientRepository, CoroutineScope(SupervisorJob() + Dispatchers.Unconfined))
         sut =
             NSClientV3Plugin(
-                aapsLogger, rh, preferences, rxBus,
+                aapsLogger, text, preferences, rxBus,
                 receiverDelegate, config, dateUtil, dataSyncSelectorV3, persistenceLayer,
                 nsClientSource, storeDataForDb, decimalFormatter, l, nsClientRepository, uel,
                 mock(), mock(), mock(), mock(), mock(), mock(), profileRepository, nsConnection, nsLoadExecutor, mock()
@@ -160,11 +168,53 @@ internal class NSClientV3PluginTest : TestBaseWithProfile() {
 
     private fun buildPlugin(orphanDetector: OrphanDetector): NSClientV3Plugin =
         NSClientV3Plugin(
-            aapsLogger, rh, preferences, rxBus,
+            aapsLogger, text, preferences, rxBus,
             receiverDelegate, config, dateUtil, dataSyncSelectorV3, persistenceLayer,
             nsClientSource, storeDataForDb, decimalFormatter, l, nsClientRepository, uel,
             mock(), mock(), mock(), orphanDetector, mock(), mock(), profileRepository, nsConnection, nsLoadExecutor, mock()
         ).also { extraPlugins += it }
+
+    // ---- storing the client-control switch for clients paired before it was stored at pairing ----
+
+    private fun pluginWithClients(vararg states: ClientState): NSClientV3Plugin {
+        val repository = mock<AuthorizedClientsRepository>()
+        val clients = states.mapIndexed { i, state -> AuthorizedClient(clientId = "c$i", name = "c$i", encryptedSecret = "enc", state = state, createdAt = 1_000L) }
+        runBlocking { whenever(repository.current(any())).thenReturn(clients) }
+        return NSClientV3Plugin(
+            aapsLogger, text, preferences, rxBus,
+            receiverDelegate, config, dateUtil, dataSyncSelectorV3, persistenceLayer,
+            nsClientSource, storeDataForDb, decimalFormatter, l, nsClientRepository, uel,
+            mock(), mock(), mock(), mock(), repository, mock(), profileRepository, nsConnection, nsLoadExecutor, mock()
+        ).also { extraPlugins += it }
+    }
+
+    @Test
+    fun `with a paired client an unset switch is stored with the value in use`() = runTest {
+        whenever(preferences.getIfExists(BooleanKey.HardenedMode)).thenReturn(null)
+        whenever(preferences.get(BooleanKey.HardenedMode)).thenReturn(true)
+
+        pluginWithClients(ClientState.Active).storeClientControlSwitchForPairedClients()
+
+        verify(preferences).put(BooleanKey.HardenedMode, true)
+    }
+
+    @Test
+    fun `without a paired client the switch is left unset`() = runTest {
+        whenever(preferences.getIfExists(BooleanKey.HardenedMode)).thenReturn(null)
+
+        pluginWithClients(ClientState.Pending).storeClientControlSwitchForPairedClients()
+
+        verify(preferences, never()).put(eq(BooleanKey.HardenedMode), any<Boolean>())
+    }
+
+    @Test
+    fun `a stored switch is not changed`() = runTest {
+        whenever(preferences.getIfExists(BooleanKey.HardenedMode)).thenReturn(false)
+
+        pluginWithClients(ClientState.Active).storeClientControlSwitchForPairedClients()
+
+        verify(preferences, never()).put(eq(BooleanKey.HardenedMode), any<Boolean>())
+    }
 
     /** Poll the (WhileSubscribed) flow's value until it settles to [expected]; a live collector keeps it computing. */
     private suspend fun awaitValue(flow: StateFlow<Boolean>, expected: Boolean) =
@@ -196,8 +246,14 @@ internal class NSClientV3PluginTest : TestBaseWithProfile() {
         // pairedFlow (NsClient.pairedFlow) is seeded synchronously from this at construction — start unpaired.
         whenever(preferences.get(StringNonKey.NsClientControlClientId)).thenReturn("")
         // Master's allow-client-control switch, synced master→client — the 5th masterReachable term. Default ON.
+        // It is followed through get(), the value in use, so the stub reads the same flow.
         val controlFlow = MutableStateFlow(true)
-        whenever(preferences.observe(BooleanKey.NsClientAllowClientControl)).thenReturn(controlFlow)
+        whenever(preferences.observe(BooleanKey.HardenedMode)).thenReturn(controlFlow)
+        whenever(preferences.get(BooleanKey.HardenedMode)).thenAnswer { controlFlow.value }
+        whenever(preferences.observe(BooleanKey.GeneralSimpleMode)).thenReturn(MutableStateFlow(false))
+        // The client's role (clientRole) is read from the store at construction too.
+        whenever(preferences.observe(StringNonKey.NsClientControlRole)).thenReturn(MutableStateFlow(""))
+        whenever(preferences.get(StringNonKey.NsClientControlRole)).thenReturn("")
 
         val client = buildPlugin(orphanDetector)
         // Heartbeat stays 0L until the first batch — the gate FAILS CLOSED at boot (no optimistic enable).
@@ -238,7 +294,7 @@ internal class NSClientV3PluginTest : TestBaseWithProfile() {
             value = 99.0,
             trendArrow = TrendArrow.DOUBLE_UP,
             noise = 1.0,
-            sourceSensor = SourceSensor.DEXCOM_G6_NATIVE,
+            sourceSensor = SourceSensor.DEXCOM_G6,
             ids = IDs(nightscoutId = "nightscoutId")
         )
         val dataPair = DataSyncSelector.PairGlucoseValue(glucoseValue, 1000)

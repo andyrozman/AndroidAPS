@@ -9,7 +9,7 @@ import app.aaps.core.ui.compose.AapsSpacing.small
 import app.aaps.core.ui.compose.AapsSpacing.xxLarge
 
 /**
- * Centralized spacing and dimension constants for AndroidAPS Compose UI.
+ * Centralized spacing and dimension constants for AAPS Compose UI.
  *
  * **Generic spacing scale** — use for padding, margins, arrangement spacing:
  * - [extraSmall] (2.dp), [small] (4.dp), [medium] (8.dp),
@@ -42,6 +42,10 @@ object AapsSpacing {
 
     // Trend arrow drawn next to a BG value
     val trendArrowSize = 20.dp
+
+    // Space below the last item of a list on a screen with a FloatingActionButton (56 dp button, 16 dp margin,
+    // 16 dp gap), so the button never covers that item when the list is scrolled to the end
+    val fabClearance = 88.dp
 
     // Chip dimensions
     val chipCornerRadius = 8.dp

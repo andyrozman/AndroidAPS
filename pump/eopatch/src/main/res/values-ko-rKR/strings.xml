@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="eopatch">EOPatch2</string>
-    <string name="eopatch_shortname">EOP2</string>
     <string name="eopatch_pump_description">EOPatch2 / GlucoMen Day를 위한 펌프 통합</string>
     <string name="low_reservoir">레저버 적음 경고</string>
     <string name="patch_expiration_reminders">패치 만료 알림</string>
@@ -62,7 +61,6 @@
     <string name="patch_communication_succeed">통신 성공</string>
     <string name="patch_communication_succeed_message">Patch와 연결됨</string>
     <string name="patch_cancel_pairing">페어링 취소</string>
-    <string name="all_dose_unit">&#160;U</string>
     <string name="insulin_suspend_msg1">중지 시, 현재 주입 중인 bolus &amp; 임시 basal이 취소됩니다. \n\n주입량 : %1$s U/hr\n남은 시간  : %2$s\n&amp; 남은 인슐린 : %3$.2f U</string>
     <string name="insulin_suspend_msg2">중지 시, 현재 주입 중인 bolus가 취소됩니다. \n\n남은 인슐린 : %1$.2f U</string>
     <string name="insulin_suspend_msg3">중지 시, 현재 주입 중인 임시 basal이 취소됩니다. \n\n주입량 : %1$s U/hr\n남은 시간  : %2$s</string>
@@ -80,5 +78,4 @@
     <string name="string_resumed_insulin_delivery_message">인슐린 주입이 재시작되었습니다.</string>
     <string name="string_temp_basal_remained_hhmm">남은 시간: %1$s:%2$s</string>
     <string name="string_resume_failed">재시작 실패함</string>
-    <!-- Permission rationales -->
 </resources>

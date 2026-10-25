@@ -1,5 +1,6 @@
 package app.aaps.core.interfaces.rx.weardata
 
+import app.aaps.core.data.model.CarbsType
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.ExperimentalSerializationApi
 import org.junit.jupiter.api.BeforeEach
@@ -77,6 +78,10 @@ class EventDataTest {
             assertThat(EventData.deserialize(it.serialize())).isEqualTo(it)
         }
         EventData.ActionWizardPreCheck(1, 2).let {
+            assertThat(EventData.deserializeByte(it.serializeByte())).isEqualTo(it)
+            assertThat(EventData.deserialize(it.serialize())).isEqualTo(it)
+        }
+        EventData.ActionWizardPreCheck(1, 2, CarbsType.PIZZA).let {
             assertThat(EventData.deserializeByte(it.serializeByte())).isEqualTo(it)
             assertThat(EventData.deserialize(it.serialize())).isEqualTo(it)
         }
@@ -170,7 +175,7 @@ class EventDataTest {
             battery = "5", rigBattery = "6", openApsStatus = 7L, bgi = "8", batteryLevel = 9, patientName = "p",
             tempTarget = "t", tempTargetLevel = 1, tempTargetDuration = 10L, reservoirString = "r",
             reservoir = 11.0, reservoirLevel = 0, cobValue = 12.0, loopMode = LoopStatusData.LoopMode.SUSPENDED,
-            modeEndTime = 13L
+            modeEndTime = 13L, modeFromScene = true
         ).let {
             assertThat(EventData.deserializeByte(it.serializeByte())).isEqualTo(it)
             assertThat(EventData.deserialize(it.serialize())).isEqualTo(it)
@@ -246,6 +251,40 @@ class EventDataTest {
             assertThat(EventData.deserializeByte(it.serializeByte())).isEqualTo(it)
             assertThat(EventData.deserialize(it.serialize())).isEqualTo(it)
         }
+        // Scene follow-up on the watch: the Skip flag both ways, and the state that offers it
+        EventData.ActionSceneStopPreCheck(triggerChain = true).let {
+            assertThat(EventData.deserializeByte(it.serializeByte())).isEqualTo(it)
+            assertThat(EventData.deserialize(it.serialize())).isEqualTo(it)
+        }
+        EventData.ActionSceneStopConfirmed(triggerChain = true).let {
+            assertThat(EventData.deserializeByte(it.serializeByte())).isEqualTo(it)
+            assertThat(EventData.deserialize(it.serialize())).isEqualTo(it)
+        }
+        EventData.ActiveSceneState(active = true, sceneName = "Sleep", endTime = 1_000L, chainTargetName = "Wake up").let {
+            assertThat(EventData.deserializeByte(it.serializeByte())).isEqualTo(it)
+            assertThat(EventData.deserialize(it.serialize())).isEqualTo(it)
+        }
+        EventData.LoopStatusResponse(
+            timeStamp = 1L,
+            data = LoopStatusData(
+                0L, LoopStatusData.LoopMode.CLOSED, null, null, null, null, null, TargetRange("a", "b", "c", "u"), null,
+                activeScene = ActiveSceneInfo(name = "Sleep", endTime = null, chainTargetName = "Wake up")
+            )
+        ).let {
+            assertThat(EventData.deserializeByte(it.serializeByte())).isEqualTo(it)
+            assertThat(EventData.deserialize(it.serialize())).isEqualTo(it)
+        }
+    }
+
+    @Test
+    fun activeSceneStateFromAnOlderPhoneDecodesWithoutTheFollowUpFields() {
+        // A phone from before the follow-up fields sends only the boolean; the watch must not
+        // fall back to Error, and must see "no name, no end, no follow-up"
+        val decoded = EventData.deserialize("""{"type":"app.aaps.core.interfaces.rx.weardata.EventData.ActiveSceneState","active":true}""")
+        assertThat(decoded).isEqualTo(EventData.ActiveSceneState(active = true))
+        // And the other way round: an older watch reads a parameterless stop as "no chain"
+        val stop = EventData.deserialize("""{"type":"app.aaps.core.interfaces.rx.weardata.EventData.ActionSceneStopConfirmed"}""")
+        assertThat(stop).isEqualTo(EventData.ActionSceneStopConfirmed(triggerChain = false))
     }
 
     @Test
@@ -278,5 +317,15 @@ class EventDataTest {
         assertThat(legacyJson).doesNotContain("loopMode")
         val restored = EventData.deserialize(legacyJson) as EventData.Status
         assertThat(restored.loopMode).isEqualTo(LoopStatusData.LoopMode.UNKNOWN)
+    }
+
+    @Test
+    fun wizardPreCheckFromAWatchWithoutTheMealTypeIsBread() {
+        // The meal type came later. A watch from before sends no carbsType, and the default is bread, which
+        // is what every wizard entry was before: all carbs now, no eCarbs. The default is not written on the
+        // wire, so serializing without it is the old message.
+        val old = EventData.ActionWizardPreCheck(30, 100).serialize()
+        assertThat(old).doesNotContain("carbsType")
+        assertThat(EventData.deserialize(old)).isEqualTo(EventData.ActionWizardPreCheck(30, 100, CarbsType.BREAD))
     }
 }

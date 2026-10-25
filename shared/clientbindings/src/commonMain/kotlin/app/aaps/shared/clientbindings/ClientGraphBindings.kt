@@ -1,5 +1,6 @@
 package app.aaps.shared.clientbindings
 
+import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.Objectives
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.db.ProcessedTbrEbData
@@ -8,28 +9,22 @@ import app.aaps.core.interfaces.insulin.ConcentrationHelper
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.L
+import app.aaps.core.interfaces.maintenance.ImportExportPrefs
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.notifications.SystemNotificationPlatform
 import app.aaps.core.interfaces.overview.OverviewData
 import app.aaps.core.interfaces.overview.graph.OverviewDataCache
-import app.aaps.core.interfaces.configuration.Config
-import app.aaps.core.interfaces.maintenance.ImportExportPrefs
 import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.plugin.PluginBase
+import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.protection.ExportPasswordDataStore
 import app.aaps.core.interfaces.protection.PasswordHasher
 import app.aaps.core.interfaces.protection.SecureEncrypt
-import app.aaps.core.interfaces.sharedPreferences.KeyValueStore
-import app.aaps.implementation.maintenance.LocalImportExportPrefs
-import app.aaps.implementation.maintenance.PreferenceImportApplier
-import app.aaps.implementation.maintenance.cloud.CloudStorageManager
-import app.aaps.implementation.maintenance.PrefsFileAccess
-import app.aaps.implementation.maintenance.PrefsFileLister
-import app.aaps.core.interfaces.plugin.PluginBase
-import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.sharedPreferences.KeyValueStore
 import app.aaps.core.interfaces.userEntry.UserEntryPresentationHelper
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
@@ -37,19 +32,23 @@ import app.aaps.core.interfaces.workflow.CalculationSignalsEmitter
 import app.aaps.core.interfaces.workflow.CalculationWorkflow
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.compose.pump.PumpCommunicationStatus
+import app.aaps.implementation.maintenance.LocalImportExportPrefs
+import app.aaps.implementation.maintenance.PreferenceImportApplier
+import app.aaps.implementation.maintenance.PrefsFileAccess
+import app.aaps.implementation.maintenance.PrefsFileLister
+import app.aaps.implementation.maintenance.cloud.CloudStorageManager
 import app.aaps.implementation.notifications.CommonNotificationManager
 import app.aaps.implementation.resources.GeneratedTextResolver
-import app.aaps.implementation.resources.isCompactScreen
 import app.aaps.plugins.constraints.objectives.ObjectivesPlugin
 import app.aaps.plugins.constraints.objectives.objectives.DurationText
 import app.aaps.plugins.constraints.objectives.objectives.Objective
 import app.aaps.plugins.constraints.objectives.objectives.PlainDurationText
 import app.aaps.plugins.main.iob.iobCobCalculator.IobCobCalculatorPlugin
-import app.aaps.plugins.sync.nsclientV3.NSClientV3Plugin
 import app.aaps.plugins.sync.nsclientV3.ws.NsConnection
 import app.aaps.plugins.sync.nsclientV3.ws.SocketNsConnection
 import app.aaps.shared.impl.logging.LImpl
 import app.aaps.shared.impl.rx.bus.RxBusImpl
+import app.aaps.ui.compose.history.HistoryScope
 import app.aaps.workflow.CalculationExecutor
 import app.aaps.workflow.LazyCalculationExecutor
 import app.aaps.workflow.PostCalculationRunner
@@ -120,7 +119,7 @@ object ClientGraphBindings {
      */
     @Provides
     @SingleIn(AppScope::class)
-    fun textResolver(): TextResolver = GeneratedTextResolver(compactScreen = isCompactScreen())
+    fun textResolver(): TextResolver = GeneratedTextResolver()
 
     /**
      * Settings export and import, for iOS and desktop.
@@ -226,6 +225,20 @@ object ClientGraphBindings {
     @IntKey(10)
     fun iobCobCalculatorEntry(plugin: IobCobCalculatorPlugin): PluginBase = plugin
 
+    /**
+     * One history browsing window, app-scoped so every injection point sees the same one.
+     *
+     * Unscoped would hand out a fresh window per injection point, which quietly undoes the isolation
+     * the extension exists for: two windows calculating over different ranges, with the screen
+     * reading one and writing the other.
+     *
+     * The factory comes from the graph's own `historyWindowFactory` accessor, which each shell states.
+     */
+    @Provides
+    @SingleIn(AppScope::class)
+    fun historyScope(windowFactory: ClientHistoryWindowGraph.Factory): HistoryScope =
+        ClientHistoryScope(windowFactory.create())
+
     /** The ten objectives in order, for `ObjectivesPlugin` to read. */
     @Provides
     fun objectivesList(objectives: Map<Int, Objective>): List<Objective> =
@@ -270,10 +283,12 @@ object ClientGraphBindings {
     fun nsConnection(connection: SocketNsConnection): NsConnection = connection
 
     /**
-     * The calculation executor, deferred so the graph accepts the runner cycle.
+     * The calculation executor, deferred so the graph accepts the runner cycle - see
+     * [LazyCalculationExecutor].
      *
-     * See [LazyCalculationExecutor] for why the cycle exists here and not on Android: WorkManager
-     * builds the runners itself there, so they are not graph nodes at all.
+     * No wake lock. Desktop has none, and on iOS the closest thing only holds off idle sleep, which
+     * does not keep a suspended app running. That is a question for the iOS background work as a
+     * whole, not for this executor.
      */
     @Provides
     @SingleIn(AppScope::class)
@@ -282,7 +297,7 @@ object ClientGraphBindings {
         aapsLogger: AAPSLogger,
         prepare: () -> PrepareGraphDataRunner,
         post: () -> PostCalculationRunner
-    ): CalculationExecutor = LazyCalculationExecutor(scope, aapsLogger, { prepare() }, { post() })
+    ): CalculationExecutor = LazyCalculationExecutor(scope, aapsLogger, { prepare() }, { post() }, wakeLock = null)
 
     /** Bolus progress. Stated rather than annotated, for the same reason as the calculator. */
     @Provides

@@ -148,8 +148,7 @@ data class CobGraphData(
  */
 data class ActivityGraphData(
     val activity: List<GraphDataPoint>,
-    val activityPrediction: List<GraphDataPoint>,
-    val maxActivity: Double = 0.0
+    val activityPrediction: List<GraphDataPoint>
 )
 
 /**
@@ -246,7 +245,7 @@ data class BolusGraphPoint(
     val amount: Double,        // Insulin amount in units
     val bolusType: BolusType,  // NORMAL or SMB
     val isValid: Boolean,
-    val label: String          // Pre-formatted amount string (pump-supported step)
+    val label: String          // Pre-formatted amount with unit (e.g. "0.30 U")
 )
 
 /**
@@ -290,8 +289,25 @@ enum class TherapyEventType {
 data class TherapyEventGraphPoint(
     val timestamp: Long,
     val eventType: TherapyEventType,
-    val label: String,         // Note or translated type name
-    val duration: Long         // Duration in ms (0 if no duration)
+    val label: String,            // Note or translated type name
+    val duration: Long,           // Duration in ms (0 if no duration)
+    /**
+     * Measured glucose in the user's units, for the events that carry one (MBG, finger stick).
+     * Null for every other event. Events with a value are drawn inside the BG graph at that
+     * value, not on the treatment belt.
+     */
+    val glucoseUserUnits: Double? = null
+)
+
+/**
+ * Calibration pair for the BG graph: the finger value is drawn at its own glucose value, so the
+ * reader can compare it with the sensor curve at that time.
+ */
+data class CalibrationGraphPoint(
+    val timestamp: Long,
+    val fingerstickUserUnits: Double,  // Finger value in the user's units
+    val isValid: Boolean,
+    val label: String                  // Pre-formatted value with units (e.g. "6.7 mmol/L")
 )
 
 /**
@@ -313,7 +329,8 @@ data class TreatmentGraphData(
     val boluses: List<BolusGraphPoint>,
     val carbs: List<CarbsGraphPoint>,
     val extendedBoluses: List<ExtendedBolusGraphPoint>,
-    val therapyEvents: List<TherapyEventGraphPoint>
+    val therapyEvents: List<TherapyEventGraphPoint>,
+    val calibrations: List<CalibrationGraphPoint>
 )
 
 // ============================================================================

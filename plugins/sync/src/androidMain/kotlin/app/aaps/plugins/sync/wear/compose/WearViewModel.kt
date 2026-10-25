@@ -1,6 +1,5 @@
 package app.aaps.plugins.sync.wear.compose
 
-import app.aaps.plugins.sync.SyncStrings
 import android.graphics.BitmapFactory
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
@@ -8,6 +7,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.maintenance.FileListProvider
@@ -29,6 +29,7 @@ import app.aaps.core.keys.PushedWatchfaceId
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.StringNonKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.plugins.sync.SyncStrings
 import app.aaps.plugins.sync.wear.WearPlugin
 import app.aaps.shared.impl.weardata.JsonKeyValues
 import app.aaps.shared.impl.weardata.JsonKeys
@@ -210,7 +211,7 @@ class WearViewModel(
 
         val titleName = metadata[CwfMetadataKey.CWF_NAME] ?: ""
         val authorVersion = metadata[CwfMetadataKey.CWF_AUTHOR_VERSION]
-        val title = if (authorVersion != null) "$titleName ($authorVersion)" else titleName
+        val title = if (authorVersion != null) rh.gs(InterfacesStrings.value_with_detail, titleName, authorVersion) else titleName
 
         val fileName = metadata[CwfMetadataKey.CWF_FILENAME]?.let { "$it.${ZipWatchfaceFormat.CWF_EXTENSION}" } ?: ""
 

@@ -3,15 +3,18 @@ package app.aaps.ui.compose.treatments.viewmodels
 import app.aaps.core.data.model.BCR
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.CA
+import app.aaps.core.data.model.IDs
+import app.aaps.core.data.ue.Sources
+import app.aaps.core.interfaces.bolus.BatchAction
+import app.aaps.core.interfaces.bolus.BatchExecutor
+import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.profile.ProfileFunction
-import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
-import app.aaps.core.ui.CoreUiStrings
-import app.aaps.ui.UiStrings
+import app.aaps.shared.tests.generatedTextResolver
 import app.aaps.ui.compose.treatments.MealLink
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -19,13 +22,20 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
+import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -33,11 +43,12 @@ internal class BolusCarbsViewModelTest {
 
     @Mock private lateinit var persistenceLayer: PersistenceLayer
     @Mock private lateinit var profileFunction: ProfileFunction
-    @Mock private lateinit var rh: ResourceHelper
     @Mock private lateinit var dateUtil: DateUtil
     @Mock private lateinit var decimalFormatter: DecimalFormatter
     @Mock private lateinit var aapsLogger: AAPSLogger
     @Mock private lateinit var rxBus: RxBus
+    @Mock private lateinit var batchExecutor: BatchExecutor
+    @Mock private lateinit var config: Config
 
     private lateinit var sut: BolusCarbsViewModel
 
@@ -54,7 +65,7 @@ internal class BolusCarbsViewModelTest {
         whenever(persistenceLayer.observeChanges(BS::class)).thenReturn(emptyFlow())
         whenever(persistenceLayer.observeChanges(CA::class)).thenReturn(emptyFlow())
         whenever(persistenceLayer.observeChanges(BCR::class)).thenReturn(emptyFlow())
-        sut = BolusCarbsViewModel(persistenceLayer, profileFunction, rh, dateUtil, decimalFormatter, aapsLogger, rxBus)
+        sut = BolusCarbsViewModel(persistenceLayer, profileFunction, generatedTextResolver(), dateUtil, decimalFormatter, aapsLogger, rxBus, batchExecutor, config)
     }
 
     @AfterEach
@@ -116,16 +127,36 @@ internal class BolusCarbsViewModelTest {
     }
 
     @Test
-    fun `getDeleteConfirmationMessage is empty when nothing is selected`() {
-        assertThat(sut.getDeleteConfirmationMessage()).isEqualTo("")
+    fun `requestDelete asks the master to remove the bolus, carbs and wizard result of a meal`() = runTest {
+        val bolus = mock<BS> {
+            on { id } doReturn 1L
+            on { ids } doReturn IDs(nightscoutId = "bs1")
+        }
+        val carbs = mock<CA> {
+            on { id } doReturn 2L
+            on { ids } doReturn IDs(nightscoutId = "ca2")
+        }
+        val bcr = mock<BCR> {
+            on { id } doReturn 3L
+            on { ids } doReturn IDs(nightscoutId = "bcr3")
+        }
+        sut.enterSelectionMode(MealLink(bolus = bolus, carbs = carbs, bolusCalculatorResult = bcr))
+
+        sut.requestDelete()
+
+        val actions = argumentCaptor<List<BatchAction>>()
+        verify(batchExecutor).prepare(actions.capture(), eq(Sources.Treatments), any())
+        assertThat(actions.firstValue).containsExactly(
+            BatchAction.Remove(BatchAction.Remove.Kind.BOLUS, listOf(BatchAction.Remove.Ref(nsId = "bs1", localId = 1L))),
+            BatchAction.Remove(BatchAction.Remove.Kind.CARBS, listOf(BatchAction.Remove.Ref(nsId = "ca2", localId = 2L))),
+            BatchAction.Remove(BatchAction.Remove.Kind.BOLUS_CALCULATOR_RESULT, listOf(BatchAction.Remove.Ref(nsId = "bcr3", localId = 3L)))
+        )
     }
 
     @Test
-    fun `getDeleteConfirmationMessage uses the plural string for multiple selection`() {
-        whenever(rh.gs(CoreUiStrings.confirm_remove_multiple_items, 2)).thenReturn("Remove 2 items")
-        sut.enterSelectionMode(link())
-        sut.toggleSelection(link())
+    fun `requestDelete with nothing selected asks nothing`() = runTest {
+        sut.requestDelete()
 
-        assertThat(sut.getDeleteConfirmationMessage()).isEqualTo("Remove 2 items")
+        verify(batchExecutor, never()).prepare(any(), any(), any())
     }
 }

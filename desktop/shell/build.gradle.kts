@@ -107,7 +107,12 @@ val desktopPackageName = if (desktopClient == 1) "AAPSClient" else "AAPSClient$d
 // Named after the package rather than a fixed "AAPSClient", so building client 2 cannot leave an
 // icon called AAPSClient.icns holding the blue owl, and two clients built in one tree do not
 // overwrite each other's icon.
-val icnsOutput = layout.buildDirectory.file("generated/icon/macos/$desktopPackageName.icns")
+// Deliberately NOT under `generated/icon`: that directory is the resources root (see
+// `resources.srcDir` below), so an .icns written inside it is swept up by `processResources`, which
+// both ships a launcher icon inside the jar for nothing and makes Gradle fail the build for using
+// one task's output as another's input without a declared dependency. jpackage reads this file from
+// `macOS.iconFile`, not from the resources.
+val icnsOutput = layout.buildDirectory.file("generated/macosIcon/$desktopPackageName.icns")
 val makeIcns = tasks.register<Exec>("makeDesktopIcns") {
     description = "Builds the macOS .icns launcher icon from the phone artwork."
     val source = rootProject.file("core/ui/src/androidMain/res/mipmap-xxxhdpi/$desktopIconName.png")
@@ -228,7 +233,18 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-tasks.withType<Test> { useJUnitPlatform() }
+tasks.withType<Test> {
+    useJUnitPlatform()
+    // Where the tests see the home directory. `DesktopFolders` puts the preference store, the log and
+    // the database under `user.home`. A test that builds the real graph opens all three, so without
+    // this a test run would write into the developer's own `~/.aaps`, the same folder the running app
+    // uses. Emptied before each run, so one run cannot leave state behind for the next.
+    // A local File, not a value of the script: `doFirst` keeps what it uses until the task runs, and a
+    // reference to the build script there breaks the configuration cache.
+    val testHome = project.layout.buildDirectory.dir("test-home").get().asFile
+    systemProperty("user.home", testHome.absolutePath)
+    doFirst { testHome.deleteRecursively() }
+}
 
 compose.desktop {
     application {

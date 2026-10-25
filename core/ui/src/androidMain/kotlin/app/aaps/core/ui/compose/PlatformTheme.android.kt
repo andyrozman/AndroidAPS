@@ -1,17 +1,18 @@
 package app.aaps.core.ui.compose
 
-import androidx.compose.runtime.DisposableEffect
-import androidx.appcompat.app.AppCompatActivity
 import android.content.pm.ActivityInfo
-import android.text.format.DateFormat
 import android.content.res.Configuration
+import android.text.format.DateFormat
 import androidx.activity.compose.LocalActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowInsetsControllerCompat
+import kotlin.math.max
 
 @Composable
 actual fun SystemBarAppearance(isDark: Boolean) {
@@ -31,6 +32,10 @@ actual fun SystemBarAppearance(isDark: Boolean) {
 
 @Composable
 actual fun smallestScreenWidthDp(): Int = LocalConfiguration.current.smallestScreenWidthDp
+
+@Composable
+actual fun longestScreenSideDp(): Int =
+    LocalConfiguration.current.let { max(it.screenWidthDp, it.screenHeightDp) }
 
 @Composable
 actual fun isLandscape(): Boolean =

@@ -39,14 +39,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.aaps.core.data.format.NumberFormat
-import app.aaps.core.data.ui.ConfirmationLine
 import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.interfaces.navigation.ElementType
-import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.core.ui.compose.AapsTopAppBar
 import app.aaps.core.ui.compose.NumberInputRow
-import app.aaps.core.ui.compose.banner.WarningBanner
 import app.aaps.core.ui.compose.bottomBarSafeArea
 import app.aaps.core.ui.compose.dialogs.ElementConfirmationDialog
 import app.aaps.core.ui.compose.metroViewModel
@@ -54,6 +51,8 @@ import app.aaps.core.ui.compose.navigation.label
 import app.aaps.core.ui.compose.stringResource
 import app.aaps.core.ui.compose.stringResourceOrNull
 import app.aaps.ui.compose.components.DialogStatusBar
+import app.aaps.ui.compose.components.RecordOnlyBanner
+import app.aaps.ui.compose.components.SmbBeingDeliveredBanner
 import app.aaps.ui.compose.overview.chips.CobUiState
 import app.aaps.ui.compose.overview.chips.IobUiState
 import app.aaps.ui.compose.overview.graphs.BgInfoUiState
@@ -75,7 +74,7 @@ fun TreatmentDialogScreen(
 
     // Dialog states
     // The master's prepared confirmation (bolusId + its merged lines), set via the ShowConfirmation side effect.
-    var confirmation by remember { mutableStateOf<Pair<Long, List<ConfirmationLine>>?>(null) }
+    var confirmation by remember { mutableStateOf<TreatmentDialogViewModel.SideEffect.ShowConfirmation?>(null) }
     var showNoAction by rememberSaveable { mutableStateOf(false) }
 
     // Observe side effects
@@ -91,23 +90,29 @@ fun TreatmentDialogScreen(
                 }
 
                 is TreatmentDialogViewModel.SideEffect.ShowConfirmation -> {
-                    confirmation = effect.bolusId to effect.lines
+                    // A newer prepare replaces one still shown (a second tap): drop the old one on the master.
+                    confirmation?.let { viewModel.discard(it.bolusId) }
+                    confirmation = effect
                 }
             }
         }
     }
 
     // Confirmation dialog — renders the MASTER's prepared lines (set via the ShowConfirmation side effect after prepare()).
-    confirmation?.let { (bolusId, lines) ->
+    confirmation?.let { shown ->
         ElementConfirmationDialog(
             elementType = ElementType.TREATMENT,
-            lines = lines,
+            lines = shown.lines,
             onConfirm = {
-                viewModel.commit(bolusId)
+                viewModel.commit(shown.bolusId)
                 confirmation = null
                 onNavigateBack()
             },
-            onDismiss = { confirmation = null }
+            onDismiss = {
+                viewModel.discard(shown.bolusId)
+                confirmation = null
+            },
+            closeAt = shown.closeAt
         )
     }
 
@@ -152,21 +157,25 @@ internal fun TreatmentDialogContent(
     val focusManager = LocalFocusManager.current
     Scaffold(
         topBar = {
-            AapsTopAppBar(
-                title = { Text((stringResourceOrNull(ElementType.TREATMENT.label()) ?: "")) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = stringResource(CoreUiStrings.close)
-                        )
-                    }
-                },
-                actions = {}
-            )
+            Column {
+                AapsTopAppBar(
+                    title = { Text((stringResourceOrNull(ElementType.TREATMENT.label()) ?: "")) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = stringResource(CoreUiStrings.close)
+                            )
+                        }
+                    },
+                    actions = {}
+                )
+                if (uiState.forcedRecordOnly) RecordOnlyBanner()
+                if (uiState.waitsForSmb) SmbBeingDeliveredBanner()
+            }
         },
         bottomBar = {
-            val hasAction = uiState.insulin > 0.0 || uiState.carbs > 0
+            val hasAction = (uiState.insulin > 0.0 || uiState.carbs > 0) && !uiState.waitsForSmb
             // The button shows only a value, so a screen reader would say just "2.5 U" and never
             // what pressing it does. The verb only: the Text below is still read, so repeating the
             // amount here would have it announced twice. See ChipAnnouncementTest.
@@ -220,11 +229,6 @@ internal fun TreatmentDialogContent(
         ) {
             // --- Status Bar ---
             DialogStatusBar(bgInfo = bgInfo, iob = iob, cob = cob)
-
-            // --- Forced-record-only warning ---
-            if (uiState.forcedRecordOnly) {
-                WarningBanner(message = stringResource(InterfacesStrings.bolus_recorded_only))
-            }
 
             // --- Single Card: Insulin + Carbs ---
             Card(

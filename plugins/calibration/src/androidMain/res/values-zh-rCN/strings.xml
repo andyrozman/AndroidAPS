@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="calibration_shortname">CAL</string>
     <string name="no_calibration_name">无需校准</string>
     <string name="description_no_calibration">"未应用校准覆盖。传感器数值按原样使用。当传感器已出厂校准且准确时，请使用此选项。"</string>
     <string name="linear_calibration_name">线性校准</string>
@@ -22,7 +21,5 @@
     <string name="cal_entries_header">指血录入条目 (%1$d)</string>
     <string name="cal_no_entries">暂无指血录入条目。</string>
     <string name="cal_entry_pair">指血%1$s → 传感器 %2$s (Δ %3$s)</string>
-    <string name="cal_remove_entry_title">移除项目?</string>
-    <string name="cal_remove_entry_message">此操作将使该条目失效。拟合将重新计算。</string>
     <string name="cal_chart_entry_readout">条目 %1$d/%2$d · %3$s · 传感器 %4$s → 血糖 %5$s</string>
 </resources>

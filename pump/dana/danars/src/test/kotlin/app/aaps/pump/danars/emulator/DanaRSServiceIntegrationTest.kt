@@ -74,6 +74,7 @@ import app.aaps.pump.danars.comm.DanaRSPacketOptionSetPumpUTCAndTimeZone
 import app.aaps.pump.danars.comm.DanaRSPacketOptionSetUserOption
 import app.aaps.pump.danars.encryption.BleEncryption
 import app.aaps.pump.danars.services.BLEComm
+import app.aaps.pump.danars.services.DanaRSAlarmReporter
 import app.aaps.pump.danars.services.DanaRSService
 import app.aaps.shared.tests.TestBase
 import com.google.common.truth.Truth.assertThat
@@ -87,6 +88,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyVararg
 import org.mockito.kotlin.atLeast
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -148,7 +150,7 @@ class DanaRSServiceIntegrationTest : TestBase() {
     fun setup() {
         // Mock basics
         whenever(rh.gs(anyInt())).thenReturn("test")
-        whenever(rh.gs(anyInt(), any())).thenReturn("test")
+        whenever(rh.gs(anyInt(), anyVararg())).thenReturn("test")
         whenever(preferences.get(any<DanaStringNonKey>())).thenReturn("")
         whenever(preferences.get(any<StringComposedNonPreferenceKey>(), any())).thenReturn("")
         whenever(preferences.get(DanaStringNonKey.Password)).thenReturn("0000")
@@ -192,8 +194,9 @@ class DanaRSServiceIntegrationTest : TestBase() {
 
         bleComm = BLEComm(
             aapsLogger, rh, context, rxBus, danaRSMessageHashTable, danaPump,
-            danaRSPlugin, bleEncryption, pumpSync, dateUtil, preferences,
-            configBuilder, notificationManager, emulatorTransport
+            danaRSPlugin, bleEncryption, dateUtil, preferences,
+            configBuilder, notificationManager, emulatorTransport,
+            DanaRSAlarmReporter(rh, notificationManager, pumpSync, danaPump)
         ).apply {
             messageTimeoutMs = 5000 // Prod default; a tighter budget times out spuriously under CI CPU starvation
         }
@@ -214,6 +217,7 @@ class DanaRSServiceIntegrationTest : TestBase() {
         danaRSService.pumpSync = pumpSync
         danaRSService.dateUtil = dateUtil
         danaRSService.bolusProgressData = bolusProgressData
+        danaRSService.detailedBolusInfoStorage = detailedBolusInfoStorage
         danaRSService.pumpEnactResultProvider = { pumpEnactResult }
         danaRSService.notificationManager = notificationManager
         danaRSService.appScope = CoroutineScope(Dispatchers.Unconfined)
