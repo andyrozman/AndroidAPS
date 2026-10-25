@@ -161,8 +161,7 @@ class TandemMobiPumpPlugin(
             )
         }
         .icon(IcPluginTMobi)
-        .pluginName(TextRef.AndroidRes(R.string.tandem_name_mobi))
-        .shortName(TextRef.AndroidRes(R.string.tandem_name_mobi_short))
+        .pluginName(TextRef.AndroidRes(R.string.tandem_name_mobi_short))
         .description(TextRef.AndroidRes(R.string.description_pump_tandem_mobi)),
     pumpType = PumpType.TANDEM_MOBI_BT,
     rh = rh,

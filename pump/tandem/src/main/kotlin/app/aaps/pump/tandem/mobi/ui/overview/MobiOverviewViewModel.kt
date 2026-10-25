@@ -4,7 +4,6 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import app.aaps.core.interfaces.insulin.ConcentrationHelper
 import app.aaps.core.interfaces.logging.AAPSLogger
-import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -12,43 +11,36 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.ui.compose.StatusLevel
 import androidx.compose.material.icons.Icons
-import app.aaps.core.ui.compose.pump.ActionCategory
-import app.aaps.core.ui.compose.pump.PumpAction
 import app.aaps.core.ui.compose.pump.PumpInfoRow
 import app.aaps.core.ui.compose.pump.PumpCommunicationStatus
 import app.aaps.core.ui.compose.pump.PumpOverviewUiState
 import app.aaps.core.ui.compose.pump.StatusBanner
 import app.aaps.core.ui.compose.pump.tickerFlow
 
-import android.content.Context
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.mutableStateOf
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.PumpRate
-import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.ui.compose.ScreenAction
 import app.aaps.core.ui.compose.pump.PumpInfoGroup
 import app.aaps.core.ui.compose.pump.PumpInfoInterface
 import app.aaps.pump.common.defs.BasalProfileStatus
 import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.common.defs.PumpDriverMode
-import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.defs.PumpRunningState
 import app.aaps.pump.common.defs.TempBasalPair
-import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.SemaphoreInfoDto
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.TandemMobiPumpPlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
-import io.reactivex.rxjava3.disposables.CompositeDisposable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -96,8 +88,7 @@ class MobiOverviewViewModel(
     val tandemPumpStatus: TandemPumpStatus,
     private val ch: ConcentrationHelper,
     private val tandemUtil: TandemPumpUtil,
-    protected val preferences: Preferences,
-    private val context: Context
+    protected val preferences: Preferences
 ) : ViewModel() {
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -544,13 +535,12 @@ class MobiOverviewViewModel(
 
 
 
-    private fun buildPrimaryActions(pumpRunningState: PumpRunningState, buttonsEnabledLocal: Boolean, statusBanner: StatusBanner?): List<PumpAction> {
+    private fun buildPrimaryActions(pumpRunningState: PumpRunningState, buttonsEnabledLocal: Boolean, statusBanner: StatusBanner?): List<ScreenAction> {
         if (primaryActionsEnabled==null || primaryActionsEnabled.isEmpty()) {
             primaryActionsEnabled = listOf(
-                PumpAction(
+                ScreenAction(
                     label = rh.gs(app.aaps.core.ui.R.string.refresh),
                     icon = Icons.Filled.Refresh,
-                    category = ActionCategory.PRIMARY,
                     enabled = true,
                     visible = true,
                     onClick = {
@@ -559,18 +549,16 @@ class MobiOverviewViewModel(
                                 }
                         }
                 ),
-                PumpAction(
+                ScreenAction(
                     label = rh.gs(R.string.pump_data),
                     icon = Icons.AutoMirrored.Filled.List,
-                    category = ActionCategory.PRIMARY,
                     enabled = true,
                     visible = true,
                     onClick = { onDataClick() }
                 ),
-                PumpAction(
+                ScreenAction(
                     label = rh.gs(R.string.pump_actions),
                     icon = Icons.AutoMirrored.Filled.List,
-                    category = ActionCategory.PRIMARY,
                     enabled = true,
                     visible = true,
                     onClick = { onActionClick() }
@@ -580,10 +568,9 @@ class MobiOverviewViewModel(
 
         if (primaryActionsDisabled==null || primaryActionsDisabled.isEmpty()) {
             primaryActionsDisabled = listOf(
-                PumpAction(
+                ScreenAction(
                     label = rh.gs(app.aaps.core.ui.R.string.refresh),
                     icon = Icons.Filled.Refresh,
-                    category = ActionCategory.PRIMARY,
                     enabled = false,
                     visible = true,
                     onClick = {
@@ -592,18 +579,16 @@ class MobiOverviewViewModel(
                         }
                     }
                 ),
-                PumpAction(
+                ScreenAction(
                     label = rh.gs(R.string.pump_data),
                     icon = Icons.AutoMirrored.Filled.List,
-                    category = ActionCategory.PRIMARY,
                     enabled = false,
                     visible = true,
                     onClick = { onDataClick() }
                 ),
-                PumpAction(
+                ScreenAction(
                     label = rh.gs(R.string.pump_actions),
                     icon = Icons.AutoMirrored.Filled.List,
-                    category = ActionCategory.PRIMARY,
                     enabled = false,
                     visible = true,
                     onClick = { onActionClick() }
@@ -635,15 +620,14 @@ class MobiOverviewViewModel(
         // }
     }
 
-    private fun buildManagementActions(statusBanner: StatusBanner?, pairButtonEnabledLocal: Boolean): List<PumpAction> {
+    private fun buildManagementActions(statusBanner: StatusBanner?, pairButtonEnabledLocal: Boolean): List<ScreenAction> {
 
         if (managementActionsEnabled==null || managementActionsEnabled.isEmpty()) {
             managementActionsEnabled = listOf(
-                PumpAction(
+                ScreenAction(
                     label = "Pair Pump",    //rh.gs(R.string.carelevo_overview_pump_discard_btn_label),
                     icon = Icons.Filled.Delete,
                     enabled = true,
-                    category = ActionCategory.MANAGEMENT,
                     onClick = { onPairingClick() }
                 )
             )
@@ -651,11 +635,10 @@ class MobiOverviewViewModel(
 
         if (managementActionsDisabled==null || managementActionsDisabled.isEmpty()) {
             managementActionsDisabled = listOf(
-                PumpAction(
+                ScreenAction(
                     label = "Pair Pump",    //rh.gs(R.string.carelevo_overview_pump_discard_btn_label),
                     icon = Icons.Filled.Delete,
                     enabled = false,
-                    category = ActionCategory.MANAGEMENT,
                     onClick = { onPairingClick() }
                 )
             )
@@ -673,10 +656,10 @@ class MobiOverviewViewModel(
     }
 
 
-    var primaryActionsEnabled = listOf<PumpAction>()
-    var primaryActionsDisabled = listOf<PumpAction>()
-    var managementActionsEnabled = listOf<PumpAction>()
-    var managementActionsDisabled = listOf<PumpAction>()
+    var primaryActionsEnabled = listOf<ScreenAction>()
+    var primaryActionsDisabled = listOf<ScreenAction>()
+    var managementActionsEnabled = listOf<ScreenAction>()
+    var managementActionsDisabled = listOf<ScreenAction>()
 
 
     private fun buildStatusBanner(pumpState: PumpRunningState, statusBanner: StatusBanner?): StatusBanner? {

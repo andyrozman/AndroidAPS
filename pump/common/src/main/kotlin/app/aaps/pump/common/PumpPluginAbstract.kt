@@ -324,6 +324,10 @@ abstract class PumpPluginAbstract protected constructor(
         rxBus.send(EventCustomActionsChanged())
     }
 
+    protected open fun doCustomScheduledActions() {
+
+    }
+
     override fun manufacturer(): ManufacturerType = pumpType.manufacturer()
     override fun model(): PumpType = pumpType
     override fun canHandleDST(): Boolean = pumpDriverConfigurationInternal.canHandleDST
@@ -374,8 +378,10 @@ abstract class PumpPluginAbstract protected constructor(
                 try {
                     if (isDriverInitialized && !isInPreventConnectMode()) {
                         val statusRefresh = workWithStatusRefresh(PumpDataRefreshAction.GetData, null, null)
-                        if (doWeHaveAnyStatusNeededRefereshing(statusRefresh) && !commandQueue.statusInQueue())
+                        if (doWeHaveAnyStatusNeededRefereshing(statusRefresh) && !commandQueue.statusInQueue()) {
                             commandQueue.readStatus("Scheduled Status Refresh")
+                        }
+                        doCustomScheduledActions()
                     }
                 } catch (e: CancellationException) {
                     throw e

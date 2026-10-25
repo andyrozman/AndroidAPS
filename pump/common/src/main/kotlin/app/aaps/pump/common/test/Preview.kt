@@ -118,7 +118,7 @@ class PreviewResourceHelper: ResourceHelper {
         TODO("Not yet implemented")
     }
 
-    override fun shortTextMode(): Boolean {
+    fun shortTextMode(): Boolean {
         return false
     }
 

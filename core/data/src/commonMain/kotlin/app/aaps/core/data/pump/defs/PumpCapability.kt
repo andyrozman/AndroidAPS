@@ -19,9 +19,9 @@ enum class PumpCapability {
     MedtrumCapabilities(Bolus, TempBasal, BasalProfileSet, BasalRate30min, TDD), // Technically the pump supports ExtendedBolus, but not implemented (yet)
     CarelevoCapabilities(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, BasalRate30min),
     TandemSlimCapabilities(Refill, ReplaceBattery),
-    TandemMobiCapabilities(Bolus, TempBasal, BasalProfileSet, Refill, BasalRate30min);
+    TandemMobiCapabilities(Bolus, TempBasal, BasalProfileSet, Refill, BasalRate30min),
     // Diaconn set without Refill and ReplaceBattery: the Equil wizard fills the reservoir and fits the charged battery
-    EquilCapabilities(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, TDD, ManualTDDLoad))
+    EquilCapabilities(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, TDD, ManualTDDLoad)
     ;
 
 
