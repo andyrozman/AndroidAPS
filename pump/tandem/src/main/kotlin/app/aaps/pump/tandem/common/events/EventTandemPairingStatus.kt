@@ -2,7 +2,6 @@ package app.aaps.pump.tandem.common.events
 
 import app.aaps.core.interfaces.rx.events.Event
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
-import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 
 /**
  * Event for tracking Tandem pump pairing status through the wizard flow
@@ -23,4 +22,13 @@ sealed class PairingError {
     object ConnectionTimeout : PairingError()
     object BluetoothError : PairingError()
     object UnknownError : PairingError()
+}
+
+
+enum class TandemPairingStatus {
+    Unknown,
+    PairingInProgress,
+    PairingSuccess,
+    PairingFailed
+
 }

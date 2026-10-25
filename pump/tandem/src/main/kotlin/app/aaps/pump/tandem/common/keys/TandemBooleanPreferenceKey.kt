@@ -29,6 +29,11 @@ enum class TandemBooleanPreferenceKey(
                         titleResId = R.string.tandem_cfg_use_shared_connection,
                         summaryResId = R.string.tandem_cfg_use_shared_connection_summary),
 
+    HidePumpPairButton(key = "pref_tandem_hide_pump_pair_button", defaultValue = false,
+                       negativeDependency = UseSharedConnection,
+                       titleResId = R.string.tandem_cfg_hide_pump_pair_button,
+                       summaryResId = R.string.tandem_cfg_hide_pump_pair_button_summary),
+
     ShowCargoOfUnknownEntries(key ="pref_tandem_show_unknowns_cargo", defaultValue = false,
                               titleResId = R.string.tandem_cfg_show_cargo_of_unknown_logs,
                               summaryResId = R.string.tandem_cfg_show_cargo_of_unknown_logs_summary),

@@ -17,12 +17,8 @@ import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import app.aaps.pump.common.defs.PumpDriverMode
-import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
-import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
-import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand.*
 import app.aaps.pump.tandem.common.driver.connector.response.AlarmStatusDto
@@ -33,7 +29,6 @@ import app.aaps.pump.tandem.common.keys.TandemBooleanPreferenceKey
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import dev.zacsweers.metro.AppScope
-import io.reactivex.rxjava3.disposables.CompositeDisposable
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 
@@ -46,7 +41,6 @@ class TandemPumpConnectionManager(
     aapsLogger: AAPSLogger,
     rxBus: RxBus,
     context: Context,
-    val tandemDataConverter: TandemDataConverter,
     var preferences: Preferences,
     val tandemConnector: TandemPumpConnector
 ): PumpConnectionManager(tandemPumpStatus, tandemPumpUtil, sp, aapsLogger, rxBus, context) {

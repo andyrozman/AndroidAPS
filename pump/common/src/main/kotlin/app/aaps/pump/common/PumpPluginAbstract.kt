@@ -419,10 +419,10 @@ abstract class PumpPluginAbstract protected constructor(
     }
 
     protected fun doWeHaveAnyStatusNeededRefereshing(statusRefresh: Map<PumpDataRefreshType?, Long?>?): Boolean {
-        aapsLogger.debug(LTag.PUMP, "Do we have status needed to refresh: $statusRefresh, currentTime=${System.currentTimeMillis()}")
+        //aapsLogger.debug(LTag.PUMP, "Do we have status needed to refresh: $statusRefresh, currentTime=${System.currentTimeMillis()}")
         for ((key, value) in statusRefresh!!) {
             if (value == null) {
-                aapsLogger.error(LTag.PUMP, "We got key ($key}) with value null.")
+                //aapsLogger.error(LTag.PUMP, "We got key ($key}) with value null.")
                 continue
             }
             if (value > 0 && System.currentTimeMillis() > value) {

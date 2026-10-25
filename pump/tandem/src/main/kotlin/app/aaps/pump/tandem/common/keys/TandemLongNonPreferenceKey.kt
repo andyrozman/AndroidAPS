@@ -15,7 +15,6 @@ enum class TandemLongNonPreferenceKey(
     LastGoodPumpCommunicationTime(key = "tandem_lastGoodPumpCommunicationTime", defaultValue = 0L),
 
     LastTbrId("tandem_last_tbr_id", defaultValue = 0L),
-    SiteReminderDateTime(key = "tandem_site_reminder_datetime", defaultValue = 0L),
-    HistoryResumeUpperSequence(key = "tandem_history_resume_upper_sequence", defaultValue = 0L, exportable = false)
+    SiteReminderDateTime(key = "tandem_site_reminder_datetime", defaultValue = 0L)
 
 }

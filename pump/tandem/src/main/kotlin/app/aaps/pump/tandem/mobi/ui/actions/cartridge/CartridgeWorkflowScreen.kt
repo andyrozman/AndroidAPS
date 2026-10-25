@@ -6,20 +6,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -120,9 +116,7 @@ fun CartridgeWorkflowScreen(
             }
             stepIndicator()
             if (notifications.isEmpty() && !isNotificationHidden) {
-                if (aapsLogger!=null) {
-                    aapsLogger.error(LTag.PUMP, "Notiifcation is empty and notificationHidden=${isNotificationHidden}")
-                }
+                aapsLogger?.error(LTag.PUMP, "Notification is empty and notificationHidden=$isNotificationHidden")
                 CartridgeNotificationsPanel(resourceHelper = resourceHelper)
             }
             // Body takes the remaining height, so the action bar stays pinned to the bottom and
@@ -131,12 +125,10 @@ fun CartridgeWorkflowScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    //.background(color = Color.Cyan)
                     .then(if (scrollableBody) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                     .padding(if (isNotificationHidden) 4.dp else 16.dp),
                 content = body,
             )
-            //Spacer(modifier = Modifier.weight(1f))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -159,11 +151,9 @@ fun CartridgeWorkflowScreen(
 fun PrimaryActionButton(
     text: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    loading: Boolean = false,
-    modifier: Modifier = Modifier
-        // .fillMaxWidth()
-        // .height(56.dp),
+    loading: Boolean = false
 ) {
     Button(
         onClick = onClick,
@@ -215,11 +205,9 @@ fun PrimaryActionButton(
 fun SecondaryActionButton(
     text: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    loading: Boolean = false,
-    modifier: Modifier = Modifier
-        // .fillMaxWidth()
-        // .height(56.dp),
+    loading: Boolean = false
 ) {
     OutlinedButton(
         onClick = onClick,

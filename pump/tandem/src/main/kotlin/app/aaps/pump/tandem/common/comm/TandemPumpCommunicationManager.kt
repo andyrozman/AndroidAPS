@@ -238,7 +238,7 @@ class TandemPumpCommunicationManager(
         sendCommand(peripheral, request)
         aapsLogger.info(LTag.PUMPCOMM, "Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
 
-        val timeoutTime = System.currentTimeMillis() + COMMAND_TIMEOUT;
+        val timeoutTime = System.currentTimeMillis() + COMMAND_TIMEOUT
 
         while (commandRequestModeRunning) {
 
@@ -319,13 +319,13 @@ class TandemPumpCommunicationManager(
 
         operationMode = OperationMode.ExternalListenerOperation
 
-        aapsLogger.warn(LTag.PUMPCOMM, "STM: sendCommandWithListener sendCommand with [request_code=${request.opCode()},request_class=${request.javaClass.simpleName},connected=$connected]")
+        aapsLogger.info(LTag.PUMPCOMM, "sendCommandWithListener sendCommand with [request_code=${request.opCode()},request_class=${request.javaClass.simpleName},connected=$connected]")
 
         if (!initializePump(request)) {
             return false
         }
 
-        aapsLogger.info(LTag.PUMPCOMM, "STM: Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
+        aapsLogger.debug(LTag.PUMPCOMM, "Sending Request: [code=${request.opCode()},class=${request::class.simpleName}]")
 
         sendCommand(peripheral, request)
 
@@ -391,7 +391,7 @@ class TandemPumpCommunicationManager(
 
     fun receiveMessageInStandardMode(message: Message) {
         if (!this.commandRequestModeRunning) {
-            aapsLogger.error(LTag.PUMPCOMM, "No Command Requested, but received message [code=${message.opCode()}]")
+            aapsLogger.warn(LTag.PUMPCOMM, "No Command Requested, but received message [code=${message.opCode()},class=${message::class.simpleName}]")
         } else {
             val matchingRequest = inFlightRequests.find { it.responseOpCode == message.opCode() }
             if (matchingRequest != null) {
@@ -449,20 +449,27 @@ class TandemPumpCommunicationManager(
         // This can occur just because a precondition isn't met
         // (e.g., trying to fill tubing when haven't stopped insulin delivery)
         if (reason == TandemError.ERROR_RESPONSE) {
-            pumpStatus.errorDescription = resourceHelper.gs(
+            pumpUtil.setError(PumpErrorType.CommunicationFailure, resourceHelper.gs(
                 R.string.tandem_error_pump_error_response,
                 reason.extra
-            )
-            pumpUtil.errorType = PumpErrorType.PumpUnreachable
-            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+            ))
+            // pumpStatus.errorDescription = resourceHelper.gs(
+            //     R.string.tandem_error_pump_error_response,
+            //     reason.extra
+            // )
+            //pumpUtil.errorType = PumpErrorType.PumpUnreachable
+            //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
         } else {
-
-            pumpStatus.errorDescription = resourceHelper.gs(
+            pumpUtil.setError(PumpErrorType.CommunicationFailure, resourceHelper.gs(
                 R.string.tandem_error_pump_critical_error,
                 if (reason == null) "Unknown" else reason.message
-            )
+            ))
+            // pumpStatus.errorDescription = resourceHelper.gs(
+            //     R.string.tandem_error_pump_critical_error,
+            //     if (reason == null) "Unknown" else reason.message
+            // )
             pumpUtil.errorType = PumpErrorType.PumpUnreachable
-            rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
+            //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
 
             // we currently look only for BT_CONNECTION_FAILED, might need to extend it
             if (reason != null && reason == TandemError.BT_CONNECTION_FAILED) {

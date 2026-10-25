@@ -136,9 +136,8 @@ class HistoryPostProcessor(
                 }
 
                 else -> {
-                    aapsLogger.error(TAG, "${historyPrefix}Ignored Entry ${historyLog}")
+                    //aapsLogger.error(TAG, "${historyPrefix}Ignored Entry ${historyLog}")
                 }
-
             }
         }
     }

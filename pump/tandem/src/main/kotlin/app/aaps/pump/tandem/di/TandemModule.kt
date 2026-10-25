@@ -14,7 +14,6 @@ import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.service.TandemService
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.pump.tandem.mobi.ui.wizard.TandemMobiConnectionWizardActivity
 import app.aaps.pump.tandem.mobi.driver.TandemMobiPumpDriverConfiguration
 // import dagger.Module
 // import dagger.android.ContributesAndroidInjector

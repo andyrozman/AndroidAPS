@@ -22,8 +22,10 @@ import app.aaps.core.ui.compose.pump.tickerFlow
 
 import android.content.Context
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.mutableStateOf
+import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.keys.interfaces.Preferences
@@ -62,18 +64,22 @@ import kotlinx.coroutines.launch
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 import app.aaps.core.ui.R as Rco
 import app.aaps.pump.common.R as Rc
 import app.aaps.core.interfaces.R as Rci
 
 
-sealed class MobiOverviewEventv2 {
-    data object StartData : MobiOverviewEventv2()
-    data object StartActions : MobiOverviewEventv2()
-    data object OpenNotification : MobiOverviewEventv2()
-    data object OpenEvents : MobiOverviewEventv2()
-    data object OpenHistory : MobiOverviewEventv2()
+sealed class MobiOverviewEvent {
+    data object StartData : MobiOverviewEvent()
+    data object StartActions : MobiOverviewEvent()
+    data object OpenNotification : MobiOverviewEvent()
+    data object OpenEvents : MobiOverviewEvent()
+    data object OpenHistory : MobiOverviewEvent()
+    data object StartPairing: MobiOverviewEvent()
 }
 
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
@@ -83,10 +89,8 @@ sealed class MobiOverviewEventv2 {
 class MobiOverviewViewModel(
     private val aapsLogger: AAPSLogger,
     private val rh: ResourceHelper,
-    private val profileFunction: ProfileFunction,
     private val commandQueue: CommandQueue,
     private val rxBus: RxBus,
-    aapsSchedulers: AapsSchedulers,
     private val dateUtil: DateUtil,
     private val tandemPlugin: TandemMobiPumpPlugin,
     val tandemPumpStatus: TandemPumpStatus,
@@ -98,14 +102,14 @@ class MobiOverviewViewModel(
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val communicationStatus = PumpCommunicationStatus(rxBus, commandQueue, rh, scope)
+    private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val disposable = CompositeDisposable()
-
-    private val _events = MutableSharedFlow<MobiOverviewEventv2>(extraBufferCapacity = 5)
-    val events: SharedFlow<MobiOverviewEventv2> = _events
+    private val _events = MutableSharedFlow<MobiOverviewEvent>(extraBufferCapacity = 6)
+    val events: SharedFlow<MobiOverviewEvent> = _events
 
     var displayDriver = true
-    //var buttonsEnabled = mutableStateOf<Boolean>(true)
+    var useSharedConnection = true
+    var hidePumpPairButton = true
 
 
     val buttonsEnabledFlow = MutableStateFlow<Boolean>(true)
@@ -115,7 +119,14 @@ class MobiOverviewViewModel(
             buttonsEnabledFlow.value = value
         }
 
-
+    val pairButtonEnabledFlow = MutableStateFlow<Boolean>(false)
+    var pairButtonEnabled: Boolean
+        get() = pairButtonEnabledFlow.value
+        set(value) {
+            if (pairButtonEnabledFlow.value != value) {
+                pairButtonEnabledFlow.value = value
+            }
+        }
 
 
     var mapSemaphore = mapOf(
@@ -139,12 +150,6 @@ class MobiOverviewViewModel(
 
     protected val rxTrigger = MutableStateFlow(0L)
 
-    // val currentActivityFlow = MutableStateFlow<String>("")
-    // var currentActivity: String
-    //     get() = currentActivityFlow.value
-    //     set(value) {
-    //         currentActivityFlow.value = value
-    //     }
 
     val pumpErrorFlow = MutableStateFlow<String?>(null)
     var pumpError: String?
@@ -169,6 +174,7 @@ class MobiOverviewViewModel(
         pumpErrorFlow,
         tandemPumpStatus.semaphoreInfoFlow,
         buttonsEnabledFlow,
+        pairButtonEnabledFlow,
         communicationStatus.refreshTrigger,
         tickerFlow(60_000L)
     ) { values ->
@@ -188,6 +194,7 @@ class MobiOverviewViewModel(
         val pumpError = values[12] as String?
         val semaphoreInfo = values[13] as SemaphoreInfoDto
         val buttonsEnabledLocal = values[14] as Boolean
+        val pairButtonEnabledLocal = values[15] as Boolean
 
         buildUiState(
             currentActivity = currentActivity,
@@ -204,7 +211,8 @@ class MobiOverviewViewModel(
             lastConnectionTime = lastConnectionTime,
             pumpError = pumpError,
             semaphoreInfo = semaphoreInfo,
-            buttonsEnabledLocal = buttonsEnabledLocal
+            buttonsEnabledLocal = buttonsEnabledLocal,
+            pairButtonEnabledLocal = pairButtonEnabledLocal
         )
     }.stateIn(scope, SharingStarted.WhileSubscribed(5000), buildInitialState())
 
@@ -217,14 +225,40 @@ class MobiOverviewViewModel(
 
     init {
         displayDriver = preferences.get(TandemBooleanPreferenceKey.DisplayDriverVersion)
+        useSharedConnection = preferences.get(TandemBooleanPreferenceKey.UseSharedConnection)
+        hidePumpPairButton = preferences.get(TandemBooleanPreferenceKey.HidePumpPairButton)
+
+        preferences.observe(TandemBooleanPreferenceKey.DisplayDriverVersion).drop(1).onEach {
+            displayDriver = preferences.get(TandemBooleanPreferenceKey.DisplayDriverVersion)
+            aapsLogger.error(LTag.PUMP, "Display Driver Version changed: $displayDriver")
+        }.launchIn(ioScope)
+
+        preferences.observe(TandemBooleanPreferenceKey.UseSharedConnection).drop(1).onEach {
+            useSharedConnection = preferences.get(TandemBooleanPreferenceKey.UseSharedConnection)
+            aapsLogger.error(LTag.PUMP, "Use Shared Connection changed: $useSharedConnection")
+            setPairButtonStatus()
+        }.launchIn(ioScope)
+
+        preferences.observe(TandemBooleanPreferenceKey.HidePumpPairButton).drop(1).onEach {
+            hidePumpPairButton = preferences.get(TandemBooleanPreferenceKey.HidePumpPairButton)
+            aapsLogger.error(LTag.PUMP, "Hide Pair Pump Button changed: $hidePumpPairButton")
+            setPairButtonStatus()
+        }.launchIn(ioScope)
+
+    }
+
+    private fun setPairButtonStatus() {
+        if (useSharedConnection) {
+            pairButtonEnabled = false
+        } else {
+            pairButtonEnabled = !hidePumpPairButton
+        }
     }
 
 
     suspend fun onRefreshClick() {
-        //setButtonState(false)   TODO check if this works
         tandemPlugin.resetStatusState()
         commandQueue.readStatus(rh.gs(Rc.string.requested_by_user))
-        //setButtonState(true)
     }
 
     private fun setButtonState(enabled: Boolean) {
@@ -232,77 +266,16 @@ class MobiOverviewViewModel(
     }
 
     fun onDataClick() {
-        _events.tryEmit(MobiOverviewEventv2.StartData)
+        _events.tryEmit(MobiOverviewEvent.StartData)
     }
 
     fun onActionClick() {
-        _events.tryEmit(MobiOverviewEventv2.StartActions)
+        _events.tryEmit(MobiOverviewEvent.StartActions)
     }
 
-
-    // @Synchronized
-    // private fun updateCurrentActivity(pumpDriverState: PumpDriverState?) {
-    //     val resActivity = Rc.string.pump_current_activity
-    //
-    //     //aapsLogger.info(LTag.PUMP, "DUB Update Current activity: ${pumpDriverState!!.name}")
-    //
-    //     when (pumpDriverState) {
-    //         //null,
-    //         PumpDriverState.Ready,
-    //         PumpDriverState.Sleeping                   -> {
-    //             currentActivity = rh.gs(pumpDriverState.resourceId)
-    //             // icon {fa-bed}
-    //         }
-    //         PumpDriverState.Connecting,
-    //         PumpDriverState.Handshaking,
-    //         PumpDriverState.Disconnecting              ->  {
-    //             currentActivity = rh.gs(pumpDriverState.resourceId)
-    //             // {fa-bluetooth spin}
-    //         }
-    //         PumpDriverState.Connected,
-    //         PumpDriverState.Disconnected               -> {
-    //             currentActivity = rh.gs(pumpDriverState.resourceId)
-    //             // {fa-bluetooth}
-    //         }
-    //
-    //         PumpDriverState.ErrorCommunicatingWithPump -> {
-    //             currentActivity = "Error ???"
-    //             // fa-bed
-    //             val errorType = tandemUtil.errorType
-    //
-    //             pumpError = if (errorType != null) errorType.name else null
-    //             //aapsLogger.warn(LTag.PUMP, "Errors are not supported.")
-    //         }
-    //
-    //         PumpDriverState.ExecutingCommand           -> {
-    //             val commandType: PumpCommandType? = tandemUtil.currentCommand
-    //             val customCommandTypeInterface : TandemCustomCommand? = tandemUtil.customCommandType as TandemCustomCommand?
-    //             // {fa-bluetooth}
-    //             if (commandType == null) {
-    //                 currentActivity = rh.gs(pumpDriverState.resourceId)
-    //             } else {
-    //                 if (commandType == PumpCommandType.CustomCommand) {
-    //                     if (customCommandTypeInterface==null) {
-    //                         currentActivity = rh.gs(commandType.resourceId)
-    //                     } else {
-    //                         currentActivity = customCommandTypeInterface.getDescription()
-    //                     }
-    //                 } else {
-    //                     if (commandType == PumpCommandType.GetHistoryWithParameters) {
-    //                         val progress: String = tandemUtil.historyProgress.orEmpty()
-    //                         currentActivity = rh.gs(commandType.resourceId, progress)
-    //                     } else {
-    //                         currentActivity = rh.gs(commandType.resourceId)
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //
-    //         else                                       -> {
-    //             currentActivity = rh.gs(pumpDriverState!!.resourceId)
-    //         }
-    //     }
-    // }
+    fun onPairingClick() {
+        _events.tryEmit(MobiOverviewEvent.StartPairing)
+    }
 
 
     private fun buildInitialState(): PumpOverviewUiState {
@@ -321,7 +294,8 @@ class MobiOverviewViewModel(
             lastConnectionTime = tandemPumpStatus.lastConnection,
             pumpError = pumpError,
             semaphoreInfo = tandemPumpStatus.semaphoreInfo,
-            buttonsEnabledLocal = buttonsEnabled
+            buttonsEnabledLocal = buttonsEnabled,
+            pairButtonEnabledLocal = pairButtonEnabled
         )
     }
 
@@ -341,7 +315,8 @@ class MobiOverviewViewModel(
         lastConnectionTime: Long,
         pumpError: String?,
         semaphoreInfo: SemaphoreInfoDto,
-        buttonsEnabledLocal: Boolean
+        buttonsEnabledLocal: Boolean,
+        pairButtonEnabledLocal: Boolean
     ): PumpOverviewUiState {
 
         // Status banner: communication status from shared helper, or pump-specific warning
@@ -500,7 +475,7 @@ class MobiOverviewViewModel(
             primaryActions = buildPrimaryActions(pumpRunningState = pumpRunningState,
                                                  buttonsEnabledLocal = buttonsEnabledLocal,
                                                  statusBanner = communicationStatus.statusBanner()),
-            //managementActions = managementActions
+            managementActions = buildManagementActions(statusBanner = communicationStatus.statusBanner(), pairButtonEnabledLocal)
         )
     }
 
@@ -564,6 +539,9 @@ class MobiOverviewViewModel(
             else              -> StatusLevel.NORMAL
         }
     }
+
+
+
 
 
     private fun buildPrimaryActions(pumpRunningState: PumpRunningState, buttonsEnabledLocal: Boolean, statusBanner: StatusBanner?): List<PumpAction> {
@@ -634,8 +612,13 @@ class MobiOverviewViewModel(
         }
 
         // TOOD testing different solutions
-        return if (statusBanner==null)
-            primaryActionsEnabled
+        return if (statusBanner==null) {
+            if (buttonsEnabledLocal) {
+                primaryActionsEnabled
+            } else {
+                primaryActionsDisabled
+            }
+        }
         else
             primaryActionsDisabled
 
@@ -652,9 +635,48 @@ class MobiOverviewViewModel(
         // }
     }
 
+    private fun buildManagementActions(statusBanner: StatusBanner?, pairButtonEnabledLocal: Boolean): List<PumpAction> {
+
+        if (managementActionsEnabled==null || managementActionsEnabled.isEmpty()) {
+            managementActionsEnabled = listOf(
+                PumpAction(
+                    label = "Pair Pump",    //rh.gs(R.string.carelevo_overview_pump_discard_btn_label),
+                    icon = Icons.Filled.Delete,
+                    enabled = true,
+                    category = ActionCategory.MANAGEMENT,
+                    onClick = { onPairingClick() }
+                )
+            )
+        }
+
+        if (managementActionsDisabled==null || managementActionsDisabled.isEmpty()) {
+            managementActionsDisabled = listOf(
+                PumpAction(
+                    label = "Pair Pump",    //rh.gs(R.string.carelevo_overview_pump_discard_btn_label),
+                    icon = Icons.Filled.Delete,
+                    enabled = false,
+                    category = ActionCategory.MANAGEMENT,
+                    onClick = { onPairingClick() }
+                )
+            )
+        }
+
+        return if (pairButtonEnabledLocal) {
+            if (statusBanner==null) {
+                managementActionsEnabled
+            } else {
+                managementActionsDisabled
+            }
+        } else {
+            listOf()
+        }
+    }
+
 
     var primaryActionsEnabled = listOf<PumpAction>()
     var primaryActionsDisabled = listOf<PumpAction>()
+    var managementActionsEnabled = listOf<PumpAction>()
+    var managementActionsDisabled = listOf<PumpAction>()
 
 
     private fun buildStatusBanner(pumpState: PumpRunningState, statusBanner: StatusBanner?): StatusBanner? {
