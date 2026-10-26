@@ -41,13 +41,14 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
+import dev.zacsweers.metro.AppScope
 import java.time.Instant
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-
-@Singleton
-class TandemUICommunication @Inject constructor (
+@SingleIn(AppScope::class)
+@Inject
+class TandemUICommunication(
     var dataStore: TandemUIDataStore,
     var pumpStatus: TandemPumpStatus,
     var aapsLogger: AAPSLogger,
@@ -77,9 +78,9 @@ class TandemUICommunication @Inject constructor (
 
     fun sendCommand(request: Message): Boolean {
 
-        aapsLogger.warn(TAG, "Send command $request ")
+        aapsLogger.debug(TAG, "Send command $request ")
 
-        aapsLogger.debug(TAG, "Send command ${this.tandemPumpCommunicationManager}")
+        //aapsLogger.debug(TAG, "Send command ${this.tandemPumpCommunicationManager}")
 
         if (this.tandemPumpCommunicationManager==null) {
             aapsLogger.error(TAG, "Command ${request.javaClass.name} couldn't be executed because tandemCommunicationManager is null.")
@@ -91,7 +92,7 @@ class TandemUICommunication @Inject constructor (
         }
 
         if (!tandemPumpCommunicationManager!!.isPumpFullyConnected()) {
-            aapsLogger.warn(TAG, "Command ${request::javaClass.name} couldn't be executed because pump is not fully connected yet.")
+            aapsLogger.warn(TAG, "Command ${request::class.simpleName} couldn't be executed because pump is not fully connected yet.")
             return false
         }
 

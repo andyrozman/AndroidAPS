@@ -19,15 +19,17 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
+import dev.zacsweers.metro.AppScope
 import io.reactivex.rxjava3.core.Single
 import java.lang.System.currentTimeMillis
 import java.util.GregorianCalendar
 import java.util.stream.Collectors
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-@Singleton
-class DbDataHandler @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class DbDataHandler(
     val tandemHistoryConverter: TandemHistoryConverter,
     var tandemPumpDatabase: TandemPumpDatabase,
     val rxBus: RxBus,

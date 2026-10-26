@@ -29,10 +29,6 @@ import org.robolectric.annotation.Config
  * Covers the shared tile layout engine [TileBase] via the concrete [ActionsTileService]: onTileRequest across
  * every [WearControl] state and 0–4 action grid arrangement (which drives the button geometry, text sizing and
  * screen-shape branches), the freshness/resource-version wiring, and onResourcesRequest image mapping.
- *
- * Built via [Robolectric] so a Context is attached without running onCreate's Dagger injection; the `@Inject`
- * fields are set directly and the data source is mocked to drive each branch. onTileRequest runs its work on
- * Dispatchers.IO via a guava future, so `.get()` blocks for the built Tile.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -130,6 +126,17 @@ internal class TileBaseTest {
             whenever(source.getSelectedActions()).thenReturn((1..n).map { action() })
             assertThat(contentOf(service())).isInstanceOf(Column::class.java)
         }
+    }
+
+    /** Five QuickWizard entries valid at the same time matched no arrangement, and the tile came out blank. */
+    @Test fun `enabled with more than 4 actions draws the first four`() {
+        enabled()
+        whenever(source.getValidFor()).thenReturn(null)
+        whenever(source.getSelectedActions()).thenReturn((1..6).map { action(text = "A$it") })
+        val column = contentOf(service())
+        assertThat(column).isInstanceOf(Column::class.java)
+        // The shape of four actions: a row, the spacer, a row.
+        assertThat((column as Column).contents).hasSize(3)
     }
 
     @Test fun `square screen with icon-only and long-label actions still builds a column`() {

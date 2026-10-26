@@ -2,6 +2,7 @@ package app.aaps.pump.common.driver.history
 
 import androidx.annotation.StringRes
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.pump.common.R
 import app.aaps.pump.common.defs.PumpHistoryEntryGroup
 
@@ -76,7 +77,7 @@ enum class PumpHistoryPeriod(
         fun doTranslation(rh: ResourceHelper) {
             if (translatedList.isNotEmpty()) return
             for (pumpHistoryPeriod in PumpHistoryPeriod.entries) {
-                pumpHistoryPeriod.translated = rh.gs(pumpHistoryPeriod.resourceId)
+                pumpHistoryPeriod.translated = rh.gs(TextRef.AndroidRes(pumpHistoryPeriod.resourceId))
                 translatedList.add(pumpHistoryPeriod)
             }
         }

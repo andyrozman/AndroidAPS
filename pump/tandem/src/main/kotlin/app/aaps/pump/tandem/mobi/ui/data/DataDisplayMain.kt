@@ -42,7 +42,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.pump.common.test.ResourceHelperTest
+import app.aaps.pump.common.test.PreviewAAPSLogger
+import app.aaps.pump.common.test.PreviewResourceHelper
 import app.aaps.pump.tandem.R
 
 import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
@@ -53,7 +54,6 @@ import app.aaps.pump.tandem.common.driver.tandemUiDataStore
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLine
 import app.aaps.pump.tandem.mobi.ui.util.LifecycleStateObserver
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
-import app.aaps.shared.tests.AAPSLoggerTest
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
@@ -246,12 +246,11 @@ private fun DataDisplayPreview_NoNotification() {
             setUpPreviewState(LocalTandemDataStore.current)
             DataDisplayMain(
                 sendPumpCommands = { _ -> true},
-                //refreshDatabase = { _,_ -> },
-                aapsLogger = AAPSLoggerTest(),
+                resourceHelper = PreviewResourceHelper(),
+                aapsLogger = PreviewAAPSLogger(),
                 navigateToNotifications = {},
                 navigateToPumpHistory = {},
                 navigateToEvents = {},
-                resourceHelper = ResourceHelperTest(),
                 refreshMainAppData = {}
             )
         }
@@ -271,12 +270,11 @@ private fun DataDisplayPreview_WithNotification() {
             tandemUiDataStore.notificationsPresent.value = true
             DataDisplayMain(
                 sendPumpCommands = { _ -> true},
-                //refreshDatabase = { _,_ -> },
-                aapsLogger = AAPSLoggerTest(),
+                resourceHelper = PreviewResourceHelper(),
+                aapsLogger = PreviewAAPSLogger(),
                 navigateToNotifications = {},
                 navigateToPumpHistory = {},
                 navigateToEvents = {},
-                resourceHelper = ResourceHelperTest(),
                 refreshMainAppData = {}
             )
         }

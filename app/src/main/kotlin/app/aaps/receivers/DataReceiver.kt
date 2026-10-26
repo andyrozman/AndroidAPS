@@ -7,18 +7,19 @@ import androidx.annotation.VisibleForTesting
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.ListenableWorker
-import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.receivers.Intents
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.objects.workflow.MetroBroadcastReceiver
 import app.aaps.core.utils.extensions.copyBoolean
 import app.aaps.core.utils.extensions.copyDouble
 import app.aaps.core.utils.extensions.copyLong
 import app.aaps.core.utils.extensions.copyString
 import app.aaps.core.utils.receivers.BundleLogger
 import app.aaps.core.utils.receivers.DataInbox
+import app.aaps.core.utils.receivers.incomingDataWorkRequest
 import app.aaps.implementation.receivers.KeepAliveWorker
 import app.aaps.plugins.source.AidexPlugin
 import app.aaps.plugins.source.DexcomInbox
@@ -32,10 +33,13 @@ import app.aaps.plugins.source.TomatoPlugin
 import app.aaps.plugins.source.XdripInbox
 import app.aaps.plugins.source.instara.InstaraPlugin
 import app.aaps.plugins.sync.smsCommunicator.SmsInbox
-import dagger.android.DaggerBroadcastReceiver
-import javax.inject.Inject
+import dev.zacsweers.metro.HasMemberInjections
+import dev.zacsweers.metro.Inject
 
-open class DataReceiver : DaggerBroadcastReceiver() {
+// Metro reads this class now that interop is on for `:app`. It is `open`, so it has to say its injected
+// fields are meant to be filled - Metro will not infer that for a subclassable type.
+@HasMemberInjections
+open class DataReceiver : MetroBroadcastReceiver() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var dataInbox: DataInbox
@@ -101,7 +105,7 @@ open class DataReceiver : DaggerBroadcastReceiver() {
                     }.build()
                 )
 
-            Intents.SI_APP                            ->
+            Intents.SI_APP, Intents.SIB_APP           ->
                 enqueueInline(
                     PatchedSiAppPlugin.PatchedSiAppWorker::class.java,
                     Data.Builder().also {
@@ -163,7 +167,7 @@ open class DataReceiver : DaggerBroadcastReceiver() {
         workManager.enqueueUniqueWork(
             INLINE_WORK_NAME,
             ExistingWorkPolicy.APPEND_OR_REPLACE,
-            OneTimeWorkRequest.Builder(worker).setInputData(data).build()
+            incomingDataWorkRequest(worker, data)
         )
     }
 

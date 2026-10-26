@@ -22,15 +22,17 @@ import app.aaps.pump.tandem.common.comm.ui.TandemUiStateWriter
 import app.aaps.pump.tandem.common.data.SemaphoreInfoDto
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
 import app.aaps.pump.tandem.common.driver.connector.response.PumpVersionDto
+import app.aaps.pump.tandem.common.events.TandemPairingStatus
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlarmStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.AlertStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpFeaturesV2Response
+import dev.zacsweers.metro.AppScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.*
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 // Single concrete UI datastore instance. UI / UI-feed code uses this (read + write) via
 // [tandemUiDataStore] or the [LocalTandemDataStore] composition local.
@@ -42,14 +44,14 @@ var tandemDataStore: TandemUiStateWriter = tandemUiDataStore
 
 var LocalTandemDataStore = compositionLocalOf { tandemUiDataStore }
 
-@Singleton
-class TandemPumpStatus @Inject constructor(val sp: SP,
-                                           val rxBus: RxBus,
-                                           val preferences: Preferences
+@SingleIn(AppScope::class)
+@Inject
+class TandemPumpStatus(val sp: SP,
+                       val rxBus: RxBus,
+                       val preferences: Preferences
 ) : PumpStatus(PumpType.TANDEM_MOBI_BT) {
 
     lateinit var pumpDescription: PumpDescription
-    var errorDescription: String? = null
 
     // tandem pump firmware
     val tandemPumpFirmwareFlow = MutableStateFlow<TandemPumpApiVersion>(TandemPumpApiVersion.Unknown)
@@ -155,7 +157,7 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
         basalProfile = null
         basalProfileStatus = BasalProfileStatus.NotInitialized
         serialNumber = 0
-        errorDescription = null
+        //errorDescription = null
         basalsByHour = null
     }
 
@@ -170,13 +172,13 @@ class TandemPumpStatus @Inject constructor(val sp: SP,
             return 0.0
         }
 
+    var lastPairingStatus: TandemPairingStatus = TandemPairingStatus.Unknown
 
     override val errorInfo: String
-        get() = if (errorDescription == null) "-" else errorDescription!!
+        get() = "-" //if (errorDescription == null) "-" else errorDescription!!
 
 
     override fun updateLastConnectionInFragment() {
-        rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.None))
     }
 
     init {

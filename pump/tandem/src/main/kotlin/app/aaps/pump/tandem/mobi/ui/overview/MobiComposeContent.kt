@@ -14,20 +14,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.pump.BlePreCheck
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.ui.compose.ComposablePluginContent
 import app.aaps.core.ui.compose.ToolbarConfig
+import app.aaps.core.ui.compose.metroViewModel
+import app.aaps.core.ui.compose.pump.KeepScreenOnEffect
+import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
-import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.events.TandemPairingStatus
+import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.pump.tandem.mobi.ui.TandemUiController
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
 import app.aaps.pump.tandem.mobi.ui.actions.DebugCommands
@@ -41,9 +44,9 @@ import app.aaps.pump.tandem.mobi.ui.data.DataDisplayMain
 import app.aaps.pump.tandem.mobi.ui.data.History
 import app.aaps.pump.tandem.mobi.ui.data.Notifications
 import app.aaps.pump.tandem.mobi.ui.data.QualifyingEvents
+import app.aaps.pump.tandem.mobi.ui.wizard.TandemPairWizardHost
+
 import app.aaps.core.ui.R as Rco
-import app.aaps.pump.common.R as Rc
-import app.aaps.core.interfaces.R as Rci
 
 private enum class MobiScreen {
     OVERVIEW,
@@ -59,20 +62,21 @@ private enum class MobiScreen {
     ACTIONS_FILL_CANNULA,
     ACTIONS_PUMP_INFO,
     ACTIONS_DEBUG_COMMANDS,
-    ACTIONS_SITE_REMINDER
+    ACTIONS_SITE_REMINDER,
 
+    PAIR_WIZARD
 }
 
 class MobiComposeContent(
     private val pluginName: String,
     private val tandemPumpStatus: TandemPumpStatus,
     private val aapsLogger: AAPSLogger,
+    private val rxBus: RxBus,
     private val resourceHelper: ResourceHelper,
     private val tandemUiController: TandemUiController,
-
-
+    private val tandemPumpUtil: TandemPumpUtil,
+    private val blePreCheck: BlePreCheck
 ) : ComposablePluginContent {
-
 
 
     @Composable
@@ -81,25 +85,14 @@ class MobiComposeContent(
         onNavigateBack: () -> Unit,
         onSettings: (() -> Unit)?
     ) {
-        val overviewViewModel: MobiOverviewViewModelV2 = hiltViewModel()
-        val coreCartridgeActionsModel: CoreCartridgeActionsModel = hiltViewModel()
+        val overviewViewModel: MobiOverviewViewModel = metroViewModel()
+        val coreCartridgeActionsModel: CoreCartridgeActionsModel = metroViewModel()
 
         // Navigation state
         var currentScreen by remember { mutableStateOf(MobiScreen.OVERVIEW) }
 
         var currentWizardStep by remember { mutableStateOf(1) }
 
-        // Suppress AAPS auto-reconnect only while the user is in the cartridge-change workflow
-        // (cartridge change owns the pump comm channel for a long, stateful, multi-step
-        // operation). Browsing Actions / Data does not — those sends are serialized by
-        // PumpOpQueue at USER_INITIATED priority and AAPS Loop can safely interleave.
-        val inCartridgeFlow = currentScreen == MobiScreen.ACTIONS_CHANGE_CARTRIDGE ||
-            currentScreen == MobiScreen.ACTIONS_FILL_TUBING ||
-            currentScreen == MobiScreen.ACTIONS_FILL_CANNULA
-        DisposableEffect(inCartridgeFlow) {
-            tandemUiController.setCartridgeChangeMode(inCartridgeFlow)
-            onDispose { if (inCartridgeFlow) tandemUiController.setCartridgeChangeMode(false) }
-        }
 
         // Dialogs
         var showUnpairDialog by remember { mutableStateOf(false) }
@@ -238,6 +231,10 @@ class MobiComposeContent(
                             title = resourceHelper.gs(R.string.sr_title),
                             navigationIcon = navIconBackToCartridgeActions, actions = {})
 
+                        MobiScreen.PAIR_WIZARD     -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.tandem_wizard_title),
+                            navigationIcon = navIconBackToCartridgeActions, actions = {})
+
                     }
                 )
         }
@@ -246,11 +243,12 @@ class MobiComposeContent(
         LaunchedEffect(overviewViewModel) {
             overviewViewModel.events.collect { event ->
                 when (event) {
-                    MobiOverviewEventv2.OpenEvents           -> currentScreen = MobiScreen.DATA_EVENTS
-                    MobiOverviewEventv2.OpenHistory          -> currentScreen = MobiScreen.DATA_HISTORY
-                    MobiOverviewEventv2.OpenNotification     -> currentScreen = MobiScreen.DATA_NOTIFICATIONS
-                    MobiOverviewEventv2.StartActions         -> currentScreen = MobiScreen.ACTIONS
-                    MobiOverviewEventv2.StartData            -> currentScreen = MobiScreen.DATA
+                    MobiOverviewEvent.OpenEvents           -> currentScreen = MobiScreen.DATA_EVENTS
+                    MobiOverviewEvent.OpenHistory          -> currentScreen = MobiScreen.DATA_HISTORY
+                    MobiOverviewEvent.OpenNotification     -> currentScreen = MobiScreen.DATA_NOTIFICATIONS
+                    MobiOverviewEvent.StartActions         -> currentScreen = MobiScreen.ACTIONS
+                    MobiOverviewEvent.StartData            -> currentScreen = MobiScreen.DATA
+                    MobiOverviewEvent.StartPairing         -> currentScreen = MobiScreen.PAIR_WIZARD
                 }
             }
         }
@@ -258,8 +256,8 @@ class MobiComposeContent(
 
         val lifecycle = LocalLifecycleOwner.current.lifecycle
         DisposableEffect(lifecycle) {
-            val observer = LifecycleEventObserver { _, event ->
-                aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi Tab dispose")
+            val observer = LifecycleEventObserver { _, _ ->
+                //aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi Tab dispose")
                 tandemPumpStatus.preventQueueExecution = false
             }
             lifecycle.addObserver(observer)
@@ -466,6 +464,25 @@ class MobiComposeContent(
                 )
             }
 
+            MobiScreen.PAIR_WIZARD -> {
+                tandemPumpStatus.lastPairingStatus = TandemPairingStatus.Unknown
+                tandemPumpStatus.preventQueueExecution = true
+                KeepScreenOnEffect()
+                TandemPairWizardHost(
+                    blePreCheck = blePreCheck,
+                    onFinish = {
+                        tandemPumpStatus.preventQueueExecution = false
+                        tandemPumpUtil.preventReconnect = false
+                        if (tandemPumpStatus.lastPairingStatus==TandemPairingStatus.PairingSuccess) {
+                            rxBus.send(EventPumpConnectionParametersChanged())
+                        }
+                        currentScreen = MobiScreen.OVERVIEW
+                    }
+                )
+            }
+
         }
     }
 }
+
+

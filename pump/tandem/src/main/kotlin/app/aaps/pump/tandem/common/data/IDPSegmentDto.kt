@@ -2,6 +2,7 @@ package app.aaps.pump.tandem.common.data
 
 import com.google.common.base.Preconditions
 import com.jwoglom.pumpx2.pump.messages.helpers.Bytes
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentResponse
 import kotlin.math.pow
 
 // TODO(jwoglom): merge with https://github.com/jwoglom/pumpX2/blob/main/messages/src/main/java/com/jwoglom/pumpx2/pump/messages/response/currentStatus/IDPSegmentResponse.java
@@ -19,6 +20,10 @@ class IDPSegmentDto {
     // fun IDPSegmentResponse() {
     // }
 
+
+    fun test() {
+        //IDPSegmentResponse
+    }
 
 
     // fun getIdpId(): Int {

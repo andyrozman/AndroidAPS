@@ -3,7 +3,6 @@ package app.aaps.pump.common.driver.connector
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
-import dagger.android.HasAndroidInjector
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.driver.connector.commands.data.FirmwareVersionInterface
 import app.aaps.pump.common.driver.connector.commands.parameters.PumpHistoryFilterInterface
@@ -17,8 +16,7 @@ import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.common.defs.TempBasalPair
 
 
-abstract class PumpConnectorAbstract(/*protected var injector: HasAndroidInjector,*/
-                                     protected var aapsLogger: AAPSLogger
+abstract class PumpConnectorAbstract(protected var aapsLogger: AAPSLogger
 ) : PumpConnectorInterface {
 
     var unSuccessfulResponse =

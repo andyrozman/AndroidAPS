@@ -1,6 +1,7 @@
 package app.aaps.pump.common.defs
 
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.pump.common.R
 
 /**
@@ -58,7 +59,7 @@ enum class PumpHistoryEntryGroup(val resourceId: Int,
             if (translatedList != null) return
             translatedList = ArrayList()
             for (pumpHistoryEntryGroup in PumpHistoryEntryGroup.entries) {
-                pumpHistoryEntryGroup.translated = rh.gs(pumpHistoryEntryGroup.resourceId)
+                pumpHistoryEntryGroup.translated = rh.gs(TextRef.AndroidRes(pumpHistoryEntryGroup.resourceId))
                 (translatedList as ArrayList<PumpHistoryEntryGroup>).add(pumpHistoryEntryGroup)
             }
         }

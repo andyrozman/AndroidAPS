@@ -44,11 +44,11 @@ import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.wear.R
-import dagger.android.support.DaggerAppCompatActivity
-import javax.inject.Inject
+import app.aaps.wear.di.WearMetroActivity
+import dev.zacsweers.metro.Inject
 import kotlin.math.roundToInt
 
-class BolusActivity : DaggerAppCompatActivity() {
+class BolusActivity : WearMetroActivity() {
 
     @Inject lateinit var rxBus: RxBus
     @Inject lateinit var preferences: Preferences
@@ -152,7 +152,7 @@ private fun BolusConfirmScreen(insulin: Double, onConfirm: () -> Unit) {
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "${fmt.format(insulin)} ${stringResource(R.string.insulin_unit_short)}",
+            text = stringResource(R.string.wizard_insulin_format, fmt.format(insulin)),
             color = InsulinBlue,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold

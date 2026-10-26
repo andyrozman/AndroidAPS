@@ -4,13 +4,19 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import app.aaps.pump.tandem.mobi.TandemMobiPluginVersion
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.Provider
+import dev.zacsweers.metro.SingleIn
 
-@Singleton
-class TandemConnectionFixer @Inject constructor(
+
+
+@SingleIn(AppScope::class)
+@Inject
+class TandemConnectionFixer(
     val aapsLogger: AAPSLogger,
-    val tandemPumpConnectionManager: dagger.Lazy<TandemPumpConnectionManager>
+    //val tandemPumpConnectionManager: TandemPumpConnectionManager   ///dagger.Lazy<TandemPumpConnectionManager>
+    private val tandemPumpConnectionManagerProvider: Provider<TandemPumpConnectionManager>
 ){
 
     val TAG = LTag.PUMPBTCOMM
@@ -35,13 +41,14 @@ class TandemConnectionFixer @Inject constructor(
             do {
                 aapsLogger.error(TAG, "CF: Start ConnectionFix - in run")
 
-                val connected = tandemPumpConnectionManager.get().connectToPump()
-
-                if (connected) {
-                    running = false
-                } else {
-                    Thread.sleep(60000) // wait 60 seconds and retry
-                }
+                // TODO Metro
+                // val connected = tandemPumpConnectionManager.get().connectToPump()
+                //
+                // if (connected) {
+                //     running = false
+                // } else {
+                //     Thread.sleep(60000) // wait 60 seconds and retry
+                // }
             } while (running)
 
             aapsLogger.error(TAG, "CF: End ConnectionFix - connection fixed")

@@ -362,11 +362,9 @@ class PumpIO(
             try {
                 _connectionState.value = ConnectionState.CONNECTING
 
-                // Connecting to Bluetooth may block, so run it in
-                // a coroutine with an IO dispatcher.
-                withContext(bluetoothDevice.ioDispatcher) {
-                    bluetoothDevice.connect()
-                }
+                // Connecting to Bluetooth may block. This runs it with an
+                // IO dispatcher, and lets a cancellation stop it.
+                connectBTDeviceStoppableByCancel()
 
                 _connectionState.value = ConnectionState.CONNECTED
 
@@ -902,6 +900,10 @@ class PumpIO(
      *
      * @param maxRequests How many history block request we can
      *        maximally send. This must be at least 10.
+     * @param readEvents Gets the events of each block before the block is
+     *        confirmed, and is also the returned list. A confirmed block is
+     *        not sent again, so if this call throws, the caller still has
+     *        the events read so far in this list (#5377). Pass an empty list.
      * @return The history delta.
      * @throws IllegalArgumentException if maxRequests is less than 10.
      * @throws IllegalStateException if the pump is not in the comand
@@ -918,11 +920,13 @@ class PumpIO(
      *   to the history.
      * @throws ComboIOException if IO with the pump fails.
      */
-    suspend fun getCMDHistoryDelta(maxRequests: Int = 40): List<ApplicationLayer.CMDHistoryEvent> {
+    suspend fun getCMDHistoryDelta(
+        maxRequests: Int = 40,
+        readEvents: MutableList<ApplicationLayer.CMDHistoryEvent> = mutableListOf()
+    ): List<ApplicationLayer.CMDHistoryEvent> {
         require(maxRequests >= 10) { "Maximum amount of requests must be at least 10; caller specified $maxRequests" }
 
         return runPumpIOCall("get history delta", Mode.COMMAND) {
-            val historyDelta = mutableListOf<ApplicationLayer.CMDHistoryEvent>()
             var reachedEnd = false
 
             // Keep requesting history blocks until we reach the end,
@@ -946,6 +950,13 @@ class PumpIO(
                     continue
                 }
 
+                // Keep the events before the block is confirmed. If the confirm
+                // gets to the pump and its answer does not get back, the events
+                // are in readEvents all the same. If the confirm does not get to
+                // the pump, the block comes again with the next read, and the
+                // event counter of each event matches the earlier record (#5377).
+                readEvents.addAll(historyBlock.events)
+
                 // Confirm this history block to let the Combo consider
                 // it processed. The Combo can then move on to the next
                 // history block.
@@ -953,8 +964,6 @@ class PumpIO(
                     ApplicationLayer.createCMDConfirmHistoryBlockPacket(),
                     ApplicationLayer.Command.CMD_CONFIRM_HISTORY_BLOCK_RESPONSE
                 )
-
-                historyDelta.addAll(historyBlock.events)
 
                 // Check if there is a next history block to get.
                 // If not, we are done, and need to exit this loop.
@@ -971,7 +980,7 @@ class PumpIO(
                     "Did not reach an end of the history event list even after $maxRequests request(s)"
                 )
 
-            return@runPumpIOCall historyDelta
+            return@runPumpIOCall readEvents
         }
     }
 
@@ -2105,6 +2114,27 @@ class PumpIO(
         } catch (t: Throwable) {
             _connectionState.value = ConnectionState.FAILED
             throw t
+        }
+    }
+
+    /**
+     * Connects the Bluetooth device in a way that a cancellation can stop.
+     *
+     * [BluetoothDevice.connect] blocks its thread, and cancelling a coroutine does not stop a
+     * blocked thread. So a cancelled pairing kept trying to connect until all connect attempts
+     * had failed, which took up to half a minute. Here the connect runs as a child, and this
+     * coroutine only waits for it. The wait ends at once on a cancellation, and then
+     * [BluetoothDevice.disconnect] is called. That closes the socket, so the blocked connect
+     * fails right away and does not try again.
+     */
+    private suspend fun connectBTDeviceStoppableByCancel() = coroutineScope {
+        val connecting = async(bluetoothDevice.ioDispatcher) { bluetoothDevice.connect() }
+        try {
+            connecting.await()
+        } catch (e: CancellationException) {
+            logger(LogLevel.DEBUG) { "Cancelled while connecting - disconnecting to stop the connect attempt" }
+            disconnectBTDeviceAndCatchExceptions()
+            throw e
         }
     }
 

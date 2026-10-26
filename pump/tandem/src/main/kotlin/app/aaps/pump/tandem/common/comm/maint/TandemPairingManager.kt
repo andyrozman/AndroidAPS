@@ -13,15 +13,12 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.keys.interfaces.Preferences
-//import app.aaps.core.ui.except for the UIdialogs.AlertDialogHelper
 import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-//import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.bluetooth.TandemBluetoothHandler
 import com.jwoglom.pumpx2.pump.bluetooth.TandemPump
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -32,10 +29,9 @@ import com.jwoglom.pumpx2.pump.messages.response.authentication.CentralChallenge
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
-//import com.jwoglom.pumpx2.util.timber.LConfigurator
 import com.welie.blessed.BluetoothPeripheral
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
-import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
+
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
@@ -50,7 +46,6 @@ import com.jwoglom.pumpx2.pump.messages.response.authentication.AbstractCentralC
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.jwoglom.pumpx2.util.timber.LConfigurator
 
-import io.reactivex.rxjava3.disposables.CompositeDisposable
 import java.util.*
 import app.aaps.pump.tandem.common.events.EventTandemPairingStatus
 import app.aaps.pump.tandem.common.events.PairingError
@@ -78,7 +73,7 @@ class TandemPairingManager constructor(
     var pumpSync: PumpSync,
     // var activity: PumpBLEConfigActivity,
     var pumpX2L: PumpX2L,
-    var aapsSchedulers: AapsSchedulers
+    //var aapsSchedulers: AapsSchedulers
 ) : TandemPump(context, Optional.of(btAddress)) {
 
     @Suppress("PropertyName")
@@ -190,7 +185,7 @@ class TandemPairingManager constructor(
             aapsLogger.info(TAG, "PumpVersionResponse: ${pumpVersionResponse}")
 
             // Persist pump identity first, but do NOT flip PumpPairStatus to 100
-            // or fire EventPumpConnectionParametersChanged yet — those trigger
+            // or fire EventPumpConnectionParameters Changed yet — those trigger
             // TandemService.connect() which would race the still-alive pairing
             // BluetoothHandler singleton. We tear that down first, then notify.
             preferences.put(TandemStringPreferenceKey.PumpSerial, "" + pumpVersionResponse.serialNum)
@@ -206,7 +201,6 @@ class TandemPairingManager constructor(
 
                 pumpSync.connectNewPump()
                 finalPairingStatus()
-                rxBus.send(EventPumpConnectionParametersChanged())
 
                 val pumpName = preferences.get(TandemStringPreferenceKey.PumpName)
                 rxBus.send(EventTandemPairingStatus.PairingSuccess(
@@ -249,7 +243,7 @@ class TandemPairingManager constructor(
     //     pair(peripheral, challenge, pairingCode)
     // }
 
-    // TODO 1.4.4
+
     // override fun onInvalidPairingCode(peripheral: BluetoothPeripheral, resp: PumpChallengeResponse?) {
     //
     //     aapsLogger.info(TAG, "TANDEMDBG: onInvalidPairingCode")
@@ -336,7 +330,7 @@ class TandemPairingManager constructor(
         // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
         input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
 
-        MaterialAlertDialogBuilder(context /*, app.aaps.core.ui.R.style.DialogTheme*/)   // TODO dev4
+        MaterialAlertDialogBuilder(context)
             .setTitle(resourceHelper.gs(R.string.tandem_ble_config_pairing_title))
             .setMessage(resourceHelper.gs(R.string.tandem_ble_config_pairing_message, btName, btAddress))
             .setView(input)
@@ -492,14 +486,12 @@ class TandemPairingManager constructor(
 
         // Reset pump status
         pumpStatus.serialNumber = 0L
-        pumpStatus.errorDescription = ""
+        //pumpStatus.errorDescription = ""
 
         // Reset instance variables
         pairingCodeToUse = null
         pairingStartTime = 0
 
-        // Notify UI
-        rxBus.send(EventPumpConnectionParametersChanged())
     }
 
 

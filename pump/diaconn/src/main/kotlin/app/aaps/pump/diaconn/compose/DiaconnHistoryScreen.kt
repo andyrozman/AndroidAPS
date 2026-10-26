@@ -75,7 +75,7 @@ private fun DiaconnHistoryItem(
                     ) {
                         Text(text = record.bolusType, style = MaterialTheme.typography.bodySmall)
                         Text(
-                            text = viewModel.formatValue(record) + " U",
+                            text = stringResource(app.aaps.core.ui.R.string.value_with_unit, viewModel.formatValue(record), stringResource(app.aaps.core.ui.R.string.insulin_unit_shortname)),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -98,7 +98,7 @@ private fun DiaconnHistoryItem(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        LabeledValue(label = stringResource(app.aaps.core.ui.R.string.bolus), value = viewModel.formatDailyBolus(record))
+                        LabeledValue(label = stringResource(app.aaps.core.interfaces.R.string.bolus), value = viewModel.formatDailyBolus(record))
                         LabeledValue(label = stringResource(app.aaps.core.ui.R.string.basal), value = viewModel.formatDailyBasal(record))
                         LabeledValue(label = stringResource(app.aaps.core.ui.R.string.wizard_total), value = viewModel.formatDailyTotal(record))
                     }

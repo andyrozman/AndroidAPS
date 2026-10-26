@@ -1,38 +1,29 @@
 package app.aaps.pump.tandem.common.comm.history
 
-import android.content.Context
-import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.TE
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.pump.PumpSync
-import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.ui.UiInteraction
-import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.core.utils.DateTimeUtil
-import app.aaps.pump.tandem.common.comm.history.HistoryRetriever.Companion.DEBUG_HISTORY
-import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.database.data.entity.TandemSiteChangeEntity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
-import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnector
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusCompletedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.CannulaFilledHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.CartridgeFilledHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.TubingFilledHistoryLog
+import dev.zacsweers.metro.AppScope
 import kotlinx.coroutines.runBlocking
-import org.junit.platform.commons.util.ReflectionUtils
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
+
 import kotlin.math.abs
 
-@Singleton
-class HistoryPostProcessor @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class HistoryPostProcessor(
     val pumpStatus: TandemPumpStatus,
     val aapsLogger: AAPSLogger,
     val pumpSync: PumpSync,
@@ -55,11 +46,12 @@ class HistoryPostProcessor @Inject constructor(
 
     fun postProcessHistory(historyLogs: MutableCollection<HistoryLog>) {
 
-        aapsLogger.error(TAG, "${historyPrefix}PostProcess History (items=${historyLogs.size})")
+        //aapsLogger.error(TAG, "${historyPrefix}PostProcess History (items=${historyLogs.size})")
 
         for (historyLog in historyLogs) {
 
             when(historyLog) {
+
                 is CannulaFilledHistoryLog -> {
 
                     aapsLogger.error(TAG, "${historyPrefix}PostProcess - NS Cannula Change -> CannulaFilledHistoryLog")
@@ -110,6 +102,7 @@ class HistoryPostProcessor @Inject constructor(
                         }
                     }
                 }
+
                 is CartridgeFilledHistoryLog -> {
 
                     aapsLogger.error(TAG, "${historyPrefix}PostProcess - NS Insulin Change -> CartridgeFilledHistoryLog")
@@ -143,12 +136,10 @@ class HistoryPostProcessor @Inject constructor(
                 }
 
                 else -> {
-                    aapsLogger.error(TAG, "${historyPrefix}Ignored Entry ${historyLog}")
+                    //aapsLogger.error(TAG, "${historyPrefix}Ignored Entry ${historyLog}")
                 }
-
             }
         }
-
     }
 
 
@@ -164,7 +155,6 @@ class HistoryPostProcessor @Inject constructor(
         }
         return null;
     }
-
 
 
 }

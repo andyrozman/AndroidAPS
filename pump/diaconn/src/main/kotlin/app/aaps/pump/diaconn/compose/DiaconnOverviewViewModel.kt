@@ -24,14 +24,13 @@ import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.collectResilient
 import app.aaps.core.interfaces.rx.events.EventInitializationChanged
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.ui.compose.ScreenAction
 import app.aaps.core.ui.compose.StatusLevel
-import app.aaps.core.ui.compose.pump.ActionCategory
-import app.aaps.core.ui.compose.pump.PumpAction
 import app.aaps.core.ui.compose.pump.PumpCommunicationStatus
 import app.aaps.core.ui.compose.pump.PumpInfoRow
 import app.aaps.core.ui.compose.pump.PumpOverviewUiState
@@ -41,10 +40,12 @@ import app.aaps.pump.diaconn.R
 import app.aaps.pump.diaconn.events.EventDiaconnG8DeviceChange
 import app.aaps.pump.diaconn.events.EventDiaconnG8NewStatus
 import app.aaps.pump.diaconn.keys.DiaconnStringNonKey
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import io.reactivex.rxjava3.disposables.CompositeDisposable
-import io.reactivex.rxjava3.kotlin.plusAssign
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,7 +58,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import app.aaps.core.interfaces.R as InterfacesR
 import app.aaps.core.ui.R as CoreUiR
 
 sealed class DiaconnOverviewEvent {
@@ -67,13 +68,16 @@ sealed class DiaconnOverviewEvent {
     data object ConfirmUnpair : DiaconnOverviewEvent()
 }
 
-@HiltViewModel
+// Registers itself: @ViewModelKey infers the key from the class. No graph entry, and deliberately
+// unscoped so each screen gets its own.
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
+@ViewModelKey
 @Stable
-class DiaconnOverviewViewModel @Inject constructor(
+@Inject
+class DiaconnOverviewViewModel(
     private val aapsLogger: AAPSLogger,
     private val rh: ResourceHelper,
     private val rxBus: RxBus,
-    aapsSchedulers: AapsSchedulers,
     private val commandQueue: CommandQueue,
     private val dateUtil: DateUtil,
     private val diaconnG8Pump: DiaconnG8Pump,
@@ -82,32 +86,30 @@ class DiaconnOverviewViewModel @Inject constructor(
     private val uel: UserEntryLogger,
     private val preferences: Preferences,
     private val ch: ConcentrationHelper,
-    @ApplicationContext private val context: Context
+    private val context: Context
 ) : ViewModel() {
 
-    private val disposable = CompositeDisposable()
 
     private val _events = MutableSharedFlow<DiaconnOverviewEvent>(extraBufferCapacity = 5)
     val events: SharedFlow<DiaconnOverviewEvent> = _events
 
-    private val communicationStatus = PumpCommunicationStatus(rxBus, commandQueue, context, viewModelScope)
+    private val communicationStatus = PumpCommunicationStatus(rxBus, commandQueue, rh, viewModelScope)
 
     private val rxTrigger = MutableStateFlow(0L)
 
     init {
-        disposable += rxBus
-            .toObservable(EventDiaconnG8NewStatus::class.java)
-            .observeOn(aapsSchedulers.io)
-            .subscribe({ rxTrigger.value = System.currentTimeMillis() }, { aapsLogger.error(LTag.PUMP, "Error", it) })
-        disposable += rxBus
-            .toObservable(EventInitializationChanged::class.java)
-            .observeOn(aapsSchedulers.io)
-            .subscribe({ rxTrigger.value = System.currentTimeMillis() }, { aapsLogger.error(LTag.PUMP, "Error", it) })
+        // viewModelScope dies with the view model like the CompositeDisposable did. The bodies only
+        // write a timestamp, so the dispatcher does not matter. UNDISPATCHED because RxBus has no
+        // replay, so a scheduled collector could miss an event sent before it starts.
+        rxBus.toFlow(EventDiaconnG8NewStatus::class)
+            .collectResilient(viewModelScope, aapsLogger, LTag.PUMP, start = CoroutineStart.UNDISPATCHED) { rxTrigger.value = System.currentTimeMillis() }
+        rxBus.toFlow(EventInitializationChanged::class)
+            .collectResilient(viewModelScope, aapsLogger, LTag.PUMP, start = CoroutineStart.UNDISPATCHED) { rxTrigger.value = System.currentTimeMillis() }
 
-        persistenceLayer.observeChanges(EB::class.java)
+        persistenceLayer.observeChanges(EB::class)
             .onEach { rxTrigger.value = System.currentTimeMillis() }
             .launchIn(viewModelScope)
-        persistenceLayer.observeChanges(TB::class.java)
+        persistenceLayer.observeChanges(TB::class)
             .onEach { rxTrigger.value = System.currentTimeMillis() }
             .launchIn(viewModelScope)
     }
@@ -143,11 +145,6 @@ class DiaconnOverviewViewModel @Inject constructor(
         buildUiState(snapshot.lastConnectionTime, snapshot.reservoir, snapshot.battery, snapshot.lastBolusTime, snapshot.lastBolusAmount)
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), buildInitialState())
-
-    override fun onCleared() {
-        super.onCleared()
-        disposable.clear()
-    }
 
     fun onRefreshClick() {
         aapsLogger.debug(LTag.PUMP, "Clicked connect to pump")
@@ -215,7 +212,7 @@ class DiaconnOverviewViewModel @Inject constructor(
         // Last connection
         val lastConnection = if (lastConnectionTime != 0L) {
             val agoMinutes = ((System.currentTimeMillis() - lastConnectionTime) / 60_000).toInt()
-            dateUtil.timeString(lastConnectionTime) + " (" + rh.gs(app.aaps.core.interfaces.R.string.minago, agoMinutes) + ")"
+            rh.gs(InterfacesR.string.value_with_detail, dateUtil.timeString(lastConnectionTime), rh.gs(InterfacesR.string.minago, agoMinutes))
         } else ""
 
         // Last bolus
@@ -235,7 +232,7 @@ class DiaconnOverviewViewModel @Inject constructor(
         val extendedBolusText = extendedBolusToString()
 
         // Battery
-        val batteryText = battery?.let { "${it}%" }
+        val batteryText = battery?.let { rh.gs(CoreUiR.string.units_format_percent, it) }
 
         // Reservoir
         val reservoirText = ch.insulinAmountString(PumpInsulin(pump.systemRemainInsulin)) // "/ 307 U" removed
@@ -304,30 +301,35 @@ class DiaconnOverviewViewModel @Inject constructor(
             add(PumpInfoRow(label = rh.gs(CoreUiR.string.tempbasal_label), value = tempBasalText, visible = tempBasalText.isNotEmpty()))
             add(PumpInfoRow(label = rh.gs(CoreUiR.string.extended_bolus_label), value = extendedBolusText, visible = extendedBolusText.isNotEmpty()))
             add(PumpInfoRow(label = rh.gs(CoreUiR.string.reservoir_label), value = reservoirText, level = reservoirLevel))
-            add(PumpInfoRow(label = rh.gs(R.string.basal_step) + " / " + rh.gs(R.string.bolus_step), value = "${ch.fromPump(PumpInsulin(pump.basalStep))} / ${ch.fromPump(PumpInsulin(pump.bolusStep))}"))
+            add(
+                PumpInfoRow(
+                    label = rh.gs(InterfacesR.string.values_with_slash, rh.gs(R.string.basal_step), rh.gs(R.string.bolus_step)),
+                    value = rh.gs(InterfacesR.string.values_with_slash, ch.fromPump(PumpInsulin(pump.basalStep)).toString(), ch.fromPump(PumpInsulin(pump.bolusStep)).toString())
+                )
+            )
 
-            // Firmware
-            val firmware = rh.gs(R.string.diaconn_g8_pump) +
-                "\nVersion: ${pump.majorVersion}.${pump.minorVersion}" +
-                "\nCountry: ${pump.country}" +
-                "\nProductType: ${pump.productType}" +
-                "\nManufacture: ${pump.makeYear}.${pump.makeMonth}.${pump.makeDay}"
+            // Firmware. The field names are technical and were never translated.
+            val firmware = listOf(
+                rh.gs(R.string.diaconn_g8_pump),
+                rh.gs(InterfacesR.string.confirmation_line, "Version", "${pump.majorVersion}.${pump.minorVersion}"),
+                rh.gs(InterfacesR.string.confirmation_line, "Country", pump.country.toString()),
+                rh.gs(InterfacesR.string.confirmation_line, "ProductType", pump.productType.toString()),
+                rh.gs(InterfacesR.string.confirmation_line, "Manufacture", "${pump.makeYear}.${pump.makeMonth}.${pump.makeDay}")
+            ).joinToString("\n")
             add(PumpInfoRow(label = rh.gs(CoreUiR.string.firmware), value = firmware))
         }
 
         // Actions
         val primaryActions = listOf(
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(CoreUiR.string.refresh),
                 icon = Icons.Filled.Refresh,
-                category = ActionCategory.PRIMARY,
                 visible = isInitialized,
                 onClick = { onRefreshClick() }
             ),
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(CoreUiR.string.pump_history),
                 icon = Icons.AutoMirrored.Filled.List,
-                category = ActionCategory.PRIMARY,
                 visible = isInitialized,
                 onClick = { onHistoryClick() }
             )
@@ -335,10 +337,9 @@ class DiaconnOverviewViewModel @Inject constructor(
 
         val managementActions = buildList {
             add(
-                PumpAction(
+                ScreenAction(
                     label = rh.gs(R.string.diaconng8_pump_settings),
                     icon = Icons.Filled.Settings,
-                    category = ActionCategory.MANAGEMENT,
                     visible = isInitialized,
                     onClick = { onUserSettingsClick() }
                 )
@@ -346,19 +347,17 @@ class DiaconnOverviewViewModel @Inject constructor(
 
             if (isConfigured) {
                 add(
-                    PumpAction(
+                    ScreenAction(
                         label = rh.gs(CoreUiR.string.pump_unpair),
                         icon = Icons.Filled.Bluetooth,
-                        category = ActionCategory.MANAGEMENT,
                         onClick = { onUnpairClick() }
                     )
                 )
             } else {
                 add(
-                    PumpAction(
+                    ScreenAction(
                         label = rh.gs(CoreUiR.string.pump_pair),
                         icon = Icons.Filled.Bluetooth,
-                        category = ActionCategory.MANAGEMENT,
                         onClick = { onPairClick() }
                     )
                 )

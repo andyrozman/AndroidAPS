@@ -11,7 +11,6 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.PumpUpdateFragmentType
 import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.common.comm.TandemDataConverter
-import app.aaps.pump.tandem.common.concurrency.CommSuspendGate
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsFilter
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
 import app.aaps.pump.tandem.common.database.TandemPumpDatabase
@@ -21,46 +20,30 @@ import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.events.EventDatabaseAddQEData
 import app.aaps.pump.tandem.common.events.EventHandleQualifyingEvent
 import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
-import app.aaps.pump.tandem.common.util.PumpX2L
-import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
-import dagger.android.HasAndroidInjector
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-@Singleton
-class QualifyingEventHandler @Inject constructor(
+
+@SingleIn(AppScope::class)
+@Inject
+class QualifyingEventHandler(
     val tandemPumpStatus: TandemPumpStatus,
-    //val dbDataHandler: DbDataHandler,
     val rxBus: RxBus,
     val aapsLogger: AAPSLogger,
     val aapsSchedulers: AapsSchedulers,
-    val preferences: Preferences,
-    val commSuspendGate: CommSuspendGate
+    val preferences: Preferences
     ) {
 
     companion object {
-        /**
-         * How long to pause wire sends after a [QualifyingEvent.PUMP_COMMUNICATIONS_SUSPENDED]
-         * event. Matches controlX2's value (the upstream reference Tandem driver). The pump
-         * recovers within a few seconds; if not, subsequent QEs will extend the pause.
-         */
-        private const val COMMS_SUSPENDED_PAUSE_MS = 5_000L
+        val TAG = LTag.PUMP
     }
-
-    @Suppress("PropertyName")
-    val TAG = LTag.PUMP
 
 
     fun handleEventReceivedFromPump(event : EventHandleQualifyingEvent) {
 
         aapsLogger.info(TAG, "handleEventReceivedFromPump: ${event.events}")
-
-        // Pause queue dispatch when the pump signals its BT buffer is full / comms suspended.
-        // PumpOpQueue.Ctx.send awaits CommSuspendGate before issuing the wire write.
-        if (QualifyingEvent.PUMP_COMMUNICATIONS_SUSPENDED in event.events) {
-            commSuspendGate.pauseSends(COMMS_SUSPENDED_PAUSE_MS, "PUMP_COMMUNICATIONS_SUSPENDED")
-        }
 
         val sb = StringBuilder()
         var first = true

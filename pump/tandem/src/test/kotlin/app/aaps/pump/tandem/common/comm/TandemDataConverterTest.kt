@@ -1,7 +1,7 @@
 package app.aaps.pump.tandem.common.comm
 
 import android.content.Context
-import android.content.SharedPreferences
+import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.interfaces.aps.APS
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -15,11 +15,8 @@ import app.aaps.pump.tandem.common.data.IDPSegmentDto
 import app.aaps.pump.tandem.common.data.PumpProfileDto
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
-import app.aaps.shared.impl.sharedPreferences.SPImpl
 import app.aaps.shared.impl.utils.DateUtilImpl
-import app.aaps.shared.tests.HardLimitsMock
 import app.aaps.shared.tests.TestBase
-import app.aaps.shared.tests.TestBaseWithProfile
 import app.aaps.shared.tests.TestPumpPlugin
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -45,8 +42,6 @@ class TandemDataConverterTest : TestBase() {
     @Mock lateinit var sp: SP
     @Mock lateinit var tandemPumpStatus: TandemPumpStatus
     @Mock lateinit var tandemPumpUtil : TandemPumpUtil
-
-    @Mock lateinit var sharedPreferences: SharedPreferences
 
 
     var dateUtil : DateUtil? = null
@@ -74,12 +69,13 @@ class TandemDataConverterTest : TestBase() {
         //sp = SPImpl()
         //hardLimits = HardLimitsMock(sp, preferences, rh)
         `when`(activePlugin.activePump).thenReturn(testPumpPlugin)
-        `when`(rh.gs(app.aaps.core.ui.R.string.profile_per_unit)).thenReturn("/U")
-        `when`(rh.gs(app.aaps.core.ui.R.string.profile_carbs_per_unit)).thenReturn("g/U")
-        `when`(rh.gs(app.aaps.core.ui.R.string.profile_ins_units_per_hour)).thenReturn("U/h")
+        //`when`(rh.gs(app.aaps.core.ui.R.string.profile_per_unit)).thenReturn("/U")
+        //`when`(rh.gs(app.aaps.core.ui.R.string.profile_carbs_per_unit)).thenReturn("g/U")
+        //`when`(rh.gs(app.aaps.core.ui.R.string.profile_ins_units_per_hour)).thenReturn("U/h")
         `when`(rh.gs(anyInt(), anyString())).thenReturn("")
         `when`(activePlugin.activeAPS).thenReturn(aps)
         `when`(tandemPumpUtil.gson).thenReturn(gson)
+        `when`(tandemPumpStatus.pumpType).thenReturn(PumpType.TANDEM_MOBI_BT)
 
     }
 
@@ -182,6 +178,7 @@ class TandemDataConverterTest : TestBase() {
         "                 {\"time\":\"12:00\",\"value\":\"5\"}," +
         "                 {\"time\":\"19:00\",\"value\":\"6\"}]," +
         "\"startDate\":\"1970-01-01T00:00:00.000Z\",\"units\":\"mmol\"}"
+
 
 
     @Test

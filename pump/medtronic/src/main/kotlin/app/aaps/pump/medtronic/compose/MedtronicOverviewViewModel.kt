@@ -21,9 +21,8 @@ import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.ui.compose.ScreenAction
 import app.aaps.core.ui.compose.StatusLevel
-import app.aaps.core.ui.compose.pump.ActionCategory
-import app.aaps.core.ui.compose.pump.PumpAction
 import app.aaps.core.ui.compose.pump.PumpCommunicationStatus
 import app.aaps.core.ui.compose.pump.PumpInfoRow
 import app.aaps.core.ui.compose.pump.PumpOverviewUiState
@@ -44,8 +43,11 @@ import app.aaps.pump.medtronic.driver.MedtronicPumpStatus
 import app.aaps.pump.medtronic.events.EventMedtronicPumpConfigurationChanged
 import app.aaps.pump.medtronic.events.EventMedtronicPumpValuesChanged
 import app.aaps.pump.medtronic.util.MedtronicUtil
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -55,8 +57,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Locale
-import javax.inject.Inject
-import javax.inject.Provider
+import app.aaps.core.interfaces.R as InterfacesR
 import app.aaps.core.ui.R as CoreUiR
 import app.aaps.pump.common.hw.rileylink.R as RileyLinkR
 
@@ -69,8 +70,10 @@ sealed class MedtronicOverviewEvent {
 }
 
 @Stable
-@HiltViewModel
-class MedtronicOverviewViewModel @Inject constructor(
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
+@ViewModelKey
+@Inject
+class MedtronicOverviewViewModel(
     private val rh: ResourceHelper,
     private val ch: ConcentrationHelper,
     private val medtronicPumpPlugin: MedtronicPumpPlugin,
@@ -82,9 +85,9 @@ class MedtronicOverviewViewModel @Inject constructor(
     private val rxBus: RxBus,
     private val dateUtil: DateUtil,
     private val aapsLogger: AAPSLogger,
-    private val resetRileyLinkConfigurationTaskProvider: Provider<ResetRileyLinkConfigurationTask>,
-    private val wakeAndTuneTaskProvider: Provider<WakeAndTuneTask>,
-    @ApplicationContext private val context: Context
+    private val resetRileyLinkConfigurationTaskProvider: () -> ResetRileyLinkConfigurationTask,
+    private val wakeAndTuneTaskProvider: () -> WakeAndTuneTask,
+    private val context: Context
 ) : ViewModel() {
 
     companion object {
@@ -92,22 +95,22 @@ class MedtronicOverviewViewModel @Inject constructor(
         private const val PLACEHOLDER = "-"
     }
 
-    private val communicationStatus = PumpCommunicationStatus(rxBus, commandQueue, context, viewModelScope)
+    private val communicationStatus = PumpCommunicationStatus(rxBus, commandQueue, rh, viewModelScope)
 
     private val _events = MutableSharedFlow<MedtronicOverviewEvent>(extraBufferCapacity = 5)
     val events: SharedFlow<MedtronicOverviewEvent> = _events
 
     private val medtronicRefresh = MutableStateFlow(0L).also { flow ->
         viewModelScope.launch {
-            rxBus.toFlow(EventMedtronicPumpValuesChanged::class.java)
+            rxBus.toFlow(EventMedtronicPumpValuesChanged::class)
                 .collect { flow.value = System.currentTimeMillis() }
         }
         viewModelScope.launch {
-            rxBus.toFlow(EventRileyLinkDeviceStatusChange::class.java)
+            rxBus.toFlow(EventRileyLinkDeviceStatusChange::class)
                 .collect { flow.value = System.currentTimeMillis() }
         }
         viewModelScope.launch {
-            rxBus.toFlow(EventMedtronicPumpConfigurationChanged::class.java)
+            rxBus.toFlow(EventMedtronicPumpConfigurationChanged::class)
                 .collect {
                     aapsLogger.debug(LTag.PUMP, "EventMedtronicPumpConfigurationChanged triggered")
                     medtronicPumpPlugin.rileyLinkService?.verifyConfiguration()
@@ -152,7 +155,7 @@ class MedtronicOverviewViewModel @Inject constructor(
 
         // RileyLink battery (conditional)
         if (rileyLinkServiceData.showBatteryLevel) {
-            val batteryText = rileyLinkServiceData.batteryLevel?.let { "$it%" } ?: "?"
+            val batteryText = rileyLinkServiceData.batteryLevel?.let { rh.gs(CoreUiR.string.units_format_percent, it) } ?: "?"
             add(PumpInfoRow(label = rh.gs(R.string.rl_battery_label), value = batteryText))
         }
 
@@ -170,7 +173,7 @@ class MedtronicOverviewViewModel @Inject constructor(
         }
 
         // Base basal rate
-        val basalText = "${ch.basalRateString(medtronicPumpPlugin.baseBasalRate, true)} (${medtronicPumpStatus.activeProfileName})"
+        val basalText = rh.gs(InterfacesR.string.value_with_detail, ch.basalRateString(medtronicPumpPlugin.baseBasalRate, true), medtronicPumpStatus.activeProfileName)
         add(PumpInfoRow(label = rh.gs(CoreUiR.string.base_basal_rate_label), value = basalText))
 
         // Temp basal
@@ -237,12 +240,12 @@ class MedtronicOverviewViewModel @Inject constructor(
 
                     min < 1440 -> {
                         val h = (min / 60).toInt()
-                        rh.gq(RileyLinkR.plurals.duration_hours, h, h) + " " + rh.gs(R.string.ago)
+                        rh.gs(CoreUiR.string.value_with_unit, rh.gq(RileyLinkR.plurals.duration_hours, h, h), rh.gs(R.string.ago))
                     }
 
                     else       -> {
                         val d = (min / 60 / 24).toInt()
-                        rh.gq(RileyLinkR.plurals.duration_days, d, d) + " " + rh.gs(R.string.ago)
+                        rh.gs(CoreUiR.string.value_with_unit, rh.gq(RileyLinkR.plurals.duration_days, d, d), rh.gs(R.string.ago))
                     }
                 }
                 text to StatusLevel.WARNING
@@ -271,10 +274,13 @@ class MedtronicOverviewViewModel @Inject constructor(
     private fun buildBattery(): Pair<String, StatusLevel> {
         val remaining = medtronicPumpStatus.batteryRemaining
         val text = if (medtronicPumpStatus.batteryType == BatteryType.None || medtronicPumpStatus.batteryVoltage == null) {
-            remaining?.let { "$it%" } ?: rh.gs(CoreUiR.string.unknown)
+            remaining?.let { rh.gs(CoreUiR.string.units_format_percent, it) } ?: rh.gs(CoreUiR.string.unknown)
         } else {
-            (remaining?.let { "$it%  " } ?: "") +
-                String.format(Locale.getDefault(), "(%.2f V)", medtronicPumpStatus.batteryVoltage)
+            val voltage = rh.gs(
+                CoreUiR.string.value_in_parentheses,
+                rh.gs(CoreUiR.string.value_with_unit, String.format(Locale.getDefault(), "%.2f", medtronicPumpStatus.batteryVoltage), "V")
+            )
+            remaining?.let { rh.gs(CoreUiR.string.value_with_unit, rh.gs(CoreUiR.string.units_format_percent, it), voltage) } ?: voltage
         }
         val level = when {
             remaining == null -> StatusLevel.NORMAL
@@ -300,9 +306,9 @@ class MedtronicOverviewViewModel @Inject constructor(
 
     // region Actions
 
-    private fun buildPrimaryActions(): List<PumpAction> {
+    private fun buildPrimaryActions(): List<ScreenAction> {
         return listOf(
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(CoreUiR.string.refresh),
                 icon = Icons.Filled.Refresh,
                 onClick = { onRefreshClicked() }
@@ -310,26 +316,23 @@ class MedtronicOverviewViewModel @Inject constructor(
         )
     }
 
-    private fun buildManagementActions(): List<PumpAction> {
+    private fun buildManagementActions(): List<ScreenAction> {
         val isConfigured = medtronicPumpPlugin.rileyLinkService?.verifyConfiguration() == true
 
         return listOf(
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(RileyLinkR.string.rileylink_pair),
                 icon = Icons.Filled.Bluetooth,
-                category = ActionCategory.MANAGEMENT,
                 onClick = { _events.tryEmit(MedtronicOverviewEvent.ShowRileyLinkPairWizard) }
             ),
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(CoreUiR.string.pump_history),
                 icon = Icons.Filled.History,
-                category = ActionCategory.MANAGEMENT,
                 onClick = { _events.tryEmit(MedtronicOverviewEvent.ShowHistory) }
             ),
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(R.string.riley_statistics),
                 icon = Icons.Filled.Timeline,
-                category = ActionCategory.MANAGEMENT,
                 onClick = {
                     if (isConfigured) {
                         _events.tryEmit(MedtronicOverviewEvent.ShowRileyLinkStats)
@@ -338,35 +341,32 @@ class MedtronicOverviewViewModel @Inject constructor(
                     }
                 }
             ),
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(R.string.medtronic_custom_action_wake_and_tune),
                 icon = Icons.Filled.SettingsInputAntenna,
-                category = ActionCategory.MANAGEMENT,
                 onClick = {
                     if (isConfigured) {
-                        serviceTaskExecutor.startTask(wakeAndTuneTaskProvider.get())
-                        _events.tryEmit(MedtronicOverviewEvent.ShowSnackbar(rh.gs(R.string.medtronic_custom_action_wake_and_tune)))
+                        // No snackbar: the RileyLink status row already shows the tune-up.
+                        serviceTaskExecutor.startTask(wakeAndTuneTaskProvider())
                     } else {
                         emitNotConfiguredDialog()
                     }
                 }
             ),
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(R.string.medtronic_custom_action_clear_bolus_block),
                 icon = Icons.Filled.Block,
-                category = ActionCategory.MANAGEMENT,
                 visible = medtronicPumpPlugin.isBusyBlockingEnabled(),
                 onClick = {
                     medtronicPumpPlugin.clearBusyTimestamps()
                     _events.tryEmit(MedtronicOverviewEvent.ShowSnackbar(rh.gs(R.string.medtronic_custom_action_clear_bolus_block)))
                 }
             ),
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(R.string.medtronic_custom_action_reset_rileylink),
                 icon = Icons.Filled.RestartAlt,
-                category = ActionCategory.MANAGEMENT,
                 onClick = {
-                    serviceTaskExecutor.startTask(resetRileyLinkConfigurationTaskProvider.get())
+                    serviceTaskExecutor.startTask(resetRileyLinkConfigurationTaskProvider())
                     _events.tryEmit(MedtronicOverviewEvent.ShowSnackbar(rh.gs(RileyLinkR.string.rileylink_config_reset)))
                 }
             )

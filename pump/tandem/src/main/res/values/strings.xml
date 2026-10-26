@@ -110,6 +110,7 @@
     <string name="pi_version">Version</string>
     <string name="pi_sw_part_num">S/W Part Number</string>
     <string name="pi_pcba_serial">PCBA serial</string>
+    <string name="pi_pcba_rev">PCBA revision</string>
     <string name="pi_pump_model">Pump Model</string>
     <string name="pi_pump_sw">Pump Software</string>
 
@@ -160,6 +161,7 @@
     <string name="cc_incomplete_change_dialog_body">Cartridge change not yet complete. Press OK to continue changing the cartridge.</string>
     <string name="fc_incomplete_fill_dialog_body">Fill cannula not yet complete. Press OK to continue filling the cannula.</string>
     <string name="fc_setup_complete_body">Cartridge setup is complete. Insulin delivery is suspended.</string>
+    <string name="fc_cannula_filled_continue">Cannula is filled. Continue to Site Selection or skip to Finish.</string>
     <string name="fc_exit_without_resume_body">Insulin is still suspended. Exit without resuming?</string>
     <string name="fc_btn_exit_anyway">Exit anyway</string>
     <string name="ca_notifications_none">No active Pump notifications.</string>
@@ -254,6 +256,10 @@
     <string name="fc_quick_amount_0_5">0.5U</string>
     <string name="fc_quick_amount_1_0">1.0U</string>
 
+    <string name="fc_skip_site">Skip Site</string>
+    <string name="fc_accept_site">Accept Site</string>
+    <string name="fc_complete_fill">Complete Fill</string>
+
 
 
 
@@ -308,6 +314,8 @@
     <string name="tandem_cfg_show_cargo_of_unknown_logs_summary">If Unknown Logs are displayed, we also display payload (raw data)</string>
     <string name="tandem_cfg_auto_confirm_low_basal_delivery">Auto confirm Low Basal Delivery Alert</string>
     <string name="tandem_cfg_auto_confirm_low_basal_delivery_summary">When Basal delivery is less that certain percent, Low Basal Delivery alert gets triggered. This automatically confirms that alert.</string>
+    <string name="tandem_cfg_hide_pump_pair_button">Hide Pump Pair Button in Overview</string>
+    <string name="tandem_cfg_hide_pump_pair_button_summary">Pairing is done just once, so this is option to hide Pump Pair button in Overview.</string>
     <string name="tandem_pump_pair_status">Pump Pair Status</string>
 
 

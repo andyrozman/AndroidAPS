@@ -21,8 +21,6 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -184,7 +182,7 @@ fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded1) },
                                 modifier = Modifier
                                     .menuAnchor(
-                                        type = ExposedDropdownMenuAnchorType.Companion.PrimaryNotEditable,
+                                        type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
                                         enabled = true)
                                     .fillMaxWidth()
                             )
@@ -224,7 +222,7 @@ fun SiteReminder(innerPadding: PaddingValues = PaddingValues(),
 
                         pickedDate = dateTime.toLocalDate()
                         pickedTime = dateTime.toLocalTime()
-                        hasChanged = true;
+                        hasChanged = true
 
                     }, modifier = Modifier.width(200.dp)) {
                         Text(text = resourceHelper.gs(R.string.sr_apply_preset))

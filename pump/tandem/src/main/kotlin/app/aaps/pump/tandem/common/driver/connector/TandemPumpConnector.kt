@@ -135,12 +135,11 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionRespon
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusDeliveryHistoryLog
+import dev.zacsweers.metro.AppScope
 import org.joda.time.DateTime
 import java.time.Instant
-import javax.inject.Inject
-import javax.inject.Singleton
-
-
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /**
  * All commands that will be supported need to be implemented here (look at PumpConnectorInterface), and they also need
@@ -149,19 +148,20 @@ import javax.inject.Singleton
  * Any command will be used from TandemPumpConnectionManager, if its not used there, then it doesn't need to be
  * implemented.
  */
-@Singleton
-class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpStatus,
-                                              var context: Context,
-                                              var tandemPumpUtil: TandemPumpUtil,
-                                              var rxBus: RxBus,
-                                              var resourceHelper: ResourceHelper,
-                                              var preferences: Preferences,
-                                              var sp: SP,
-                                              var tandemConnectionFixer: TandemConnectionFixer,
-                                              aapsLogger: AAPSLogger,
-                                              val pumpX2L: PumpX2L,
-                                              private var tandemDataConverter: TandemDataConverter,
-                                              var bolusProgressData: BolusProgressData
+@SingleIn(AppScope::class)
+@Inject
+class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
+                          var context: Context,
+                          var tandemPumpUtil: TandemPumpUtil,
+                          var rxBus: RxBus,
+                          var resourceHelper: ResourceHelper,
+                          var preferences: Preferences,
+                          var sp: SP,
+                          var tandemConnectionFixer: TandemConnectionFixer,
+                          aapsLogger: AAPSLogger,
+                          val pumpX2L: PumpX2L,
+                          private var tandemDataConverter: TandemDataConverter,
+                          var bolusProgressData: BolusProgressData
 ): PumpDummyConnector(tandemPumpStatus, tandemPumpUtil, aapsLogger) {
 
     private var tandemPumpCommunicationManager: TandemPumpCommunicationManager? = null
@@ -203,13 +203,11 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                 btAddressUsed = null
             }
 
-            // TODO(jwoglom): AAPS should conditionally set this to allow for safer pump simulation
             PumpState.enableActionsAffectingInsulinDelivery()
 
             val cfg = TandemConfig()
                 .withFilterToBluetoothMac(newBtAddress)
-                // TODO(jwoglom): this should be configurable to allow for old firmware tslim x2 pump simulation
-                .withPairingCodeType(PairingCodeType.SHORT_6CHAR)
+                .withPairingCodeType(tandemPumpUtil.pairingCodeType)
 
             this.tandemPumpCommunicationManager = TandemPumpCommunicationManager(
                 context = context,
@@ -447,7 +445,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         val bolusCarbs = 0
 
         val bolusRequest = InitiateBolusRequest(volume, permissionResponseMessage.bolusId,
-                                                BolusDeliveryHistoryLog.BolusType.FOOD1.mask(),
+                                                BolusDeliveryHistoryLog.BolusType.NOW.mask(),
                                                 0, 0,
                                                 bolusCarbs, 0, 0)
 
@@ -681,9 +679,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
     override fun cancelBolus(bolusData: BolusData?): DataCommandResponse<AdditionalResponseDataInterface?> {
         if (bolusId==0) {
-            // TODO(jwoglom): since this is a safety critical path, we need to handle bolusId being null
-            // and fall back on requesting active bolus ID and then canceling it. and also do the same
-            // if we get a rejection (status!=0) on CancelBolusResponse.
             aapsLogger.warn(TAG, "cancelBolus: no BolusId found, fetching the active bolus ID as fallback")
 
             val currentBolus: CurrentBolusStatusResponse? = getCommunicationManager()?.sendCommand(CurrentBolusStatusRequest()) as CurrentBolusStatusResponse?
@@ -709,6 +704,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
 
         return if (responseMessage != null && responseMessage.status == CancelBolusResponse.CancelStatus.SUCCESS) {
+            bolusId = 0
             DataCommandResponse(
                 PumpCommandType.CancelBolus,
                 true,
@@ -716,13 +712,13 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                 null
             )
         } else {
+            bolusId = 0
             DataCommandResponse(
                 PumpCommandType.CancelBolus,
                 false,
                 "Error cancelling bolus, got status ${responseMessage?.statusId}: $responseMessage",
                 null
             )
-
         }
     }
 
@@ -1000,9 +996,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         val idpSegments = tandemDataConverter.getIDPSegmentsFromProfile(profile)
 
-        // TODO(jwoglom): make and use PumpX2 const
-        if (idpSegments.size>16) {
-            aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile - You have more than 16 basal segments. Profile must be adjusted to have only 16 segments. Last valid segment (16) will be extended over remaining time.")
+        if (idpSegments.size> TandemPumpUtil.MAX_BOLUS_SEGMENTS) {
+            aapsLogger.error(LTag.PUMPCOMM, "sendBasalProfile - You have more than ${TandemPumpUtil.MAX_BOLUS_SEGMENTS} basal segments. Profile must be adjusted to have only ${TandemPumpUtil.MAX_BOLUS_SEGMENTS} segments. Last valid segment (${TandemPumpUtil.MAX_BOLUS_SEGMENTS}) will be extended over remaining time.")
             tandemPumpUtil.sendNotification(TandemNotificationType.TandemBasalProfileError);
         }
 
@@ -1011,7 +1006,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         var responseText : String?
         var success = false
-
 
         if (pumpProfileDto.isNewScenario) {
 
@@ -1054,8 +1048,8 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
 
         var segmentCount = idpSegments.size-1
 
-        if (segmentCount>15) {
-            segmentCount = 15
+        if (segmentCount>(TandemPumpUtil.MAX_BOLUS_SEGMENTS-1)) {
+            segmentCount = (TandemPumpUtil.MAX_BOLUS_SEGMENTS-1)
         }
 
 
@@ -1269,7 +1263,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         if (responseMessage!=null) {
 
             val gsonData = getJsonStringFromObject(responseMessage)
-            aapsLogger.debug(LTag.PUMPCOMM, " MirrorResponse: $gsonData")
+            //aapsLogger.debug(LTag.PUMPCOMM, " MirrorResponse: $gsonData")
 
             val homeScreenMirrorDto = HomeScreenMirrorDto()
             homeScreenMirrorDto.parse(responseMessage.cargo)
@@ -1684,7 +1678,7 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
         } else {
             val response = decode(responseMessage)
 
-            aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData: decoded Response: ${response}")
+            //aapsLogger.info(TAG, "TANDEMDBG: sendAndReceivePumpData: decoded Response: ${response}")
 
             response
         }
@@ -1706,34 +1700,6 @@ class TandemPumpConnector @Inject constructor(var tandemPumpStatus: TandemPumpSt
                 TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
             }
         }
-
-        // TODO remove this
-        // return when(this.tandemPumpStatus.tandemPumpFirmware) {
-        //
-        //     // TODO(jwoglom): we can use builder methods in PumpX2 given the api version
-        //     TandemPumpApiVersion.VERSION_2_1_to_2_4,
-        //     -> {
-        //         when(command) {
-        //             TandemCommandType.ControlIQInfo  -> ControlIQInfoV1Request()
-        //             TandemCommandType.CurrentBattery -> CurrentBatteryV1Request()
-        //         }
-        //     }
-        //
-        //     TandemPumpApiVersion.VERSION_2_5_OR_HIGHER,
-        //     TandemPumpApiVersion.VERSION_3_0,
-        //     TandemPumpApiVersion.VERSION_3_2,
-        //     TandemPumpApiVersion.VERSION_3_4,
-        //     TandemPumpApiVersion.VERSION_3_5_MOBI,
-        //     TandemPumpApiVersion.VERSION_3_6_MOBI,
-        //     TandemPumpApiVersion.VERSION_3_8_MOBI,
-        //     TandemPumpApiVersion.VERSION_4_x -> {
-        //         when(command) {
-        //             TandemCommandType.ControlIQInfo  -> ControlIQInfoV2Request()
-        //             TandemCommandType.CurrentBattery -> CurrentBatteryV2Request()
-        //         }
-        //     }
-        //     else -> throw Exception("Unidentified version: ${this.tandemPumpStatus.tandemPumpFirmware} - ${tandemPumpStatus.apiVersionResponse?.apiVersion}")
-        // }
     }
 
 

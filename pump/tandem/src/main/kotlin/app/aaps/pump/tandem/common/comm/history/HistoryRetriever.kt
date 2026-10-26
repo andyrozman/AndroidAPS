@@ -12,7 +12,6 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.PumpDriverState
 import app.aaps.pump.common.driver.connector.defs.PumpCommandType
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
-import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.data.history.HistoryRange
 import app.aaps.pump.tandem.common.data.history.HistoryRequestInfo
 import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
@@ -31,11 +30,12 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusR
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
+import dev.zacsweers.metro.AppScope
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlin.collections.mutableListOf
 
 /*
@@ -59,8 +59,9 @@ import kotlin.collections.mutableListOf
 
  */
 
-@Singleton
-class HistoryRetriever @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class HistoryRetriever(
     val pumpStatus: TandemPumpStatus,
     val tandemPumpConnector: TandemPumpConnector,
     val aapsLogger: AAPSLogger,
@@ -71,7 +72,6 @@ class HistoryRetriever @Inject constructor(
     val dbDataHandler: DbDataHandler,
     val uiInteraction: UiInteraction,
     val notificationManager: NotificationManager,
-    val tandemDispatcher: TandemDispatcher,
     val historyPostProcessor: HistoryPostProcessor
 ) {
 
@@ -276,9 +276,8 @@ class HistoryRetriever @Inject constructor(
 
         startProgress()
 
-        submitHistoryRequest("historyLogStatus") {
-            communication.sendCommand(HistoryLogStatusRequest())
-        }
+        communication.sendCommand(HistoryLogStatusRequest())
+
     }
 
     /**
@@ -294,9 +293,9 @@ class HistoryRetriever @Inject constructor(
      * the dispatcher's `sendUiCommand` extension — that one targets the singleton instance,
      * which doesn't know about this retriever.
      */
-    private fun submitHistoryRequest(name: String, send: () -> Unit) {
-        tandemDispatcher.submitBackground(name) { send() }
-    }
+    // private fun submitHistoryRequest(name: String, send: () -> Unit) {
+    //     tandemDispatcher.submitBackground(name) { send() }
+    // }
 
 
     fun receivedStatus(message: HistoryLogStatusResponse) {
@@ -606,9 +605,9 @@ class HistoryRetriever @Inject constructor(
         currentRequest = queue.removeFirst()
         aapsLogger.info(TAG, "${historyPrefix}executeNextLogGet (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence}, count=${currentRequest!!.numberOfLogs})")
         val req = HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs)
-        submitHistoryRequest("historyLogChunk[${currentRequest!!.startSequence}-${currentRequest!!.endSequence}]") {
+        //submitHistoryRequest("historyLogChunk[${currentRequest!!.startSequence}-${currentRequest!!.endSequence}]") {
             this.communication.sendCommand(req)
-        }
+        //}
     }
 
 

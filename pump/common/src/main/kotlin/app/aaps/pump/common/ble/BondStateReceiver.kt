@@ -1,9 +1,11 @@
 package app.aaps.pump.common.ble
 
 import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.StringRes
+import app.aaps.core.interfaces.di.injectMetroMembers
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -11,16 +13,16 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.utils.extensions.safeGetParcelableExtra
 import com.google.gson.Gson
-import dagger.android.DaggerBroadcastReceiver
 import app.aaps.pump.common.events.EventPumpConnectionParametersChanged
-import javax.inject.Inject
+
+import dev.zacsweers.metro.Inject
 
 class BondStateReceiver(
     @StringRes var deviceAddress: Int,
     @StringRes var bondedFlag: Int,
     private var targetDevice: String,
     private var targetState: Int
-) : DaggerBroadcastReceiver() {
+) : BroadcastReceiver() {
 
     @Inject lateinit var sp: SP
     @Inject lateinit var context: Context
@@ -32,7 +34,8 @@ class BondStateReceiver(
     var applicationContext: Context? = null
 
     override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
+        //super.onReceive(context, intent)
+        context.injectMetroMembers(this)
         val action = intent.action
         val device = intent.safeGetParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
         aapsLogger.info(LTag.PUMPBTCOMM, "in onReceive:  INTENT" + gson.toJson(intent))

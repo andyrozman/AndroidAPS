@@ -5,7 +5,6 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationManager
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
-import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
@@ -18,11 +17,15 @@ import app.aaps.pump.tandem.common.keys.TandemLongNonPreferenceKey
 import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
+import dev.zacsweers.metro.AppScope
 import java.time.LocalDateTime
 import java.time.ZoneId
-import javax.inject.Inject
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-class TandemUiController @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class TandemUiController(
     var aapsLogger: AAPSLogger,
     var tandemPumpStatus: TandemPumpStatus,
     var tandemPumpUtil: TandemPumpUtil,
@@ -30,8 +33,7 @@ class TandemUiController @Inject constructor(
     var uiInteraction: app.aaps.core.interfaces.ui.UiInteraction,
     var dbDataHandler: DbDataHandler,
     var notificationManager: NotificationManager,
-    var tandemPumpConnector: TandemPumpConnector,
-    var tandemDispatcher: TandemDispatcher
+    var tandemPumpConnector: TandemPumpConnector
 )   {
 
     // TODO fix logs (I set a lot of them to error so that I can easily see what is happening)
@@ -68,7 +70,7 @@ class TandemUiController @Inject constructor(
 
     fun disposeTandemUiCommunication(disposeType: AdditionalConfigurationScreens) {
         if (disposeType==AdditionalConfigurationScreens.Actions) {
-            aapsLogger.error(LTag.PUMP, "Actions window was closed. Sending event to refresh.")
+            aapsLogger.info(LTag.PUMP, "Actions window was closed. Sending event to refresh.")
 
             //aapsLogger.error(LTag.PUMP, "Reminder Date found")
 
@@ -95,9 +97,7 @@ class TandemUiController @Inject constructor(
         }
 
         this.tandemUICommunication.tandemPumpCommunicationManager = null
-        tandemPumpUtil.preventConnect = false // TODO remove replaced with preventueueExecution
-
-        aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi (exiting Actions/Data)")
+        //aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi (exiting Actions/Data)")
         tandemPumpStatus.preventQueueExecution = false
     }
 
@@ -137,10 +137,6 @@ class TandemUiController @Inject constructor(
         // completes once the wire send fires; responses arrive asynchronously via the listener
         // path (TandemUICommunication.onReceiveMessage).
         for (msg in msgs) {
-            // TODO this doesn't work - jwoglom
-            // tandemDispatcher.submitUser("ui:${msg.javaClass.simpleName}") {
-            //     this.tandemUICommunication.sendCommand(msg)
-            // }
             this.tandemUICommunication.sendCommand(msg)
         }
 
@@ -185,12 +181,10 @@ class TandemUiController @Inject constructor(
                 }
             }
             RefreshData.START_ACTIONS       -> {
-                tandemPumpUtil.preventConnect = true
                 tandemPumpStatus.preventQueueExecution = true
                 ds.reminderDateTime.value = tandemPumpStatus.tandemSiteReminder
             }
             RefreshData.START_DATA       -> {
-                tandemPumpUtil.preventConnect = true
                 tandemPumpStatus.preventQueueExecution = true
             }
         }

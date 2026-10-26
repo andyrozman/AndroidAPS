@@ -15,16 +15,18 @@ import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.ui.compose.ScreenAction
 import app.aaps.core.ui.compose.StatusLevel
-import app.aaps.core.ui.compose.pump.ActionCategory
-import app.aaps.core.ui.compose.pump.PumpAction
 import app.aaps.core.ui.compose.pump.PumpCommunicationStatus
 import app.aaps.core.ui.compose.pump.PumpInfoRow
 import app.aaps.core.ui.compose.pump.PumpOverviewUiState
 import app.aaps.core.ui.compose.pump.StatusBanner
 import app.aaps.core.ui.compose.pump.tickerFlow
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import info.nightscout.comboctl.base.DisplayFrame
 import info.nightscout.comboctl.base.NullDisplayFrame
 import info.nightscout.comboctl.parser.BatteryState
@@ -42,7 +44,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Locale
-import javax.inject.Inject
 import kotlin.math.max
 import kotlin.time.ExperimentalTime
 import app.aaps.core.ui.R as CoreUiR
@@ -61,18 +62,22 @@ data class ComboV2OverviewUiState(
     val currentActivityProgress: Float = 0f
 )
 
-@HiltViewModel
-class ComboV2OverviewViewModel @Inject constructor(
+// Registers itself: @ViewModelKey infers the key from the class. No graph entry, and deliberately
+// unscoped so each screen gets its own.
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
+@ViewModelKey
+@Inject
+class ComboV2OverviewViewModel(
     private val aapsLogger: AAPSLogger,
     private val rh: ResourceHelper,
     rxBus: RxBus,
     private val commandQueue: CommandQueue,
     private val combov2Plugin: ComboV2Plugin,
     private val ch: ConcentrationHelper,
-    @ApplicationContext context: Context
+    context: Context
 ) : ViewModel() {
 
-    private val communicationStatus = PumpCommunicationStatus(rxBus, commandQueue, context, viewModelScope)
+    private val communicationStatus = PumpCommunicationStatus(rxBus, commandQueue, rh, viewModelScope)
 
     private data class PumpSnapshot(
         val isPaired: Boolean,
@@ -157,19 +162,17 @@ class ComboV2OverviewViewModel @Inject constructor(
         combov2Plugin.unpair()
     }
 
-    private fun managementActions(isPaired: Boolean): List<PumpAction> = listOf(
+    private fun managementActions(isPaired: Boolean): List<ScreenAction> = listOf(
         if (isPaired) {
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(CoreUiR.string.pump_unpair),
                 icon = Icons.Filled.BluetoothDisabled,
-                category = ActionCategory.MANAGEMENT,
                 onClick = { onUnpairClick() }
             )
         } else {
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(CoreUiR.string.pairing),
                 icon = Icons.Filled.Bluetooth,
-                category = ActionCategory.MANAGEMENT,
                 onClick = { onPairClick() }
             )
         }
@@ -247,10 +250,9 @@ class ComboV2OverviewViewModel @Inject constructor(
         }
 
         val primaryActions = listOf(
-            PumpAction(
+            ScreenAction(
                 label = rh.gs(CoreUiR.string.refresh),
                 icon = Icons.Filled.Refresh,
-                category = ActionCategory.PRIMARY,
                 enabled = refreshEnabled,
                 onClick = { onRefreshClick() }
             )

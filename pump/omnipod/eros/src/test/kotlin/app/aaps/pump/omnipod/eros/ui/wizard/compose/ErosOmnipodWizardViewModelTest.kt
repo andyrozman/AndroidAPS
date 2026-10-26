@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.mock
-import javax.inject.Provider
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class ErosOmnipodWizardViewModelTest {
@@ -46,7 +45,7 @@ internal class ErosOmnipodWizardViewModelTest {
 
     private val aapsOmnipodManager: AapsOmnipodErosManager = mock()
     private val podStateManager: AapsErosPodStateManager = mock()
-    private val pumpEnactResultProvider: Provider<PumpEnactResult> = mock()
+    private val pumpEnactResultProvider: () -> PumpEnactResult = mock()
 
     private lateinit var sut: ErosOmnipodWizardViewModel
 
@@ -58,7 +57,7 @@ internal class ErosOmnipodWizardViewModelTest {
         Dispatchers.setMain(StandardTestDispatcher())
         sut = ErosOmnipodWizardViewModel(
             aapsOmnipodManager, podStateManager, commandQueue, pumpSync, insulinManager, profileFunction,
-            profileRepository, persistenceLayer, preferences, pumpEnactResultProvider, logger, aapsSchedulers
+            profileRepository, persistenceLayer, preferences, pumpEnactResultProvider, logger, aapsSchedulers, mock(), mock()
         )
     }
 

@@ -1,6 +1,7 @@
 package app.aaps.pump.equil.compose
 
 import androidx.annotation.StringRes
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
@@ -21,7 +22,11 @@ import app.aaps.pump.equil.driver.definition.EquilHistoryEntryGroup
 import app.aaps.pump.equil.events.EventEquilDataChanged
 import app.aaps.pump.equil.manager.Utils
 import app.aaps.pump.equil.manager.command.PumpEvent
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,12 +38,15 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import javax.inject.Inject
 import kotlin.math.abs
 
-@HiltViewModel
+// Registers itself: @ViewModelKey infers the key from the class. No graph entry, and deliberately
+// unscoped so each screen gets its own.
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
+@ViewModelKey
 @Stable
-class EquilHistoryViewModel @Inject constructor(
+@Inject
+class EquilHistoryViewModel(
     private val equilHistoryRecordDao: EquilHistoryRecordDao,
     private val equilHistoryPumpDao: EquilHistoryPumpDao,
     private val equilPumpPlugin: EquilPumpPlugin,
@@ -68,7 +76,7 @@ class EquilHistoryViewModel @Inject constructor(
 
     init {
         loadData()
-        rxBus.toFlow(EventEquilDataChanged::class.java)
+        rxBus.toFlow(EventEquilDataChanged::class)
             .onEach { loadData() }
             .launchIn(viewModelScope)
     }
@@ -108,8 +116,14 @@ class EquilHistoryViewModel @Inject constructor(
 
     // region Tab 2: pump event transformation
 
-    private fun transformPumpEvents(rawList: List<EquilHistoryPump>): List<PumpEventItem> {
-        val sorted = rawList.sortedWith(compareBy(EquilHistoryPump::eventTimestamp, EquilHistoryPump::eventIndex))
+    @VisibleForTesting
+    internal fun transformPumpEvents(rawList: List<EquilHistoryPump>): List<PumpEventItem> {
+        // The same pump event can be stored twice: the insert never replaces a row, because the row id
+        // is generated. A copy has the same history index and the same time (the time already holds the
+        // index as milliseconds), and it must not show the event twice.
+        val sorted = rawList
+            .distinctBy { it.eventIndex to it.eventTimestamp }
+            .sortedWith(compareBy(EquilHistoryPump::eventTimestamp, EquilHistoryPump::eventIndex))
         val result = mutableListOf<PumpEventItem>()
 
         var lastBasalRate: Int? = null
@@ -122,6 +136,7 @@ class EquilHistoryViewModel @Inject constructor(
                 val isTemp = previousEntry?.type == PUMP_EVENT_TYPE_TEMP_BASAL
                 result += PumpEventItem.BasalChange(
                     timestamp = entry.eventTimestamp,
+                    rowId = entry.id,
                     rateUH = Utils.decodeSpeedToUH(entry.rate),
                     isTemporary = isTemp
                 )
@@ -134,6 +149,7 @@ class EquilHistoryViewModel @Inject constructor(
                 val delivered = durationSec * Utils.decodeSpeedToUS(bolusStart.largeRate)
                 result += PumpEventItem.Bolus(
                     timestamp = bolusStart.eventTimestamp,
+                    rowId = bolusStart.id,
                     amountU = "%.3f".format(delivered)
                 )
                 bolusStart = null
@@ -147,6 +163,7 @@ class EquilHistoryViewModel @Inject constructor(
             if (eventRes != null) {
                 result += PumpEventItem.Event(
                     timestamp = entry.eventTimestamp,
+                    rowId = entry.id,
                     descriptionRes = eventRes
                 )
             }
@@ -201,19 +218,32 @@ sealed class PumpEventItem {
 
     abstract val timestamp: Long
 
+    /** The id of the pump history row this item comes from. */
+    abstract val rowId: Long
+
+    /**
+     * The key of this item in the list. A row gives at most one item of each kind, so kind plus row id
+     * is unique. Time and content are not: the same event stored twice gave two equal items, and the
+     * list crashed with "Key ... was already used".
+     */
+    val listKey: String get() = "${this::class.simpleName}_$rowId"
+
     data class BasalChange(
         override val timestamp: Long,
+        override val rowId: Long,
         val rateUH: Float,
         val isTemporary: Boolean,
     ) : PumpEventItem()
 
     data class Bolus(
         override val timestamp: Long,
+        override val rowId: Long,
         val amountU: String,
     ) : PumpEventItem()
 
     data class Event(
         override val timestamp: Long,
+        override val rowId: Long,
         @StringRes val descriptionRes: Int,
     ) : PumpEventItem()
 }

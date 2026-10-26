@@ -3,12 +3,14 @@ package app.aaps.pump.tandem.common.util
 import android.util.Log
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import dev.zacsweers.metro.AppScope
 import timber.log.Timber
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
-@Singleton
-class PumpX2L @Inject constructor(val aapsLogger: AAPSLogger) : Timber.DebugTree()  {
+@SingleIn(AppScope::class)
+@Inject
+class PumpX2L(val aapsLogger: AAPSLogger) : Timber.DebugTree()  {
 
     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
 

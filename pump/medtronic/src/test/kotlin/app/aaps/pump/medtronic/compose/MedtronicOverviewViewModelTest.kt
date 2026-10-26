@@ -11,6 +11,7 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
 import app.aaps.core.interfaces.rx.events.EventQueueChanged
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.ui.compose.ScreenAction
 import app.aaps.core.ui.compose.StatusLevel
 import app.aaps.core.ui.compose.pump.PumpInfoRow
 import app.aaps.pump.common.events.EventRileyLinkDeviceStatusChange
@@ -40,9 +41,9 @@ import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyVararg
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import javax.inject.Provider
 import app.aaps.core.ui.R as CoreUiR
 import app.aaps.pump.common.hw.rileylink.R as RileyLinkR
 
@@ -68,8 +69,8 @@ internal class MedtronicOverviewViewModelTest {
     private val medtronicUtil: MedtronicUtil = mock()
     private val rileyLinkServiceData: RileyLinkServiceData = mock()
     private val serviceTaskExecutor: ServiceTaskExecutor = mock()
-    private val resetTaskProvider: Provider<ResetRileyLinkConfigurationTask> = mock()
-    private val wakeTaskProvider: Provider<WakeAndTuneTask> = mock()
+    private val resetTaskProvider: () -> ResetRileyLinkConfigurationTask = mock()
+    private val wakeTaskProvider: () -> WakeAndTuneTask = mock()
 
     @BeforeEach
     fun setUp() {
@@ -77,16 +78,17 @@ internal class MedtronicOverviewViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
 
         // Catch-all so every info-row / action label resolves to a non-null String (PumpInfoRow.label
-        // and PumpAction.label are non-null; an unstubbed rh.gs() would return null and NPE at build).
+        // and ScreenAction.label are non-null; an unstubbed rh.gs() would return null and NPE at build).
         whenever(rh.gs(anyInt())).thenReturn("txt")
+        whenever(rh.gs(anyInt(), anyVararg())).thenReturn("txt") // texts with values, such as the battery
 
         // rx wiring touched at construction: PumpCommunicationStatus init + the three medtronicRefresh
         // collectors launched in viewModelScope (UnconfinedTestDispatcher runs them eagerly).
-        whenever(rxBus.toFlow(EventPumpStatusChanged::class.java)).thenReturn(emptyFlow())
-        whenever(rxBus.toFlow(EventQueueChanged::class.java)).thenReturn(emptyFlow())
-        whenever(rxBus.toFlow(EventMedtronicPumpValuesChanged::class.java)).thenReturn(emptyFlow())
-        whenever(rxBus.toFlow(EventRileyLinkDeviceStatusChange::class.java)).thenReturn(emptyFlow())
-        whenever(rxBus.toFlow(EventMedtronicPumpConfigurationChanged::class.java)).thenReturn(emptyFlow())
+        whenever(rxBus.toFlow(EventPumpStatusChanged::class)).thenReturn(emptyFlow())
+        whenever(rxBus.toFlow(EventQueueChanged::class)).thenReturn(emptyFlow())
+        whenever(rxBus.toFlow(EventMedtronicPumpValuesChanged::class)).thenReturn(emptyFlow())
+        whenever(rxBus.toFlow(EventRileyLinkDeviceStatusChange::class)).thenReturn(emptyFlow())
+        whenever(rxBus.toFlow(EventMedtronicPumpConfigurationChanged::class)).thenReturn(emptyFlow())
 
         // Pump state read by buildUiState() -> buildInfoRows() (kept minimal to skip optional branches).
         whenever(rileyLinkServiceData.rileyLinkServiceState).thenReturn(RileyLinkServiceState.NotStarted)

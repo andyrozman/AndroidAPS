@@ -48,11 +48,11 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.wear.R
 import app.aaps.wear.data.ComplicationData
 import app.aaps.wear.data.ComplicationDataRepository
-import dagger.android.support.DaggerAppCompatActivity
-import javax.inject.Inject
+import app.aaps.wear.di.WearMetroActivity
+import dev.zacsweers.metro.Inject
 import kotlin.math.roundToInt
 
-class TreatmentActivity : DaggerAppCompatActivity() {
+class TreatmentActivity : WearMetroActivity() {
 
     @Inject lateinit var rxBus: RxBus
     @Inject lateinit var preferences: Preferences
@@ -185,7 +185,7 @@ private fun TreatmentConfirmScreen(insulin: Double, carbs: Int, onConfirm: () ->
         Spacer(Modifier.height(4.dp))
         if (insulin > 0.0) {
             Text(
-                text = "${fmt.format(insulin)} ${stringResource(R.string.insulin_unit_short)}",
+                text = stringResource(R.string.wizard_insulin_format, fmt.format(insulin)),
                 color = InsulinBlue,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold

@@ -1,6 +1,7 @@
 package app.aaps.pump.tandem.common.data.defs
 
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.pump.tandem.R
 
 enum class SiteReminderPreset(var resourceId: Int, var hours: Int) {
@@ -45,7 +46,7 @@ enum class SiteReminderPreset(var resourceId: Int, var hours: Int) {
             if (translatedList != null) return
             translatedList = ArrayList()
             for (reminderPreset in SiteReminderPreset.entries) {
-                reminderPreset.translated = rh.gs(reminderPreset.resourceId)
+                reminderPreset.translated = rh.gs(TextRef.AndroidRes(reminderPreset.resourceId))
                 (translatedList as ArrayList<SiteReminderPreset>).add(reminderPreset)
             }
         }

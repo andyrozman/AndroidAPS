@@ -10,6 +10,7 @@ import androidx.wear.watchface.complications.data.TimeDifferenceComplicationText
 import androidx.wear.watchface.complications.data.TimeDifferenceStyle
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceService
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
+import app.aaps.core.interfaces.di.injectMetroMembers
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.weardata.EventData
@@ -17,7 +18,8 @@ import app.aaps.wear.data.ComplicationDataRepository
 import app.aaps.wear.interaction.utils.Constants
 import app.aaps.wear.interaction.utils.DisplayFormat
 import app.aaps.wear.interaction.utils.WearUtil
-import dagger.android.AndroidInjection
+import dev.zacsweers.metro.HasMemberInjections
+import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,7 +27,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
 import app.aaps.wear.data.ComplicationData as ComplicationStore
 
 /**
@@ -40,6 +41,7 @@ import app.aaps.wear.data.ComplicationData as ComplicationStore
  * - Uses modern AndroidX Wear Watchface API
  *
  */
+@HasMemberInjections
 abstract class ModernBaseComplicationProviderService : ComplicationDataSourceService() {
 
     @Inject lateinit var aapsLogger: AAPSLogger
@@ -48,12 +50,12 @@ abstract class ModernBaseComplicationProviderService : ComplicationDataSourceSer
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    // Not derived from DaggerService, so inject here for every concrete subclass. AndroidInjection
-    // resolves the injector by this instance's concrete runtime class, so each subclass is injected
-    // through its own @ContributesAndroidInjector binding in WearServicesModule — kept in the base to
-    // avoid duplicating the identical override in every complication.
+    // Not derived from WearMetroService, so inject here for every concrete subclass. The injector is
+    // resolved by this instance's concrete runtime class, so each subclass needs its own entry in
+    // WearMemberInjectors even when it adds no injected field of its own - kept in the base to avoid
+    // duplicating the identical override in every complication.
     override fun onCreate() {
-        AndroidInjection.inject(this)
+        injectMetroMembers(this)
         super.onCreate()
     }
 
@@ -61,7 +63,7 @@ abstract class ModernBaseComplicationProviderService : ComplicationDataSourceSer
      * Build complication data using modern DataStore-backed data models
      *
      * Supports multiple datasets for AAPSClient mode:
-     * - Dataset 0 (data.bgData, data.statusData): Primary AndroidAPS instance
+     * - Dataset 0 (data.bgData, data.statusData): Primary AAPS instance
      * - Dataset 1 (data.bgData1, data.statusData1): AAPSClient1 (follower mode)
      * - Dataset 2 (data.bgData2, data.statusData2): AAPSClient2 (follower mode)
      *

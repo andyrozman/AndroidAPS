@@ -14,7 +14,7 @@ import app.aaps.pump.tandem.common.data.SemaphoreInfoDto
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 class MobiSemaphorePumpInfoRow(
-    val events: MutableSharedFlow<MobiOverviewEventv2>,
+    val events: MutableSharedFlow<MobiOverviewEvent>,
     val semaphoreInfo: SemaphoreInfoDto,
     val mapSemaphoreTranslations: Map<String, String>
 ) : PumpInfoComposable {
@@ -33,7 +33,7 @@ class MobiSemaphorePumpInfoRow(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .clickable(enabled = semaphoreInfo.semaphoreNotifications) {
-                        events.tryEmit(MobiOverviewEventv2.OpenNotification)
+                        events.tryEmit(MobiOverviewEvent.OpenNotification)
                     },
                 color = if (semaphoreInfo.semaphoreNotifications) Color.Red
                 else MaterialTheme.colorScheme.onSurfaceVariant
@@ -45,7 +45,7 @@ class MobiSemaphorePumpInfoRow(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .clickable(enabled = semaphoreInfo.semaphoreEvents) {
-                        events.tryEmit(MobiOverviewEventv2.OpenEvents)
+                        events.tryEmit(MobiOverviewEvent.OpenEvents)
                     },
                 color = if (semaphoreInfo.semaphoreEvents) Color.Green
                 else MaterialTheme.colorScheme.onSurfaceVariant
@@ -57,7 +57,7 @@ class MobiSemaphorePumpInfoRow(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .clickable(enabled = semaphoreInfo.semaphoreHistory) {
-                        events.tryEmit(MobiOverviewEventv2.OpenHistory)
+                        events.tryEmit(MobiOverviewEvent.OpenHistory)
                     },
                 color = if (semaphoreInfo.semaphoreHistory) Color.Blue
                 else MaterialTheme.colorScheme.onSurfaceVariant

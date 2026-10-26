@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="eopatch">EOPatch2</string>
-    <string name="eopatch_shortname">EOP2</string>
     <string name="eopatch_pump_description">Integración de bombas de insulina EOPatch2/GlucoMen Day Pump</string>
+    <string name="eopatch_bolus_end_not_confirmed" comment="%1$s=insulin the patch reported, with its unit, for example: 1.50 U">El parche no ha confirmado el fin del bolo. Se ha registrado %1$s, pero es posible que el parche haya administrado más. Comprueba el parche antes de administrar más insulina</string>
     <string name="low_reservoir">Alertas de reservorio bajo</string>
     <string name="patch_expiration_reminders">Recordatorio de expiración del parche</string>
     <string name="patch_buzzer_reminders">Recordatorios de sonidos del parche</string>
@@ -69,7 +69,6 @@
     <string name="patch_communication_succeed">Comunicación exitosa</string>
     <string name="patch_communication_succeed_message">Conectado con el parche.</string>
     <string name="patch_cancel_pairing">Cancelar emparejamiento</string>
-    <string name="all_dose_unit">&#160;U</string>
     <string name="insulin_suspend_msg1">Al suspender, se cancelará la entrega de bolo actual &amp; La basal temporal se cancelará. \n\nTasa: %1$s U/hr \nTiempo restante: %2$s\n&amp; Insulina por administrar: %3$.2f U</string>
     <string name="insulin_suspend_msg2">Al suspender, se cancelará el bolo que se esté administrando en ese momento \n\nInsulina para completar: %1$.2f U</string>
     <string name="insulin_suspend_msg3">Al suspender, se cancelará la basal temporal que se esté suministrando en ese momento \n\nTasa : %1$s U/hr\nTiempo restante: %2$s</string>
@@ -93,7 +92,4 @@
     <string name="wizard_exit_deactivation_warning">¿Salir del asistente de desactivación? El parche podría permanecer activo y continuar administrando insulina.</string>
     <string name="patch_force_reset">Reinicio forzado</string>
     <string name="patch_force_reset_confirm">Esto borrará el estado del parche localmente sin enviarle comandos. Úselo solo si la desactivación normal falla. El parche seguirá administrando insulina hasta que se agote su batería o se apague manualmente.</string>
-    <!-- Permission rationales -->
-    <string name="permission_exact_alarm_title">Alarmas exactas</string>
-    <string name="permission_exact_alarm_description">La aplicación necesita permiso para programar alarmas exactas para la gestión del parche</string>
 </resources>

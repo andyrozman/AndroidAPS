@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="eopatch">EOPatch2</string>
-    <string name="eopatch_shortname">EOP2</string>
     <string name="eopatch_pump_description">Pumpeintegration til EOPatch2 / GlucoMen Day</string>
     <string name="low_reservoir">Lavt reservoir Alarmer</string>
     <string name="patch_expiration_reminders">Patch Udløbspåmindelser</string>
@@ -62,7 +61,6 @@
     <string name="patch_communication_succeed">Kommunikation lykkedes</string>
     <string name="patch_communication_succeed_message">Forbundet med Patchen.</string>
     <string name="patch_cancel_pairing">Annullér parring</string>
-    <string name="all_dose_unit">&#160;IE</string>
     <string name="insulin_suspend_msg1">Efter suspenderingen vil den nuværende leverende Bolus &amp; Midlertidig basal vil blive annulleret. \n\nRate : %1$s IE/t\nResterende tid : %2$s\n&amp; Insulin tilbage: %3$.2f IE</string>
     <string name="insulin_suspend_msg2">Efter suspenderingen vil den aktuelt leverende Bolus blive annulleret. \n\nInsulin tilbage: %1$.2f IE</string>
     <string name="insulin_suspend_msg3">Efter suspenderingen vil den nuværende leverende Midlertidige Basal blive annulleret. \nRate : %1$s IE/t\nResterende tid : %2$s</string>
@@ -80,5 +78,4 @@
     <string name="string_resumed_insulin_delivery_message">Insulintilførsel genoptaget.</string>
     <string name="string_temp_basal_remained_hhmm">resterende tid: %1$s:%2$s</string>
     <string name="string_resume_failed">Genoptagelse mislykkedes.</string>
-    <!-- Permission rationales -->
 </resources>

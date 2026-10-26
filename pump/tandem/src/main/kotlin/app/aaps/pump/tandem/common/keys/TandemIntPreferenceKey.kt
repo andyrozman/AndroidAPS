@@ -2,13 +2,14 @@ package app.aaps.pump.tandem.common.keys
 
 import app.aaps.core.keys.interfaces.BooleanPreferenceKey
 import app.aaps.core.keys.interfaces.IntPreferenceKey
+import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.pump.tandem.R
 
 enum class TandemIntPreferenceKey(
     override val key: String,
     override val defaultValue: Int,
-    override val titleResId: Int = 0,
-    override val summaryResId: Int? = null,
+    val titleResId: Int = 0,
+    val summaryResId: Int? = null,
     override val min: Int = Int.MIN_VALUE,
     override val max: Int = Int.MAX_VALUE,
     override val calculatedDefaultValue: Boolean = false,
@@ -37,6 +38,9 @@ enum class TandemIntPreferenceKey(
 
     PumpPairStatus(key = "pref_tandem_pair_status",
                    defaultValue = -1,
-                   titleResId = R.string.tandem_pump_pair_status)
+                   titleResId = R.string.tandem_pump_pair_status);
+
+    override val title: TextRef = TextRef.AndroidRes(titleResId)
+    override val summary: TextRef? = summaryResId?.let { TextRef.AndroidRes(it) }
 
 }

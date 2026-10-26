@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="eopatch">EOPatch2</string>
-    <string name="eopatch_shortname">EOP2</string>
     <string name="eopatch_pump_description">Integrazione del microinfusore EOPatch2 / GlucoMen Day</string>
+    <string name="eopatch_bolus_end_not_confirmed" comment="%1$s=insulin the patch reported, with its unit, for example: 1.50 U">Il cerotto non ha confermato la fine del bolo. %1$s è registrato, ma il cerotto potrebbe averne dato di più. Controlli il cerotto prima di somministrare più insulina.</string>
     <string name="low_reservoir">Avvisi livello serbatoio basso</string>
     <string name="patch_expiration_reminders">Promemoria scadenza patch</string>
     <string name="patch_buzzer_reminders">Promemoria buzzer della patch</string>
@@ -69,7 +69,6 @@
     <string name="patch_communication_succeed">Comunicazione riuscita</string>
     <string name="patch_communication_succeed_message">Connesso con la patch</string>
     <string name="patch_cancel_pairing">Annulla associazione</string>
-    <string name="all_dose_unit">&#160;U</string>
     <string name="insulin_suspend_msg1">Al momento della sospensione, il bolo &amp; la basale temporanea attualmente in erogazione verranno cancellati. \n\nVelocità : %1$s U/hr\nTempo rimanente  : %2$s\n&amp; Insulin to go : %3$.2f U</string>
     <string name="insulin_suspend_msg2">Al momento della sospensione, il bolo attualmente in erogazione verrà cancellato. \n\nInsulin to go : %1$.2f U</string>
     <string name="insulin_suspend_msg3">Al momento della sospensione, la basale temporanea attualmente in erogazione verrà cancellata. \n\nVelocità : %1$s U/hr\nTempo rimanente  : %2$s</string>
@@ -93,7 +92,4 @@
     <string name="wizard_exit_deactivation_warning">Esci dalla procedura guidata di disattivazione? Il cerotto può rimanere attivo e continuare a fornire insulina.</string>
     <string name="patch_force_reset">Forza Reset</string>
     <string name="patch_force_reset_confirm">Questo cancellerà lo stato della patch localmente senza inviare comandi alla patch. Usare solo se la disattivazione normale fallisce. La patch continuerà a erogare fino a quando la batteria non si esaurirà o viene disattivata manualmente.</string>
-    <!-- Permission rationales -->
-    <string name="permission_exact_alarm_title">Allarmi Esatti</string>
-    <string name="permission_exact_alarm_description">L\'applicazione ha bisogno del permesso per pianificare gli avvisi esatti per la gestione delle patch</string>
 </resources>

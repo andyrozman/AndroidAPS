@@ -3,6 +3,7 @@ package app.aaps.pump.tandem.common.keys
 import app.aaps.core.keys.PreferenceType
 import app.aaps.core.keys.interfaces.BooleanPreferenceKey
 import app.aaps.core.keys.interfaces.StringPreferenceKey
+import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsFilter
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
@@ -11,10 +12,11 @@ import app.aaps.pump.tandem.common.data.defs.QuickBolusType
 enum class TandemStringPreferenceKey(
     override val key: String,
     override val defaultValue: String,
-    override val titleResId: Int = 0,
-    override val summaryResId: Int? = null,
+    val titleResId: Int = 0,
+    val summaryResId: Int? = null,
     override val preferenceType: PreferenceType = PreferenceType.TEXT_FIELD,
-    override val entries: Map<String, Int> = emptyMap(),
+
+    private val entriesResIds: Map<String, Int> = emptyMap(),
     override val defaultedBySM: Boolean = false,
     override val showInApsMode: Boolean = true,
     override val showInNsClientMode: Boolean = true,
@@ -44,7 +46,7 @@ enum class TandemStringPreferenceKey(
                                defaultValue = QualifyingEventsFilter.ALL.name,
                                preferenceType = PreferenceType.LIST,
                                titleResId = R.string.data_qe_filter_description,
-                               entries = mapOf(
+                               entriesResIds = mapOf(
                                    QualifyingEventsFilter.ALL.name to QualifyingEventsFilter.ALL.friendlyName,
                                    QualifyingEventsFilter.AAPS_RELEVANT.name to QualifyingEventsFilter.AAPS_RELEVANT.friendlyName
                                )
@@ -54,7 +56,7 @@ enum class TandemStringPreferenceKey(
                               defaultValue = QualifyingEventsRange.LAST_15_ITEMS.name,
                               preferenceType = PreferenceType.LIST,
                               titleResId = R.string.data_qe_range_description,
-                              entries = mapOf(
+                              entriesResIds = mapOf(
                                   QualifyingEventsRange.LAST_15_ITEMS.name to QualifyingEventsRange.LAST_15_ITEMS.friendlyName,
                                   QualifyingEventsRange.LAST_3_HOURS.name to QualifyingEventsRange.LAST_3_HOURS.friendlyName,
                                   QualifyingEventsRange.LAST_6_HOURS.name to QualifyingEventsRange.LAST_6_HOURS.friendlyName,
@@ -67,7 +69,7 @@ enum class TandemStringPreferenceKey(
                        defaultValue = QuickBolusType.DISABLED.name,
                        preferenceType = PreferenceType.LIST,
                        titleResId = R.string.pump_quick_bolus_description,
-                       entries = mapOf(
+                       entriesResIds = mapOf(
                            QuickBolusType.DISABLED.name to QuickBolusType.DISABLED.friendlyName,
                            QuickBolusType.UNITS_0_5.name to QuickBolusType.UNITS_0_5.friendlyName,
                            QuickBolusType.UNITS_1_0.name to QuickBolusType.UNITS_1_0.friendlyName,
@@ -78,25 +80,10 @@ enum class TandemStringPreferenceKey(
                            QuickBolusType.CARBS_10G.name to QuickBolusType.CARBS_10G.friendlyName,
                            QuickBolusType.CARBS_15G.name to QuickBolusType.CARBS_15G.friendlyName
                        )
-    )
+    );
 
-
-
-    // Encoding(
-    // key = "pref_medtronic_encoding",
-    // defaultValue = "medtronic_pump_encoding_4b6b_rileylink",
-    // titleResId = R.string.medtronic_pump_encoding_title,
-    // preferenceType = PreferenceType.LIST,
-    // entries = mapOf(
-    // "medtronic_pump_encoding_4b6b_local" to R.string.medtronic_pump_encoding_4b6b_local,
-    // "medtronic_pump_encoding_4b6b_rileylink" to R.string.medtronic_pump_encoding_4b6b_rileylink
-    // )
-    // )
-
-
-
-
-
-
+    override val title: TextRef = TextRef.AndroidRes(titleResId)
+    override val summary: TextRef? = summaryResId?.let { TextRef.AndroidRes(it) }
+    override val entries: Map<String, TextRef> = entriesResIds.mapValues { TextRef.AndroidRes(it.value) }
 
 }

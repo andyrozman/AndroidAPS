@@ -8,9 +8,9 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.BolusProgressData
+import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.pump.PumpRate
 import app.aaps.core.interfaces.pump.PumpSync
-import app.aaps.core.interfaces.pump.PumpInsulin
 import app.aaps.core.interfaces.pump.TemporaryBasalStorage
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.utils.DateUtil
@@ -31,18 +31,20 @@ import app.aaps.pump.medtrum.keys.MedtrumIntNonKey
 import app.aaps.pump.medtrum.keys.MedtrumLongNonKey
 import app.aaps.pump.medtrum.keys.MedtrumStringKey
 import app.aaps.pump.medtrum.keys.MedtrumStringNonKey
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.runBlocking
 import java.util.EnumSet
 import java.util.GregorianCalendar
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.math.round
 
-@Singleton
-class MedtrumPump @Inject constructor(
+@SingleIn(AppScope::class)
+@Inject
+class MedtrumPump(
     private val aapsLogger: AAPSLogger,
     private val rh: ResourceHelper,
     private val preferences: Preferences,
@@ -55,6 +57,10 @@ class MedtrumPump @Inject constructor(
     companion object {
 
         const val FAKE_TBR_LENGTH = 4800L
+        private const val MINUTES_PER_DAY = 24 * 60
+
+        // 1 U/h for one hour is 20 steps of 0.05 U/h for 60 minutes.
+        private const val STEP_MINUTES_PER_UNIT = 1200.0
     }
 
     // Connection state flow
@@ -439,6 +445,32 @@ class MedtrumPump @Inject constructor(
             }
         }
         return basal
+    }
+
+    /**
+     * The insulin of each hour of the day from midnight, in U/h, from a profile as the patch keeps it (#2454). Each
+     * rate is a number of 0.05 U/h steps; an hour with two rates counts each one for its minutes. null when the
+     * array holds no valid profile from midnight.
+     */
+    fun hourlyBasalFromMedtrumProfileArray(basalProfile: ByteArray): List<Double>? {
+        if (basalProfile.size < 4 || (basalProfile.size - 1) % 3 != 0) return null
+        val basalCount = basalProfile[0].toInt()
+        if (basalCount > 24 || basalCount != (basalProfile.size - 1) / 3) return null
+        // (steps of 0.05 U/h, start minute)
+        val entries = (0 until basalCount).map { index ->
+            val rateAndTime = basalProfile.copyOfRange(1 + index * 3, 4 + index * 3).toInt()
+            Pair(rateAndTime shr 12, rateAndTime and 0xFFF)
+        }
+        if (entries.first().second != 0) return null
+        return (0 until 24).map { hour ->
+            var stepMinutes = 0
+            entries.forEachIndexed { index, (steps, start) ->
+                val end = entries.getOrNull(index + 1)?.second ?: MINUTES_PER_DAY
+                val overlap = minOf(end, (hour + 1) * 60) - maxOf(start, hour * 60)
+                if (overlap > 0) stepMinutes += steps * overlap
+            }
+            stepMinutes / STEP_MINUTES_PER_UNIT
+        }
     }
 
     fun handleBolusStatusUpdate(bolusType: Int, bolusCompleted: Boolean, amountDelivered: Double) {

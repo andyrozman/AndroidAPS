@@ -7,7 +7,6 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.tandem.common.comm.ui.TandemUICommunication
-import app.aaps.pump.tandem.common.concurrency.TandemDispatcher
 import app.aaps.pump.tandem.common.data.history.HistoryRange
 import app.aaps.pump.tandem.common.data.history.HistoryRequestInfo
 import app.aaps.pump.tandem.common.data.history.HistorySummaryDto
@@ -38,7 +37,6 @@ import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import app.aaps.pump.tandem.common.concurrency.PumpDispatcherScope
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import java.util.GregorianCalendar
 import kotlin.test.assertEquals
@@ -61,7 +59,6 @@ class HistoryRetrieverTest {
     @Mock lateinit var tandemPumpConnector: TandemPumpConnector
     @Mock lateinit var uiInteraction: UiInteraction
     @Mock lateinit var notificationManager: NotificationManager
-    @Mock lateinit var tandemDispatcher: TandemDispatcher
     @Mock lateinit var historyPostProcessor: HistoryPostProcessor
 
 
@@ -95,7 +92,6 @@ class HistoryRetrieverTest {
             tandemPumpConnector = tandemPumpConnector,
             uiInteraction = uiInteraction,
             notificationManager = notificationManager,
-            tandemDispatcher = tandemDispatcher,
             historyPostProcessor = historyPostProcessor
         )
         // Tests call internal methods directly (processChunkComplete, etc.) without going through
@@ -104,22 +100,22 @@ class HistoryRetrieverTest {
         // observes the wire calls those internal methods make.
         this.unitToTest.communication = tandemUICommunication
 
-        // Real production code routes wire sends through tandemDispatcher.submitBackground { ... }.
-        // The default Mockito mock swallows the lambda; stub it to invoke the block inline with a
-        // fake scope so the verify(tandemUICommunication).sendCommand(...) assertions reach what
-        // the production code is actually doing.
-        val fakeScope = object : PumpDispatcherScope {
-            override val pumpConnectionManager: TandemPumpConnectionManager
-                get() = error("not used in HistoryRetriever tests")
-            override val tandemUICommunication: TandemUICommunication
-                get() = this@HistoryRetrieverTest.tandemUICommunication
-        }
-        doAnswer { invocation ->
-            @Suppress("UNCHECKED_CAST")
-            val block = invocation.arguments.last() as PumpDispatcherScope.() -> Unit
-            fakeScope.block()
-            Unit
-        }.whenever(tandemDispatcher).submitBackground(any(), any(), any())
+        // // Real production code routes wire sends through tandemDispatcher.submitBackground { ... }.
+        // // The default Mockito mock swallows the lambda; stub it to invoke the block inline with a
+        // // fake scope so the verify(tandemUICommunication).sendCommand(...) assertions reach what
+        // // the production code is actually doing.
+        // val fakeScope = object : PumpDispatcherScope {
+        //     override val pumpConnectionManager: TandemPumpConnectionManager
+        //         get() = error("not used in HistoryRetriever tests")
+        //     override val tandemUICommunication: TandemUICommunication
+        //         get() = this@HistoryRetrieverTest.tandemUICommunication
+        // }
+        // doAnswer { invocation ->
+        //     @Suppress("UNCHECKED_CAST")
+        //     val block = invocation.arguments.last() as PumpDispatcherScope.() -> Unit
+        //     fakeScope.block()
+        //     Unit
+        // }.whenever(tandemDispatcher).submitBackground(any(), any(), any())
 
         this.unitToTestSpy = spy(this.unitToTest)
     }

@@ -19,7 +19,6 @@
     <string name="updatingbasalrates">Bazal oranların güncellenmesi</string>
     <string name="description_pump_diaconn_g8">Diaconn G8 Pompaları için Pompa Entegrasyonu</string>
     <string name="diaconn_g8_pump">Diaconn G8</string>
-    <string name="diaconn_g8_pump_shortname">Diaconn G8</string>
     <string name="maxbolusviolation">Maksimum bolus ihlali</string>
     <string name="commanderror">Komut hatası</string>
     <string name="speederror">Hız hatası</string>
@@ -121,4 +120,7 @@
     <string name="diaconn_g8_errorcode_36">Geçici bazal çalışmıyorken Geçici bazal durdurma reddedilir</string>
     <string name="diaconn_g8_cloudsend_summary">Pompa günlüklerini Diaconn Bulut Deposuna gönderin.</string>
     <string name="diaconn_g8_cloudsend_title">Diaconn Bulut Senkronizasyonu</string>
+    <string name="bolus_speed_8">8 Ü/dk</string>
+    <string name="diaconn_pairing_successful">Eşleştirme başarılı!</string>
+    <string name="diaconn_pairing_successful_message">Pompanız bağlandı ve kullanıma hazır.</string>
 </resources>
