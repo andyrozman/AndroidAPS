@@ -69,6 +69,10 @@ class TandemUiController(
     }
 
     fun disposeTandemUiCommunication(disposeType: AdditionalConfigurationScreens) {
+        aapsLogger.info(
+            LTag.PUMP,
+            "disposeTandemUiCommunication($disposeType): preventQueueExecution before=${tandemPumpStatus.preventQueueExecution}"
+        )
         if (disposeType==AdditionalConfigurationScreens.Actions) {
             aapsLogger.info(LTag.PUMP, "Actions window was closed. Sending event to refresh.")
 
@@ -99,6 +103,7 @@ class TandemUiController(
         this.tandemUICommunication.tandemPumpCommunicationManager = null
         //aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi (exiting Actions/Data)")
         tandemPumpStatus.preventQueueExecution = false
+        aapsLogger.info(LTag.PUMP, "disposeTandemUiCommunication($disposeType): done, preventQueueExecution=false")
     }
 
     enum class AdditionalConfigurationScreens {
@@ -181,10 +186,12 @@ class TandemUiController(
                 }
             }
             RefreshData.START_ACTIONS       -> {
+                aapsLogger.info(TAG, "UI workflow latch: preventQueueExecution = true (Actions screen started)")
                 tandemPumpStatus.preventQueueExecution = true
                 ds.reminderDateTime.value = tandemPumpStatus.tandemSiteReminder
             }
             RefreshData.START_DATA       -> {
+                aapsLogger.info(TAG, "UI workflow latch: preventQueueExecution = true (Data screen started)")
                 tandemPumpStatus.preventQueueExecution = true
             }
         }

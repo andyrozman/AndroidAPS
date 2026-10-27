@@ -139,17 +139,51 @@ class HistoryRetriever(
         downloadRunning = true
         startDataRetrieval()
 
+        // Progress watchdog: every message the per-download TandemUICommunication receives counts
+        // as progress. A stalled stream (RF drop mid-chunk, or a misrouted response that a stale
+        // listener instance dropped - both observed 2026-08-31/09-01) previously wedged this loop,
+        // and with it the whole CommandExecutor, for the full 60-min timeout. Un-wedge after
+        // WATCHDOG_TIMEOUT_MS of no messages instead.
+        var lastMessageCount = -1
+        var lastProgressMs = System.currentTimeMillis()
+        var firstMessageAtMs = -1L
+        var loopCount = 0
+        aapsLogger.info(TAG, "${historyPrefix}history watchdog: ${WATCHDOG_TIMEOUT_MS / 1000}s without messages aborts, overall timeout ${(timeoutTime - startTime) / 60_000}min")
+
         while (downloadRunning) {
             aapsLogger.debug("${historyPrefix}download running")
             pumpUtil.sleepSeconds(5)
+            loopCount++
+
+            if (communication.messageCount != lastMessageCount) {
+                if (firstMessageAtMs < 0L) {
+                    firstMessageAtMs = System.currentTimeMillis()
+                    aapsLogger.info(TAG, "${historyPrefix}first message after ${firstMessageAtMs - startTime}ms (count=${communication.messageCount})")
+                }
+                lastMessageCount = communication.messageCount
+                lastProgressMs = System.currentTimeMillis()
+                if (loopCount % 12 == 0) {
+                    aapsLogger.info(TAG, "${historyPrefix}progress: messages=$lastMessageCount, elapsed=${System.currentTimeMillis() - startTime}ms")
+                }
+            } else if (System.currentTimeMillis() - lastProgressMs > WATCHDOG_TIMEOUT_MS) {
+                aapsLogger.error(TAG, "${historyPrefix}No messages received for ${WATCHDOG_TIMEOUT_MS / 1000}s (messages=$lastMessageCount) - aborting history download.")
+                downloadRunning = false
+                this.communication.tandemPumpCommunicationManager = null
+                currentRequest = null
+                setSemaphore()
+                endProgress()
+                return false
+            }
 
             if (timeoutTime < System.currentTimeMillis()) {
                 if (communication.messageCount==0) {
                     aapsLogger.error(TAG, "[History] Timeout reached while trying to read history, with no messages read.")
+                    this.communication.tandemPumpCommunicationManager = null
                     return false
                 } else {
                     aapsLogger.error(TAG, "[History] Timeout reached while trying to read history, with ${communication.messageCount} messages read.")
                     downloadRunning = false
+                    this.communication.tandemPumpCommunicationManager = null
                     return false
                 }
             }
@@ -203,9 +237,38 @@ class HistoryRetriever(
         downloadRunning = true
         startDataRetrieval()
 
+        // Same progress watchdog as downloadHistory(): this loop previously had NO timeout at
+        // all, so a stalled silent download wedged the CommandExecutor indefinitely.
+        var lastMessageCount = -1
+        var lastProgressMs = System.currentTimeMillis()
+        var firstMessageAtMs = -1L
+        var loopCount = 0
+        aapsLogger.info(TAG, "${historyPrefix}silent download watchdog: ${WATCHDOG_TIMEOUT_MS / 1000}s without messages aborts")
+
         while(downloadRunning) {
             aapsLogger.debug("${historyPrefix}download running")
             pumpUtil.sleepSeconds(5)
+            loopCount++
+
+            if (communication.messageCount != lastMessageCount) {
+                if (firstMessageAtMs < 0L) {
+                    firstMessageAtMs = System.currentTimeMillis()
+                    aapsLogger.info(TAG, "${historyPrefix}silent download first message after ${firstMessageAtMs - startTime}ms (count=${communication.messageCount})")
+                }
+                lastMessageCount = communication.messageCount
+                lastProgressMs = System.currentTimeMillis()
+                if (loopCount % 12 == 0) {
+                    aapsLogger.info(TAG, "${historyPrefix}silent download progress: messages=$lastMessageCount, elapsed=${System.currentTimeMillis() - startTime}ms")
+                }
+            } else if (System.currentTimeMillis() - lastProgressMs > WATCHDOG_TIMEOUT_MS) {
+                aapsLogger.error(TAG, "${historyPrefix}Silent download: no messages received for ${WATCHDOG_TIMEOUT_MS / 1000}s (messages=$lastMessageCount) - aborting.")
+                downloadRunning = false
+                this.communication.tandemPumpCommunicationManager = null
+                currentRequest = null
+                setSemaphore()
+                endProgress()
+                return mutableListOf()
+            }
         }
 
         this.communication.tandemPumpCommunicationManager = null

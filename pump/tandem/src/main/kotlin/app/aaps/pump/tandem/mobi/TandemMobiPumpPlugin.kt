@@ -622,20 +622,16 @@ class TandemMobiPumpPlugin(
 
         //aapsLogger.debug(LTag.PUMP, logPrefix + "DUB isConnecting [status=$status]")
 
-        val unreachable = (error!=null && error==PumpErrorType.PumpUnreachable)
+        // Limited override - PumpUnreachable only. It is LATCHED by onPumpCriticalError on
+        // transient link failures (e.g. INSUFFICIENT_AUTHORIZATION /
+        // CONNECTION_UPDATE_FAILED while separating from the pump) and is never cleared,
+        // so letting it drive isConnecting() left the command queue stuck in its
+        // "connecting" branch even after a successful reconnect. Any other latched error
+        // keeps the legacy behavior.
+        val unreachable = (error != null && error == PumpErrorType.PumpUnreachable)
 
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, logPrefix + "DUB isConnecting [status=$status]")
-        return status == PumpDriverState.Connecting || unreachable
-
-        // return !isServiceSet || tandemService?.isInitialized != true
-
-        // if (!driverInitialized)
-        //     return false
-        //
-        // val driverStatus = tandemUtil.driverStatus
-        // if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isConnecting - " + driverStatus.name)
-        //
-        // return driverStatus == PumpDriverState.Connecting
+        return status == PumpDriverState.Connecting && !unreachable
     }
 
     // override fun connect(reason: String) {
@@ -690,8 +686,29 @@ class TandemMobiPumpPlugin(
         return true
     }
 
+    private var lastBusyLogged: Boolean? = null
+    private var lastBusyLogMs = 0L
+
     override fun isBusy(): Boolean {
-        val isBusy = tandemPumpUtil.preventReconnect || pumpStatus.preventQueueExecution
+        // UI-workflow latch watchdog: START_ACTIONS/START_DATA latch preventQueueExecution;
+        // releases happen on navigation-leave, tab dispose and lifecycle events. If every release
+        // path is missed, the latch locks the Loop out indefinitely (2026-09-06: ~5.4h overnight,
+        // no SMBs) - isQueueExecutionPrevented() auto-releases stale latches here.
+        // preventConnect no longer exists in dev_4; preventReconnect is the remaining guard.
+        val queuePrevented = pumpStatus.isQueueExecutionPrevented()
+        val isBusy = tandemPumpUtil.preventReconnect || queuePrevented
+        val now = System.currentTimeMillis()
+        if (lastBusyLogged != isBusy || now - lastBusyLogMs > 60_000L) {
+            val latchAgeMs = if (pumpStatus.preventQueueExecution) now - pumpStatus.preventQueueExecutionSinceMs else -1L
+            aapsLogger.info(
+                LTag.PUMP,
+                "isBusy=$isBusy [preventReconnect=${tandemPumpUtil.preventReconnect}, " +
+                    "preventQueueExecution=${pumpStatus.preventQueueExecution}, latchAgeMs=$latchAgeMs, " +
+                    "driverStatus=${tandemPumpUtil.driverStatus}]"
+            )
+            lastBusyLogged = isBusy
+            lastBusyLogMs = now
+        }
         if (displayConnectionMessages) aapsLogger.debug(LTag.PUMP, "isBusy: $isBusy")
         return isBusy
     }
@@ -1624,7 +1641,18 @@ class TandemMobiPumpPlugin(
 
 
     override fun isInPreventConnectMode(): Boolean {
-        return tandemPumpUtil.preventReconnect || pumpStatus.preventQueueExecution
+        val prevented = tandemPumpUtil.preventReconnect || pumpStatus.preventQueueExecution
+        if (prevented) {
+            val now = System.currentTimeMillis()
+            val latchAgeMs = if (pumpStatus.preventQueueExecution) now - pumpStatus.preventQueueExecutionSinceMs else -1L
+            aapsLogger.warn(
+                LTag.PUMP,
+                "isInPreventConnectMode=true [preventReconnect=${tandemPumpUtil.preventReconnect}, " +
+                    "preventQueueExecution=${pumpStatus.preventQueueExecution}, latchAgeMs=$latchAgeMs] " +
+                    "- scheduled status refresh suppressed"
+            )
+        }
+        return prevented
     }
 
 

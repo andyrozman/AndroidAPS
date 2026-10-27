@@ -148,7 +148,9 @@ class TandemPumpUtil(
      * field — it does not tear down the live BLE state.
      */
     fun forceResetBluetoothHandler(handler: TandemBluetoothHandler?) {
+        val wasPreventReconnect = preventReconnect
         preventReconnect = true
+        aapsLogger.info(LTag.PUMPBTCOMM, "forceResetBluetoothHandler: preventReconnect $wasPreventReconnect -> true (handler=${handler != null})")
         try {
             handler?.let { h ->
                 // 1. Neutralize the handler's internal android.os.Handler BEFORE cancelling
@@ -244,6 +246,22 @@ class TandemPumpUtil(
     }
 
 
+    /**
+     * Mobi-only replacement for [PumpUtil.clearError].
+     *
+     * The shared `clearError()` sets `errorType = null`, and that setter does `pumpErrorType!!`,
+     * so it throws NPE whenever an error is latched (it broke the reconnect the wizard triggers
+     * after pairing). `pump/common` is out of scope here, so clear only the details and leave the
+     * core `errorType` latch in place. Its only Tandem consumer is
+     * `TandemMobiPumpPlugin.isConnecting()`, which already ignores a latched PumpUnreachable.
+     */
+    fun clearErrorDetails() {
+        if (errorDetails.isNotEmpty()) {
+            errorDetails = ""
+        }
+    }
+
+
     fun clearAllPairingData() {
         aapsLogger.info(LTag.PUMPCOMM, "TandemPumpUtil: Clearing all pairing data for re-pairing")
 
@@ -267,7 +285,7 @@ class TandemPumpUtil(
         // Reset pump status
         tandemPumpStatus.serialNumber = 0L
         //tandemPumpStatus.errorDescription = ""
-        clearError()
+        clearErrorDetails()
 
         aapsLogger.info(LTag.PUMPCOMM, "TandemPumpUtil: All pairing data cleared successfully")
     }

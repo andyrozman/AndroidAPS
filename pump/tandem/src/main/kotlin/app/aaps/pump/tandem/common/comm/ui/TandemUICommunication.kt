@@ -87,8 +87,14 @@ class TandemUICommunication(
             return false
         }
 
-        if (!tandemPumpCommunicationManager!!.isListenerEnabled()) {
-            tandemPumpCommunicationManager!!.communicationListener = this
+        // Always (re)bind: the listener from a previous download cycle (or a UI screen) may
+        // still be attached, and stale instances drop history responses (receivedLogStatus etc.
+        // never invoked). Rebinding is idempotent and guarantees the active instance routes
+        // this download's responses into the shared HistoryRetriever.
+        val previousListener = tandemPumpCommunicationManager!!.communicationListener
+        tandemPumpCommunicationManager!!.communicationListener = this
+        if (previousListener != null && previousListener !== this) {
+            aapsLogger.info(TAG, "Rebound communicationListener: previous=${previousListener.javaClass.simpleName} -> new instance (previous listener was still attached)")
         }
 
         if (!tandemPumpCommunicationManager!!.isPumpFullyConnected()) {
@@ -139,6 +145,10 @@ class TandemUICommunication(
                 val runningState = if (message.basalStatusIcon == HomeScreenMirrorResponse.BasalStatusIcon.SUSPEND) PumpRunningState.Suspended else PumpRunningState.Running
                 dataStore.pumpRunningState.value = runningState
                 pumpStatus.pumpRunningState = runningState
+
+                // Ground truth of actual delivery state - command ACKs (e.g. ResumePumping)
+                // can report success while the pump has not actually resumed.
+                dataStore.mirrorBasalStatus.value = message.basalStatusIcon
 
                 pumpStatus.pumpStatusMirror = HomeScreenMirrorDto()
                 pumpStatus.pumpStatusMirror!!.parse(message.cargo)
@@ -226,16 +236,22 @@ class TandemUICommunication(
 
                 if (::historyRetriever.isInitialized) {
                     historyRetriever.receivedStatus(message)
+                } else {
+                    aapsLogger.error(TAG, "HistoryLogStatusResponse dropped: historyRetriever not initialized on this TandemUICommunication instance")
                 }
             }
             is HistoryLogResponse -> {
                 if (::historyRetriever.isInitialized) {
                     historyRetriever.receivedLogResponse(message)
+                } else {
+                    aapsLogger.error(TAG, "HistoryLogResponse dropped: historyRetriever not initialized on this TandemUICommunication instance")
                 }
             }
             is HistoryLogStreamResponse -> {
                 if (::historyRetriever.isInitialized) {
                     historyRetriever.receivedLogStreamResponse(message)
+                } else {
+                    aapsLogger.error(TAG, "HistoryLogStreamResponse dropped: historyRetriever not initialized on this TandemUICommunication instance")
                 }
             }
             is ResumePumpingResponse    -> {
