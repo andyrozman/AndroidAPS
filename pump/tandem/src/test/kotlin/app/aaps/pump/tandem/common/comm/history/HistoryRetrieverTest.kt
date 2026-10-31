@@ -78,7 +78,7 @@ class HistoryRetrieverTest {
         `when`(this.tandemPumpUtil.gsonRegular).thenReturn(gsonRegular)
         `when`(dbDataHandler.getLatestHistorySequenceIds(any())).thenReturn(emptySet())
         `when`(dbDataHandler.getMaxHistorySequenceId()).thenReturn(null)
-        `when`(preferences.getIfExists(TandemLongNonPreferenceKey.HistoryResumeUpperSequence)).thenReturn(null)
+//        `when`(preferences.getIfExists(TandemLongNonPreferenceKey.HistoryResumeUpperSequence)).thenReturn(null)
 
         this.unitToTest = HistoryRetriever(
             //communication = tandemUICommunication,

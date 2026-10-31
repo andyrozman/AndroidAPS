@@ -60,7 +60,11 @@ class TandemDataConverter(
 
         val bolusTypes = message.bolusType
 
-        val bolusType: BolusType = BolusType.NORMAL
+        val bolusType: BolusType = if (bolusTypes.contains(element = BolusDeliveryHistoryLog.BolusType.LATER)) {
+            BolusType.EXTENDED
+        } else {
+            BolusType.NORMAL
+        }
 
         val bolusData = BolusData(
             timestamp = message.timestampInstant.toEpochMilli(),
