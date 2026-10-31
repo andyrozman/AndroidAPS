@@ -57,6 +57,7 @@ class TandemService : MetroService() {
     fun isMobiConfigurationStillValid(config: PumpConfigurationDto): Boolean {
 
         if (tandemPumpUtil.preventReconnect) {
+            aapsLogger.warn(LTag.PUMPCOMM, "isMobiConfigurationStillValid: false because preventReconnect=true (set by a previous teardown and not yet cleared)")
             return false
         }
 
@@ -229,6 +230,9 @@ class TandemService : MetroService() {
             storedBondStatus != 100 ||
             tandemPumpUtil.preventReconnect
         ) {
+            if (tandemPumpUtil.preventReconnect) {
+                aapsLogger.warn(LTag.PUMPCOMM, "prepareConfiguration: rejecting configuration because preventReconnect=true")
+            }
             configurationValid = false
 
             tandemPumpUtil.setError(errorType = PumpErrorType.ConfiguredPumpNotFound,
@@ -240,7 +244,7 @@ class TandemService : MetroService() {
         pumpAddress = storedAddress
         configurationValid = true
 
-        tandemPumpUtil.clearError()
+        tandemPumpUtil.clearErrorDetails()
 
         // Record the configuration actually applied to AAPS.
         currentConfiguration = PumpConfigurationDto(
@@ -311,10 +315,17 @@ class TandemService : MetroService() {
 
 
     fun disconnectFromPump() {
-        if (this.tandemPumpConnectionManager.isConnected()) {
-            val status = this.tandemPumpConnectionManager.disconnectFromPump()
-            aapsLogger.info(LTag.PUMP, "SRV: disconnectFromPump: connected=$status")
-        }
+        // Always route to the connector. Gating this on isConnected() made a force-disconnect a
+        // no-op while a connect attempt was running (driverStatus=Connecting), so the in-flight
+        // connect kept the pumpx2 handler singleton and the pairing manager could never own the
+        // BLE link - the wizard then failed with "already connecting" and 30s pairing timeouts.
+        aapsLogger.info(
+            LTag.PUMP,
+            "SRV: disconnectFromPump requested [isConnected=${this.tandemPumpConnectionManager.isConnected()}, " +
+                "driverStatus=${tandemPumpUtil.driverStatus}]"
+        )
+        val status = this.tandemPumpConnectionManager.disconnectFromPump()
+        aapsLogger.info(LTag.PUMP, "SRV: disconnectFromPump: connected=$status")
     }
 
 

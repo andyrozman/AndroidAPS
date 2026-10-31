@@ -13,6 +13,7 @@ import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
 import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
@@ -82,6 +83,12 @@ class TandemUIDataStore : TandemUiState, TandemUiStateWriter {
     val fillCannulaState = MutableLiveData<FillCannulaStateStreamResponse>()
     val loadStatus = MutableLiveData<LoadStatusResponse>()
     val insulinStatus = MutableLiveData<InsulinStatusResponse>()
+    val mirrorBasalStatus = MutableLiveData<HomeScreenMirrorResponse.BasalStatusIcon>()
+
+    // Mirror-derived ground truth for whether the pump is ACTUALLY delivering basal.
+    // pumpRunningState above is set optimistically when commands are ACKed - observed
+    // 2026-08-25: ResumePumpingResponse returned status=0 while HomeScreenMirror kept
+    // reporting basalStatusIcon=SUSPEND. Workflows must verify against THIS value.
     // Per-visit completion set; cleared on CartridgeActions exit.
     val completedCartridgeActions = MutableLiveData<Set<CompletedCartridgeAction>>(emptySet())
 

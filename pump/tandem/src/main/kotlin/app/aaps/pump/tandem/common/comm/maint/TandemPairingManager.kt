@@ -138,8 +138,17 @@ class TandemPairingManager constructor(
 
     fun stopBluetoothHandler() {
         aapsLogger.info(TAG, "TANDEM-PAIR-DBG: stopBluetoothHandler pairing")
-        tandemPumpUtil.forceResetBluetoothHandler(bluetoothHandler)
+        val handler = bluetoothHandler
+        if (handler == null) {
+            // Nothing owned by the pairing manager. Calling forceReset here would still set
+            // preventReconnect=true and reset the pumpx2 singleton - and it ran AFTER the wizard's
+            // onFinish cleared that flag, so the flag stayed latched until an app restart. The main
+            // TandemPumpCommunicationManager may also own a handler by now; do not touch it.
+            aapsLogger.info(TAG, "TANDEM-PAIR-DBG: stopBluetoothHandler: no handler owned by pairing manager - nothing to tear down")
+            return
+        }
         bluetoothHandler = null
+        tandemPumpUtil.forceResetBluetoothHandler(handler)
     }
 
     // Pair Status

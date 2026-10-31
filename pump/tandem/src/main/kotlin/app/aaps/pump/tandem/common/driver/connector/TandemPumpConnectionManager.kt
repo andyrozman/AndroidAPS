@@ -17,6 +17,7 @@ import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.pump.common.defs.BolusData
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
+import app.aaps.pump.tandem.common.driver.tandemDataStore
 import app.aaps.pump.common.defs.TempBasalPair
 import app.aaps.pump.common.driver.connector.commands.data.CustomCommandTypeInterface
 import app.aaps.pump.tandem.common.driver.connector.def.TandemCustomCommand
@@ -51,10 +52,29 @@ class TandemPumpConnectionManager(
         aapsLogger.info(LTag.PUMPCOMM, "connect To Pump")
 
         if (inConnectMode) {
-            return false;
+            // Another attempt holds the lock (its blocking connect loop is still waiting).
+            // This used to return silently, which made repeated connect calls no-ops
+            // invisible in the logs.
+            aapsLogger.warn(LTag.PUMPCOMM, "connectToPump skipped: another connect attempt is in progress")
+            return false
         }
 
         if (this.tandemConnector.isConnected()) {
+            aapsLogger.info(
+                LTag.PUMPCOMM,
+                "connectToPump: already connected [preventReconnect=${tandemPumpUtil.preventReconnect}, " +
+                    "preventQueueExecution=${tandemPumpStatus.preventQueueExecution}, " +
+                    "pumpConnectedFlow=${tandemPumpStatus.pumpConnectedFlow.value}, driverStatus=${pumpUtil.driverStatus}]"
+            )
+            // The pumpx2 layer can be connected (auto-reconnect) while pumpConnectedFlow is
+            // still false from an earlier drop — a stale flow makes PumpAvailabilitySync hold
+            // Unknown and every delivery op fast-fail. Repair instead of reporting a "fixed"
+            // connection that the availability gate still treats as disconnected.
+            if (!tandemPumpStatus.pumpConnectedFlow.value) {
+                aapsLogger.warn(TAG, "connectToPump: link is up but pumpConnectedFlow is stale (false) — republishing connected state")
+                tandemPumpStatus.pumpConnectedFlow.value = true
+                tandemDataStore.postPumpConnected(true)
+            }
             return true
         }
 

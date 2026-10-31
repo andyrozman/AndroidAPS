@@ -115,6 +115,7 @@ class MobiOverviewViewModel(
         get() = pairButtonEnabledFlow.value
         set(value) {
             if (pairButtonEnabledFlow.value != value) {
+                aapsLogger.info(LTag.PUMP, "pairButtonEnabled -> $value")
                 pairButtonEnabledFlow.value = value
             }
         }
@@ -236,14 +237,22 @@ class MobiOverviewViewModel(
             setPairButtonStatus()
         }.launchIn(ioScope)
 
+        // The observers above only run when a preference CHANGES. Without this call the Pair
+        // Pump button stays hidden (initial value false) for the whole session after a start.
+        setPairButtonStatus()
     }
 
     private fun setPairButtonStatus() {
+        aapsLogger.info(
+            LTag.PUMP,
+            "setPairButtonStatus: useSharedConnection=$useSharedConnection, hidePumpPairButton=$hidePumpPairButton"
+        )
         if (useSharedConnection) {
             pairButtonEnabled = false
         } else {
             pairButtonEnabled = !hidePumpPairButton
         }
+        aapsLogger.info(LTag.PUMP, "setPairButtonStatus: pairButtonEnabled=$pairButtonEnabled")
     }
 
 
@@ -265,7 +274,9 @@ class MobiOverviewViewModel(
     }
 
     fun onPairingClick() {
-        _events.tryEmit(MobiOverviewEvent.StartPairing)
+        aapsLogger.info(LTag.PUMP, "onPairingClick: emitting StartPairing (pairButtonEnabled=$pairButtonEnabled)")
+        val emitted = _events.tryEmit(MobiOverviewEvent.StartPairing)
+        aapsLogger.info(LTag.PUMP, "onPairingClick: StartPairing emitted=$emitted (buffer=${_events.subscriptionCount.value} subscribers)")
     }
 
 
@@ -387,7 +398,12 @@ class MobiOverviewViewModel(
                 primaryActions = buildPrimaryActions(pumpRunningState = pumpRunningState,
                                                      buttonsEnabledLocal = false,
                                                      statusBanner = communicationStatus.statusBanner()),
-                //managementActions = managementActions
+                // The pair button must be reachable exactly when the pump state is Unknown -
+                // that is the disconnected / not-yet-paired case this branch exists for.
+                managementActions = buildManagementActions(
+                    statusBanner = communicationStatus.statusBanner(),
+                    pairButtonEnabledLocal = pairButtonEnabledLocal
+                )
             )
         }
         // else {
@@ -620,7 +636,20 @@ class MobiOverviewViewModel(
         // }
     }
 
+    private var lastPairButtonLogged: Boolean? = null
+
     private fun buildManagementActions(statusBanner: StatusBanner?, pairButtonEnabledLocal: Boolean): List<ScreenAction> {
+
+        if (lastPairButtonLogged != pairButtonEnabledLocal) {
+            val buttonText = if (pairButtonEnabledLocal) "showing Pair Pump button" else "Pair Pump button HIDDEN"
+            aapsLogger.info(
+                LTag.PUMP,
+                "Overview management actions: pairButtonEnabled=$pairButtonEnabledLocal " +
+                    "(useSharedConnection=$useSharedConnection, hidePumpPairButton=$hidePumpPairButton, " +
+                    "statusBanner=${statusBanner != null}) -> $buttonText"
+            )
+            lastPairButtonLogged = pairButtonEnabledLocal
+        }
 
         if (managementActionsEnabled==null || managementActionsEnabled.isEmpty()) {
             managementActionsEnabled = listOf(
