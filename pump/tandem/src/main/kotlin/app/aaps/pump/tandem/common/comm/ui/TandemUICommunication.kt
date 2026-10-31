@@ -256,6 +256,7 @@ class TandemUICommunication(
             }
             is ResumePumpingResponse    -> {
                 aapsLogger.error(TAG, "ResumePumpingResponse received with status=${message.isStatusOK}")
+                dataStore.resumePumpingResult.postValue(ResumePumpingResult(message.isStatusOK, message.status))
                 if (message.isStatusOK) {
                     //dataStore.basalStatus.value = BasalStatus.ON
                     dataStore.pumpRunningState.value = PumpRunningState.Running

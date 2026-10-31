@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,6 +22,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -33,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,6 +50,9 @@ import app.aaps.pump.common.test.PreviewResourceHelper
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.core.ui.R as Rco
+import app.aaps.pump.tandem.common.comm.ui.ResumeFailure
+import app.aaps.pump.tandem.common.comm.ui.ResumeProgress
+import app.aaps.pump.tandem.common.comm.ui.evaluateResume
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.util.AlertBanner
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
@@ -57,6 +64,7 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlertStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -77,6 +85,7 @@ fun StartStopInsulinScreen(
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
     var isStartingOrStopping by remember { mutableStateOf(false) }
+    var resumeFailure by remember { mutableStateOf<ResumeFailure?>(null) }
 
     val pumpRunningState = ds.pumpRunningState.observeAsState()
     val tempRateActive = ds.tempRateActive.observeAsState()
@@ -187,6 +196,16 @@ fun StartStopInsulinScreen(
                 }
             }
 
+            resumeFailure?.let { failure ->
+                ResumeFailureCard(
+                    failure = failure,
+                    onDismiss = { resumeFailure = null },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+            }
+
             // Spacer to push button to bottom
             Spacer(modifier = Modifier.weight(1f))
 
@@ -201,20 +220,31 @@ fun StartStopInsulinScreen(
                         Button(
                             onClick = {
                                 isStartingOrStopping = true
-                                sendPumpCommands(listOf(ResumePumpingRequest()))
-                                refreshScope.launch {
-                                    repeat(5) {
-                                        if (pumpRunningState.value == PumpRunningState.Running) {
-                                            return@repeat
-                                        }
-                                        withContext(Dispatchers.IO) {
-                                            Thread.sleep(1000)
-                                        }
-                                        sendPumpCommands(listOf(HomeScreenMirrorRequest()))
-                                    }
-                                    navigateBack()
-                                    refreshMainAppData(RefreshData.PUMP_STATE_CHANGED)
+                                resumeFailure = null
+                                val before = ds.resumePumpingResult.value
+                                if (!sendPumpCommands(listOf(ResumePumpingRequest()))) {
+                                    resumeFailure = ResumeFailure.NOT_SENT
                                     isStartingOrStopping = false
+                                } else {
+                                    refreshScope.launch {
+                                        var progress = ResumeProgress.WAITING
+                                        var attempt = 0
+                                        while (progress == ResumeProgress.WAITING && attempt < 5) {
+                                            delay(1000)
+                                            // Only an answer newer than our request counts
+                                            val result = ds.resumePumpingResult.value?.takeIf { it !== before }
+                                            progress = evaluateResume(result, ds.pumpRunningState.value == PumpRunningState.Running)
+                                            if (progress == ResumeProgress.WAITING) sendPumpCommands(listOf(HomeScreenMirrorRequest()))
+                                            attempt++
+                                        }
+                                        when (progress) {
+                                            ResumeProgress.DONE    -> navigateBack()
+                                            ResumeProgress.REFUSED -> resumeFailure = ResumeFailure.PUMP_REFUSED
+                                            ResumeProgress.WAITING -> resumeFailure = ResumeFailure.NO_ANSWER
+                                        }
+                                        refreshMainAppData(RefreshData.PUMP_STATE_CHANGED)
+                                        isStartingOrStopping = false
+                                    }
                                 }
                             },
                             modifier = Modifier
@@ -277,6 +307,47 @@ fun StartStopInsulinScreen(
                         // Unknown state - no action available
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResumeFailureCard(
+    failure: ResumeFailure,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val message = when (failure) {
+        ResumeFailure.NOT_SENT     -> R.string.ca_resume_failed_not_sent
+        ResumeFailure.PUMP_REFUSED -> R.string.ca_resume_failed_refused
+        ResumeFailure.NO_ANSWER    -> R.string.ca_resume_failed_no_answer
+    }
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.ca_resume_failed_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(message),
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.ca_resume_failed_contact_support),
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(text = stringResource(Rco.string.ok))
             }
         }
     }
