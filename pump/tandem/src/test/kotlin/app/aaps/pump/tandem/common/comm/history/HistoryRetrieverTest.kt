@@ -18,7 +18,9 @@ import app.aaps.pump.tandem.common.util.TandemPumpUtil
 import app.aaps.shared.tests.AAPSLoggerTest
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.AlarmActivatedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import org.junit.jupiter.api.BeforeEach
@@ -33,13 +35,16 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.quality.Strictness
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.never
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import app.aaps.pump.tandem.common.driver.connector.TandemPumpConnectionManager
 import java.util.GregorianCalendar
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -578,6 +583,104 @@ class HistoryRetrieverTest {
         // deferred into one missed range.
         assertEquals(1, historySummaryDto.missedRanges.size)
         //Assert.fail()
+    }
+
+
+    @Test
+    fun executeNextLogGet_RequestsHighEndOfRange() {
+        createHistorySummaryAndSetToClass()
+
+        val queue = ArrayDeque<HistoryRequestInfo>()
+        queue.add(HistoryRequestInfo(startSequence = 5046, endSequence = 5066))
+
+        unitToTest.executeNextLogGet(queue)
+
+        val captor = argumentCaptor<HistoryLogRequest>()
+        verify(tandemUICommunication).sendCommand(captor.capture())
+        assertEquals(5066L, captor.firstValue.startLog)
+        assertEquals(21, captor.firstValue.numberOfLogs)
+    }
+
+
+    @Test
+    fun receivedStatus_NextRead_FewNewRecords_RequestsHighEnd() {
+        val historySummaryDto = createHistorySummaryAndSetToClass()
+        historySummaryDto.lastRecord = 5045
+
+        unitToTest.receivedStatus(HistoryLogStatusResponse(100, 0, 5066))
+
+        val captor = argumentCaptor<HistoryLogRequest>()
+        verify(tandemUICommunication).sendCommand(captor.capture())
+        assertEquals(5066L, captor.firstValue.startLog)
+        assertEquals(21, captor.firstValue.numberOfLogs)
+    }
+
+
+    @Test
+    fun receivedStatus_NextRead_OneNewRecord_IsRequested() {
+        val historySummaryDto = createHistorySummaryAndSetToClass()
+        historySummaryDto.lastRecord = 5045
+
+        unitToTest.receivedStatus(HistoryLogStatusResponse(100, 0, 5046))
+
+        val captor = argumentCaptor<HistoryLogRequest>()
+        verify(tandemUICommunication).sendCommand(captor.capture())
+        assertEquals(5046L, captor.firstValue.startLog)
+        assertEquals(1, captor.firstValue.numberOfLogs)
+    }
+
+
+    @Test
+    fun chunkHasAllItems_CountOfWrongRangeIsNotEnough() {
+        val request = HistoryRequestInfo(startSequence = 5046, endSequence = 5066)
+
+        // pump answered with the 21 records below the range (wrong end)
+        request.historyLogMap.putAll(createMapOfHistoryLogs(HistoryLogsParameter.Any, *LongArray(21) { 5026L + it }))
+
+        assertEquals(21, request.historyLogMap.size)
+        assertFalse(request.chunkHasAllItems())
+        assertFalse(request.chunkComplete())
+    }
+
+
+    @Test
+    fun addLogs_IgnoresRecordsOutsideRange() {
+        val request = HistoryRequestInfo(startSequence = 5046, endSequence = 5066)
+        val logs = createMapOfHistoryLogs(HistoryLogsParameter.Any, *LongArray(21) { 5026L + it })
+
+        val ignored = request.addLogs(logs.values)
+
+        // 5026..5045 are outside, 5046 is inside
+        assertEquals(20, ignored)
+        assertEquals(1, request.historyLogMap.size)
+        assertFalse(request.chunkHasAllItems())
+    }
+
+
+    @Test
+    fun chunkHasAllItems_FullRange() {
+        val request = HistoryRequestInfo(startSequence = 5046, endSequence = 5066)
+
+        request.addLogs(createMapOfHistoryLogs(HistoryLogsParameter.Any, *LongArray(21) { 5046L + it }).values)
+
+        assertTrue(request.chunkHasAllItems())
+        assertTrue(request.chunkComplete())
+    }
+
+
+    @Test
+    fun receivedLogStreamResponse_WrongRange_IsNotSuccessAndNotStored() {
+        createHistorySummaryAndSetToClass()
+        val request = HistoryRequestInfo(startSequence = 5046, endSequence = 5066)
+        setPrivateField(unitToTest, "currentRequest", request)
+
+        val logs = createMapOfHistoryLogs(HistoryLogsParameter.Any, *LongArray(21) { 5026L + it }).values.toList()
+        val message = HistoryLogStreamResponse(logs.size, 1, logs.map { it.cargo })
+
+        unitToTest.receivedLogStreamResponse(message)
+
+        verify(dbDataHandler, never()).addHistoryLogs(any(), any())
+        assertFalse(request.chunkHasAllItems())
     }
 
 
