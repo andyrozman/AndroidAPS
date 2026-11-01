@@ -1328,6 +1328,8 @@ class TandemMobiPumpPlugin(
                 )
         } else {
 
+            bolusProgressData.enableStopDelivery(enabled = false)  // bolus cancel get's enabled once we start delivering insulin, before delivery is started we can't cancel it
+
             aapsLogger.error(TAG, "Bolus initiation: $detailedBolusInfo")
 
             bolusDeliveryType = BolusDeliveryType.DeliveryPrepared
@@ -1520,7 +1522,6 @@ class TandemMobiPumpPlugin(
 
     override suspend fun cancelTempBasal(enforceNew: Boolean): PumpEnactResult {
         aapsLogger.info(TAG, "TBR cancelTempBasal - started")
-        //setRefreshButtonEnabled(false)
         val tbrCurrent = readTBR()
 
         if (tbrCurrent==null) {
@@ -1529,25 +1530,8 @@ class TandemMobiPumpPlugin(
             return pumpEnactResultProvider().success(true).enacted(false)
         }
 
-        //val commandResponseCancel = cancelTemporaryBasal()
-
         if (sendCancelTbrToPump()) {
             aapsLogger.info(TAG, "cancelTempBasal - Cancel TBR successful.")
-
-            // //readPumpHistoryAfterAction(tempBasalInfo = TempBasalPair(insulinRate = 0.0, isPercent = true, durationMinutes = 0))
-            // pumpStatus.clearTbr()
-            //
-            // val controlCommandResponse = commandResponseCancel.value as ControlCommandResponse
-            //
-            //
-            // pumpSync.syncStopTemporaryBasalWithPumpId(
-            //     timestamp = System.currentTimeMillis(),
-            //     pumpSerial = serialNumber(),
-            //     pumpType = PumpType.TANDEM_MOBI_BT,
-            //     endPumpId = getPrefixedIdForDb(pumpEventId = controlCommandResponse.id.toLong(), isBolus =false)
-            // )
-            //
-            // pumpStatus.currentTempBasalInternal = null
 
             return pumpEnactResultProvider().success(true).enacted(true) //
                 .isTempCancel(true)

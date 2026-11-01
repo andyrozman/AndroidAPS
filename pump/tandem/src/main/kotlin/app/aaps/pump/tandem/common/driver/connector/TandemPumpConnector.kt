@@ -9,10 +9,13 @@ import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.pump.BolusProgressData
+import app.aaps.core.interfaces.pump.PumpInsulin
 // import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 // import app.aaps.core.interfaces.rx.events.EventOverviewBolusStopDeliveryEnabled
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.keys.interfaces.TextRef
+import app.aaps.pump.common.R
 import app.aaps.pump.common.data.BasalProfileDto
 import app.aaps.pump.common.data.PumpTimeDifferenceDto
 import app.aaps.pump.common.defs.BolusData
@@ -517,6 +520,9 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
                     )
                 }
             } else {
+
+                aapsLogger.warn(TAG, "Bolus Status Response:  ${bolusStatusResponse.status}")
+
                 if (bolusStatusResponse.status== CurrentBolusStatusResponse.CurrentBolusStatus.ALREADY_DELIVERED_OR_INVALID) {
                     if (startedDelivering && deliveryStartTime != null) {
                         aapsLogger.error(TAG, "Bolus delivered: " + getJsonStringFromObject(bolusStatusResponse))
@@ -547,7 +553,7 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
                     } else if (bolusStatusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING) {
 
                         if (!startedDelivering) {
-                            // rxBus.send(EventOverviewBolusStopDeliveryEnabled(isEnabled = true))  // TODO dev4
+                            bolusProgressData.enableStopDelivery(enabled = true)
                             startedDelivering = true
                         }
 
@@ -599,36 +605,16 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
                        amountBolus: Double = 0.0,
                        fullAmount: Double = 0.0,
                        id : Long? = null) {
-        //var bolusingEvent : EventOverviewBolusProgress? = null
-        var percent = 0
-        var status = ""
 
-        // TODO clean sendBolusEvent
+        var amountBolus2 = amountBolus
 
         when(bolusEvent) {
-            TandemBolusEvent.Initiating -> {
-                percent = 0
-                status = resourceHelper.gs(Rpc.string.bolus_preparing, fullAmount)
-                //pumpStatus.activeBolusData.bolusStatus.
-            }
-            TandemBolusEvent.Preparing    -> {
-                percent = 5
-                status = resourceHelper.gs(Rpc.string.bolus_preparing,fullAmount)
-            }
+            TandemBolusEvent.Initiating,
+            TandemBolusEvent.Preparing,
             TandemBolusEvent.Requesting -> {
-                percent = 10
-                status = resourceHelper.gs(Rpc.string.bolus_preparing, fullAmount)
+                // nothing needed
             }
             TandemBolusEvent.Delivering   -> {
-                percent = 10 + ((amountBolus/fullAmount)*90).toInt()
-                if (percent>=95) {
-                    percent = 95
-                } else if (percent<1) {
-                    percent = 0
-                }
-
-                var amountBolus2 = amountBolus
-
                 if (amountBolus2>fullAmount) {
                     amountBolus2 = fullAmount
                 }
@@ -637,19 +623,16 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
                 activeBolusData!!.amountImmediateDelivered = amountBolus2
                 pumpStatus.activeBolusData = activeBolusData
 
-                status = resourceHelper.gs(Rpc.string.bolus_delivered_so_far, amountBolus2, fullAmount)
+                bolusProgressData.updateProgress(delivered = PumpInsulin(cU = amountBolus2))
             }
             TandemBolusEvent.DeliveryDone -> {
-                percent = 100
-                //activeBolusData!!.amountImmediateDelivered = activeBolusData!!.amountImmediateRequested
                 pumpStatus.activeBolusData = null
-                status = resourceHelper.gs(Rpc.string.bolus_finished_post_bolus)
+
+                bolusProgressData.updateProgress(percent = 100, status = TextRef.AndroidRes(Rpc.string.bolus_finished_post_bolus))
             }
         }
 
-        aapsLogger.info(TAG, "Sending Bolus Event: status=${status}, progress=${percent}")
-
-        bolusProgressData.updateProgress(percent = percent)
+        aapsLogger.info(TAG, "TandemBolusEvent: eventType=${bolusEvent}, delivered=${amountBolus2}")
 
     }
 

@@ -62,6 +62,8 @@ class HistoryPostProcessor(
                         val timestamp = historyLog.pumpTimeSecInstant.toEpochMilli()
                         val siteChangeRecord = findSiteChangeNearestToHistory(timestamp, listSiteChanges)
 
+                        aapsLogger.error(TAG, "debug: TimeStamp Of History Log: ${historyLog.pumpTimeSecInstant}" )
+
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
                             timestamp = timestamp,
                             type = TE.Type.CANNULA_CHANGE,
@@ -144,12 +146,17 @@ class HistoryPostProcessor(
 
 
     fun findSiteChangeNearestToHistory(targetTime: Long, items: List<TandemSiteChangeEntity>?): TandemSiteChangeEntity? {
+
+        aapsLogger.error("DEBUG: Entities: ${items}")
+
         if (items!=null && items.size>0) {
             val item = items
                 .minByOrNull { abs(it.dateTime - targetTime) }
                 ?.takeIf {
                     abs(it.dateTime - targetTime) <= 30_000L
                 }
+
+            aapsLogger.error("DEBUG: Item: ${item}")
 
             return item
         }
