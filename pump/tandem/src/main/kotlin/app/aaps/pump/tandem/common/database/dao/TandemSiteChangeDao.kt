@@ -1,7 +1,6 @@
 package app.aaps.pump.tandem.common.database.dao
 
 import androidx.room.*
-import app.aaps.pump.tandem.common.database.data.entity.TandemQualifyingEventEntity
 import app.aaps.pump.tandem.common.database.data.entity.TandemSiteChangeEntity
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single

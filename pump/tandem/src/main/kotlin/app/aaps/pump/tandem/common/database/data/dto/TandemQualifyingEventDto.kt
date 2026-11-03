@@ -7,6 +7,4 @@ class TandemQualifyingEventDto(
     val dateTime : LocalDateTime,
     val name : QualifyingEvent,
     val description: String = ""
-) {
-
-}
+)

@@ -31,10 +31,10 @@ enum class SiteReminderPreset(var resourceId: Int, var hours: Int) {
         private set
 
     override fun toString(): String {
-        if (translated!=null) {
-            return translated!!
+        return if (translated!=null) {
+            translated!!
         } else {
-            return name
+            name
         }
     }
 
@@ -49,13 +49,6 @@ enum class SiteReminderPreset(var resourceId: Int, var hours: Int) {
                 reminderPreset.translated = rh.gs(TextRef.AndroidRes(reminderPreset.resourceId))
                 (translatedList as ArrayList<SiteReminderPreset>).add(reminderPreset)
             }
-        }
-
-
-        fun getTranslatedList(rh: ResourceHelper): List<SiteReminderPreset> {
-            if (translatedList == null) doTranslation(rh)
-
-            return translatedList!!
         }
     }
 

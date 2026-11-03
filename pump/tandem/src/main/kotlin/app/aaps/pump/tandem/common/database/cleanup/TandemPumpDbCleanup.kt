@@ -28,10 +28,10 @@ object PumpDbCleanup {
                         // FULL or TRUNCATE (TRUNCATE also shrinks the WAL immediately)
                         sdb.query("PRAGMA wal_checkpoint(TRUNCATE)").use { c ->
                             if (c.moveToFirst()) {
-                                val busy = c.getInt(0)      // 0/1
-                                val logPages = c.getInt(1)  // pages in WAL
-                                val ckptPages = c.getInt(2) // pages checkpointed
-                                // optional: Log.d("DB", "checkpoint busy=$busy log=$logPages ckpt=$ckptPages")
+                                // val busy = c.getInt(0)      // 0/1
+                                // val logPages = c.getInt(1)  // pages in WAL
+                                // val ckptPages = c.getInt(2) // pages checkpointed
+                                //Log.d("DB", "checkpoint busy=$busy log=$logPages ckpt=$ckptPages")
                             }
                         }
                     }

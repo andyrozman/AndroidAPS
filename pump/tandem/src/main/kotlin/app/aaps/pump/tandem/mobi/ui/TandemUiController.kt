@@ -50,7 +50,6 @@ class TandemUiController(
     fun createTandemUiCommunication() {
         tandemUICommunication = TandemUICommunication(dataStore = tandemUiDataStore,
                                                       pumpStatus = tandemPumpStatus,
-                                                      pumpUtil = tandemPumpUtil,
                                                       aapsLogger= aapsLogger,
                                                       uiInteraction = uiInteraction,
                                                       notificationManager = notificationManager)

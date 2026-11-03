@@ -6,5 +6,4 @@ package app.aaps.pump.tandem.common.data.defs
 enum class TandemCommandType {
     ControlIQInfo,
     CurrentBattery
-
 }

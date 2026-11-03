@@ -12,7 +12,6 @@ import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
 import app.aaps.pump.tandem.common.database.TandemPumpDatabase
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.dto.TandemHistoryRecordDto
-import app.aaps.pump.tandem.common.database.data.entity.TandemHistoryRecordEntity
 import app.aaps.pump.tandem.common.database.data.entity.TandemQualifyingEventEntity
 import app.aaps.pump.tandem.common.database.data.entity.TandemSiteChangeEntity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
@@ -20,8 +19,6 @@ import app.aaps.pump.tandem.common.keys.TandemStringPreferenceKey
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import dev.zacsweers.metro.AppScope
-import io.reactivex.rxjava3.core.Single
-import java.lang.System.currentTimeMillis
 import java.util.GregorianCalendar
 import java.util.stream.Collectors
 import dev.zacsweers.metro.Inject
@@ -41,55 +38,9 @@ class DbDataHandler(
 
 ) {
 
-    @Suppress("PropertyName")
-    val TAG = LTag.PUMPCOMM
-
-    // fun createHistoryRecord(
-    //     sequenceId: Long,
-    //     pumpSerial: Int,
-    //     typeId: Int,
-    //     pumpTime: Long,   // EpochInMillis (pump stores time as EpochSeconds from Jan2008, we don't)
-    //     payload: ByteArray,
-    //     entitySubId: Int? = null, // some entities have special id (for example TBR has tempRateId)
-    // ): Single<Long> {
-    //
-    //     // var id = sequenceId
-    //
-    //     return tandemPumpDatabase.historyRecordDao().save(
-    //         TandemHistoryRecordEntity(
-    //             sequenceId = sequenceId,
-    //             pumpSerial = pumpSerial,
-    //             typeId = typeId,
-    //             pumpTime = pumpTime,
-    //             payload = payload,
-    //             entitySubId = entitySubId,
-    //             createdAt = currentTimeMillis(),
-    //             updatedAt = currentTimeMillis()
-    //         )
-    //     ).toSingle { sequenceId }
-    // }
-
-
-    // fun createQualifyingEventRecord(
-    //     pumpSerial: Int,
-    //     dateTime: Long,
-    //     name: String,
-    //     description: String? = null, // some entities have special id (for example TBR has tempRateId)
-    // ): Single<Long> {
-    //
-    //     var id :Long  = 0
-    //
-    //     return tandemPumpDatabase.qualifyingEventsDao().save(
-    //         TandemQualifyingEventEntity(
-    //             pumpSerial = pumpSerial,
-    //             dateTime = dateTime,
-    //             name = name,
-    //             description = description
-    //         )
-    //     ).toSingle { id }
-    //
-    // }
-
+    companion object {
+        val TAG = LTag.PUMPCOMM
+    }
 
 
     fun addHistoryLogs(listOfHistoryEntries: MutableCollection<HistoryLog>, debugHistoryDownload: Boolean = false) {
@@ -189,7 +140,7 @@ class DbDataHandler(
                 QualifyingEventsRange.LAST_6_HOURS  -> gcNow.add(GregorianCalendar.HOUR_OF_DAY, -6)
                 QualifyingEventsRange.LAST_12_HOURS -> gcNow.add(GregorianCalendar.HOUR_OF_DAY, -12)
                 QualifyingEventsRange.LAST_24_HOURS -> gcNow.add(GregorianCalendar.HOUR_OF_DAY, -24)
-                QualifyingEventsRange.LAST_15_ITEMS -> { }
+                //QualifyingEventsRange.LAST_15_ITEMS -> { }
             }
             tandemPumpDatabase.qualifyingEventsDao().allSinceWithSerialBlocking(pumpStatus.serialNumber.toInt(), gcNow.timeInMillis)
         }
@@ -270,16 +221,18 @@ class DbDataHandler(
         return listOut.toList()
     }
 
+
     private fun isIncludedGroup(historyRecordDto: TandemHistoryRecordDto,
                                 targetGroup: PumpHistoryEntryGroup): Boolean {
-        if (targetGroup==PumpHistoryEntryGroup.All)
-            return true
+        return if (targetGroup==PumpHistoryEntryGroup.All)
+            true
         else if (targetGroup== PumpHistoryEntryGroup.AllNoUnknowns) {
-            return historyRecordDto.historyLog !is UnknownHistoryLog
+            historyRecordDto.historyLog !is UnknownHistoryLog
         } else {
-            return historyRecordDto.group == targetGroup
+            historyRecordDto.group == targetGroup
         }
     }
+
 
     fun databaseStatistics() {
 

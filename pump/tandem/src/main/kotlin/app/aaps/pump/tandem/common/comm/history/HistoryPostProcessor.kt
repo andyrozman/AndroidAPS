@@ -46,15 +46,13 @@ class HistoryPostProcessor(
 
     fun postProcessHistory(historyLogs: MutableCollection<HistoryLog>) {
 
-        //aapsLogger.error(TAG, "${historyPrefix}PostProcess History (items=${historyLogs.size})")
-
         for (historyLog in historyLogs) {
 
             when(historyLog) {
 
                 is CannulaFilledHistoryLog -> {
 
-                    aapsLogger.error(TAG, "${historyPrefix}PostProcess - NS Cannula Change -> CannulaFilledHistoryLog")
+                    aapsLogger.debug(TAG, "${historyPrefix}PostProcess - NS Cannula Change -> CannulaFilledHistoryLog")
 
                     runBlocking {
 
@@ -62,7 +60,7 @@ class HistoryPostProcessor(
                         val timestamp = historyLog.pumpTimeSecInstant.toEpochMilli()
                         val siteChangeRecord = findSiteChangeNearestToHistory(timestamp, listSiteChanges)
 
-                        aapsLogger.error(TAG, "debug: TimeStamp Of History Log: ${historyLog.pumpTimeSecInstant}" )
+                        aapsLogger.debug(TAG, "debug: TimeStamp Of History Log: ${historyLog.pumpTimeSecInstant}" )
 
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
                             timestamp = timestamp,
@@ -73,11 +71,9 @@ class HistoryPostProcessor(
                             pumpSerial = pumpStatus.serialNumber.toString()
                         )
 
-                        // TODO this won't work at the moment, since site selection needs to go into different action "Fill Cannula"
-                        //    instead of "Fill Tubbing"
                         if (siteChangeRecord!=null) {
 
-                            aapsLogger.error(TAG, "Site change Record found: $siteChangeRecord")
+                            aapsLogger.debug(TAG, "Site change Record found: $siteChangeRecord")
 
                             val location = siteChangeRecord.siteLocation?.let {
                                 runCatching { TE.Location.valueOf(it) }.getOrNull()
@@ -95,7 +91,7 @@ class HistoryPostProcessor(
 
                             val te = therapyEventDataFromTimeList[0]
 
-                            aapsLogger.error(TAG, "Found Theraphy Event and updating it: $te")
+                            aapsLogger.debug(TAG, "Found Theraphy Event and updating it: $te")
 
                             persistenceLayer.insertOrUpdateTherapyEvent(te.copy(location = location, arrow = arrow))
 
@@ -107,7 +103,7 @@ class HistoryPostProcessor(
 
                 is CartridgeFilledHistoryLog -> {
 
-                    aapsLogger.error(TAG, "${historyPrefix}PostProcess - NS Insulin Change -> CartridgeFilledHistoryLog")
+                    aapsLogger.debug(TAG, "${historyPrefix}PostProcess - NS Insulin Change -> CartridgeFilledHistoryLog")
 
                     runBlocking {
                         pumpSync.insertTherapyEventIfNewWithTimestamp(
@@ -124,7 +120,7 @@ class HistoryPostProcessor(
                 is BolusCompletedHistoryLog -> {
                     runBlocking {
 
-                        aapsLogger.error(TAG, "${historyPrefix}PostProcess - Bolus - ${historyLog}")
+                        aapsLogger.debug(TAG, "${historyPrefix}PostProcess - Bolus - $historyLog")
 
                         pumpSync.syncBolusWithPumpId(
                             timestamp = historyLog.pumpTimeSecInstant.toEpochMilli(),
@@ -138,6 +134,7 @@ class HistoryPostProcessor(
                 }
 
                 else -> {
+                    // only if needed for debugging
                     //aapsLogger.error(TAG, "${historyPrefix}Ignored Entry ${historyLog}")
                 }
             }
@@ -147,20 +144,16 @@ class HistoryPostProcessor(
 
     fun findSiteChangeNearestToHistory(targetTime: Long, items: List<TandemSiteChangeEntity>?): TandemSiteChangeEntity? {
 
-        aapsLogger.error("DEBUG: Entities: ${items}")
-
-        if (items!=null && items.size>0) {
+        if (!items.isNullOrEmpty()) {
             val item = items
                 .minByOrNull { abs(it.dateTime - targetTime) }
                 ?.takeIf {
                     abs(it.dateTime - targetTime) <= 30_000L
                 }
 
-            aapsLogger.error("DEBUG: Item: ${item}")
-
             return item
         }
-        return null;
+        return null
     }
 
 

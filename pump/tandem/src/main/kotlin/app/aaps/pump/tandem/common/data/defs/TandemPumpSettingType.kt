@@ -10,8 +10,6 @@ enum class TandemPumpSettingType : PumpConfigurationTypeInterface {
     BASAL_IQ_ENABLED,
     PUMP_FEATURES_1,
     PUMP_FEATURES_2
-
-
     ;
 
     override fun getKey() = name

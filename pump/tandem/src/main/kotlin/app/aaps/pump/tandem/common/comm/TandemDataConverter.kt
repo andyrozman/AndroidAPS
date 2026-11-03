@@ -33,12 +33,13 @@ import dev.zacsweers.metro.SingleIn
 @Inject
 class TandemDataConverter(
     var aapsLogger: AAPSLogger,
-    var sp: SP,
     var pumpStatus: TandemPumpStatus,
     var pumpUtil: TandemPumpUtil
 ) : PumpDataConverter {
 
-    var TAG = LTag.PUMP
+    companion object {
+        var TAG = LTag.PUMP
+    }
 
 
     fun getInsulinStatus(message: InsulinStatusResponse): DataCommandResponse<Double?> {
@@ -90,7 +91,7 @@ class TandemDataConverter(
 
         val jsonVal = pumpUtil.gson.toJson(message)
 
-        aapsLogger.info(TAG, "TBR: TempRateResponse [${jsonVal}]")
+        aapsLogger.debug(TAG, "TempRateResponse [${jsonVal}]")
 
         val tempBasal = TempBasalPair( insulinRate = message.percentage.toDouble(),
                                        isPercent = true,
@@ -99,7 +100,7 @@ class TandemDataConverter(
 
         tempBasal.isActive = message.active
 
-        aapsLogger.info(TAG, "TBR: getTempBasalRate [${tempBasal}]")
+        aapsLogger.info(TAG, "getTempBasalRate [${tempBasal}]")
 
         return DataCommandResponse(
             PumpCommandType.GetTemporaryBasal, true, null, if (message.active) tempBasal else null)
@@ -151,9 +152,8 @@ class TandemDataConverter(
         val segmentList: ArrayList<IDPSegmentDto> = arrayListOf()
 
         val basVals = profile.getBasalValues()
-        var index = 0
 
-        for (basVal in basVals) {
+        for ((index, basVal) in basVals.withIndex()) {
             val idp = IDPSegmentDto()
 
             idp.segmentIndex = index
@@ -170,7 +170,6 @@ class TandemDataConverter(
 
             segmentList.add(idp)
 
-            index++
         }
 
         return segmentList

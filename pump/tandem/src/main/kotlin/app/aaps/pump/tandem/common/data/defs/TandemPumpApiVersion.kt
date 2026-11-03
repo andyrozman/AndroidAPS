@@ -3,7 +3,6 @@ package app.aaps.pump.tandem.common.data.defs
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import app.aaps.pump.common.driver.connector.commands.data.FirmwareVersionInterface
 
-// TODO(jwoglom): replace with https://github.com/jwoglom/pumpX2/blob/main/messages/src/main/java/com/jwoglom/pumpx2/pump/messages/models/KnownApiVersion.java
 enum class TandemPumpApiVersion(val description: String,
                                 val majorVersion: Int,
                                 val minorVersion: Int,
@@ -31,8 +30,6 @@ enum class TandemPumpApiVersion(val description: String,
     VERSION_4_x("Version 4.x (Mobi ?)", 4, 0, isClosedLoopPossible = true, hasBolus = true, hasFullControlSet = true, targetDevice = TargetTandemDevice.Mobi),
     VERSION_5_x("Version 5.x (Mobi ?)", 5, 0, isClosedLoopPossible = true, hasBolus = true, hasFullControlSet = true, targetDevice = TargetTandemDevice.Mobi),
     Unknown("Unknown", 0, 0, false);
-
-    //constructor()
 
 
 

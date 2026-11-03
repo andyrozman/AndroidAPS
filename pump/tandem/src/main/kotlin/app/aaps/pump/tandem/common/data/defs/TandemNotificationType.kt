@@ -7,12 +7,8 @@ import app.aaps.pump.common.R as Rc
 import app.aaps.pump.common.defs.NotificationTypeInterface
 import app.aaps.pump.tandem.R
 
-
-/**
- * Created by andy on 01/06/2021.
- */
 enum class TandemNotificationType(override var notificationType: NotificationId,
-                                  override @StringRes val resourceId: Int,
+                                  @StringRes override val resourceId: Int,
                                   override val notificationUrgency: NotificationLevel,
                                   override val validMinutes: Int? = null) : NotificationTypeInterface {
 
@@ -45,5 +41,5 @@ enum class TandemNotificationType(override var notificationType: NotificationId,
     );
 
     constructor(resourceId: Int, notificationUrgency: NotificationLevel) :
-        this(NotificationId.COMBO_PUMP_ALARM, resourceId, notificationUrgency, -1) {}
+        this(NotificationId.COMBO_PUMP_ALARM, resourceId, notificationUrgency, -1)
 }

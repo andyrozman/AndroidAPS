@@ -5,63 +5,52 @@ OK        tandem/common/comm/data/PumpStateX2.kt
 OK        tandem/common/comm/history/HistoryPostProcessor.kt
 OK        tandem/common/comm/history/HistoryRetriever.kt                Could be extended with watchdog if needed
 
-          tandem/common/comm/maint/TandemConnectionFixer.kt
-          tandem/common/comm/maint/TandemPairingManager.kt
+?         tandem/common/comm/maint/TandemConnectionFixer.kt
+OK        tandem/common/comm/maint/TandemPairingManager.kt
 
-          tandem/common/comm/qe/QualifyingEventHandler.kt
+OK        tandem/common/comm/qe/QualifyingEventHandler.kt
 
 OK        tandem/common/comm/TandemDataConverter.kt
-          tandem/common/comm/TandemPumpCommunicationManager.kt
+OK        tandem/common/comm/TandemPumpCommunicationManager.kt
 
-          tandem/common/comm/ui/CoreCartridgeActionsModel.kt
-          tandem/common/comm/ui/TandemUICommunication.kt
+OK        tandem/common/comm/ui/CoreCartridgeActionsModel.kt
+OK        tandem/common/comm/ui/TandemUICommunication.kt
 OK        tandem/common/comm/ui/TandemUIDataStore.kt
 
-          tandem/common/concurrency
-          tandem/common/concurrency/BlockingPumpOp.kt
-          tandem/common/concurrency/CommSuspendGate.kt
-          tandem/common/concurrency/Priority.kt
-          tandem/common/concurrency/PumpAvailability.kt
-          tandem/common/concurrency/PumpAvailabilitySync.kt
-          tandem/common/concurrency/PumpDispatcherScope.kt
-          tandem/common/concurrency/PumpOp.kt
-          tandem/common/concurrency/PumpOpQueue.kt
-          tandem/common/concurrency/RateLimit.kt
-          tandem/common/concurrency/TandemDispatcher.kt
 
-          tandem/common/database/cleanup/TandemPumpDbCleanup.kt
+OK        tandem/common/database/cleanup/TandemPumpDbCleanup.kt
 
-          tandem/common/database/dao/TandemCleanupDao.kt
-          tandem/common/database/dao/TandemHistoryRecordDao.kt
-          tandem/common/database/dao/TandemQualifyingEventsDao.kt
+OK          tandem/common/database/dao/TandemCleanupDao.kt
+OK          tandem/common/database/dao/TandemHistoryRecordDao.kt
+OK          tandem/common/database/dao/TandemQualifyingEventsDao.kt
 
-          tandem/common/database/data/DbDataHandler.kt
-          tandem/common/database/data/TandemHistoryConverter.kt
+OK          tandem/common/database/data/DbDataHandler.kt
+OK          tandem/common/database/data/TandemHistoryConverter.kt
 
-          tandem/common/database/data/defs/DatabaseQueryParameters.kt
-          tandem/common/database/data/defs/DatabaseTarget.kt
+OK          tandem/common/database/data/defs/DatabaseQueryParameters.kt
+OK          tandem/common/database/data/defs/DatabaseTarget.kt
 
-          tandem/common/database/data/dto/TandemHistoryRecordDto.kt
-          tandem/common/database/data/dto/TandemQualifyingEventDto.kt
+OK          tandem/common/database/data/dto/TandemHistoryRecordDto.kt
+OK          tandem/common/database/data/dto/TandemQualifyingEventDto.kt
 
-          tandem/common/database/data/entity/TandemHistoryRecordEntity.kt
-          tandem/common/database/data/entity/TandemQualifyingEventEntity.kt
+OK          tandem/common/database/data/entity/TandemHistoryRecordEntity.kt
+OK          tandem/common/database/data/entity/TandemQualifyingEventEntity.kt
 
-          tandem/common/database/TandemPumpDatabase.kt
+OK          tandem/common/database/TandemPumpDatabase.kt
 
-          tandem/common/data/IDPSegmentDto.kt
-          tandem/common/data/PumpProfileDto.kt
-          tandem/common/data/SemaphoreInfoDto.kt
+OK        tandem/common/data/IDPSegmentDto.kt
+.          tandem/common/data/PumpProfileDto.kt
+.          tandem/common/data/SemaphoreInfoDto.kt
 
-          tandem/common/data/defs/QualifyingEventsFilter.kt
-          tandem/common/data/defs/QualifyingEventsRange.kt
-          tandem/common/data/defs/QuickBolusType.kt
-          tandem/common/data/defs/RefreshData.kt
-          tandem/common/data/defs/SiteReminderPreset.kt
-          tandem/common/data/defs/TandemCommandType.kt
-          tandem/common/data/defs/TandemNotificationType.kt
-          tandem/common/data/defs/TandemPumpApiVersion.kt
-          tandem/common/data/defs/TandemPumpSettingType.kt
+.          tandem/common/data/defs/QualifyingEventsFilter.kt
+.          tandem/common/data/defs/QualifyingEventsRange.kt
+.          tandem/common/data/defs/QuickBolusType.kt
+.          tandem/common/data/defs/RefreshData.kt
+.          tandem/common/data/defs/SiteReminderPreset.kt
+.          tandem/common/data/defs/TandemCommandType.kt
+.          tandem/common/data/defs/TandemNotificationType.kt
+OK          tandem/common/data/defs/TandemPumpApiVersion.kt
+OK          tandem/common/data/defs/TandemPumpSettingType.kt
 
 OK        tandem/common/data/history/HistoryData.kt
 
@@ -162,7 +151,7 @@ tandem.common.comm.ui.CoreCartridgeActionsModel
           tandem/mobi/ui/wizard/screens/PairingScreen.kt
 
 
-
+BASAL IQ CHECK? 
 
 
 X         tandem/t_slim

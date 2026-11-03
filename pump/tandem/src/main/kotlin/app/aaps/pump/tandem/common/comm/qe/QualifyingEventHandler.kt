@@ -1,20 +1,12 @@
 package app.aaps.pump.tandem.common.comm.qe
 
-import android.content.Context
+
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.pump.common.defs.PumpUpdateFragmentType
-import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
-import app.aaps.pump.tandem.common.comm.TandemDataConverter
 import app.aaps.pump.tandem.common.data.defs.QualifyingEventsFilter
-import app.aaps.pump.tandem.common.data.defs.QualifyingEventsRange
-import app.aaps.pump.tandem.common.database.TandemPumpDatabase
-import app.aaps.pump.tandem.common.database.data.DbDataHandler
 import app.aaps.pump.tandem.common.database.data.entity.TandemQualifyingEventEntity
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.events.EventDatabaseAddQEData
@@ -64,7 +56,6 @@ class QualifyingEventHandler(
         rxBus.send(EventDatabaseAddQEData(listOfEvents))
 
         tandemPumpStatus.semaphoreEvents = true
-        //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
     }
 
 
@@ -86,10 +77,10 @@ class QualifyingEventHandler(
     fun filterQualifyingEvents(qeItems: List<TandemQualifyingEventEntity>): List<TandemQualifyingEventEntity> {
         val qeFilter = QualifyingEventsFilter.valueOf(preferences.get(TandemStringPreferenceKey.QualifyingEventsFilterPref))
 
-        if (qeFilter==QualifyingEventsFilter.AAPS_RELEVANT) {
-            return filterEvents(qeItems)
+        return if (qeFilter==QualifyingEventsFilter.AAPS_RELEVANT) {
+            filterEvents(qeItems)
         } else {
-            return qeItems
+            qeItems
         }
     }
 
@@ -141,7 +132,7 @@ class QualifyingEventHandler(
 
             // Profile and delivery parameter changes AAPS needs to track
             QualifyingEvent.BASAL_CHANGE,                    // Basal rate changed on pump
-            QualifyingEvent.BOLUS_CHANGE,                    // Bolus delivered or cancelled
+            QualifyingEvent.BOLUS_CHANGE,                    // Bolus delivered or canceled
             QualifyingEvent.PROFILE_CHANGE,                  // Active IDP profile changed
             QualifyingEvent.ACTIVE_PROFILE_SEGMENT_CHANGE,   // Active profile time segment changed (renamed from ACTIVE_SEGMENT_CHANGE)
             QualifyingEvent.BOLUS_PERMISSION_REVOKED,        // Bolus permission revoked by pump

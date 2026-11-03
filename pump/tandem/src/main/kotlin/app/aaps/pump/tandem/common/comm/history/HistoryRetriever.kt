@@ -89,9 +89,6 @@ class HistoryRetriever(
     }
 
     private var maxDateTimeInSec: Int = 0
-    // Read on the TandemPumpOpQueue thread (busy-wait / result read), written on the BLE callback
-    // thread (response handlers). @Volatile gives the busy-wait visibility of completion and
-    // safe-publishes the collections below, which are otherwise confined to the response handlers.
     @Volatile private var historySummaryDto : HistorySummaryDto? = null
     @Volatile private var currentRequest: HistoryRequestInfo?  = null
     private var listOfRequests = ArrayDeque<HistoryRequestInfo>()
@@ -112,7 +109,7 @@ class HistoryRetriever(
 
     init {
         historyPrefix = if (DEBUG_HISTORY) "HST: " else ""
-        historyPostProcessor.setupHistoryPostProcessor(DEBUG_HISTORY);
+        historyPostProcessor.setupHistoryPostProcessor(DEBUG_HISTORY)
     }
 
     fun downloadHistory(): Boolean {
@@ -124,7 +121,6 @@ class HistoryRetriever(
 
         communication = TandemUICommunication(dataStore = tandemUiDataStore,
                                               pumpStatus = pumpStatus,
-                                              pumpUtil = pumpUtil,
                                               aapsLogger= aapsLogger,
                                               uiInteraction = uiInteraction,
                                               notificationManager = notificationManager)
@@ -213,7 +209,6 @@ class HistoryRetriever(
             if (!pumpStatus.semaphoreHistory) {
                 pumpStatus.semaphoreHistory = true
                 pumpStatus.semaphoreNeedsRefresh = true
-                //rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.Custom_2))
             }
         }
     }
@@ -223,7 +218,6 @@ class HistoryRetriever(
 
         communication = TandemUICommunication(dataStore = tandemUiDataStore,
                                               pumpStatus = pumpStatus,
-                                              pumpUtil = pumpUtil,
                                               aapsLogger= aapsLogger,
                                               uiInteraction = uiInteraction,
                                               notificationManager = notificationManager)
@@ -311,7 +305,6 @@ class HistoryRetriever(
     private fun updateRetrievalProgress() {
         val currentProgress = this.progressCurrentChunk + progressPreviousChunksItems
         val currentProgressString = "${currentProgress}/${this.progressAllItems}"
-        //aapsLogger.error(TAG, "${historyPrefix}PROGRESS: $currentProgressString")
 
         if (!silentDownload) {
             pumpUtil.historyProgress = "($currentProgressString)"
@@ -342,23 +335,6 @@ class HistoryRetriever(
         communication.sendCommand(HistoryLogStatusRequest())
 
     }
-
-    /**
-     * Routes a single history-log wire send through [tandemDispatcher] at
-     * [app.aaps.pump.tandem.common.concurrency.Priority.BACKGROUND]. The response arrives
-     * asynchronously via the listener callback path, so the op completes as soon as the wire
-     * send fires — it does not await the response. The token-bucket rate limit on BACKGROUND
-     * throttles the *submit* rate (i.e. how often new chunks kick off); higher-priority ops
-     * preempt waiting BACKGROUND submits.
-     *
-     * Uses the local [communication] (HistoryRetriever's own TandemUICommunication instance,
-     * which has its `historyRetriever` field set to forward responses back here) rather than
-     * the dispatcher's `sendUiCommand` extension — that one targets the singleton instance,
-     * which doesn't know about this retriever.
-     */
-    // private fun submitHistoryRequest(name: String, send: () -> Unit) {
-    //     tandemDispatcher.submitBackground(name) { send() }
-    // }
 
 
     fun receivedStatus(message: HistoryLogStatusResponse) {
@@ -464,7 +440,6 @@ class HistoryRetriever(
 
 
     private fun prepareForShortHistoryReading(message: HistoryLogStatusResponse) {
-        aapsLogger.error(TAG, "${historyPrefix}prepareForShortHistoryReading")
 
         aapsLogger.debug(TAG, "${historyPrefix}Non-First read - Short Reading")
 
@@ -594,7 +569,7 @@ class HistoryRetriever(
     }
 
     private fun debugSummary() {
-        //aapsLogger.error(TAG, "${historyPrefix}Summary: active=${historySummaryDto!!.activeProcessing.size}, missed=${historySummaryDto!!.missedRanges.size}")
+        //aapsLogger.debug(TAG, "${historyPrefix}Summary: active=${historySummaryDto!!.activeProcessing.size}, missed=${historySummaryDto!!.missedRanges.size}")
     }
 
 
@@ -650,8 +625,6 @@ class HistoryRetriever(
             currentEnd -= CHUNK_SIZE
         }
 
-        // aapsLogger.error(TAG, "${historyPrefix}Chunks: ${pumpUtil.gsonRegular.toJson(chunksList)}")
-
         return chunksList
     }
 
@@ -668,9 +641,7 @@ class HistoryRetriever(
         currentRequest = queue.removeFirst()
         aapsLogger.info(TAG, "${historyPrefix}executeNextLogGet (start=${currentRequest!!.startSequence}, end=${currentRequest!!.endSequence}, count=${currentRequest!!.numberOfLogs})")
         val req = HistoryLogRequest(currentRequest!!.startSequence, currentRequest!!.numberOfLogs)
-        //submitHistoryRequest("historyLogChunk[${currentRequest!!.startSequence}-${currentRequest!!.endSequence}]") {
-            this.communication.sendCommand(req)
-        //}
+        this.communication.sendCommand(req)
     }
 
 
@@ -682,16 +653,12 @@ class HistoryRetriever(
 
         this.progressCurrentChunk = currentRequest!!.historyLogMap.size
 
-        //aapsLogger.error(TAG, "${historyPrefix}Number of Logs: $progressCurrentChunk")
-
         updateRetrievalProgress()
 
         if (this.currentRequest!!.chunkComplete()) {
             processChunkComplete()
             return
         }
-
-        enableLastMessageWatchdog()
 
     }
 
@@ -700,8 +667,6 @@ class HistoryRetriever(
     internal fun processChunkComplete() {
 
         aapsLogger.debug(TAG, "${historyPrefix}processChunkComplete: ${currentRequest!!.historyLogMap.size}")
-
-        disableLastMessageWatchdog()
 
         if (this.currentRequest!!.chunkHasAllItems()) {
             aapsLogger.info(TAG, "${historyPrefix}Chunk Has All Items: ${currentRequest!!.historyLogMap.size}")
@@ -848,22 +813,8 @@ class HistoryRetriever(
     }
 
 
-    private fun disableLastMessageWatchdog() {
-        // TODOX  disableLastMessageWatchdog - we will try without this for now, if needed it will be added in phase 4
-        //aapsLogger.error(TAG, "${historyPrefix}disableLastMessageWatchdog not implemented.")
-    }
-
-
-    private fun enableLastMessageWatchdog() {
-        // TODOX enableLastMessageWatchdog -  - we will try without this for now, if needed it will be added in phase 4
-        //    when message is received we note the time and wait in special thread if timeout is reached
-        //    if watchdog already exists, we just extend time
-        //aapsLogger.error(TAG, "${historyPrefix}enableLastMessageWatchdog not implemented.")
-    }
-
-
     fun receivedLogResponse(message: HistoryLogResponse) {
-        //aapsLogger.error(TAG, "${historyPrefix}Received LogResponse: $message")
+        //aapsLogger.debug(TAG, "${historyPrefix}Received LogResponse: $message")
     }
 
 }

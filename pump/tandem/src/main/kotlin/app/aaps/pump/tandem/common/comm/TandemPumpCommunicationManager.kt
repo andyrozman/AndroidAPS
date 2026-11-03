@@ -15,7 +15,6 @@ import app.aaps.pump.common.events.EventPumpFragmentValuesChanged
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.data.CommunicationListener
 import app.aaps.pump.tandem.common.comm.data.DisconnectDataDto
-import app.aaps.pump.tandem.common.comm.maint.TandemConnectionFixer
 import app.aaps.pump.tandem.common.comm.ui.TandemUiStateWriter
 import app.aaps.pump.tandem.common.data.defs.TandemNotificationType
 import app.aaps.pump.tandem.common.data.defs.TandemPumpApiVersion
@@ -55,8 +54,7 @@ class TandemPumpCommunicationManager(
     var pumpUtil: TandemPumpUtil,
     var pumpStatus: TandemPumpStatus,
     var pumpConfig: TandemConfig,
-    var timberTree: PumpX2L,
-    var tandemConnectionFixer: TandemConnectionFixer
+    var timberTree: PumpX2L
 ) : TandemPump(context, pumpConfig) {
 
     lateinit var peripheral: BluetoothPeripheral
@@ -68,7 +66,7 @@ class TandemPumpCommunicationManager(
     // auto-reconnect for planned teardowns: resurrecting the link creates a zombie connection
     // that occupies the pump's single connection slot and blocks the next real connectToPump().
     @Volatile var plannedDisconnect = false
-    var commandRequestModeRunning: Boolean = false
+    val commandRequestModeRunning: Boolean
         get() { return inFlightRequests.isNotEmpty() }
 
     var dataStore: TandemUiStateWriter = tandemDataStore
@@ -89,8 +87,6 @@ class TandemPumpCommunicationManager(
 
     var bluetoothHandler: TandemBluetoothHandler? = null
 
-    // Thread-safe: added/removed on the TandemPumpOpQueue thread, read/added on the BLE callback
-    // (main) thread. newKeySet gives weakly-consistent iteration so find() can't throw CME.
     val inFlightRequests: MutableSet<Message> = ConcurrentHashMap.newKeySet()
     val inFlightResponses: MutableSet<Message> = ConcurrentHashMap.newKeySet()
 
@@ -101,10 +97,10 @@ class TandemPumpCommunicationManager(
 
     companion object {
         val TAG = LTag.PUMPBTCOMM
-        val COMMAND_TIMEOUT = 5 * 1000  // 5s (in ms) timeout for receiving pump command response
-        val HANDSHAKE_TIMEOUT = 30 * 1000L  // 30s (in ms) timeout for handshake (pairing) connecting flow
-        val CONNECT_TIMEOUT = 60 * 1000L // 60s (in ms) timeout for complete connecting flow
-        val CONNECT_TOTAL_TIMEOUT = 180 * 1000L // 180s (in ms) hard cap for the whole connect call
+        const val COMMAND_TIMEOUT = 5 * 1000  // 5s (in ms) timeout for receiving pump command response
+        const val HANDSHAKE_TIMEOUT = 30 * 1000L  // 30s (in ms) timeout for handshake (pairing) connecting flow
+        const val CONNECT_TIMEOUT = 60 * 1000L // 60s (in ms) timeout for complete connecting flow
+        const val CONNECT_TOTAL_TIMEOUT = 180 * 1000L // 180s (in ms) hard cap for the whole connect call
     }
 
 
@@ -248,11 +244,10 @@ class TandemPumpCommunicationManager(
 
 
     /**
-     * Sends command to the pump, if driver is in preventConnect mode any messages will be ignored,
-     * unless we specify forceSend. Force send should be used only for ChangeFillManager
+     * Sends command to the pump
      */
     @Synchronized
-    fun sendCommand(request: Message, forceSend: Boolean = false): Message? {
+    fun sendCommand(request: Message): Message? {
 
         aapsLogger.info(TAG, "sendCommand: ${request.javaClass.simpleName}")
 
@@ -266,7 +261,7 @@ class TandemPumpCommunicationManager(
             aapsLogger.error(TAG, "It seems Pump is no longer connected.")
             if (!tryToReconnectToPump()) {
                 aapsLogger.error(TAG, "Couldn't re-connect to the Pump.")
-                this.operationMode = OperationMode.None;
+                this.operationMode = OperationMode.None
                 return null
             }
         }
@@ -337,7 +332,7 @@ class TandemPumpCommunicationManager(
 
 
     private fun initializePump(request: Message): Boolean {
-        var times = 0;
+        var times = 0
         while (!::peripheral.isInitialized && times < 10) {
             aapsLogger.warn(LTag.PUMPCOMM, "Waiting for peripheral for sendCommand with ${request.opCode()} - ${request.javaClass.name}")
             pumpUtil.sleep(1000)
@@ -348,7 +343,7 @@ class TandemPumpCommunicationManager(
             aapsLogger.warn(LTag.PUMPCOMM, "Failed sendCommand, no peripheral with ${request.opCode()} - ${request.javaClass.name}")
             return false
         }
-        return true;
+        return true
     }
 
 
@@ -408,7 +403,7 @@ class TandemPumpCommunicationManager(
 
             val timeSince : TimeSinceResetResponse = message
 
-            aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: ${message}")
+            aapsLogger.info(LTag.PUMPCOMM, "TimeSinceResetResponse: $message")
 
             val dtPump = DateTime(timeSince.currentTimeInstant.toEpochMilli())
 
@@ -514,7 +509,7 @@ class TandemPumpCommunicationManager(
 
 
     override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
-        aapsLogger.error(TAG, "CF: Pump Critical Error: ${reason}")
+        aapsLogger.error(TAG, "CF: Pump Critical Error: $reason")
         dataStore.postDebugLastTandemError(reason)
 
         // When a status response message has code non-zero
@@ -584,11 +579,11 @@ class TandemPumpCommunicationManager(
         // the link (and a status read) come back.
         publishDisconnectedState()
         rxBus.send(EventPumpFragmentValuesChanged(PumpUpdateFragmentType.PumpStatus))
-        if (!plannedDisconnect) {
-            // The ConnectionFixer recovers from *unplanned* failures; during a planned
-            // teardown it would just re-connect the link we were asked to close.
-            tandemConnectionFixer.startConnectionFix()
-        }
+        // if (!plannedDisconnect) {
+        //     // The ConnectionFixer recovers from *unplanned* failures; during a planned
+        //     // teardown it would just re-connect the link we were asked to close.
+        //     //tandemConnectionFixer.startConnectionFix()
+        // }
     }
 
 
@@ -605,11 +600,6 @@ class TandemPumpCommunicationManager(
     fun isPumpFullyConnected() : Boolean {
         return operationMode==OperationMode.StandardOperation ||
             operationMode==OperationMode.ExternalListenerOperation
-    }
-
-
-    fun isListenerEnabled(): Boolean {
-        return this.communicationListener!=null
     }
 
 

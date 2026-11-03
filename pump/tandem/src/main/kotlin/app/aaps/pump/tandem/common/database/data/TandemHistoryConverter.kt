@@ -71,7 +71,7 @@ import dev.zacsweers.metro.AppScope
 import java.util.stream.Collectors
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-
+import java.util.Locale
 
 @SingleIn(AppScope::class)
 @Inject
@@ -319,7 +319,7 @@ class TandemHistoryConverter(
             }
 
             else -> {
-                aapsLogger.warn(LTag.PUMPCOMM, "Unidentified item: ${historyLog}")
+                aapsLogger.warn(LTag.PUMPCOMM, "Unidentified item: $historyLog")
                 getRawData(historyLog!!)
             }
         }
@@ -423,7 +423,7 @@ class TandemHistoryConverter(
                 return result
             }
         } catch (ex: Exception) {
-            aapsLogger.error(LTag.PUMPCOMM, "Failed parse: [type=${historyLog.typeId()}, sequence=${historyLog.sequenceNum}]")
+            aapsLogger.error(LTag.PUMPCOMM, "Failed parse: [type=${historyLog.typeId()}, sequence=${historyLog.sequenceNum}, message=${ex.message}]")
             return "Failed parse"
         }
     }
@@ -446,14 +446,14 @@ class TandemHistoryConverter(
 
             if (valueData.isJsonPrimitive) {
                 if (smartResolvedFields.contains(entry.key)) {
-                    map.put(entry.key, smartFieldValueResolver(entry.key, valueData, historyLog))
+                    map[entry.key] = smartFieldValueResolver(entry.key, valueData, historyLog)
                 } else {
                     // Convert primitive to string
-                    map.put(entry.key, valueData.asString)
+                    map[entry.key] = valueData.asString
                 }
             } else {
                 // For arrays or objects, store the JSON string
-                map.put(entry.key, valueData.toString())
+                map[entry.key] = valueData.toString()
             }
         }
         return map
@@ -471,7 +471,7 @@ class TandemHistoryConverter(
                     "-"
                 } else {
                     val decimal = intValue / 100.0
-                    String.format("%.3f", decimal)
+                    String.format(Locale.ROOT, "%.3f", decimal)
                 }
             }
 
@@ -503,20 +503,21 @@ class TandemHistoryConverter(
 
 
     private fun printElement(element: JsonElement, indent: String, elementMap : MutableMap<String,String>) {
-        if (element.isJsonObject()) {
+        if (element.isJsonObject) {
             element.getAsJsonObject().entrySet().forEach { entry ->
                 println(indent + entry.key + ":")
                 printElement(entry.value, "$indent  ", elementMap)
 
-                elementMap.put(entry.key, entry.value.asString)
+                elementMap[entry.key] = entry.value.asString
             }
-        } else if (element.isJsonArray()) {
-            //element.getAsJsonArray().forEach { e -> printElement(e, "$indent  ", elementMap) }
-        } else {
-            ///if (element)
-            //println(indent + element.getAsString())
-            //return element.asString
         }
+        // else if (element.isJsonArray()) {
+        //     //element.getAsJsonArray().forEach { e -> printElement(e, "$indent  ", elementMap) }
+        // } else {
+        //     ///if (element)
+        //     //println(indent + element.getAsString())
+        //     //return element.asString
+        // }
     }
 
     fun prepareForConversion() {

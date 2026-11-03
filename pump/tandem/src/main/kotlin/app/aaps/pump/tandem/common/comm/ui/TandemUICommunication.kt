@@ -12,7 +12,6 @@ import app.aaps.pump.tandem.common.comm.data.CommunicationListener
 import app.aaps.pump.tandem.common.comm.history.HistoryRetriever
 import app.aaps.pump.tandem.common.driver.TandemPumpStatus
 import app.aaps.pump.tandem.common.driver.connector.response.HomeScreenMirrorDto
-import app.aaps.pump.tandem.common.util.TandemPumpUtil
 
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
@@ -52,12 +51,13 @@ class TandemUICommunication(
     var dataStore: TandemUIDataStore,
     var pumpStatus: TandemPumpStatus,
     var aapsLogger: AAPSLogger,
-    var pumpUtil: TandemPumpUtil,
     var uiInteraction: UiInteraction,
     var notificationManager: NotificationManager
 ): CommunicationListener {
 
-    var TAG = LTag.PUMPCOMM
+    companion object {
+        var TAG = LTag.PUMPCOMM
+    }
 
     var tandemPumpCommunicationManager : TandemPumpCommunicationManager? = null
         set(value) {

@@ -10,7 +10,7 @@ import dev.zacsweers.metro.Provider
 import dev.zacsweers.metro.SingleIn
 
 
-
+@Deprecated(message = "This class probably won't be needed")
 @SingleIn(AppScope::class)
 @Inject
 class TandemConnectionFixer(

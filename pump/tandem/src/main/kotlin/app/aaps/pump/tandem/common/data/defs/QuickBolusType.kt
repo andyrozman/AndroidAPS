@@ -2,7 +2,6 @@ package app.aaps.pump.tandem.common.data.defs
 
 import androidx.annotation.StringRes
 import app.aaps.pump.tandem.R
-import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest.QuickBolusIncrement
 
 enum class QuickBolusType(@StringRes val friendlyName: Int,

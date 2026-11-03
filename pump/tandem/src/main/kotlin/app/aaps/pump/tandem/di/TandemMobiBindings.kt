@@ -30,10 +30,4 @@ object TandemMobiBindings {
     ): MembersInjector<*> = injector
 
 
-    // @Provides
-    // @FeatureMemberInjectors
-    // @IntoMap
-    // @ClassKey(TandemMobiConnectionWizardActivity::class)
-    // fun bindInsightAlertActivity(injector: MembersInjector<TandemMobiConnectionWizardActivity>): MembersInjector<*> = injector
-
 }
