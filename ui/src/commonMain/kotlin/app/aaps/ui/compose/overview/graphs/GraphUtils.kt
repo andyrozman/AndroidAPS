@@ -24,6 +24,7 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.aaps.core.data.time.SystemTimeZone
 import app.aaps.core.data.ui.MarkerTier
 import com.patrykandpatrick.vico.compose.cartesian.CartesianDrawingContext
 import com.patrykandpatrick.vico.compose.cartesian.CartesianMeasuringContext
@@ -46,7 +47,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -98,6 +98,13 @@ fun timestampToX(timestamp: Long, minTimestamp: Long): Double =
     ((timestamp - minTimestamp) / 60000).toDouble()
 
 /**
+ * True when the axis of [timeRange] is longer than a window of [windowMinutes], so the graph can scroll. When it
+ * fits in the window, Vico's scroll limit (`maxValue`) stays 0.
+ */
+fun axisLongerThan(timeRange: Pair<Long, Long>, windowMinutes: Double): Boolean =
+    timestampToX(timeRange.second, timeRange.first) > windowMinutes
+
+/**
  * Creates a time formatter for X-axis labels showing hours (HH format).
  *
  * @param minTimestamp The reference timestamp for x-value calculation
@@ -105,7 +112,7 @@ fun timestampToX(timestamp: Long, minTimestamp: Long): Double =
  */
 @Composable
 fun rememberTimeFormatter(minTimestamp: Long): CartesianValueFormatter {
-    val timeZone = TimeZone.currentSystemDefault()
+    val timeZone = SystemTimeZone.current()
     return remember(minTimestamp, timeZone) {
         CartesianValueFormatter { _, value, _ ->
             val timestamp = minTimestamp + (value * 60000).toLong()
@@ -127,7 +134,7 @@ fun rememberTimeFormatter(minTimestamp: Long): CartesianValueFormatter {
 @OptIn(ExperimentalTime::class)
 @Composable
 fun rememberBottomAxisItemPlacer(minTimestamp: Long): HorizontalAxis.ItemPlacer {
-    val timeZone = TimeZone.currentSystemDefault()
+    val timeZone = SystemTimeZone.current()
     return remember(minTimestamp, timeZone) {
         val instant = Instant.fromEpochMilliseconds(minTimestamp)
         val localDateTime = instant.toLocalDateTime(timeZone)

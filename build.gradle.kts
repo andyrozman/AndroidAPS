@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
     repositories {
+        mavenCentral()
         google()
     }
     dependencies {
@@ -31,9 +32,14 @@ plugins {
 
 allprojects {
     repositories {
-        google()
         mavenCentral()
-        maven("https://jitpack.io")
+        google()
+        // JitPack builds artifacts from GitHub on request. Take from it only the groups that are nowhere else, and take
+        // those groups from nowhere else, so a library of the same name elsewhere cannot replace them.
+        exclusiveContent {
+            forRepository { maven("https://jitpack.io") }
+            filter { includeGroup("com.github.kenglxn.QRGen") }
+        }
     }
     tasks.withType<KotlinCompile>().configureEach {
         compilerOptions {

@@ -13,12 +13,16 @@ import app.aaps.core.data.time.T
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.InterfacesStrings
+import app.aaps.core.interfaces.alerts.EatReminder
+import app.aaps.core.interfaces.alerts.EatReminderAction
+import app.aaps.core.interfaces.alerts.EatReminderState
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.automation.Automation
 import app.aaps.core.interfaces.bolus.BatchAction
 import app.aaps.core.interfaces.bolus.BatchExecutor
 import app.aaps.core.interfaces.bolus.WizardExecutor
 import app.aaps.core.interfaces.clientcontrol.ActionProgress
+import app.aaps.core.interfaces.clientcontrol.ClientControlActionDispatcher
 import app.aaps.core.interfaces.clientcontrol.isNotDeliveryError
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.configuration.appInitializedFlow
@@ -84,6 +88,7 @@ import app.aaps.ui.compose.quickLaunch.QuickLaunchResolver
 import app.aaps.ui.compose.quickLaunch.QuickLaunchSerializer
 import app.aaps.ui.compose.quickLaunch.ResolvedQuickLaunchItem
 import app.aaps.ui.compose.scenes.SceneIcons
+import app.aaps.ui.compose.scenes.revertSummaries
 import app.aaps.ui.compose.tempTarget.toTTPresetsWithDisplayName
 import app.aaps.ui.compose.wizardDialog.showWizardBolusConfirmation
 import dev.zacsweers.metro.AppScope
@@ -145,7 +150,9 @@ class MainViewModel(
     private val visibilityContext: VisibilityContext,
     // Unqualified: @ApplicationScope is a javax qualifier and cannot appear in commonMain. The graph
     // binds the same instance under both names.
-    private val appScope: CoroutineScope
+    private val appScope: CoroutineScope,
+    private val eatReminder: EatReminder,
+    private val clientControlDispatcher: ClientControlActionDispatcher
 ) : ViewModel() {
 
     // Event-driven state (drawer, dialogs, simple-mode preference). Imperative .update{} calls
@@ -244,7 +251,6 @@ class MainViewModel(
             isSimpleMode = ev.isSimpleMode,
             showAboutDialog = ev.showAboutDialog,
             showMaintenanceSheet = ev.showMaintenanceSheet,
-            showAuthFailedDialog = ev.showAuthFailedDialog,
             isProfileLoaded = chip.isProfileLoaded,
             profileName = chip.profileName,
             profilePsId = chip.profilePsId,
@@ -636,10 +642,6 @@ class MainViewModel(
         _eventState.update { it.copy(showMaintenanceSheet = show) }
     }
 
-    fun setShowAuthFailedDialog(show: Boolean) {
-        _eventState.update { it.copy(showAuthFailedDialog = show) }
-    }
-
     // Build about dialog data
     /**
      * Opens the page explaining how to stop this maker's phone from killing background apps.
@@ -886,12 +888,49 @@ class MainViewModel(
     /** Format milliseconds to a localized "time remaining" string (e.g., "1h 30m remaining"). */
     fun formatDuration(ms: Long): String = dateUtil.timeRemainingString(ms, rh)
 
-    /** QuickLaunch scene → ask the MASTER to PREPARE it, render the master's authored confirmation lines, commit on OK (role-transparent). */
+    /** The running "time to eat" timer, for its bar. On a client, the master's timer. */
+    val eatReminderState: StateFlow<EatReminderState?> = eatReminder.state
+
+    /** Stop of the timer bar (Dismiss once it rang). */
+    fun stopEatReminder() = controlEatReminder(EatReminderAction.STOP) { eatReminder.stop() }
+
+    /** +5 min of the timer bar. */
+    fun extendEatReminder() = controlEatReminder(EatReminderAction.EXTEND) { eatReminder.extend() }
+
+    // On the master the timer changes here; a client asks the master, and its bar follows with the next sync.
+    // A +5 min whose alarm cannot be set is told once, by the alarm code (a snackbar), so the master does not
+    // report it a second time here. A client gets it from the master's answer.
+    private fun controlEatReminder(action: EatReminderAction, onMaster: () -> Unit) {
+        viewModelScope.launch {
+            clientControlDispatcher.execute(
+                ClientControlActionDispatcher.Command.EatReminderControl(action),
+                rh.gs(CoreUiStrings.clientcontrol_action_eat_reminder)
+            ) {
+                onMaster()
+                ActionProgress.Applied
+            }
+        }
+    }
+
     /** The icon the user picked for the scene, or the generic scene icon when the scene is not known. */
     private fun sceneIcon(iconKey: String?): ImageVector =
         iconKey?.let { SceneIcons.fromKey(it).icon } ?: ElementType.SCENE.icon()
 
+    /**
+     * Starts a scene from the overview (QuickLaunch tile or the scenes sheet).
+     *
+     * A scene changes the profile, the temp target, the loop mode and SMB, so it asks for the same bolus
+     * protection as doing those things by hand (#5429). The check is here and not at the callers, so every
+     * way to start a scene gets it.
+     */
     fun requestSceneConfirmation(sceneId: String) {
+        protectionCheck.requestProtection(ElementType.SCENE.protection) { result ->
+            if (result == ProtectionResult.GRANTED) prepareSceneStart(sceneId)
+        }
+    }
+
+    /** Asks the MASTER to PREPARE the scene, renders the master's authored confirmation lines, commits on OK (role-transparent). */
+    private fun prepareSceneStart(sceneId: String) {
         val title = rh.gs(CoreUiStrings.scene)
         viewModelScope.launch {
             when (val prepared = sceneActions.prepareStart(sceneId)) {
@@ -914,9 +953,21 @@ class MainViewModel(
         }
     }
 
-    fun requestSceneDeactivation() = viewModelScope.launch {
+    /**
+     * Ends the active scene from the overview banner. Ending reverts what the scene changed, and "Skip to"
+     * starts the next scene, so it asks for bolus protection like starting one does.
+     */
+    fun requestSceneDeactivation() {
+        protectionCheck.requestProtection(ElementType.SCENE.protection) { result ->
+            if (result == ProtectionResult.GRANTED) showSceneDeactivationConfirmation()
+        }
+    }
+
+    private fun showSceneDeactivationConfirmation() = viewModelScope.launch {
         val activeState = activeSceneManager.getActiveState() ?: return@launch
-        val message = rh.gs(CoreUiStrings.scene_confirm_deactivate, activeState.scene.name)
+        // Same title and body as the Scenes screen: the question, then what ending the scene undoes.
+        val title = rh.gs(CoreUiStrings.scene_confirm_deactivate, activeState.scene.name)
+        val message = activeState.revertSummaries(rh).joinToString("\n") { "• $it" }
         // When the scene chains to a runnable follow-up, "Skip to <Next>" becomes the primary
         // action and "End Scene" the alternative — the chain represents the user's pre-declared
         // intent for what happens next, so it's the recommended path on early end. On master,
@@ -927,7 +978,7 @@ class MainViewModel(
         else sceneChainTargetResolver.resolveRunnableChainTarget(activeState.scene)
         _actionConfirmation.update {
             if (target != null) ActionConfirmation(
-                title = rh.gs(CoreUiStrings.scene_deactivate),
+                title = title,
                 message = message,
                 icon = sceneIcon(activeState.scene.icon),
                 onConfirmAction = ConfirmableAction.DeactivateAndChainScene(target.id),
@@ -936,7 +987,7 @@ class MainViewModel(
                 secondaryLabel = rh.gs(CoreUiStrings.scene_deactivate)
             )
             else ActionConfirmation(
-                title = rh.gs(CoreUiStrings.scene_deactivate),
+                title = title,
                 message = message,
                 icon = sceneIcon(activeState.scene.icon),
                 onConfirmAction = ConfirmableAction.DeactivateScene
@@ -978,8 +1029,7 @@ private data class EventState(
     val isSimpleMode: Boolean = true,
     val smbEnabled: Boolean = false,
     val showAboutDialog: Boolean = false,
-    val showMaintenanceSheet: Boolean = false,
-    val showAuthFailedDialog: Boolean = false
+    val showMaintenanceSheet: Boolean = false
 )
 
 /**

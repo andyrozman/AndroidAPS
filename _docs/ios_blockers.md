@@ -233,6 +233,29 @@ posting and routed back by instance key. `IosLoopNotifier` already does exactly 
 for N minutes" buttons and is the worked example. Android cannot be copied here - it suppresses such
 notifications from the tray instead, because its actions are `PendingIntent`s.
 
+## Ready for iOS: the encrypted settings store (2026-10, not yet run on Apple)
+
+Written by the Windows session. `IosSp` and `NSUserDefaults` are gone as the settings store. iOS now
+uses the same `EncryptedKeyValueStore` (`shared/impl`) as the desktop: one file, AES-256-GCM, written
+through DataStore's okio storage, which is the only file storage DataStore has on iOS.
+
+- `ios/shell/.../prefs/IosStorage.kt` opens it once, before any graph. The file is
+  `Application Support/aaps/preferences.store`, and that folder is excluded from iCloud and computer
+  backups: the key is `ThisDeviceOnly`, so the file could not be read on another phone anyway.
+- The key is in the Keychain, service `app.aaps.settingsstore`, account `preferences`
+  (`KeychainStoreCipher` in `implementation/src/iosMain`). `Keychain.loadStrict` tells "no key" apart
+  from "the Keychain did not answer", so a locked Keychain never leads to a new key.
+- The first start moves every text, true/false and number value of the app's own defaults domain into
+  the store (`UserDefaultsMigration`), then removes those keys from `NSUserDefaults`.
+- A file that does not open with the key shows `StartupFailedScreen` (`appshell`, shared with the
+  desktop) with "Start fresh"; a Keychain that does not answer shows "Try again".
+- Graph tests call `TestStorage.install()` first: a test binary has no Keychain.
+
+Only cross compiled so far. To check on the Mac: `iosSimulatorArm64Test` (new: `EncryptedStoreFileTest`
+in `shared/impl` commonTest on a real file, `KeychainStoreCipherTest`, `UserDefaultsMigrationTest`), the
+framework link, and in the app: an existing install keeps its settings after the update, and a second
+start is clean.
+
 ## Ready for iOS: the Nightscout client
 
 Written by the Windows session, for the macOS one - the other direction from the rest of this file.
@@ -1098,7 +1121,7 @@ UI to act on. The prompting lives in `ProtectionHost`, which is a different ques
 
 **The trap: moving the impl alone would make iOS worse, not better.** `IosProtectionCheck` currently
 grants everything, which is wrong but at least passable while iOS reaches no pump. The real impl
-publishes to `pendingRequest` / `pendingAuthRequest` and waits for a host to call back. `AapsAppRoot`
+publishes to `pendingAuthRequest` and waits for a host to call back. `AapsAppRoot`
 places `PasswordCheckHost` but **not** `ProtectionHost` - only `ComposeMainActivity` does. So on iOS
 the request would be published, nothing would render it, and the callback would never fire: every
 protected action would hang rather than be granted or refused. That is worse than either.
@@ -1569,8 +1592,8 @@ build. They had drifted: the desktop copy carried five of sixteen modules, so th
 
 One list now, one task, three consumers. Android generates the `R.string` id variant so AAPT and every
 translation keep working; iOS and desktop generate the English text variant. Adding a module with
-strings is one line in `StringOwnerModules.ALL`.
+strings is one line in `StringOwnerModules.ALL` plus `registerKeyStrings("xxx")` in its build file.
 
-A module listed there but not generating strings fails the build; a module generating strings but
-missing from the list shows its names on screen. The first is the better direction, which is why the
-list is the source of truth rather than a lookup.
+Both directions fail the build now. A module listed there but not generating strings breaks the
+generated registry's imports. A module generating strings but missing from the list fails in
+`registerKeyStrings`, which takes every value from its entry in the list.
