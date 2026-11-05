@@ -122,7 +122,14 @@
     <string name="ui_a_title">Actions</string>
     <string name="ui_a_min_ago">%1$d min left</string>
 
-
+    <!-- UI Configuration::Sound -->
+    <string name="sc_title">Sound Configuration</string>
+    <string name="sc_general">General</string>
+    <string name="sc_quick_bolus">Quick Bolus</string>
+    <string name="sc_bolus">Bolus</string>
+    <string name="sc_pcba_rev">PCBA revision</string>
+    <string name="sc_pump_model">Pump Model</string>
+    <string name="sc_pump_sw">Pump Software</string>
 
 
     <string name="ca_title32325656">Settings / Actions</string>
@@ -232,7 +239,7 @@
     <!-- UI Cartridge Actions:Fill Tubing -->
     <string name="ft_title">Fill Tubing</string>
     <string name="ft_complete">You can now connect the infusion site to your body and then fill the cannula.</string>
-    <string name="ft_restart_text">Restarting tubing fill...</string>
+    <string name="ft_restart_text">Restarting tubing fill…</string>
     <string name="ft_hold_pump_button">Hold down the pump button to fill insulin through the tubing.</string>
     <string name="ft_no_filled_insulin">You haven\'t filled any insulin through the tubing yet.</string>
     <string name="ft_filling">FILLING… continue to hold down button until you see insulin drops at the cannula.</string>

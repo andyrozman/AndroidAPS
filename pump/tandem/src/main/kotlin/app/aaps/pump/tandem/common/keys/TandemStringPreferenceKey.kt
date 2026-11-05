@@ -13,7 +13,7 @@ enum class TandemStringPreferenceKey(
     override val key: String,
     override val defaultValue: String,
     val titleResId: Int = 0,
-    val summaryResId: Int? = null,
+    summaryResId: Int? = null,
     override val preferenceType: PreferenceType = PreferenceType.TEXT_FIELD,
 
     private val entriesResIds: Map<String, Int> = emptyMap(),

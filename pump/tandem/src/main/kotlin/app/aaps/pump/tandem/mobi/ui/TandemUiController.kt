@@ -38,12 +38,12 @@ class TandemUiController(
 
     // TODO fix logs (I set a lot of them to error so that I can easily see what is happening)
 
-    var TAG = LTag.PUMPCOMM
+    companion object {
+        var TAG = LTag.PUMPCOMM
+    }
 
     val ds = tandemUiDataStore
-
     val setOfActions : MutableSet<RefreshData> = mutableSetOf()
-
     lateinit var tandemUICommunication: TandemUICommunication
 
 
@@ -57,36 +57,15 @@ class TandemUiController(
         this.tandemUICommunication.tandemPumpCommunicationManager = tandemPumpConnector.getCommunicationManager()
     }
 
-    /**
-     * Suppresses AAPS auto-reconnect for the duration of a long-running pump-owning UI workflow.
-     * Only cartridge change (and its sub-steps fill-tubing / fill-cannula) sets this — quick
-     * read-only browsing in Actions / Data does not, since those sends are serialized through
-     * [PumpOpQueue] at USER_INITIATED priority and AAPS Loop can safely interleave.
-     */
-    fun setCartridgeChangeMode(active: Boolean) {
-        // tandemPumpUtil.preventConnect = active
-    }
 
     fun disposeTandemUiCommunication(disposeType: AdditionalConfigurationScreens) {
-        aapsLogger.info(
+        aapsLogger.debug(
             LTag.PUMP,
             "disposeTandemUiCommunication($disposeType): preventQueueExecution before=${tandemPumpStatus.preventQueueExecution}"
         )
         if (disposeType==AdditionalConfigurationScreens.Actions) {
             aapsLogger.info(LTag.PUMP, "Actions window was closed. Sending event to refresh.")
 
-            //aapsLogger.error(LTag.PUMP, "Reminder Date found")
-
-            // if (ds.reminderDateTimeUpdated.value == true) {
-            //     aapsLogger.error(TAG, "Reminder Date Time: ${ds.reminderDateTime.value}")
-            //
-            //     preferences.put(TandemLongNonPreferenceKey.SiteReminderDateTime, ds.reminderDateTime.value!!)
-            //     tandemPumpStatus.tandemSiteReminder = ds.reminderDateTime.value!!
-            // }
-
-            // we might be able to specify more exactly what here happens but for now this is ok, see DataActivity and method refreshMainAppData
-            // tandemPumpUtil.refreshPumpStatus(listOf(RefreshData.PUMP_STATUS,
-            //                                         RefreshData.PUMP_INSULIN_LEVEL))
             val list: MutableList<RefreshData> = mutableListOf()
             list.addAll(setOfActions)
 
@@ -100,10 +79,10 @@ class TandemUiController(
         }
 
         this.tandemUICommunication.tandemPumpCommunicationManager = null
-        //aapsLogger.error(LTag.PUMP, "QQ Prevent Queue Execution reset on Mobi (exiting Actions/Data)")
         tandemPumpStatus.preventQueueExecution = false
-        aapsLogger.info(LTag.PUMP, "disposeTandemUiCommunication($disposeType): done, preventQueueExecution=false")
+        aapsLogger.debug(TAG, "disposeTandemUiCommunication($disposeType): done, preventQueueExecution=false")
     }
+
 
     enum class AdditionalConfigurationScreens {
         Actions,
@@ -111,7 +90,7 @@ class TandemUiController(
     }
 
 
-    fun sendPumpCommands(msgs: List<Message>): Boolean {
+    fun sendPumpCommands(messages: List<Message>): Boolean {
 
         if (tandemUiDataStore.pumpConnected.value==false) {
             aapsLogger.warn(TAG, "sendPumpCommands not possible, because pump is not yet connected")
@@ -120,7 +99,7 @@ class TandemUiController(
 
         val sb = StringBuilder()
 
-        for (msg in msgs) {
+        for (msg in messages) {
             sb.append(", ${msg.javaClass.name}")
         }
 
@@ -136,11 +115,7 @@ class TandemUiController(
             }
         }
 
-        // Each UI-initiated wire send is queued at USER_INITIATED priority — jumps ahead of
-        // background AAPS-loop work so the user's tap doesn't wait. Fire-and-forget: the op
-        // completes once the wire send fires; responses arrive asynchronously via the listener
-        // path (TandemUICommunication.onReceiveMessage).
-        for (msg in msgs) {
+        for (msg in messages) {
             this.tandemUICommunication.sendCommand(msg)
         }
 
@@ -175,7 +150,7 @@ class TandemUiController(
                     val value = ds.reminderDateTime.value
                     tandemPumpStatus.tandemSiteReminder = value
 
-                    aapsLogger.info(TAG, "Reminder Changed. Saving value in preferences: ${value}")
+                    aapsLogger.info(TAG, "Reminder Changed. Saving value in preferences: $value")
 
                     if (value != null) {
                         preferences.put(TandemLongNonPreferenceKey.SiteReminderDateTime, value)
@@ -185,12 +160,12 @@ class TandemUiController(
                 }
             }
             RefreshData.START_ACTIONS       -> {
-                aapsLogger.info(TAG, "UI workflow latch: preventQueueExecution = true (Actions screen started)")
+                aapsLogger.debug(TAG, "UI workflow latch: preventQueueExecution = true (Actions screen started)")
                 tandemPumpStatus.preventQueueExecution = true
                 ds.reminderDateTime.value = tandemPumpStatus.tandemSiteReminder
             }
             RefreshData.START_DATA       -> {
-                aapsLogger.info(TAG, "UI workflow latch: preventQueueExecution = true (Data screen started)")
+                aapsLogger.debug(TAG, "UI workflow latch: preventQueueExecution = true (Data screen started)")
                 tandemPumpStatus.preventQueueExecution = true
             }
         }
@@ -205,7 +180,7 @@ class TandemUiController(
         when(databaseTarget) {
             DatabaseTarget.QUALIFYING_EVENTS -> {
 
-                val currentQEItemsBlocking = dbDataHandler.getCurrentQEItemsBlocking();
+                val currentQEItemsBlocking = dbDataHandler.getCurrentQEItemsBlocking()
 
                 val list: MutableList<TandemQualifyingEventDto> = mutableListOf()
 
@@ -229,7 +204,7 @@ class TandemUiController(
 
                 ds.dataQELoaded.value = true
 
-                aapsLogger.info(TAG, "QE Items ${list2.size}")
+                aapsLogger.debug(TAG, "QE Items ${list2.size}")
 
             }
             DatabaseTarget.PUMP_HISTORY      -> {
@@ -241,7 +216,7 @@ class TandemUiController(
                 list2.clear()
                 list2.addAll(list)
 
-                aapsLogger.info(TAG, "History Items ${list2.size}")
+                aapsLogger.debug(TAG, "History Items ${list2.size}")
 
                 ds.dataHistoryLoaded.value = true
             }

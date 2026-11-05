@@ -44,7 +44,7 @@ class TandemService : MetroService() {
 
     var configurationValid : Boolean = false
     var connected: Boolean = false
-    var isInitialized = connected && configurationValid
+    //var isInitialized = connected && configurationValid
     var currentConfiguration: PumpConfigurationDto? = null
 
 
@@ -293,8 +293,8 @@ class TandemService : MetroService() {
 
         return (
             tandemPumpUtil.getIntPreferenceOrDefault(TandemIntPreferenceKey.PumpPairStatus, 0)==100 &&
-            address!=null && address.equals(sharedConnectionData.savedBluetoothMAC) &&
-            pairCode!=null && pairCode.equals(sharedConnectionData.pairingCode) &&
+            address!=null && address == sharedConnectionData.savedBluetoothMAC &&
+            pairCode!=null && pairCode == sharedConnectionData.pairingCode &&
             PumpState.getJpakeDerivedSecret(context).equals(sharedConnectionData.jpakeDerivedSecret) &&
             PumpState.getJpakeServerNonce(context).equals(sharedConnectionData.jpakeServerNonce) &&
             PumpState.getSavedBluetoothMAC(context).equals(sharedConnectionData.savedBluetoothMAC) &&
@@ -330,7 +330,7 @@ class TandemService : MetroService() {
 
 
     fun isConnected(): Boolean  {
-        return this.tandemPumpConnectionManager!=null && this.tandemPumpConnectionManager.isConnected()
+        return ::tandemPumpConnectionManager.isInitialized && this.tandemPumpConnectionManager.isConnected()
     }
 
 

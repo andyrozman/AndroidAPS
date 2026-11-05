@@ -189,8 +189,7 @@ class TandemMobiPumpPlugin(
     private val versionInternal = TandemMobiPluginVersion()
     var newQuickBolusType : QuickBolusType? = null
 
-    @Suppress("PropertyName")
-    private val TAG = LTag.PUMP
+
 
     private var coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -493,7 +492,7 @@ class TandemMobiPumpPlugin(
 
     override fun applyBolusConstraints(insulin: Constraint<Double>): Constraint<Double> {
         // pump-enforced minimum bolus
-        val MIN_BOLUS = 0.05
+
 
         // Check minimum bolus constraint
         if (insulin.value() > 0.0 && insulin.value() < MIN_BOLUS) {
@@ -1571,6 +1570,7 @@ class TandemMobiPumpPlugin(
         return commandResponseCancel.isSuccess
     }
 
+
     override fun serialNumber(): String {
         return pumpStatus.serialNumber.toString()
     }
@@ -1599,11 +1599,6 @@ class TandemMobiPumpPlugin(
         }
 
     }
-
-
-    // private fun refreshBasalRateDisplay() {
-    //     //val bbr = baseBasalRate
-    // }
 
 
     override fun getRefreshTime(pumpDataRefreshType: PumpDataRefreshType): Int {
@@ -1640,20 +1635,14 @@ class TandemMobiPumpPlugin(
     }
 
 
-    // TODO(jwoglom): we will need this to call changetimedate not sure if relevan
     override suspend fun timezoneOrDSTChanged(timeChangeType: TimeChangeType) {
         aapsLogger.warn(LTag.PUMP, logPrefix + "Time or TimeZone changed (type=$timeChangeType). ")
         this.timeChangeType = timeChangeType
         this.hasTimeDateOrTimeZoneChanged = true
         val timeRefresh = System.currentTimeMillis() + (20*1000)  // 20s in future
         scheduleNextRefreshWithSpecifiedTime(PumpDataRefreshType.PumpTime, timeRefresh)
-        // TODO timezoneOrDSTChanged: this might not work as expected, needs to be tested again...
     }
 
-
-    private val _events = MutableSharedFlow<MobiOverviewEvent>(extraBufferCapacity = 1)
-
-    //val events = _events.asSharedFlow()
 
     // TODO Preferences:
     //    - add MIN_RESERVOIR2 confirmation not implemented yet, but might be needed
@@ -1667,9 +1656,6 @@ class TandemMobiPumpPlugin(
                 TandemBooleanPreferenceKey.UseSharedConnection,
                 TandemStringPreferenceKey.SharedConnectionData,
                 TandemBooleanPreferenceKey.HidePumpPairButton,
-                // TODO Metro
-                //TandemIntentPreferenceKey.PumpPairing.withActivity(TandemMobiConnectionWizardActivity::class.java),
-                //TandemIntentPreferenceKey.PumpPairing.withClick { _events.tryEmit(MobiOverviewEvent.StartPairing) },
                 TandemIntPreferenceKey.MaxBolus,
                 TandemIntPreferenceKey.MaxBasal,
                 TandemStringPreferenceKey.QualifyingEventsFilterPref,
@@ -1681,5 +1667,10 @@ class TandemMobiPumpPlugin(
             )
         )
 
+
+    companion object {
+        const val MIN_BOLUS = 0.05
+        val TAG = LTag.PUMP
+    }
 
 }

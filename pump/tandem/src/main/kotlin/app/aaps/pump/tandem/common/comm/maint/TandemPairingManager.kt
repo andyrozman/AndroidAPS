@@ -93,7 +93,7 @@ class TandemPairingManager(
     fun createBluetoothHandler(): TandemBluetoothHandler? {
         aapsLogger.info(TAG, "createBluetoothHandler pairing")
 
-        PumpState.pairingCodeType = PairingCodeType.SHORT_6CHAR
+        PumpState.pairingCodeType = TandemPumpUtil.PAIRING_CODE_TYPE
 
         if (bluetoothHandler != null) {
             return bluetoothHandler

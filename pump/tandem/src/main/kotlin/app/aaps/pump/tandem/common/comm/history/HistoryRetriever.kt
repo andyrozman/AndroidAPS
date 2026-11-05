@@ -114,11 +114,6 @@ class HistoryRetriever(
 
     fun downloadHistory(): Boolean {
 
-        if (!TandemMobiPluginVersion.downloadHistory) {
-            aapsLogger.info(TAG, "${historyPrefix}History download disabled (by flag)")
-            return false
-        }
-
         communication = TandemUICommunication(dataStore = tandemUiDataStore,
                                               pumpStatus = pumpStatus,
                                               aapsLogger= aapsLogger,

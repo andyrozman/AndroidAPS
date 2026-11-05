@@ -116,9 +116,9 @@ fun Actions(
                 break
             }
 
-            aapsLogger.debug(TAG, "Actions loading: remaining ${nullFields.size}: ${actionsFields.map { it.value }}")
+            aapsLogger.debug(LTag.PUMPCOMM, "Actions loading: remaining ${nullFields.size}: ${actionsFields.map { it.value }}")
             if (sinceLastFetchTime >= 2500) {
-                aapsLogger.debug(TAG, "Actions loading re-fetching with cache")
+                aapsLogger.debug(LTag.PUMPCOMM, "Actions loading re-fetching with cache")
                 fetchDataStoreFields()
                 sinceLastFetchTime = 0
             }

@@ -25,6 +25,7 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateSt
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CompletedCartridgeAction
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpGlobalsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import kotlinx.coroutines.flow.StateFlow
@@ -122,6 +123,11 @@ class TandemUIDataStore : TandemUiState, TandemUiStateWriter {
     val reminderDateTimeUpdated = MutableLiveData<Boolean>(false)
 
     val historyLogStatus = MutableLiveData<HistoryLogStatusResponse>()
+
+    // SOUND ---------
+
+    val pumpGlobalResponse = MutableLiveData<PumpGlobalsResponse>()
+
 
 
     // --- TandemUiStateWriter (backend write surface; thread-safe) ---

@@ -38,7 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier;
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
@@ -46,9 +46,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 
 import androidx.compose.ui.platform.debugInspectorInfo
-import androidx.compose.ui.text.AnnotatedString;
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextStyle;
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -64,7 +64,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.tandem.R
-import app.aaps.core.ui.R as Rco
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.DismissNotificationRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.AlarmStatusRequest
@@ -75,21 +74,20 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.time.Instant
 import androidx.compose.material3.Text as Text1
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun Line(
+    modifier: Modifier = Modifier,
     text: String,
     style: TextStyle = MaterialTheme.typography.bodyLarge,
     bold: Boolean = false,
-    modifier: Modifier = Modifier,
         ) {
     Text1(
             text = text,
@@ -145,7 +143,7 @@ fun intervalOf(seconds: Int): Int {
 fun HeaderLine(
     text: String
 ) {
-    Line(text, style = MaterialTheme.typography.headlineMedium,
+    Line(text = text, style = MaterialTheme.typography.headlineMedium,
          modifier = Modifier.padding(all = 20.dp))
 }
 
@@ -226,10 +224,10 @@ fun timeInMillisToLocalDateTime(timeInMillis: Long): LocalDateTime {
 
 @Composable
 fun DottedDivider(
+    modifier: Modifier = Modifier.fillMaxWidth().height(1.dp),
     color: Color = Color.Gray,
     dotRadius: Dp = 2.dp,
-    spaceBetween: Dp = 4.dp,
-    modifier: Modifier = Modifier.fillMaxWidth().height(1.dp)
+    spaceBetween: Dp = 4.dp
 ) {
     val dotPx = with(LocalDensity.current) { dotRadius.toPx() }
     val spacePx = with(LocalDensity.current) { spaceBetween.toPx() }
@@ -320,7 +318,7 @@ fun DecimalOutlinedText(
     modifier: Modifier = Modifier,
     decimalPlaces: Int = 2
 ) {
-    var error = false
+    val error = false
 
 
     var textFieldValue = remember {
@@ -341,7 +339,7 @@ fun DecimalOutlinedText(
             if (dotIndex >= 0 && filtered.length - dotIndex > decimalPlaces + 1) {
                 filtered = filtered.substring(0, dotIndex + decimalPlaces + 1)
             }
-            error = (filtered.toDoubleOrNull() == null)
+            //error = (filtered.toDoubleOrNull() == null)
             onValueChange(filtered)
         },
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None,
@@ -412,8 +410,7 @@ fun compactTBRDisplay(tempRateResponse: TempRateResponse?, resourceHelper: Resou
 fun AlertBanner(
     notifications: List<Any>,
     sendPumpCommands: (List<Message>) -> Boolean,
-    refreshScope: CoroutineScope,
-    resourceHelper: ResourceHelper
+    refreshScope: CoroutineScope
 ) {
     // Filter for alerts and alarms only
     val alarms = notifications.filterIsInstance<AlarmResponseType>()
@@ -433,7 +430,7 @@ fun AlertBanner(
                 )
             ))
             // Immediately refresh notifications after dismissing
-            delay(500) // Small delay for dismiss to process
+            delay(500.milliseconds) // Small delay for dismiss to process
             sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
             dismissingItem = null
         }
@@ -450,7 +447,7 @@ fun AlertBanner(
                 )
             ))
             // Immediately refresh notifications after dismissing
-            delay(500) // Small delay for dismiss to process
+            delay(500.milliseconds) // Small delay for dismiss to process
             sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
             dismissingItem = null
         }
@@ -601,7 +598,7 @@ fun NotificationDismissPills(
                     alert.bitmask().toLong()
                 )
             ))
-            delay(500)
+            delay(500.milliseconds)
             sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
             dismissingItem = null
         }

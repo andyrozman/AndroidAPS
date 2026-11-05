@@ -44,15 +44,9 @@ class TandemPumpUtil(
 
 ): PumpUtil(aapsLogger, rxBus, context, resourceHelper, notificationManager, preferences) {
 
-    var pairingCodeType = PairingCodeType.SHORT_6CHAR  // defaults to 6char for Mobi (if we would implement tslim, we could set this differently from main pumpPlugin class
-
-    val TBR_PREFIX: Int = 100000000
-    val BOLUS_PREFIX: Int = 500000000
-
-
 
     fun getTimeFromPumpAsEpochMillis(pumpTime: Long): Long {
-        return Dates.fromJan12008EpochSecondsToDate(pumpTime).toEpochMilli();
+        return Dates.fromJan12008EpochSecondsToDate(pumpTime).toEpochMilli()
     }
 
 
@@ -101,11 +95,7 @@ class TandemPumpUtil(
             currentActivity = resourceHelper.gs(pumpDriverState.resourceId)
         } else {
             if (commandType == PumpCommandType.CustomCommand) {
-                if (customCommandTypeInterface==null) {
-                    currentActivity = resourceHelper.gs(commandType.resourceId)
-                } else {
-                    currentActivity = customCommandTypeInterface.getDescription()
-                }
+                currentActivity = customCommandTypeInterface?.getDescription() ?: resourceHelper.gs(commandType.resourceId)
             } else {
                 if (commandType == PumpCommandType.GetHistoryWithParameters) {
                     val progress: String = historyProgress.orEmpty()
@@ -124,9 +114,6 @@ class TandemPumpUtil(
 
 
     var historyProgress: String? = null
-        get() {
-            return field
-        }
         set(status) {
             field = status
             setPumpCommandExecutionActivity(pumpDriverState = if (status==null) PumpDriverState.Connected
@@ -306,6 +293,11 @@ class TandemPumpUtil(
 
     companion object {
         @JvmStatic val MAX_BOLUS_SEGMENTS: Int = 16
+
+        var PAIRING_CODE_TYPE = PairingCodeType.SHORT_6CHAR  // defaults to 6char for Mobi (if we would implement tslim, we could set this differently from main pumpPlugin class
+
+        const val TBR_PREFIX: Int = 100000000
+        const val BOLUS_PREFIX: Int = 500000000
     }
 
 

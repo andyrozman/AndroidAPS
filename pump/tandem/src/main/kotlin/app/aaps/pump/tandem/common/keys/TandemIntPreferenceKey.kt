@@ -9,7 +9,7 @@ enum class TandemIntPreferenceKey(
     override val key: String,
     override val defaultValue: Int,
     val titleResId: Int = 0,
-    val summaryResId: Int? = null,
+    summaryResId: Int? = null,
     override val min: Int = Int.MIN_VALUE,
     override val max: Int = Int.MAX_VALUE,
     override val calculatedDefaultValue: Boolean = false,

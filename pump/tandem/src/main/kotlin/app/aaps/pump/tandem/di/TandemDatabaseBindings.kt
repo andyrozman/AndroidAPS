@@ -1,23 +1,16 @@
 package app.aaps.pump.tandem.di
 
 import android.content.Context
-import app.aaps.core.interfaces.di.FeatureMemberInjectors
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.rx.AapsSchedulers
-import app.aaps.pump.tandem.common.comm.ui.TandemUIDataStore
 import app.aaps.pump.tandem.common.database.TandemPumpDatabase
 import app.aaps.pump.tandem.common.database.dao.TandemCleanupDao
 import app.aaps.pump.tandem.common.database.dao.TandemHistoryRecordDao
 import app.aaps.pump.tandem.common.database.dao.TandemQualifyingEventsDao
 import app.aaps.pump.tandem.common.database.dao.TandemSiteChangeDao
-import app.aaps.pump.tandem.common.driver.tandemUiDataStore
-import app.aaps.pump.tandem.common.service.TandemService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.BindingContainer
-import dev.zacsweers.metro.ClassKey
 import dev.zacsweers.metro.ContributesTo
-import dev.zacsweers.metro.IntoMap
-import dev.zacsweers.metro.MembersInjector
 import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.SingleIn
 

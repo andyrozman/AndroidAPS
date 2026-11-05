@@ -28,7 +28,7 @@ class PumpX2L(val aapsLogger: AAPSLogger) : Timber.DebugTree()  {
         }
     }
 
-    override fun createStackElementTag(element: StackTraceElement): String? {
+    override fun createStackElementTag(element: StackTraceElement): String {
         return "${element.className.substringAfterLast(".")}:#:${element.lineNumber}:#:${element.methodName}"
     }
 
