@@ -168,8 +168,7 @@ fun StartStopInsulinScreen(
                 AlertBanner(
                     notifications = notifications,
                     sendPumpCommands = sendPumpCommands,
-                    refreshScope = refreshScope,
-                    resourceHelper = resourceHelper
+                    refreshScope = refreshScope
                 )
             }
 

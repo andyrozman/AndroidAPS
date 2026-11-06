@@ -45,8 +45,7 @@ var LocalTandemDataStore = compositionLocalOf { tandemUiDataStore }
 
 @SingleIn(AppScope::class)
 @Inject
-class TandemPumpStatus(val sp: SP,
-                       val rxBus: RxBus,
+class TandemPumpStatus(val rxBus: RxBus,
                        val preferences: Preferences,
                        private val aapsLogger: AAPSLogger
 ) : PumpStatus(PumpType.TANDEM_MOBI_BT) {

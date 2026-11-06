@@ -209,7 +209,7 @@ class TandemPumpConnector(var tandemPumpStatus: TandemPumpStatus,
 
             val cfg = TandemConfig()
                 .withFilterToBluetoothMac(newBtAddress)
-                .withPairingCodeType(tandemPumpUtil.pairingCodeType)
+                .withPairingCodeType(TandemPumpUtil.PAIRING_CODE_TYPE)
 
             this.tandemPumpCommunicationManager = TandemPumpCommunicationManager(
                 context = context,

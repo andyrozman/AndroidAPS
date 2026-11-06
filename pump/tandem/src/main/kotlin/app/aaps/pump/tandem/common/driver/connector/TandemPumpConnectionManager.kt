@@ -38,13 +38,12 @@ import dev.zacsweers.metro.SingleIn
 class TandemPumpConnectionManager(
     val tandemPumpStatus: TandemPumpStatus,
     val tandemPumpUtil: TandemPumpUtil,
-    sp: SP,
     aapsLogger: AAPSLogger,
     rxBus: RxBus,
     context: Context,
     var preferences: Preferences,
     val tandemConnector: TandemPumpConnector
-): PumpConnectionManager(tandemPumpStatus, tandemPumpUtil, sp, aapsLogger, rxBus, context) {
+): PumpConnectionManager(tandemPumpStatus, tandemPumpUtil, aapsLogger, rxBus, context) {
 
 
     override fun connectToPump(): Boolean {

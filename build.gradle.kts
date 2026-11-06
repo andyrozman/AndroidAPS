@@ -38,7 +38,11 @@ allprojects {
         // those groups from nowhere else, so a library of the same name elsewhere cannot replace them.
         exclusiveContent {
             forRepository { maven("https://jitpack.io") }
-            filter { includeGroup("com.github.kenglxn.QRGen") }
+            filter {
+                includeGroup("com.github.kenglxn.QRGen")
+                includeGroup("com.github.jwoglom.pumpX2")
+                includeGroup("com.github.weliem")
+            }
         }
     }
     tasks.withType<KotlinCompile>().configureEach {

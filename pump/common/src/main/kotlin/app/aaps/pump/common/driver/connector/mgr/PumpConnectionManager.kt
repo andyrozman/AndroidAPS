@@ -26,7 +26,6 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 abstract class PumpConnectionManager constructor(
     val pumpStatus: PumpStatus,
     val pumpUtil: PumpUtil,
-    val sp: SP,
     val aapsLogger: AAPSLogger,
     val rxBus: RxBus,
     val context: Context
