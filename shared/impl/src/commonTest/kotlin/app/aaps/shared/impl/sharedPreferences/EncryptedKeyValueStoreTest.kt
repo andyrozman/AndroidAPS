@@ -1,5 +1,6 @@
 package app.aaps.shared.impl.sharedPreferences
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -10,6 +11,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class EncryptedKeyValueStoreTest {
 
     /** The disk, in memory. [failNext] makes that many writes throw, the way a locked file does on Windows. */
@@ -134,6 +136,20 @@ class EncryptedKeyValueStoreTest {
         assertEquals(6, store.getInt("long", 0))
         assertEquals(5.0, store.getDouble("int", 0.0))
         assertEquals("5", store.getString("int", ""))
+    }
+
+    /**
+     * A setting that was a decimal before arrives here as a Double: the move from the old file turns
+     * the Float it was into one. Read as a whole number it is rounded, so what the user set is kept.
+     */
+    @Test
+    fun `a decimal read as a whole number is rounded and not dropped`() = runTest {
+        val store = store(MemoryBackend(mapOf("whole" to 7.0, "up" to 7.6, "down" to 7.4, "float" to 7.0f)))
+
+        assertEquals(7, store.getInt("whole", 2))
+        assertEquals(8, store.getInt("up", 2))
+        assertEquals(7L, store.getLong("down", 2L))
+        assertEquals(7.0, store.getDouble("float", 2.0))
     }
 
     @Test

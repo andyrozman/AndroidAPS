@@ -17,6 +17,7 @@ import app.aaps.pump.equil.driver.definition.BluetoothConnectionState
 import app.aaps.pump.equil.keys.EquilStringKey
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -36,10 +37,11 @@ import kotlin.concurrent.thread
  *
  * `EquilPumpPlugin.onStart` runs on a background coroutine and calls [EquilManager.init], so it can
  * land at any moment - including while a pod activation is running. Reloading the state there discards
- * whatever is newer in memory, which is what made `EquilEmulatorActivationTest` fail two different ways
+ * whatever is newer in memory, which is what made the former `EquilEmulatorActivationTest` fail two different ways
  * on CI (#5040): once with a stale COMPLETED surviving a reset, once with a finished activation reset
  * back so the wizard waited forever for a COMPLETED it had already reached.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @ExtendWith(MockitoExtension::class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class EquilManagerStateTest {
@@ -116,7 +118,7 @@ class EquilManagerStateTest {
     }
 
     /**
-     * What `EquilEmulatorActivationTest` failed with: "activationProgress=COMPLETED" while the persisted
+     * What the former `EquilEmulatorActivationTest` failed with: "activationProgress=COMPLETED" while the persisted
      * state was the clean one. The load had read the old state before the reset and published it after.
      */
     @Test

@@ -30,6 +30,7 @@ import app.aaps.core.interfaces.profile.ProfileRepository
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.protection.ExportPasswordDataStore
 import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.pump.emulator.PumpEmulators
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
@@ -49,7 +50,6 @@ import app.aaps.core.interfaces.versionChecker.VersionCheckerUtils
 import app.aaps.core.interfaces.widget.WidgetUpdater
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.crypto.CryptoUtil
-import app.aaps.core.objects.di.CoreObjectsGraph
 import app.aaps.core.objects.workflow.MetroWorkerCreator
 import app.aaps.database.AppRepository
 import app.aaps.database.di.DatabaseConfig
@@ -94,7 +94,8 @@ class MetroGraphs(
     private val context: Context,
     private val memberInjector: MetroMemberInjector,
     private val databaseConfig: DatabaseConfig,
-    private val externalOptionsOverride: ExternalOptionsOverride
+    private val externalOptionsOverride: ExternalOptionsOverride,
+    private val pumpEmulators: PumpEmulators
 ) {
 
 
@@ -119,7 +120,7 @@ class MetroGraphs(
     /** The one Metro root. Sub-graphs are extensions of it rather than roots of their own. */
     private val root: AppRootGraph by lazy {
         createGraphFactory<AppRootGraph.Factory>()
-            .create(applicationScope, context, memberInjector, databaseConfig, externalOptionsOverride, CoreObjectsGraph)
+            .create(applicationScope, context, memberInjector, databaseConfig, externalOptionsOverride, pumpEmulators)
     }
 
     /**

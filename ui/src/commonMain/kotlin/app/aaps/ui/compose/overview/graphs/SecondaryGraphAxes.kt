@@ -6,8 +6,7 @@ import app.aaps.core.interfaces.overview.graph.SeriesType
 // - the first series is drawn against the left axis, the second against the right one, unless the
 //   two have the same unit and so share one axis ([graphSides]);
 // - every series type has one axis rule, the same alone and in a pair ([axisRuleOf], [axisRange]);
-// - two axes keep their own ranges, only their zeros are put on one height ([alignReferences]);
-// - the IOB graph alone leaves the top of its height to the basal band ([graphAxes]).
+// - two axes keep their own ranges, only their zeros are put on one height ([alignReferences]).
 
 /** How the axis of a series is built from its values. */
 internal sealed interface AxisRule {
@@ -62,11 +61,15 @@ internal data class AxisBounds(val min: Double, val max: Double)
 /** The axis of a graph that has no values: a frame, so the grid and the now line still draw. */
 internal val EMPTY_AXIS = AxisBounds(0.0, 1.0)
 
-/** The range for [values] by [rule], or null when there are no values. */
+/**
+ * The range for [values] by [rule], or null when there are no values. A value that is NaN or infinite
+ * does not count: `min()` and `max()` would pass it on, and the whole axis would be NaN (#5525).
+ */
 internal fun axisRange(rule: AxisRule, values: List<Double>): AxisRange? {
-    if (values.isEmpty()) return null
-    val low = values.min()
-    val high = values.max()
+    val finite = values.filter { it.isFinite() }
+    if (finite.isEmpty()) return null
+    val low = finite.min()
+    val high = finite.max()
     return when (rule) {
         AxisRule.ZeroFloor -> zeroFloorNiceRange(low, high.coerceAtLeast(0.0)).let { AxisRange(it.min, it.max, 0.0) }
         is AxisRule.Pivot  -> niceScaleAroundPivot(low, high, rule.pivot, rule.minDeviation).let { AxisRange(it.min, it.max, rule.pivot) }
@@ -102,16 +105,9 @@ private fun AxisRange.stretchedTo(reference: Double, target: Double): AxisBounds
 /** The bounds a graph draws its axes with. [right] is null when the graph has no right axis with values. */
 internal data class GraphAxes(val left: AxisBounds, val right: AxisBounds?)
 
-/**
- * The drawn axes of a graph from the ranges of its two sides. With [basalBand], the left axis goes on
- * above its values, so they take the lower [IOB_HEIGHT_FRACTION] of the height and the basal band
- * has the top. The room is measured from the bottom of the values, not from zero: the two only
- * coincide when there is no negative part, and measured from zero the negative part would get less
- * than its share.
- */
-internal fun graphAxes(left: AxisRange?, right: AxisRange?, basalBand: Boolean): GraphAxes = when {
+/** The drawn axes of a graph from the ranges of its two sides. */
+internal fun graphAxes(left: AxisRange?, right: AxisRange?): GraphAxes = when {
     left == null  -> GraphAxes(EMPTY_AXIS, right?.bounds)
-    basalBand     -> GraphAxes(AxisBounds(left.min, left.min + (left.max - left.min) / IOB_HEIGHT_FRACTION), null)
     right == null -> GraphAxes(left.bounds, null)
     else          -> alignReferences(left, right).let { (l, r) -> GraphAxes(l, r) }
 }

@@ -72,6 +72,7 @@ import app.aaps.core.interfaces.pump.PumpStatusProvider
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.PumpWithConcentration
 import app.aaps.core.interfaces.pump.TemporaryBasalStorage
+import app.aaps.core.interfaces.pump.emulator.PumpEmulators
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.receivers.ReceiverStatusStore
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -127,6 +128,7 @@ import app.aaps.implementation.notifications.SnackbarNotificationFallback
 import app.aaps.implementation.plugin.PluginStore
 import app.aaps.implementation.profile.ProfileSwitchScheduler
 import app.aaps.implementation.profile.ProfileSwitchSilentGate
+import app.aaps.implementation.queue.CommandExecutor
 import app.aaps.implementation.resources.ResourceHelperImpl
 import app.aaps.implementation.scenes.ActiveSceneManager
 import app.aaps.implementation.scenes.SceneExecutor
@@ -171,7 +173,6 @@ import app.aaps.ui.search.BuiltInSearchables
 import app.aaps.workflow.WorkflowChainData
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
-import dev.zacsweers.metro.Includes
 import dev.zacsweers.metro.MembersInjector
 import dev.zacsweers.metro.Multibinds
 import dev.zacsweers.metro.Provides
@@ -204,8 +205,12 @@ import kotlin.reflect.KClass
  * `:pump:dana:common` for what that costs - a test resolves them with a cast rather than at compile
  * time, and their accessors become roots that every `AppScope` graph on the same classpath has to
  * satisfy.
+ *
+ * [CoreObjectsGraph] is a plain binding container rather than a contributed one, so it is named here.
+ * As an `object` it goes in `bindingContainers`, not in the factory: Metro calls an object's
+ * `@Provides` directly, and a factory parameter for it was an input the graph never read.
  */
-@DependencyGraph(AppScope::class)
+@DependencyGraph(AppScope::class, bindingContainers = [CoreObjectsGraph::class])
 interface AppRootGraph : MetroViewModelMultibindings {
 
     // Both of the graphs below are extensions rather than roots of their own. A second
@@ -334,6 +339,7 @@ interface AppRootGraph : MetroViewModelMultibindings {
     val dataInbox: DataInbox
     val autosensData: AutosensData
     val commandQueue: CommandQueue
+    val commandExecutor: CommandExecutor
     val localAlertUtils: LocalAlertUtils
     val bolusProgressData: BolusProgressData
     val persistenceLayer: PersistenceLayer
@@ -548,7 +554,11 @@ interface AppRootGraph : MetroViewModelMultibindings {
             /** Extra external options to report enabled. `ExternalOptionsOverride.NONE` in production. */
             @Provides externalOptionsOverride: ExternalOptionsOverride,
 
-            @Includes coreObjects: CoreObjectsGraph
+            /**
+             * The emulated pumps. Production passes a new one. A test that restarts the app passes the one of the
+             * graph before, so the emulated pump runs on, as a real one would.
+             */
+            @Provides pumpEmulators: PumpEmulators
         ): AppRootGraph
     }
 }

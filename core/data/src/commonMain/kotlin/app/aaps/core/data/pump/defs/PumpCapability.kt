@@ -20,8 +20,11 @@ enum class PumpCapability {
     CarelevoCapabilities(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, BasalRate30min),
     TandemSlimCapabilities(Refill, ReplaceBattery),
     TandemMobiCapabilities(Bolus, TempBasal, BasalProfileSet, Refill, BasalRate30min),
-    // Diaconn set without Refill and ReplaceBattery: the Equil wizard fills the reservoir and fits the charged battery
-    EquilCapabilities(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, TDD, ManualTDDLoad)
+    // Diaconn set without ReplaceBattery: the Equil wizard fits the charged battery.
+    // Refill: users asked for Prime/Fill. The pump can be detached from the base plate, so the prime can go into the air.
+    // It is a PRIMING bolus and adds no IOB, so a prime while the pump is attached is insulin the loop does not see.
+    // No TDD: the driver cannot read daily totals from the pump (loadTDDs always failed), so AAPS counts them itself.
+    EquilCapabilities(Bolus, ExtendedBolus, TempBasal, BasalProfileSet, Refill)
     ;
 
 

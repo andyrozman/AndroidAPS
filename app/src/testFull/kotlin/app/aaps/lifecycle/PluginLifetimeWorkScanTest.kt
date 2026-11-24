@@ -102,7 +102,7 @@ class PluginLifetimeWorkScanTest {
     private val declaration = Regex("""\b(?:appScope|pluginScope)\s*:\s*CoroutineScope""")
 
     private fun repoRoot(): File {
-        var dir: File? = File(System.getProperty("user.dir"))
+        var dir: File? = File(System.getProperty("user.dir")!!)
         while (dir != null && !File(dir, "settings.gradle").exists() && !File(dir, "settings.gradle.kts").exists()) dir = dir.parentFile
         return checkNotNull(dir) { "Could not find the repository root above ${System.getProperty("user.dir")}" }
     }
@@ -254,10 +254,12 @@ class PluginLifetimeWorkScanTest {
                 "before anything is queued. The only site here where cancelling really does prevent the command."
         ),
         "DanaRSPlugin.kt#changePump" to Site(
-            1,
+            2,
             "readStatus(device_changed). Status read, no dosing. The command is queued before the await, so a " +
                 "cancel only abandons the answer - but CommandExecutor drops the whole queue when the new " +
-                "driver reports !isConfigured(), so nothing reaches a pump. SAFE to abandon."
+                "driver reports !isConfigured(), so nothing reaches a pump. SAFE to abandon. " +
+                "connectNewPump() after an unpair (D9): ends the temp basal and extended bolus of the removed pump, no " +
+                "pump talk. Cancelled, they end at the next pairing as before. SAFE to abandon."
         ),
         "DiaconnG8Plugin.kt#changePump" to Site(
             1,

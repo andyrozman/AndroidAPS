@@ -69,9 +69,9 @@
     <string name="carelevo_insulin_refill_step1">1. Peel off the backing paper from the patch blister.</string>
     <string name="carelevo_insulin_refill_step2">2. Disinfect the rubber cap of the insulin vial using an alcohol swab.</string>
     <string name="carelevo_insulin_refill_step3">3. Remove the needle protection cap of the insulin syringe by pulling it straight off.</string>
-    <string name="carelevo_insulin_refill_step4">4. Pull back the syringe plunger to fill it with approximately 2 mL of air.</string>
+    <string name="carelevo_insulin_refill_step4">4. Pull back the syringe plunger to fill it with approximately 1 mL of air.</string>
     <string name="carelevo_insulin_refill_step5">5. Insert the air-filled syringe into the insulin vial and inject the air into the vial.</string>
-    <string name="carelevo_insulin_refill_step6">6. With the syringe still inserted, flip both the vial and syringe upside down, and use the pressure to fill the syringe with approximately 2 mL of insulin.</string>
+    <string name="carelevo_insulin_refill_step6">6. With the syringe still inserted, flip both the vial and syringe upside down, and use the pressure to fill the syringe with approximately 1 mL of insulin.</string>
     <string name="carelevo_insulin_refill_step7">7. Insert the syringe needle vertically into the patch\'s insulin fill port (①) until it reaches the bottom. Pull the plunger all the way up, then release it. Remove the syringe from the fill port.</string>
     <string name="carelevo_insulin_refill_step8">8. Hold the syringe upright and tap the side gently to collect all air bubbles at the top.</string>
     <string name="carelevo_insulin_refill_step9">9. Insert the needle back into the insulin vial, push all the air into the vial, and then draw the specific amount of insulin you will use for the duration of the patch.</string>
@@ -155,6 +155,7 @@
 
     <!-- Patch Discard -->
     <string name="carelevo_toast_msg_discard_failed">Patch discard failed. Please try again.</string>
+    <string name="carelevo_discarded_not_reached">The patch could not be reached. It was removed from AAPS but not stopped, and it may still give insulin. Take it off.</string>
 
     <!-- Basal Delivery -->
     <string name="carelevo_toast_msg_set_basal_failed">Basal delivery request failed. Please try again.</string>
@@ -252,6 +253,8 @@
     <string name="carelevo_profile_update_skip_comment">Skipped: update too soon.</string>
     <string name="carelevo_bolus_stop_not_confirmed">The patch did not confirm the stop. Waiting for the bolus to end…</string>
     <string name="carelevo_bolus_rejected_missed_bolus_recorded">A bolus that was not recorded has been added now. Check IOB, then try again.</string>
+    <string name="carelevo_bolus_outcome_unknown">The patch did not answer the bolus. The whole bolus counts until the patch tells how much it gave.</string>
     <string name="carelevo_bolus_stop_not_confirmed_full" comment="%1$s=insulin asked for, with unit. Example: The patch did not confirm the stop. The full bolus of 2.00 U is recorded.">The patch did not confirm the stop. The full bolus of %1$s is recorded.</string>
+    <string name="carelevo_bolus_stopped_by_patch" comment="%1$s=insulin given, with unit, %2$s=insulin asked for, with unit. Example: The patch stopped the bolus. Given: 0.50 U of 2.00 U">The patch stopped the bolus. Given: %1$s of %2$s</string>
 
 </resources>

@@ -4,6 +4,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSDate
 import platform.Foundation.NSDateFormatter
@@ -40,7 +41,7 @@ import platform.Foundation.writeToFile
  * by this one - they are one folder up from where the import screen now looks. That is a deliberate
  * clean break rather than an accident: see [list].
  */
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 @Inject
@@ -117,5 +118,5 @@ class IosPrefsFileAccess(
  * on the first write instead - unlike `extra`, which is created at start up because a user has to be
  * able to find it before anything has written to it.
  */
-private fun defaultDocumentsSubdirectory(name: String): String? =
+internal fun defaultDocumentsSubdirectory(name: String): String? =
     (NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true).firstOrNull() as? String)?.let { "$it/$name" }

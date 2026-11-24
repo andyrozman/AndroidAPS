@@ -1,6 +1,7 @@
 package app.aaps.ios.shell.di
 
 import app.aaps.core.interfaces.alerts.EatReminder
+import app.aaps.core.interfaces.alerts.LocalAlertUtils
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
 import app.aaps.core.interfaces.clientcontrol.ClientControlActionDispatcher
 import app.aaps.core.interfaces.configuration.Config
@@ -48,6 +49,7 @@ import app.aaps.implementation.plugin.PluginStore
 import app.aaps.implementation.receivers.IosReceiverStatusStore
 import app.aaps.plugins.automation.AutomationRuntime
 import app.aaps.plugins.configuration.setupwizard.SWDefinition
+import app.aaps.plugins.sync.nsclientV3.ws.NsConnection
 import app.aaps.plugins.sync.nsclientV3.ws.NsSocketFactory
 import app.aaps.shared.clientbindings.ClientGraphBindings
 import app.aaps.shared.clientbindings.ClientHistoryWindowGraph
@@ -56,7 +58,6 @@ import app.aaps.ui.compose.overview.graphs.GraphViewModel
 import app.aaps.ui.search.BuiltInSearchables
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
-import dev.zacsweers.metro.Includes
 import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metrox.viewmodel.MetroViewModelMultibindings
@@ -76,8 +77,13 @@ import kotlinx.coroutines.CoroutineScope
  * a binding iOS has no implementation for yet, logs loudly when touched, and refuses to invent an
  * answer that a screen would act on. They are listed in `_docs/ios_blockers.md` and are meant to be
  * deleted one at a time.
+ *
+ * [CoreObjectsGraph] and [ClientGraphBindings] are plain binding containers rather than contributed
+ * ones, so the graph names them - the same way `AppRootGraph` takes `CoreObjectsGraph` on Android.
+ * Both are objects, so they go in `bindingContainers`: Metro calls their `@Provides` directly and
+ * needs no instance from the factory.
  */
-@DependencyGraph(AppScope::class)
+@DependencyGraph(AppScope::class, bindingContainers = [CoreObjectsGraph::class, ClientGraphBindings::class])
 interface IosAppGraph : MetroViewModelMultibindings {
 
     // Everything AapsAppRoot needs.
@@ -158,6 +164,20 @@ interface IosAppGraph : MetroViewModelMultibindings {
     val automationRuntime: AutomationRuntime
     // The periodic housekeeping shared with Android, and the scope the shell drives it on.
     val periodicMaintenance: PeriodicMaintenance
+
+    /**
+     * The local alarms, for one call Android makes and this shell has to make too:
+     * `preSnoozeAlarms` holds the stale-data alarm back for five minutes so the first Nightscout
+     * round can land before the database is judged out of date.
+     */
+    val localAlertUtils: LocalAlertUtils
+
+    /**
+     * The Nightscout websocket, so that coming back from a suspension can replace it. iOS freezes
+     * the socket with the process and no close event is ever seen, so nothing else notices it is
+     * dead - see `IosForegroundWatcher`.
+     */
+    val nsConnection: NsConnection
     // Turns a snackbar into a notification when no screen is up to show it. Shared with Android.
     val snackbarNotificationFallback: SnackbarNotificationFallback
     val eatReminder: EatReminder
@@ -217,13 +237,7 @@ interface IosAppGraph : MetroViewModelMultibindings {
     @DependencyGraph.Factory
     fun interface Factory {
 
-        /**
-         * [CoreObjectsGraph] is a `@BindingContainer`, so its `@Provides` are only visible to a
-         * graph that includes it - the same way `AppRootGraph` takes it on Android.
-         */
         fun create(
-            @Includes coreObjects: CoreObjectsGraph,
-            @Includes clientBindings: ClientGraphBindings,
             /**
              * The Nightscout socket, handed in by the app because it is written in Swift.
              *

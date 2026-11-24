@@ -130,8 +130,8 @@ class CommandQueueImplementation(
     private val localAlertUtils: () -> LocalAlertUtils,
     private val smsCommunicator: () -> SmsCommunicator,
     private val commandExecutor: () -> CommandExecutor,
-    // Plain CoroutineScope, not @ApplicationScope: that qualifier is javax and cannot appear in
-    // commonMain. AppCoroutineBindings.unqualifiedAppScope binds the very same scope without it.
+    // Plain CoroutineScope, the same object as @ApplicationScope:
+    // AppCoroutineBindings.unqualifiedAppScope binds the very same scope without it.
     private val appScope: CoroutineScope,
     private val bolusProgressData: BolusProgressData,
     private val smbPause: SmbPause,
@@ -212,11 +212,11 @@ class CommandQueueImplementation(
             val active = persistenceLayer.getEffectiveProfileSwitchActiveAt(dateUtil.now())
             val alreadyEffective = active != null && active.originalPsId != null && active.originalPsId == it.id
             if (alreadyEffective && activePlugin.activePump.isThisProfileSet(ProfileSealed.PS(it, activePlugin))) {
-                aapsLogger.debug(LTag.PROFILE, "Skipping onProfileChanged: active EPS id=${active?.id} already represents PS id=${it.id} and the pump has it")
+                aapsLogger.debug(LTag.PROFILE, "Skipping onProfileChanged: active EPS id=${active.id} already represents PS id=${it.id} and the pump has it")
                 return@let
             }
             if (alreadyEffective)
-                aapsLogger.debug(LTag.PROFILE, "onProfileChanged: active EPS id=${active?.id} represents PS id=${it.id}, but the pump has another basal. Setting it again")
+                aapsLogger.debug(LTag.PROFILE, "onProfileChanged: active EPS id=${active.id} represents PS id=${it.id}, but the pump has another basal. Setting it again")
             // Bound the pump round-trip. setProfile() awaits the completion of a CommandSetProfile; if
             // that is never completed the await never returns, and because the collector processes
             // emissions sequentially that single hang would block every future ProfileSwitch. On
@@ -253,7 +253,7 @@ class CommandQueueImplementation(
                     notifyProfileSet(asked = nonCustomized.basalBlocks, given = basalBlocks)
                 // A PS that is already effective only had to be set in the pump again. It gets no second EPS,
                 // unless this pump gives another basal than the EPS holds, e.g. a new pump with another step.
-                if (alreadyEffective && active?.basalBlocks == basalBlocks) return@let
+                if (alreadyEffective && active.basalBlocks == basalBlocks) return@let
                 val eps = EPS(
                     timestamp = dateUtil.now(),
                     basalBlocks = basalBlocks,
@@ -649,15 +649,15 @@ class CommandQueueImplementation(
 
     override suspend fun bolus(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {
         val originalCarbs = detailedBolusInfo.carbs
+        // The eCarbs of the same meal follow the carbs in both paths below, so they are never stored
+        // without the carbs they belong to (#5491).
+        val originalECarbs = detailedBolusInfo.eCarbs
+        val hasCarbs = originalCarbs != 0.0 || originalECarbs != null
         // Carbs-only path: store and return without queuing a pump command.
-        if (originalCarbs != 0.0 && detailedBolusInfo.insulin == 0.0) {
+        if (hasCarbs && detailedBolusInfo.insulin == 0.0) {
             aapsLogger.debug(LTag.PUMPQUEUE, "Going to store carbs")
             return try {
-                persistenceLayer.insertOrUpdateCarbs(
-                    carbs = detailedBolusInfo.createCarbs(),
-                    action = Action.CARBS,
-                    source = Sources.Database
-                )
+                storeCarbs(detailedBolusInfo)
                 pumpEnactResultProvider().enacted(false).success(true)
             } catch (e: Exception) {
                 aapsLogger.error(LTag.PUMPQUEUE, "Failed to store carbs", e)
@@ -665,11 +665,14 @@ class CommandQueueImplementation(
             }
         }
         // Bolus + carbs path: drop carbs from the queued command and persist them after the bolus succeeds.
-        val hasCarbs = originalCarbs != 0.0
-        if (hasCarbs) detailedBolusInfo.carbs = 0.0
+        if (hasCarbs) {
+            detailedBolusInfo.carbs = 0.0
+            detailedBolusInfo.eCarbs = null
+        }
 
-        // Running-mode gate: reject bolus if current mode forbids new delivery.
-        rejectedByRunningModeGate(PumpCommandGate.CommandKind.BOLUS)?.let { return it }
+        // Running-mode gate: reject bolus if current mode forbids new delivery. A prime is allowed while
+        // the pump is disconnected (#5469).
+        rejectedByRunningModeGate(PumpCommandGate.bolusKind(detailedBolusInfo.bolusType))?.let { return it }
 
         val type = if (detailedBolusInfo.bolusType == BS.Type.SMB) CommandType.SMB_BOLUS else CommandType.BOLUS
         // Suspend DB read must stay outside enqueueLock; CommandSMBBolus.execute() re-checks freshness at execution time.
@@ -731,12 +734,9 @@ class CommandQueueImplementation(
         if (hasCarbs && result.success) {
             aapsLogger.debug(LTag.PUMPQUEUE, "Going to store carbs")
             detailedBolusInfo.carbs = originalCarbs
+            detailedBolusInfo.eCarbs = originalECarbs
             try {
-                persistenceLayer.insertOrUpdateCarbs(
-                    carbs = detailedBolusInfo.createCarbs(),
-                    action = Action.CARBS,
-                    source = Sources.Database
-                )
+                storeCarbs(detailedBolusInfo)
             } catch (e: Exception) {
                 aapsLogger.error(LTag.PUMPQUEUE, "Failed to store carbs after bolus", e)
                 // The bolus succeeded but the carbs weren't persisted, so COB/IOB would be wrong and the
@@ -745,6 +745,14 @@ class CommandQueueImplementation(
             }
         }
         return result
+    }
+
+    /** The carbs of [detailedBolusInfo] and the eCarbs of the same meal, whichever it has. */
+    private suspend fun storeCarbs(detailedBolusInfo: DetailedBolusInfo) {
+        if (detailedBolusInfo.carbs != 0.0)
+            persistenceLayer.insertOrUpdateCarbs(carbs = detailedBolusInfo.createCarbs(), action = Action.CARBS, source = Sources.Database)
+        if (detailedBolusInfo.eCarbs != null)
+            persistenceLayer.insertOrUpdateCarbs(carbs = detailedBolusInfo.createECarbs(), action = Action.CARBS, source = Sources.Database)
     }
 
     override suspend fun stopPump(): PumpEnactResult =

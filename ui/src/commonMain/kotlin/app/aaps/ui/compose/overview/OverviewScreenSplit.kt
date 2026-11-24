@@ -57,6 +57,8 @@ fun OverviewScreenSplit(
     runningModeProgress: Float,
     runningModeSceneManaged: Boolean = false,
     tbrState: TbrState,
+    tbrText: String = "",
+    tbrProgress: Float = 0f,
     smbEnabled: Boolean,
     isSimpleMode: Boolean,
     graphViewModel: GraphViewModel,
@@ -80,6 +82,8 @@ fun OverviewScreenSplit(
     eatReminderBanner: @Composable () -> Unit = {},
     /** Height of the bars drawn over the content in preview mode; both columns need it as extra space at their end. */
     overlaidBarsHeight: Dp = 0.dp,
+    /** Progress of the IOB / graph calculation, 100 when done. Shown as a thin ring inside the BG ring. */
+    calcProgress: Int = 100,
     modifier: Modifier = Modifier
 ) {
     val config = LocalConfig.current
@@ -130,7 +134,8 @@ fun OverviewScreenSplit(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         BgInfoSection(
                             bgInfo = bgInfoState.bgInfo,
-                            timeAgoText = bgInfoState.timeAgoText
+                            timeAgoText = bgInfoState.timeAgoText,
+                            updateProgress = if (calcProgress in 1..99) calcProgress / 100f else 0f
                         )
                     }
 
@@ -164,6 +169,8 @@ fun OverviewScreenSplit(
                             tempTargetReason = tempTargetReason,
                             tempTargetSceneManaged = tempTargetSceneManaged,
                             tbrState = tbrState,
+                            tbrText = tbrText,
+                            tbrProgress = tbrProgress,
                             iobUiState = iobUiState,
                             cobUiState = cobUiState,
                             sensitivityUiState = sensitivityUiState,
@@ -173,6 +180,20 @@ fun OverviewScreenSplit(
                             commandsAllowed = commandsAllowed
                         )
                     }
+                }
+
+                // On a client, the client status card comes before the status lights
+                if (config.AAPSCLIENT) {
+                    val nsClientStatus by graphViewModel.nsClientStatusFlow.collectAsStateWithLifecycle()
+                    val flavorTint = when {
+                        config.AAPSCLIENT3 -> AapsTheme.generalColors.flavorClient3Tint
+                        config.AAPSCLIENT2 -> AapsTheme.generalColors.flavorClient2Tint
+                        else               -> AapsTheme.generalColors.flavorClient1Tint
+                    }
+                    AapsClientStatusCard(
+                        statusData = nsClientStatus,
+                        flavorTint = flavorTint
+                    )
                 }
 
                 OverviewStatusSection(
@@ -188,19 +209,6 @@ fun OverviewScreenSplit(
                     expanded = statusExpanded,
                     onExpandedChange = { statusExpanded = it }
                 )
-
-                if (config.AAPSCLIENT) {
-                    val nsClientStatus by graphViewModel.nsClientStatusFlow.collectAsStateWithLifecycle()
-                    val flavorTint = when {
-                        config.AAPSCLIENT3 -> AapsTheme.generalColors.flavorClient3Tint
-                        config.AAPSCLIENT2 -> AapsTheme.generalColors.flavorClient2Tint
-                        else               -> AapsTheme.generalColors.flavorClient1Tint
-                    }
-                    AapsClientStatusCard(
-                        statusData = nsClientStatus,
-                        flavorTint = flavorTint
-                    )
-                }
                 // The QuickLaunch toolbar is centred over both columns, so this one needs space at its end too,
                 // like the graphs column has
                 Spacer(Modifier.height(AapsSpacing.fabClearance + overlaidBarsHeight))

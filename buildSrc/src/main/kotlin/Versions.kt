@@ -5,10 +5,13 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 object Versions {
 
     // On change edit aaps-ci.yml
-    const val appVersion = "4.0.0-dev-f-tandem-0.9.x"
+    const val appVersion = "4.0.1-dev-a-tandem-0.10.x"
     const val versionCode = 1500
 
     const val compileSdk = 37
+    // Compose 1.13 needs 37.1 or later. Set through `compileSdk { release(..) { minorApiLevel } }`,
+    // the one form both the plain Android and the multiplatform library DSL have.
+    const val compileSdkMinor = 1
     const val minSdk = 31
     const val targetSdk = 35
     const val wearMinSdk = 30

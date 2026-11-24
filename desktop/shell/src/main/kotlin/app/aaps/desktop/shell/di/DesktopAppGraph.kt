@@ -1,6 +1,7 @@
 package app.aaps.desktop.shell.di
 
 import app.aaps.core.interfaces.alerts.EatReminder
+import app.aaps.core.interfaces.alerts.LocalAlertUtils
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
 import app.aaps.core.interfaces.clientcontrol.ClientControlActionDispatcher
 import app.aaps.core.interfaces.configuration.Config
@@ -55,7 +56,6 @@ import app.aaps.ui.compose.overview.graphs.GraphViewModel
 import app.aaps.ui.search.BuiltInSearchables
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
-import dev.zacsweers.metro.Includes
 import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metrox.viewmodel.MetroViewModelMultibindings
@@ -75,18 +75,13 @@ import java.io.File
  *
  * The shell depends on the same 26 modules `:ios:shell` does, so every plugin that registers itself
  * with `@ContributesBinding` is already in the graph, and the classes in `app.aaps.desktop.shell.platform`
- * answer the platform half. Measured at **1**, down from 32:
- *
- * **`Autotune`** needs its plugin ported out of androidMain: about 2,700 lines of arithmetic whose
- * only Android parts are `Calendar`/`TimeZone` and a file dump, but it computes basal, ISF and ICR,
- * so the date maths wants golden vectors rather than a quick swap.
+ * answer the platform half. Measured at **0**, down from 32. The last one was `Autotune`: its plugin
+ * is common code now, checked against golden files made by the Android code before the move, and the
+ * desktop supplies only where its files go (`DesktopAutotuneFileStore`, `~/AAPS/autotune`).
  *
  * Nightscout sync is done, websocket included. `SocketNsConnection` in `:shared:clientbindings` is
  * shared with iOS and carries the remote-control channel, so a command reaches this client as fast
  * as it reaches a phone. `DesktopNsLoadExecutor` still runs the REST round the plugin asks for.
- *
- * **Needs a port rather than an implementation:** `Autotune`, whose `AutotunePlugin` is arithmetic
- * over treatment history sitting in androidMain.
  *
  * Settings import and export is no longer on this list. `LocalImportExportPrefs` in `commonMain`
  * carries the whole flow, and desktop supplies only the file access - see `_docs/desktop_alignment.md`.
@@ -98,8 +93,15 @@ import java.io.File
  *
  * The pattern to follow for the first group is `app.aaps.ios.shell.missing`: nothing returns a
  * plausible value, and nothing is silent.
+ *
+ * [CoreObjectsGraph] is a plain binding container rather than a contributed one, so every graph has
+ * to name it. It holds the QuickWizard / QuickWizardEntry / BolusWizard cycle, broken with deferred
+ * providers - the same shape `AppRootGraph` and `IosAppGraph` use. [ClientGraphBindings] is the same
+ * idea: the bindings iOS and desktop both need, in one place rather than copied into each shell. Not
+ * contributed, because Android provides the same ones. Both are objects, so they go in
+ * `bindingContainers`: Metro calls their `@Provides` directly and needs no instance.
  */
-@DependencyGraph(AppScope::class)
+@DependencyGraph(AppScope::class, bindingContainers = [CoreObjectsGraph::class, ClientGraphBindings::class])
 interface DesktopAppGraph : MetroViewModelMultibindings {
 
     // Everything AapsAppRoot takes.
@@ -125,6 +127,13 @@ interface DesktopAppGraph : MetroViewModelMultibindings {
     val configBuilder: ConfigBuilder
     // The periodic housekeeping shared with Android, and the scope the shell drives it on.
     val periodicMaintenance: PeriodicMaintenance
+
+    /**
+     * The local alarms, for one call Android makes and this shell has to make too:
+     * `preSnoozeAlarms` holds the stale-data alarm back for five minutes so the first Nightscout
+     * round can land before the database is judged out of date.
+     */
+    val localAlertUtils: LocalAlertUtils
     // Turns a snackbar into a notification when no screen is up to show it. Shared with Android.
     val snackbarNotificationFallback: SnackbarNotificationFallback
     val eatReminder: EatReminder
@@ -190,23 +199,4 @@ interface DesktopAppGraph : MetroViewModelMultibindings {
     @Provides
     @SingleIn(AppScope::class)
     fun repository(): AppRepository = JvmAppDatabaseBuilder().provideAppRepository(File(DesktopFolders.data, "aaps-desktop.db").absolutePath)
-
-    /**
-     * [CoreObjectsGraph] is a plain binding container rather than a contributed one, so every graph
-     * has to include it by name. It holds the QuickWizard / QuickWizardEntry / BolusWizard cycle,
-     * broken with deferred providers - the same shape `AppRootGraph` and `IosAppGraph` use.
-     *
-     * [ClientGraphBindings] is the same idea: the bindings iOS and desktop both need, in one place
-     * rather than copied into each shell. Not contributed, because Android provides the same ones.
-     */
-
-
-    @DependencyGraph.Factory
-    fun interface Factory {
-
-        fun create(
-            @Includes coreObjects: CoreObjectsGraph,
-            @Includes clientBindings: ClientGraphBindings
-        ): DesktopAppGraph
-    }
 }

@@ -64,6 +64,8 @@ fun OverviewScreenTablet(
     runningModeProgress: Float,
     runningModeSceneManaged: Boolean = false,
     tbrState: TbrState,
+    tbrText: String = "",
+    tbrProgress: Float = 0f,
     smbEnabled: Boolean,
     isSimpleMode: Boolean,
     graphViewModel: GraphViewModel,
@@ -169,6 +171,8 @@ fun OverviewScreenTablet(
                             tempTargetReason = tempTargetReason,
                             tempTargetSceneManaged = tempTargetSceneManaged,
                             tbrState = tbrState,
+                            tbrText = tbrText,
+                            tbrProgress = tbrProgress,
                             iobUiState = iobUiState,
                             cobUiState = cobUiState,
                             sensitivityUiState = sensitivityUiState,
@@ -178,6 +182,20 @@ fun OverviewScreenTablet(
                             commandsAllowed = commandsAllowed
                         )
                     }
+                }
+
+                // On a client, the client status card comes before the status lights
+                if (config.AAPSCLIENT) {
+                    val nsClientStatus by graphViewModel.nsClientStatusFlow.collectAsStateWithLifecycle()
+                    val flavorTint = when {
+                        config.AAPSCLIENT3 -> AapsTheme.generalColors.flavorClient3Tint
+                        config.AAPSCLIENT2 -> AapsTheme.generalColors.flavorClient2Tint
+                        else               -> AapsTheme.generalColors.flavorClient1Tint
+                    }
+                    AapsClientStatusCard(
+                        statusData = nsClientStatus,
+                        flavorTint = flavorTint
+                    )
                 }
 
                 OverviewStatusSection(
@@ -193,19 +211,6 @@ fun OverviewScreenTablet(
                     expanded = statusExpanded,
                     onExpandedChange = { statusExpanded = it }
                 )
-
-                if (config.AAPSCLIENT) {
-                    val nsClientStatus by graphViewModel.nsClientStatusFlow.collectAsStateWithLifecycle()
-                    val flavorTint = when {
-                        config.AAPSCLIENT3 -> AapsTheme.generalColors.flavorClient3Tint
-                        config.AAPSCLIENT2 -> AapsTheme.generalColors.flavorClient2Tint
-                        else               -> AapsTheme.generalColors.flavorClient1Tint
-                    }
-                    AapsClientStatusCard(
-                        statusData = nsClientStatus,
-                        flavorTint = flavorTint
-                    )
-                }
                 // The QuickLaunch toolbar is centred over both columns, so this one needs space at its end too,
                 // like the graphs column has
                 Spacer(Modifier.height(AapsSpacing.fabClearance + overlaidBarsHeight))

@@ -29,20 +29,20 @@ kotlin {
                 implementation(project(":core:objects"))
                 implementation(project(":core:utils"))
                 implementation(project(":core:ui"))
+                // The profile viewer of the Autotune screen. Was on androidMain until Autotune moved here.
+                implementation(project(":core:graph"))
 
                 implementation(libs.androidx.collection)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.jetbrains.compose.runtime)
+                implementation(libs.jetbrains.compose.ui.tooling.preview)
                 api(kotlin("reflect"))
             }
         }
 
         androidMain {
             dependencies {
-                implementation(project(":core:graph"))
-                implementation(libs.androidx.compose.ui.tooling.preview)
                 implementation(libs.androidx.work.runtime)
-                implementation(libs.org.slf4j.api)
                 // APS (it should be androidTestImplementation but it doesn't work)
                 runtimeOnly(libs.org.mozilla.rhino)
             }
@@ -63,6 +63,9 @@ kotlin {
         getByName("androidHostTest") {
             dependencies {
                 implementation(project(":shared:tests"))
+                // AndroidAutotuneFileStore, which AutotuneFSTest runs for real. Already on the test runtime
+                // classpath through :shared:tests.
+                implementation(project(":implementation"))
                 implementation(project(":pump:virtual"))
                 implementation(libs.org.junit.jupiter)
                 implementation(libs.org.junit.jupiter.api)
@@ -72,8 +75,7 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.test)
                 // Compose UI tests (AutotuneScreenTest). Restated from compose-test-module-dependencies,
                 // which applies com.android.library and so cannot be used here.
-                implementation(project.dependencies.platform(libs.androidx.compose.bom))
-                implementation(libs.androidx.compose.ui.test.junit4)
+                implementation(libs.jetbrains.compose.ui.test.junit4)
                 implementation(libs.androidx.compose.ui.test.manifest)
                 implementation(libs.org.robolectric)
                 // The real org.json: isReturnDefaultValues makes the platform stub answer null rather
