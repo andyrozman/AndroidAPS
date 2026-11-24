@@ -84,7 +84,7 @@ internal class PumpPluginAbstractTest {
             return mock()
         }
 
-        override fun triggerUIChange() {}
+        //override fun triggerUIChange() {}
 
         override suspend fun getPumpStatus(reason: String) {}
 

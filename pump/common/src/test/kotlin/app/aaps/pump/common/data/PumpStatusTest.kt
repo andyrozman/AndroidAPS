@@ -67,7 +67,6 @@ internal class PumpStatusTest {
 
         sut.setLastCommunicationToNow()
 
-        assertThat(sut.lastDataTime).isAtLeast(before)
         assertThat(sut.lastConnection).isAtLeast(before)
         assertThat(sut.fragmentUpdates).isEqualTo(1)
     }

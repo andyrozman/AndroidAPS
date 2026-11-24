@@ -44,14 +44,12 @@ dependencies {
     implementation(project(":core:keys"))
     implementation(project(":core:ui"))
 
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-
     testImplementation(project(":shared:impl"))
     testImplementation(project(":shared:tests"))
 
-    implementation(libs.androidx.ui.tooling.preview)
-    debugImplementation(libs.androidx.ui.tooling)
+    implementation(libs.jetbrains.compose.ui.tooling.preview)
+    debugImplementation(libs.jetbrains.compose.ui.tooling)
+
 
     // pump-common
     implementation(project(":pump:common"))

@@ -29,4 +29,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.com.google.code.gson)
 
+    testImplementation(libs.org.robolectric)
+    testRuntimeOnly(libs.org.junit.vintage.engine)
+
 }

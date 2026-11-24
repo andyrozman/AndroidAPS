@@ -57,21 +57,11 @@ class TandemDataConverterTest : TestBase() {
         tandemPumpStatus = Mockito.mock(TandemPumpStatus::class.java)
 
 
-        //sharedPreferences = PreferenceManager(context)
-        //sp = SPImpl(sharedPreferences, context)
-        //tandemPumpUtil = TandemPumpUtil()
-
         unitToTest = TandemDataConverter(aapsLogger = aapsLogger,
-                              sp = sp,
                               pumpStatus = tandemPumpStatus,
                               pumpUtil = tandemPumpUtil)
         dateUtil = DateUtilImpl(context)
-        //sp = SPImpl()
-        //hardLimits = HardLimitsMock(sp, preferences, rh)
         `when`(activePlugin.activePump).thenReturn(testPumpPlugin)
-        //`when`(rh.gs(app.aaps.core.ui.R.string.profile_per_unit)).thenReturn("/U")
-        //`when`(rh.gs(app.aaps.core.ui.R.string.profile_carbs_per_unit)).thenReturn("g/U")
-        //`when`(rh.gs(app.aaps.core.ui.R.string.profile_ins_units_per_hour)).thenReturn("U/h")
         `when`(rh.gs(anyInt(), anyString())).thenReturn("")
         `when`(activePlugin.activeAPS).thenReturn(aps)
         `when`(tandemPumpUtil.gson).thenReturn(gson)
