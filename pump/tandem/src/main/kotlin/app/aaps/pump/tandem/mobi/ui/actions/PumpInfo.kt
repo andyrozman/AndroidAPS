@@ -36,10 +36,8 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionRespon
 
 @Composable
 fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
-             navigateBack: () -> Unit,
              tandemPumpStatus: TandemPumpStatus? = null,
              resourceHelper: ResourceHelper,
-             showHeader: Boolean = true,
              navigateToDebugCommands: () -> Unit = {}
              ) {
 
@@ -55,16 +53,6 @@ fun PumpInfo(innerPadding: PaddingValues = PaddingValues(),
             .fillMaxSize()
             .padding(horizontal = 0.dp),
         content = {
-            if (showHeader) {
-                item {
-                    HeaderLineWithBackButton(
-                        text = resourceHelper.gs(R.string.pi_title),
-                        onBackClick = navigateBack,
-                        resourceHelper = resourceHelper
-                    )
-                    HorizontalDivider()
-                }
-            }
 
             item {
                 PumpInfoRow(
@@ -181,7 +169,6 @@ private fun DefaultPreview_PumpInfo() {
             PumpInfo(
                 innerPadding = PaddingValues(),
                 //navController = null,
-                navigateBack = { },
                 tandemPumpStatus = null,
                 resourceHelper = PreviewResourceHelper()
             )

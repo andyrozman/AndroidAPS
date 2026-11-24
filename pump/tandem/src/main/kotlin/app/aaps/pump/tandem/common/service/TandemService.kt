@@ -119,7 +119,7 @@ class TandemService : MetroService() {
                         } else {
                             aapsLogger.info(LTag.PUMP, "PumpConfig: Setting Shared Connection Data. NEW")
 
-                            sharedConfigurationAlreadyApplied = true
+                            sharedConfigurationAlreadyApplied = false
 
                             pumpAddress = sharedConnectionData.savedBluetoothMAC
 
@@ -154,15 +154,20 @@ class TandemService : MetroService() {
 
     fun connectWithConnectionData(newConfig: PumpConfigurationDto): Boolean {
 
+        aapsLogger.info(LTag.PUMP, "PumpConfig: connectWithConnectionData")
+
         if (!isMobiConfigurationStillValid(newConfig)) {
+            aapsLogger.info(LTag.PUMP, "PumpConfig: Mobi Configuration not valid")
             configurationValid = false
 
             tandemPumpUtil.setError(errorType = PumpErrorType.ConfiguredPumpNotFound,
                 details = rh.gs(R.string.tandem_error_not_bonded))
 
-            aapsLogger.warn(LTag.PUMP, "PumpConfig: Invalid connection configuration")
+            aapsLogger.warn(LTag.PUMP, "Connect: Invalid connection configuration")
 
             return false
+        } else {
+            aapsLogger.info(LTag.PUMP, "Connect: Mobi Configuration valid")
         }
 
         val importSharedConfiguration =
@@ -173,8 +178,10 @@ class TandemService : MetroService() {
 
         if (importSharedConfiguration) {
 
+            aapsLogger.info(LTag.PUMP, "Connect: importSharedConfiguration")
+
             if (isConnected()) {
-                aapsLogger.warn(LTag.PUMP, "PumpConfig: Cannot import shared configuration while connected")
+                aapsLogger.warn(LTag.PUMP, "Connect: Cannot import shared configuration while connected")
                 return false
             }
 
@@ -217,6 +224,8 @@ class TandemService : MetroService() {
 
                 return false
             }
+        } else {
+            aapsLogger.info(LTag.PUMP, "Connect: don't import importSharedConfiguration")
         }
 
         // Validate the credentials actually stored in AAPS.
@@ -225,6 +234,8 @@ class TandemService : MetroService() {
 
         val storedBondStatus = tandemPumpUtil.getIntPreferenceOrDefault(
             intPreferenceKey = TandemIntPreferenceKey.PumpPairStatus, defaultValue = 0)
+
+        aapsLogger.info(LTag.PUMP, "Connect: storedAddress=${storedAddress}, storedBondStatus=${storedBondStatus}")
 
         if (storedAddress.isNullOrEmpty() ||
             storedBondStatus != 100 ||
@@ -258,13 +269,15 @@ class TandemService : MetroService() {
             sharedConnectionData = newConfig.sharedConnectionData
         )
 
+        aapsLogger.info(LTag.PUMP, "Connect: currentConfiguration=${currentConfiguration}")
+
         return connectToPump()
     }
 
 
     fun reconnectWithDifferentConnectionData(newConfig: PumpConfigurationDto): Boolean {
 
-        aapsLogger.info(LTag.PUMP, "PumpConfig: Reconnecting with different connection data")
+        aapsLogger.info(LTag.PUMP, "Connect: Reconnecting with different connection data")
 
         // Disconnect before changing credentials.
         if (isConnected()) {
@@ -273,7 +286,7 @@ class TandemService : MetroService() {
 
         // Make sure the previous connection has actually stopped.
         if (isConnected()) {
-            aapsLogger.warn(LTag.PUMP, "PumpConfig: Cannot apply new configuration while still connected")
+            aapsLogger.warn(LTag.PUMP, "Connect: Cannot apply new configuration while still connected")
             return false
         }
 
@@ -304,6 +317,8 @@ class TandemService : MetroService() {
 
 
     fun connectToPump(): Boolean {
+        aapsLogger.info(LTag.PUMP, "Connect: connectToPump")
+
         if (!this.tandemPumpConnectionManager.isConnected()) {
             val status = this.tandemPumpConnectionManager.connectToPump()
             aapsLogger.info(LTag.PUMP, "SRV: connected=$status")

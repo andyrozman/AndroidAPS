@@ -59,7 +59,6 @@ import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
 import app.aaps.pump.tandem.mobi.ui.actions.setUpPreviewState
 
 import app.aaps.pump.tandem.mobi.ui.util.DateTimeInTwoLines
-import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.UnknownHistoryLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -72,9 +71,7 @@ fun History(
     aapsLogger: AAPSLogger,
     refreshDatabase: (DatabaseTarget, DatabaseQueryParameters) -> Unit,
     refreshMainAppData: (RefreshData) -> Unit,
-    navigateBack: () -> Unit,
-    resourceHelper: ResourceHelper,
-    showHeader: Boolean = true
+    resourceHelper: ResourceHelper
 ) {
 
     val ds = LocalTandemDataStore.current
@@ -113,78 +110,11 @@ fun History(
     }
 
 
-
-
-
-//    fun waitForLoaded() = refreshScope.launch {
-//
-//        aapsLogger.info(TAG, "Initial Load of History.")
-//        ds.dataHistoryLoaded.value = false
-//
-//        refreshDatabase(
-//            DatabaseTarget.PUMP_HISTORY, DatabaseQueryParameters(
-//                groupType = selectedGroup,
-//                historyTime = selectedTimeRange
-//            )
-//        )
-//
-//        while(true) {
-//            if (ds.dataHistoryLoaded.value==true) {
-//                break
-//            }
-//
-//            withContext(Dispatchers.IO) {
-//                Thread.sleep(250)
-//            }
-//        }
-//
-//        aapsLogger.info(TAG, "History loaded.")
-//        refreshing = false
-//    }
-
-//    LaunchedEffect(intervalOf(60)) {
-//        if (firstRun || !refreshingEnabled) {
-//            firstRun=false
-//            return@LaunchedEffect
-//        }
-//        aapsLogger.info(TAG, "Reloading Qualifying events from interval")
-//        refreshDatabase(DatabaseTarget.QUALIFYING_EVENTS, DatabaseQueryParameters())
-//    }
-
-    //var data by remember { mutableStateOf("Loading...") }
-    //var isRefreshing by remember { mutableStateOf(false) }
-
-    // LaunchedEffect(refreshing) {
-    //     aapsLogger.info(TAG, "LaunchedEffect (refreshing) Reloading History")
-    //     //waitForLoaded()
-    //     doDatabaseRefresh()
-    //     //refreshingEnabled = true
-    // }
-
-
     LaunchedEffect(Unit) {
         aapsLogger.info(TAG, "LaunchedEffect (Unit) Reloading History")
-        //waitForLoaded()
         refreshMainAppData(RefreshData.SEMAPHORE_HISTORY)
         doDatabaseRefresh()
-        //refreshingEnabled = true
     }
-
-//    DisposableEffect(Unit) {
-//        onDispose {
-//            refreshingEnabled = false
-//        }
-//    }
-
-//    LifecycleStateObserver(lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current, onStop = {
-//        refreshScope.cancel()
-//    }) {
-//        Timber.i("LifecycleStateObserver:reloading Qualifying events from onStart lifecyclestate")
-//        refreshDatabase(DatabaseTarget.QUALIFYING_EVENTS, DatabaseQueryParameters())
-//    }
-
-
-
 
 
     Box(
@@ -193,7 +123,6 @@ fun History(
             .pullToRefresh(isRefreshing = refreshing,
                            state= pullRefreshState,
                            onRefresh = { doDatabaseRefresh() })
-        // .pullRefresh(state)
     ) {
         PullToRefreshDefaults.Indicator(
             isRefreshing = refreshing,
@@ -218,24 +147,12 @@ fun History(
                 .padding(horizontal = 0.dp),
             content = {
 
-                if (showHeader) {
-                    item {
-                        HeaderLineWithBackButton(
-                            text = resourceHelper.gs(R.string.data_pump_history),
-                            onBackClick = navigateBack,
-                            resourceHelper = resourceHelper
-                        )
-                        HorizontalDivider()
-                    }
-                }
-
                 item {
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                            //.padding(horizontal = 13.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -419,7 +336,6 @@ private fun DefaultPreview_History() {
             LocalTandemDataStore.current.dataHistoryLoaded.value = true
             History(
                 innerPadding = PaddingValues(),
-                navigateBack = { },
                 resourceHelper = PreviewResourceHelper(),
                 aapsLogger = PreviewAAPSLogger(),
                 refreshDatabase = { _,_ ->},
@@ -451,7 +367,6 @@ private fun DefaultPreview_HistoryDark() {
             LocalTandemDataStore.current.dataHistoryLoaded.value = true
             History(
                 innerPadding = PaddingValues(),
-                navigateBack = { },
                 resourceHelper = PreviewResourceHelper(),
                 aapsLogger = PreviewAAPSLogger(),
                 refreshDatabase = { _,_ ->},

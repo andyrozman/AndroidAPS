@@ -83,14 +83,14 @@ import java.time.format.DateTimeFormatter
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
-fun Line(
+fun Line2(
     modifier: Modifier = Modifier,
-    text: String,
+    text2: String,
     style: TextStyle = MaterialTheme.typography.bodyLarge,
     bold: Boolean = false,
         ) {
     Text1(
-            text = text,
+            text = text2,
             style = style,
             fontWeight = when (bold) {
         true -> FontWeight.Bold
@@ -143,7 +143,7 @@ fun intervalOf(seconds: Int): Int {
 fun HeaderLine(
     text: String
 ) {
-    Line(text = text, style = MaterialTheme.typography.headlineMedium,
+    Line2(text2 = text, style = MaterialTheme.typography.headlineMedium,
          modifier = Modifier.padding(all = 20.dp))
 }
 

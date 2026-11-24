@@ -35,6 +35,7 @@ import app.aaps.pump.tandem.mobi.ui.TandemUiController
 import app.aaps.pump.tandem.mobi.ui.actions.Actions
 import app.aaps.pump.tandem.mobi.ui.actions.DebugCommands
 import app.aaps.pump.tandem.mobi.ui.actions.PumpInfo
+import app.aaps.pump.tandem.mobi.ui.actions.SoundConfiguration
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CartridgeActions
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.ChangeCartridgeScreen
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.FillCannulaScreen
@@ -63,6 +64,7 @@ private enum class MobiScreen {
     ACTIONS_PUMP_INFO,
     ACTIONS_DEBUG_COMMANDS,
     ACTIONS_SITE_REMINDER,
+    ACTIONS_SOUND_CONFIGURATION,
 
     PAIR_WIZARD
 }
@@ -231,9 +233,14 @@ class MobiComposeContent(
                             title = resourceHelper.gs(R.string.sr_title),
                             navigationIcon = navIconBackToCartridgeActions, actions = {})
 
+                        MobiScreen.ACTIONS_SOUND_CONFIGURATION -> ToolbarConfig(
+                            title = resourceHelper.gs(R.string.sc_title),
+                            navigationIcon = navIconBackToCartridgeActions, actions = {})
+
                         MobiScreen.PAIR_WIZARD     -> ToolbarConfig(
                             title = resourceHelper.gs(R.string.tandem_wizard_title),
                             navigationIcon = navIconBackToCartridgeActions, actions = {})
+
 
                     }
                 )
@@ -333,24 +340,15 @@ class MobiComposeContent(
                     refreshDatabase = { target, queryParameters -> tandemUiController.refreshDatabase(target, queryParameters) },
                     refreshMainAppData = { refreshData -> tandemUiController.refreshMainAppData(refreshData = refreshData)},
                     aapsLogger = aapsLogger,
-                    resourceHelper = resourceHelper,
-                    showHeader = false,
-                    navigateBack = {
-                        currentScreen = MobiScreen.DATA
-                    },
+                    resourceHelper = resourceHelper
                 )
             }
 
             MobiScreen.DATA_EVENTS -> {
                 QualifyingEvents (
                     aapsLogger = aapsLogger,
-                    resourceHelper = resourceHelper,
-                    showHeader = false,
                     refreshDatabase = { target, queryParameters -> tandemUiController.refreshDatabase(target, queryParameters) },
-                    refreshMainAppData = { refreshData -> tandemUiController.refreshMainAppData(refreshData = refreshData)},
-                    navigateBack = {
-                        currentScreen = MobiScreen.DATA
-                    },
+                    refreshMainAppData = { refreshData -> tandemUiController.refreshMainAppData(refreshData = refreshData)}
                 )
             }
 
@@ -372,13 +370,15 @@ class MobiComposeContent(
                     sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
                     aapsLogger = aapsLogger,
                     resourceHelper = resourceHelper,
-                    showHeader = false,
                     refreshMainAppData = { data -> tandemUiController.refreshMainAppData(data) },
                     navigateToPumpInfo = {
                         currentScreen = MobiScreen.ACTIONS_PUMP_INFO
                     },
                     navigateToCartridgeActions = {
                         currentScreen = MobiScreen.ACTIONS_CARTRIDGE_ACTIONS
+                    },
+                    navigateToSoundConfiguration = {
+                        currentScreen = MobiScreen.ACTIONS_SOUND_CONFIGURATION
                     }
                 )
             }
@@ -387,10 +387,6 @@ class MobiComposeContent(
                 PumpInfo(
                     resourceHelper = resourceHelper,
                     tandemPumpStatus = tandemPumpStatus,
-                    showHeader = false,
-                    navigateBack = {
-                        currentScreen = MobiScreen.ACTIONS
-                    },
                     navigateToDebugCommands = {
                         currentScreen = MobiScreen.ACTIONS_DEBUG_COMMANDS
                     },
@@ -501,6 +497,15 @@ class MobiComposeContent(
                 )
             }
 
+            MobiScreen.ACTIONS_SOUND_CONFIGURATION -> {
+                SoundConfiguration(
+                    sendPumpCommands = { messages -> tandemUiController.sendPumpCommands(messages) },
+                    tandemPumpStatus = tandemPumpStatus,
+                    resourceHelper = resourceHelper,
+                    aapsLogger = aapsLogger
+                )
+            }
+
             MobiScreen.PAIR_WIZARD -> {
                 aapsLogger.info(LTag.PUMP, "PAIR_WIZARD screen shown: starting pairing workflow")
                 tandemPumpStatus.lastPairingStatus = TandemPairingStatus.Unknown
@@ -522,6 +527,7 @@ class MobiComposeContent(
                     }
                 )
             }
+
 
         }
     }

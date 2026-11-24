@@ -313,9 +313,12 @@ class TandemMobiPumpPlugin(
     // and EventPumpForceDisconnect
     private fun checkIfConfigurationChanged() {
 
+        aapsLogger.info(TAG, "Connect: Tandem Service: ${tandemService}")
         val service = tandemService ?: return
 
         val newConfig = service.prepareConfiguration()
+
+        aapsLogger.info(TAG, "Connect: Config: ${newConfig}")
 
         if (!newConfig.useSharedConnection ||
             !newConfig.validSharedConfiguration ||

@@ -85,8 +85,8 @@ fun Actions(
     resourceHelper: ResourceHelper,
     navigateToCartridgeActions: () -> Unit,
     navigateToPumpInfo: () -> Unit,
-    refreshMainAppData: (RefreshData) -> Unit,
-    showHeader: Boolean = true
+    navigateToSoundConfiguration: () -> Unit,
+    refreshMainAppData: (RefreshData) -> Unit
 ) {
 
     var showStartStopInsulinSheet by remember { mutableStateOf(false) }
@@ -141,10 +141,10 @@ fun Actions(
         fetchDataStoreFields()
     }
 
-    //val state = rememberPullRefreshState(refreshing, ::refresh)
+
     val pullRefreshState = rememberPullToRefreshState()
 
-// LocalLifecycleOwner.current
+
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
         refreshScope.cancel()
     }) {
@@ -154,14 +154,17 @@ fun Actions(
         ds.requestInsulinLoadData.value = true
     }
 
+
     LaunchedEffect(intervalOf(60)) {
         aapsLogger.debug(TAG, "reloading Actions from interval")
         fetchDataStoreFields()
     }
 
+
     LaunchedEffect(refreshing) {
         waitForLoaded()
     }
+
 
     Box(
         modifier = Modifier
@@ -184,11 +187,7 @@ fun Actions(
                 .fillMaxSize()
                 .padding(horizontal = 0.dp),
             content = {
-                if (showHeader) {
-                    item {
-                        HeaderLine(resourceHelper.gs(R.string.ui_a_title))
-                    }
-                }
+
                 item {
                     PumpStatusHeader(resourceHelper = resourceHelper)
                 }
@@ -380,6 +379,28 @@ fun Actions(
                     }
                 }
 
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.TopStart)
+                    ) {
+                        ListItem(
+                            headlineContent = { Text(
+                                resourceHelper.gs(R.string.sc_title)
+                            )},
+                            supportingContent = {
+                            },
+                            leadingContent = {
+                                Icon(Icons.Filled.Info, contentDescription = null)
+                            },
+                            modifier = Modifier.clickable {
+                                navigateToSoundConfiguration()
+                            }
+                        )
+                    }
+                }
+
             }
         )
     }
@@ -427,6 +448,7 @@ private fun PreviewInsulinActive() {
                 navigateToCartridgeActions = {},
                 resourceHelper = PreviewResourceHelper(),
                 navigateToPumpInfo = {},
+                navigateToSoundConfiguration = {},
                 refreshMainAppData = {}
             )
         }
@@ -448,6 +470,7 @@ private fun PreviewInsulinSuspended() {
                 aapsLogger = PreviewAAPSLogger(),
                 navigateToCartridgeActions = {},
                 navigateToPumpInfo = {},
+                navigateToSoundConfiguration = {},
                 resourceHelper = PreviewResourceHelper(),
                 refreshMainAppData = {}
             )

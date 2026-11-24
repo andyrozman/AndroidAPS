@@ -7,6 +7,6 @@ class TandemMobiPluginVersion {
     val devVersion = "4.0.0-dev-f (5.11.2026)"
 
     val pumpX2Version = BuildConfig.PUMPX2_VERSION
-    val tandemModuleVersion = "v0.9.11.0"
+    val tandemModuleVersion = "v0.9.12.6"
 
 }

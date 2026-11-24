@@ -75,8 +75,7 @@ fun StartStopInsulinScreen(
     resourceHelper: ResourceHelper,
     aapsLogger: AAPSLogger,
     navigateBack: () -> Unit,
-    refreshMainAppData: (RefreshData) -> Unit,
-    showHeader: Boolean = true
+    refreshMainAppData: (RefreshData) -> Unit
 ) {
     val ds = LocalTandemDataStore.current
     @Suppress("PropertyName")
@@ -126,6 +125,7 @@ fun StartStopInsulinScreen(
         sendPumpCommands(listOf(AlertStatusRequest(), AlarmStatusRequest()))
     }
 
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -141,7 +141,6 @@ fun StartStopInsulinScreen(
                 .align(Alignment.TopCenter)
                 .zIndex(10f)
         )
-
 
         // Observe notification bundle for alerts/alarms
         val notificationBundle = ds.notificationBundle.observeAsState()

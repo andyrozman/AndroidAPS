@@ -1,5 +1,6 @@
 package app.aaps.pump.tandem.common.comm.ui
 
+import androidx.lifecycle.MutableLiveData
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.NotificationId
@@ -34,9 +35,11 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
+import com.jwoglom.pumpx2.pump.messages.response.control.SetPumpSoundsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpGlobalsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResponse
@@ -230,6 +233,12 @@ class TandemUICommunication(
                     aapsLogger.debug("Set Temp Rate Sent: ${message.tempRateId}")
                     sendCommand(TempRateRequest()) // for refreshing the screen
                 }
+            }
+            is PumpGlobalsResponse      -> {
+                dataStore.pumpGlobalResponse.value = message
+            }
+            is SetPumpSoundsResponse -> {
+                dataStore.setPumpSoundsResponse.value = message
             }
             is HistoryLogStatusResponse -> {
                 dataStore.historyLogStatus.value = message

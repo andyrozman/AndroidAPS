@@ -24,6 +24,7 @@ import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateS
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillTubingStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
 import app.aaps.pump.tandem.mobi.ui.actions.cartridge.CompletedCartridgeAction
+import com.jwoglom.pumpx2.pump.messages.response.control.SetPumpSoundsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ApiVersionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpGlobalsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpVersionResponse
@@ -127,7 +128,7 @@ class TandemUIDataStore : TandemUiState, TandemUiStateWriter {
     // SOUND ---------
 
     val pumpGlobalResponse = MutableLiveData<PumpGlobalsResponse>()
-
+    val setPumpSoundsResponse = MutableLiveData<SetPumpSoundsResponse>()
 
 
     // --- TandemUiStateWriter (backend write surface; thread-safe) ---

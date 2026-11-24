@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package app.aaps.pump.tandem.mobi.ui.data
 
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,16 +35,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.pump.common.test.PreviewAAPSLogger
-import app.aaps.pump.common.test.PreviewResourceHelper
-import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.data.defs.RefreshData
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseQueryParameters
 import app.aaps.pump.tandem.common.database.data.defs.DatabaseTarget
 import app.aaps.pump.tandem.common.database.data.dto.TandemQualifyingEventDto
 import app.aaps.pump.tandem.common.driver.LocalTandemDataStore
-import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.pump.tandem.mobi.ui.util.DateTimeInTwoLines
 import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
@@ -61,10 +54,7 @@ fun QualifyingEvents(
     innerPadding: PaddingValues = PaddingValues(),
     aapsLogger: AAPSLogger,
     refreshDatabase: (DatabaseTarget, DatabaseQueryParameters) -> Unit,
-    refreshMainAppData: (RefreshData) -> Unit,
-    navigateBack: () -> Unit,
-    resourceHelper: ResourceHelper,
-    showHeader: Boolean = true
+    refreshMainAppData: (RefreshData) -> Unit
 ) {
 
     val ds = LocalTandemDataStore.current
@@ -126,17 +116,6 @@ fun QualifyingEvents(
                 .fillMaxSize()
                 .padding(horizontal = 0.dp),
             content = {
-
-                if (showHeader) {
-                    item {
-                        HeaderLineWithBackButton(
-                            text = resourceHelper.gs(R.string.data_events),
-                            onBackClick = navigateBack,
-                            resourceHelper = resourceHelper
-                        )
-                        HorizontalDivider()
-                    }
-                }
 
                 events.forEach {
                     item {
@@ -213,8 +192,6 @@ private fun DefaultPreview_QualifyingEvents() {
             LocalTandemDataStore.current.dataQELoaded.value = true
             QualifyingEvents(
                 innerPadding = PaddingValues(),
-                navigateBack = { },
-                resourceHelper = PreviewResourceHelper(),
                 aapsLogger = PreviewAAPSLogger(),
                 refreshDatabase = { _,_ ->},
                 refreshMainAppData = {}

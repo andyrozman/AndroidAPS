@@ -124,16 +124,14 @@
 
     <!-- UI Configuration::Sound -->
     <string name="sc_title">Sound Configuration</string>
-    <string name="sc_general">General</string>
-    <string name="sc_quick_bolus">Quick Bolus</string>
-    <string name="sc_bolus">Bolus</string>
-    <string name="sc_pcba_rev">PCBA revision</string>
-    <string name="sc_pump_model">Pump Model</string>
-    <string name="sc_pump_sw">Pump Software</string>
+    <string name="sc_type_general">General</string>
+    <string name="sc_type_quick_bolus">Quick Bolus</string>
+    <string name="sc_type_bolus">Bolus</string>
+    <string name="sc_type_reminder">Reminder</string>
+    <string name="sc_type_alert">Alert</string>
+    <string name="sc_type_alarm">Alarm</string>
+    <string name="sc_type_fill_tub">Fill Tubing</string>
 
-
-    <string name="ca_title32325656">Settings / Actions</string>
-    <string name="ca_title3232445">Settings / Actions</string>
 
     <!-- UI Actions::Cartridge Actions -->
     <string name="ca_label">Cartridge Setup</string>

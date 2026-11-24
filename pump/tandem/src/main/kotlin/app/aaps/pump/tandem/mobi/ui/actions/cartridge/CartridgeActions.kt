@@ -56,6 +56,7 @@ import app.aaps.pump.tandem.mobi.ui.util.intervalOf
 import app.aaps.pump.tandem.mobi.ui.util.HeaderLineWithBackButton
 import app.aaps.pump.tandem.R
 import app.aaps.pump.tandem.common.comm.ui.CoreCartridgeActionsModel
+import app.aaps.pump.tandem.mobi.ui.util.Line2
 import app.aaps.core.ui.R as Rco
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
@@ -259,6 +260,7 @@ fun CartridgeActions(
         )
     }
 
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -371,7 +373,7 @@ fun CartridgeActions(
                 }
 
                 item {
-                    Line(text = "\n")
+                    Line2(text2 = "\n")
                 }
             }
         )
